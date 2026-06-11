@@ -210,26 +210,6 @@ third-party actions across every consumer. Renovate opens PRs per repo, not
 one PR across repos, but a single preset means every sibling bumps the same
 way at the same time.
 
-### Self-hosted runner
-
-Renovate runs account-wide from `.github/workflows/renovate.yml` in this repo
-(not the Mend hosted app), on a weekly cron + `workflow_dispatch`. It
-autodiscovers `mikeparcewski/*` with `onboarding:false`, so it only manages
-repos that already ship a `renovate.json` (the wicked-* family) and never
-opens onboarding PRs on unrelated repos.
-
-One-time setup — a repo secret `RENOVATE_TOKEN`:
-
-- Create a PAT for `mikeparcewski`. Fine-grained: repository access to the
-  target repos, permissions **Contents: R/W**, **Pull requests: R/W**,
-  **Workflows: R/W** (needed to bump pinned action SHAs in workflow files),
-  **Metadata: R**. Classic equivalent: `repo` + `workflow` scopes.
-- Add it: `gh secret set RENOVATE_TOKEN -R mikeparcewski/wicked-ci`
-  (paste the PAT when prompted).
-- Trigger: `gh workflow run renovate.yml -R mikeparcewski/wicked-ci`
-  (or Actions → Renovate → Run workflow). The dispatch form has `logLevel`
-  and `dryRun` inputs for debugging.
-
 ## Pinning
 
 The supply-chain posture is **SHA-pin everything, let Renovate bump it**.
