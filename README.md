@@ -197,16 +197,41 @@ understanding suite's 3.10–3.12) is genuinely repo-specific — keep that
 ```json
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>mikeparcewski/wicked-ci"]
+  "extends": ["github>mikeparcewski/wicked-ci#v1.1.0"]
 }
 ```
 
-It groups all GitHub Action pin bumps into one PR per repo (auto-merged on
-minor/patch) and pins the shared npm deps (`better-sqlite3`, `vitest`,
-`@types/node`, `typescript`, `react`/`react-dom`) to a common cadence.
-Renovate opens PRs per repo, not one PR across repos — but a single preset
-means every sibling bumps the same way at the same time, which is what stops
-the action-pin drift this repo was created to fix from coming back.
+The `#v1.1.0` suffix pins the preset to an immutable tag (see **Pinning**
+below). The preset groups all GitHub Action bumps into one PR per repo
+(auto-merged on minor/patch/digest), pins the shared npm deps
+(`better-sqlite3`, `vitest`, `@types/node`, `typescript`, `react`/`react-dom`)
+to a common cadence, and — via `helpers:pinGitHubActionDigests` — digest-pins
+third-party actions across every consumer. Renovate opens PRs per repo, not
+one PR across repos, but a single preset means every sibling bumps the same
+way at the same time.
+
+## Pinning
+
+The supply-chain posture is **SHA-pin everything, let Renovate bump it**.
+Even though `wicked-ci` is first-party, consumers pin the reusable-workflow
+ref to an immutable commit SHA rather than the floating `@v1`:
+
+```yaml
+jobs:
+  release:
+    uses: mikeparcewski/wicked-ci/.github/workflows/node-release.yml@<40-char-sha> # v1.1.0
+```
+
+The `# v1.1.0` trailing comment is what Renovate's `github-actions` manager
+reads to know which version the SHA represents; on each new `wicked-ci`
+release Renovate opens an (auto-merged) PR bumping the SHA and the comment.
+Same idea for the Renovate preset (`#v1.1.0`). Third-party actions inside the
+reusable workflows and in consumer sibling jobs (brain's `wiki`, vault's
+windows smoke, loom's python matrix) are digest-pinned automatically by
+`helpers:pinGitHubActionDigests` on Renovate's first run.
+
+The examples in `examples/` use the readable `@v1` form as a starting point —
+replace it with the SHA pin shown above when you copy them into a repo.
 
 ## Cutover
 
@@ -214,18 +239,13 @@ For each npm consumer (wicked-bus, wicked-brain, wicked-testing, wicked-vault,
 wicked-loom):
 
 1. Replace `release.yml` (and `ci.yml` where it fits) with the caller stubs
-   above; keep repo-specific jobs (wiki / evals / windows-smoke /
-   python-version matrix) as siblings.
-2. Open a no-op tag (`v0.0.0-test`) on a throwaway branch first, or
-   point `@v1` at a branch SHA temporarily, to verify before
-   tagging a real release.
-3. Once green, push the next real tag — publish should be identical to
-   the prior bespoke workflow.
-
-> **Note:** `v1.0.0` baselines the action pins to what the repos already run
-> (checkout@v6 / setup-node@v6 / gh-release@v3 / create-pull-request@v8). Push
-> this repo and tag `v1` (and the floating `v1`) before re-pointing any
-> consumer at `@v1`.
+   above (SHA-pinned), keeping repo-specific jobs (wiki / evals /
+   windows-smoke / python-version matrix) as siblings.
+2. Open the cutover as a PR — CI runs the reusable `node-ci` on the PR while
+   `release` stays tag-triggered, so you verify the wiring with zero publish
+   risk before merging.
+3. Once green, the next real tag publishes identically to the prior bespoke
+   workflow.
 
 ## Future siblings
 

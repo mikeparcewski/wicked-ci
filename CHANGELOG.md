@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.1.0
+
+Supply-chain hardening (no workflow behavior change vs v1.0.0).
+
+- `default.json` preset now extends `helpers:pinGitHubActionDigests` and the
+  `github-actions` group matches `pin`/`pinDigest` updates — Renovate
+  digest-pins third-party actions across every consumer and keeps them bumped.
+- Documented the **SHA-pin everything** posture: consumers pin the
+  reusable-workflow ref to an immutable commit SHA (`@<sha> # v1.1.0`) and the
+  Renovate preset to `#v1.1.0`, rather than the floating `@v1`. Renovate bumps
+  both on each release.
+- Added `renovate.json` so `wicked-ci` self-manages via its own preset.
+
 ## v1.0.0
 
 First real release. The earlier draft was scaffolded but never tagged, so no

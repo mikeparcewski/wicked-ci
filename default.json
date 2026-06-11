@@ -4,16 +4,27 @@
   "extends": [
     "config:recommended",
     ":dependencyDashboard",
-    ":semanticCommits"
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests"
   ],
-  "labels": ["dependencies"],
+  "labels": [
+    "dependencies"
+  ],
   "packageRules": [
     {
       "description": "Group every GitHub Actions pin bump into a single PR per repo; auto-merge minor/patch/digest so the family stays on current actions without manual triage. This is what keeps checkout/setup-node/etc. from drifting across repos again.",
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "groupName": "github-actions",
       "automerge": true,
-      "matchUpdateTypes": ["minor", "patch", "digest"]
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest"
+      ]
     },
     {
       "description": "Shared runtime + dev deps used by more than one sibling. Group them so a bump lands the same way everywhere and we notice cross-repo impact in one place.",
@@ -29,8 +40,12 @@
     },
     {
       "description": "wicked-* siblings consumed as npm deps (e.g. wicked-bus in brain/interactive) — surface but never auto-merge; a sibling bump can carry behavior changes.",
-      "matchPackageNames": ["/^@?(mikeparcewski/)?wicked-/"],
-      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "/^@?(mikeparcewski/)?wicked-/"
+      ],
+      "matchManagers": [
+        "npm"
+      ],
       "groupName": "wicked siblings",
       "automerge": false
     }
