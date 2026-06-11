@@ -1,0 +1,201 @@
+name: Reusable Node Release
+
+on:
+  workflow_call:
+    inputs:
+      package_name:
+        required: true
+        type: string
+        description: 'Unscoped package name, e.g. "wicked-bus"'
+      scope:
+        type: string
+        default: '@mikeparcewski'
+        description: 'GitHub Packages scope (used for the @scope/name rename)'
+      version_dirs:
+        type: string
+        default: '.'
+        description: 'Newline-separated dirs where `npm version` should run (e.g. "." plus a nested package)'
+      pre_publish_install_dirs:
+        type: string
+        default: ''
+        description: 'Newline-separated dirs to run `npm install --omit=dev` in before publish (for nested packages whose deps the tarball or prepublishOnly hook requires)'
+      test_working_dir:
+        type: string
+        default: '.'
+      install_cmd:
+        type: string
+        default: 'npm install'
+      test_cmd:
+        type: string
+        default: 'npm test'
+      node_version:
+        type: string
+        default: 'lts/*'
+      os_matrix:
+        type: string
+        default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+        description: 'JSON array of runners for the pre-publish test matrix (narrow to e.g. ["ubuntu-latest"] for bash/python gates that do not run on Windows)'
+      setup_python:
+        type: boolean
+        default: false
+        description: 'Also set up Python in the test job (for repos whose tests are pytest/bash, e.g. wicked-loom, wicked-vault)'
+      python_version:
+        type: string
+        default: '3.12'
+        description: 'Python version when setup_python is true'
+      enable_sync_pr:
+        type: boolean
+        default: false
+        description: 'After publish, open a catchup PR that bumps package.json on main to the released version'
+      enable_github_packages:
+        type: boolean
+        default: true
+        description: 'Mirror the publish to GitHub Packages under <scope>/<package_name>'
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.os_matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+      - if: inputs.setup_python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ inputs.python_version }}
+      - name: Install
+        working-directory: ${{ inputs.test_working_dir }}
+        run: ${{ inputs.install_cmd }}
+      - name: Test
+        working-directory: ${{ inputs.test_working_dir }}
+        run: ${{ inputs.test_cmd }}
+
+  publish-npm:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+          registry-url: https://registry.npmjs.org
+
+      - name: Set version from tag
+        env:
+          VERSION_DIRS: ${{ inputs.version_dirs }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
+            (cd "$dir" && npm version "$VERSION" --no-git-tag-version --allow-same-version)
+          done <<< "$VERSION_DIRS"
+
+      - name: Pre-publish install
+        if: inputs.pre_publish_install_dirs != ''
+        env:
+          PRE_DIRS: ${{ inputs.pre_publish_install_dirs }}
+        run: |
+          while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
+            (cd "$dir" && npm install --omit=dev)
+          done <<< "$PRE_DIRS"
+
+      - name: Publish to npm (trusted publisher + provenance)
+        run: npm publish --access public --provenance
+
+  publish-github-packages:
+    if: inputs.enable_github_packages
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+          registry-url: https://npm.pkg.github.com
+          scope: ${{ inputs.scope }}
+
+      - name: Set version from tag
+        env:
+          VERSION_DIRS: ${{ inputs.version_dirs }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
+            (cd "$dir" && npm version "$VERSION" --no-git-tag-version --allow-same-version)
+          done <<< "$VERSION_DIRS"
+
+      - name: Pre-publish install
+        if: inputs.pre_publish_install_dirs != ''
+        env:
+          PRE_DIRS: ${{ inputs.pre_publish_install_dirs }}
+        run: |
+          while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
+            (cd "$dir" && npm install --omit=dev)
+          done <<< "$PRE_DIRS"
+
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE_FQN: ${{ inputs.scope }}/${{ inputs.package_name }}
+        run: |
+          npm pkg set name="$PACKAGE_FQN"
+          npm publish --access public
+
+  github-release:
+    needs: publish-npm
+    if: needs.publish-npm.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sync-package-json:
+    needs: publish-npm
+    if: inputs.enable_sync_pr && needs.publish-npm.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - name: Bump package.json files to released version
+        env:
+          VERSION_DIRS: ${{ inputs.version_dirs }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          while IFS= read -r dir; do
+            [ -z "$dir" ] && continue
+            (cd "$dir" && npm version "$VERSION" --no-git-tag-version --allow-same-version)
+          done <<< "$VERSION_DIRS"
+
+      - name: Open catchup PR
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: release-sync/${{ github.ref_name }}
+          delete-branch: true
+          commit-message: "chore(release): sync package.json to ${{ github.ref_name }} [skip ci]"
+          title: "chore(release): sync package.json to ${{ github.ref_name }}"
+          labels: release-sync
+          body: |
+            Automated catchup — `${{ github.ref_name }}` has been published.
+            This PR brings package.json on `main` in step with the released
+            version. Safe to squash-merge.

@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    uses: mikeparcewski/wicked-ci/.github/workflows/node-ci.yml@v1
+    with:
+      test_working_dir: server
+
+  wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - run: cd server && npm install
+      - run: cd server && npm run gen:wiki:check
+      - run: cd server && npm run lint:wiki:strict

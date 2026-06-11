@@ -1,0 +1,25 @@
+# wicked-vault — Release caller.
+# Zero-dependency npm package; pre-publish gate is the bash proofs (ubuntu only,
+# matching the bespoke workflow). Sync PR keeps package.json on main in step.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  release:
+    uses: mikeparcewski/wicked-ci/.github/workflows/node-release.yml@v1
+    with:
+      package_name: wicked-vault
+      os_matrix: '["ubuntu-latest"]'
+      test_cmd: 'bash test/cli-baseline.sh && bash test/attestation.sh && bash test/bus-integration.sh'
+      enable_sync_pr: true
+    secrets: inherit

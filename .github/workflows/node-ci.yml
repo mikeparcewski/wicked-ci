@@ -1,0 +1,53 @@
+name: Reusable Node CI
+
+on:
+  workflow_call:
+    inputs:
+      test_working_dir:
+        type: string
+        default: '.'
+        description: 'Directory where install/test commands run'
+      install_cmd:
+        type: string
+        default: 'npm install'
+      test_cmd:
+        type: string
+        default: 'npm test'
+      node_version:
+        type: string
+        default: 'lts/*'
+      os_matrix:
+        type: string
+        default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+        description: 'JSON array of runners for the test matrix'
+      setup_python:
+        type: boolean
+        default: false
+        description: 'Also set up Python before install/test (for repos whose tests are pytest or bash that shells out to python, e.g. wicked-vault)'
+      python_version:
+        type: string
+        default: '3.12'
+        description: 'Python version when setup_python is true'
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.os_matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node_version }}
+      - if: inputs.setup_python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ inputs.python_version }}
+      - name: Install
+        working-directory: ${{ inputs.test_working_dir }}
+        run: ${{ inputs.install_cmd }}
+      - name: Test
+        working-directory: ${{ inputs.test_working_dir }}
+        run: ${{ inputs.test_cmd }}

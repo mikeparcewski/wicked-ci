@@ -1,0 +1,38 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Shared Renovate preset for the wicked-* family. Consumer repos extend this with: \"extends\": [\"github>mikeparcewski/wicked-ci\"]",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Group every GitHub Actions pin bump into a single PR per repo; auto-merge minor/patch/digest so the family stays on current actions without manual triage. This is what keeps checkout/setup-node/etc. from drifting across repos again.",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "automerge": true,
+      "matchUpdateTypes": ["minor", "patch", "digest"]
+    },
+    {
+      "description": "Shared runtime + dev deps used by more than one sibling. Group them so a bump lands the same way everywhere and we notice cross-repo impact in one place.",
+      "matchPackageNames": [
+        "better-sqlite3",
+        "vitest",
+        "@types/node",
+        "typescript",
+        "react",
+        "react-dom"
+      ],
+      "groupName": "wicked shared deps"
+    },
+    {
+      "description": "wicked-* siblings consumed as npm deps (e.g. wicked-bus in brain/interactive) — surface but never auto-merge; a sibling bump can carry behavior changes.",
+      "matchPackageNames": ["/^@?(mikeparcewski/)?wicked-/"],
+      "matchManagers": ["npm"],
+      "groupName": "wicked siblings",
+      "automerge": false
+    }
+  ]
+}

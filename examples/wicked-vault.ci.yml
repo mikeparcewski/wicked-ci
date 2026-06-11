@@ -1,0 +1,40 @@
+# wicked-vault — CI caller.
+# Tests are unix bash proofs (they shell out to node), so the shared matrix is
+# narrowed to ubuntu+macos via os_matrix. The Windows CLI smoke test stays a
+# sibling job here (the bash proofs don't run on Windows).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    uses: mikeparcewski/wicked-ci/.github/workflows/node-ci.yml@v1
+    with:
+      os_matrix: '["ubuntu-latest", "macos-latest"]'
+      test_cmd: 'bash test/cli-baseline.sh && bash test/attestation.sh && bash test/bus-integration.sh && bash test/verifiers.sh'
+
+  cli-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - name: CLI smoke — init / record / verify
+        shell: bash
+        env:
+          WICKED_VAULT_NO_BUS: '1'
+        run: |
+          set -e
+          mkdir -p ci-smoke && cd ci-smoke
+          node ../bin/wicked-vault.mjs init
+          OUT=$(node ../bin/wicked-vault.mjs record --scope ci --phase build --claim smoke \
+            --kind test-run --source "node --version" --criteria "node runs and exits 0" \
+            --verifier "exit_code_eq:0" --run)
+          echo "$OUT"
+          ID=$(node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).id))" <<< "$OUT")
+          node ../bin/wicked-vault.mjs verify "$ID"

@@ -1,0 +1,33 @@
+# wicked-loom — Release caller.
+# Hybrid package: Python core shipped via an npm bin shim. The pre-publish gate
+# is pytest (so setup_python: true), but the publish itself is npm. Zero npm
+# deps, so no pre_publish_install_dirs.
+#
+# loom's CI (ci.yml) stays BESPOKE — its matrix is over Python versions
+# (3.9–3.12) plus an `npm pack` sanity job, which is genuinely repo-specific
+# (the same way wicked-brain's `wiki` job stays in the caller). Only the
+# release converges on the shared workflow.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  release:
+    uses: mikeparcewski/wicked-ci/.github/workflows/node-release.yml@v1
+    with:
+      package_name: wicked-loom
+      os_matrix: '["ubuntu-latest"]'
+      setup_python: true
+      install_cmd: 'python -m pip install --upgrade pip pytest'
+      test_cmd: 'PYTHONPATH=python python -m pytest -q'
+      enable_sync_pr: true
+    secrets: inherit
