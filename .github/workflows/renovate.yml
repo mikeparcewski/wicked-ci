@@ -1,0 +1,53 @@
+name: Renovate (self-hosted, account-wide)
+
+# Account-wide Renovate runner for mikeparcewski/*. Independent of the Mend
+# hosted app — this runs Renovate ourselves on a schedule so dependency PRs
+# land regardless of the hosted queue.
+#
+# Requires a repo secret RENOVATE_TOKEN (a PAT with access to the target
+# repos). See README "Self-hosted Renovate".
+#
+# - autodiscover scans every mikeparcewski/* repo
+# - onboarding:false → only repos that already ship a renovate.json are
+#   managed (the wicked-* family); unconfigured repos are skipped, so no
+#   surprise "Configure Renovate" onboarding PRs elsewhere.
+# - each managed repo's renovate.json extends github>mikeparcewski/wicked-ci,
+#   so the shared preset still drives grouping + digest pinning.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'          # Mondays 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Renovate log level'
+        type: choice
+        default: 'info'
+        options: [info, debug]
+      dryRun:
+        description: 'Dry run (extract + plan only, write nothing)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: renovate
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Self-hosted Renovate
+        uses: renovatebot/github-action@8217b3fc286df088d7c27f3255fe8414463bc0fd # v46.1.15
+        with:
+          token: ${{ secrets.RENOVATE_TOKEN }}
+        env:
+          RENOVATE_AUTODISCOVER: 'true'
+          RENOVATE_AUTODISCOVER_FILTER: 'mikeparcewski/*'
+          RENOVATE_ONBOARDING: 'false'
+          RENOVATE_PLATFORM: 'github'
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+          RENOVATE_DRY_RUN: ${{ inputs.dryRun && 'full' || 'null' }}
