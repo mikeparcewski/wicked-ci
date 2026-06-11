@@ -30,7 +30,6 @@
       "description": "Shared runtime + dev deps used by more than one sibling. Group them so a bump lands the same way everywhere and we notice cross-repo impact in one place.",
       "matchPackageNames": [
         "better-sqlite3",
-        "vitest",
         "@types/node",
         "typescript",
         "react",

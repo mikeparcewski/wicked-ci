@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.1
+
+- Drop `vitest` from the "wicked shared deps" group. It was matched by both that
+  rule and Renovate's built-in vitest-monorepo preset, producing duplicate PRs
+  (wicked-bus #24 + #25). The built-in group now owns vitest. No workflow change.
+
 ## v1.1.0
 
 Supply-chain hardening (no workflow behavior change vs v1.0.0).
