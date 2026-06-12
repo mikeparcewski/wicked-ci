@@ -109,8 +109,12 @@ jobs:
         run: npm publish --access public --provenance
 
   publish-github-packages:
-    if: inputs.enable_github_packages
-    needs: test
+    # Ordering invariant: GitHub Packages must NEVER publish unless npm publish
+    # already succeeded. npm is the source of truth; mirroring to GH Packages
+    # first would leave a half-released version if npm publish then failed.
+    # Therefore: needs publish-npm (sequencing) AND gate on its success below.
+    needs: [test, publish-npm]
+    if: inputs.enable_github_packages && needs.publish-npm.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
