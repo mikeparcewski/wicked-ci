@@ -51,6 +51,14 @@ on:
         type: boolean
         default: true
         description: 'Mirror the publish to GitHub Packages under <scope>/<package_name>'
+      publish_working_dir:
+        type: string
+        default: '.'
+        description: 'Directory to run `npm publish` from. Default "." (single-package-at-root repo). Set to the publishable package dir for a workspace whose root is private (e.g. "packages/crew").'
+      use_npm_token:
+        type: boolean
+        default: false
+        description: 'Publish with an NPM_TOKEN secret (NODE_AUTH_TOKEN) instead of tokenless OIDC trusted publishing. For repos publishing brand-new package names where a trusted publisher cannot be pre-registered. Caller must pass `secrets: inherit` and define an NPM_TOKEN secret. Default false keeps every existing caller on OIDC.'
 
 jobs:
   test:
@@ -105,7 +113,21 @@ jobs:
             (cd "$dir" && npm install --omit=dev)
           done <<< "$PRE_DIRS"
 
+      # Default path — tokenless OIDC trusted publishing. Byte-identical to before for every
+      # existing caller (use_npm_token defaults false), so their releases are unaffected.
       - name: Publish to npm (trusted publisher + provenance)
+        if: ${{ !inputs.use_npm_token }}
+        working-directory: ${{ inputs.publish_working_dir }}
+        run: npm publish --access public --provenance
+
+      # Opt-in path — NPM_TOKEN auth, for brand-new package names that have no pre-registered
+      # trusted publisher. --provenance still attaches an OIDC build-provenance attestation
+      # (needs id-token: write, already granted by the caller).
+      - name: Publish to npm (NPM_TOKEN + provenance)
+        if: ${{ inputs.use_npm_token }}
+        working-directory: ${{ inputs.publish_working_dir }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance
 
   publish-github-packages:
@@ -145,6 +167,7 @@ jobs:
           done <<< "$PRE_DIRS"
 
       - name: Publish to GitHub Packages
+        working-directory: ${{ inputs.publish_working_dir }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PACKAGE_FQN: ${{ inputs.scope }}/${{ inputs.package_name }}
