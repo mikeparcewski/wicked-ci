@@ -59,6 +59,10 @@ on:
         type: boolean
         default: false
         description: 'Publish with an NPM_TOKEN secret (NODE_AUTH_TOKEN) instead of tokenless OIDC trusted publishing. For repos publishing brand-new package names where a trusted publisher cannot be pre-registered. Caller must pass `secrets: inherit` and define an NPM_TOKEN secret. Default false keeps every existing caller on OIDC.'
+      build_cmd:
+        type: string
+        default: ''
+        description: 'Command run at repo root before publish to compile the package (e.g. "npm install && npm run -w packages/crew build") when its dist/ is gitignored and not committed. Runs with full dev deps. Empty = no build (default; unchanged for existing callers).'
 
 jobs:
   test:
@@ -113,6 +117,10 @@ jobs:
             (cd "$dir" && npm install --omit=dev)
           done <<< "$PRE_DIRS"
 
+      - name: Build (compile before publish; for packages whose dist/ isn't committed)
+        if: inputs.build_cmd != ''
+        run: ${{ inputs.build_cmd }}
+
       # Default path — tokenless OIDC trusted publishing. Byte-identical to before for every
       # existing caller (use_npm_token defaults false), so their releases are unaffected.
       - name: Publish to npm (trusted publisher + provenance)
@@ -165,6 +173,10 @@ jobs:
             [ -z "$dir" ] && continue
             (cd "$dir" && npm install --omit=dev)
           done <<< "$PRE_DIRS"
+
+      - name: Build (compile before publish; for packages whose dist/ isn't committed)
+        if: inputs.build_cmd != ''
+        run: ${{ inputs.build_cmd }}
 
       - name: Publish to GitHub Packages
         working-directory: ${{ inputs.publish_working_dir }}
