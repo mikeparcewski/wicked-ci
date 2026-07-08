@@ -51,6 +51,10 @@ on:
         type: boolean
         default: true
         description: 'Mirror the publish to GitHub Packages under <scope>/<package_name>'
+      publish_working_dir:
+        type: string
+        default: '.'
+        description: 'Directory to run `npm publish` from. Default "." (single-package-at-root repo). Set to the publishable package dir for a workspace whose root is private (e.g. "packages/crew").'
 
 jobs:
   test:
@@ -106,6 +110,7 @@ jobs:
           done <<< "$PRE_DIRS"
 
       - name: Publish to npm (trusted publisher + provenance)
+        working-directory: ${{ inputs.publish_working_dir }}
         run: npm publish --access public --provenance
 
   publish-github-packages:
@@ -145,6 +150,7 @@ jobs:
           done <<< "$PRE_DIRS"
 
       - name: Publish to GitHub Packages
+        working-directory: ${{ inputs.publish_working_dir }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PACKAGE_FQN: ${{ inputs.scope }}/${{ inputs.package_name }}
