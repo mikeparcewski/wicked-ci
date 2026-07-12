@@ -1,3 +1,12 @@
+```
+          _      _            _            _
+__      _(_) ___| | _____  __| |       ___(_)
+\ \ /\ / / |/ __| |/ / _ \/ _` |_____ / __| |
+ \ V  V /| | (__|   <  __/ (_| |_____| (__| |
+  \_/\_/ |_|\___|_|\_\___|\__,_|      \___|_|
+
+```
+
 # wicked-ci
 
 Shared GitHub Actions reusable workflows for the wicked-* family of npm
