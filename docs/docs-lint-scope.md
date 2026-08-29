@@ -46,7 +46,10 @@ block comments, table rows, headings, and code fences).
   namespace kept at retirement -->`.
 - **Line vs block:** a marker sharing its line with other content exempts
   that line only; a marker alone on its line (ignoring leading comment
-  syntax/whitespace) toggles a block until the matching close marker.
+  syntax/whitespace) opens a block that runs until the matching close
+  marker. **An opened block must be closed before end-of-file — an unclosed
+  block is itself a lint error** (otherwise one stray marker could mask a
+  whole file).
 - **Whole-file** is for dated point-in-time records that remain useful as
   written (superseded ADRs, dated plans/specs, v1 reference docs). Prefer
   line/block markers in living documents so new drift is still caught.
@@ -89,6 +92,9 @@ Per live repo, relative to the repo root:
 - generated/vendored: `node_modules/**`, `dist/**`, `build/**`, `target/**`,
   lockfiles
 - dot-configs (`.gitignore`, `.npmignore`, editor/CI config)
+- the lint's own definition and configuration — this file
+  (`docs/docs-lint-scope.md`), the lint script, and any allowlist it reads
+  (they must name the retired products to define the rule)
 
 ## 4. Declared-exempt content (outside any repo the lint runs in)
 

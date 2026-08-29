@@ -1,3 +1,5 @@
+# historical-doc — example release config for the retired wicked-testing package
+# (retired 2026-08, Phase 6); kept as a teaching example of the shared workflow.
 name: Release
 
 on:
