@@ -10,7 +10,7 @@ __      _(_) ___| | _____  __| |       ___(_)
 # wicked-ci
 
 Shared GitHub Actions reusable workflows for the wicked-* family of npm
-packages (wicked-testing, wicked-bus, wicked-brain, and future siblings).
+packages (wicked-testing, wicked-bus, wicked-brain, and future siblings). <!-- historical -->
 
 Two workflows live here:
 
@@ -36,7 +36,7 @@ the latest non-breaking line.
 
 ## node-ci.yml — inputs
 
-All optional; defaults match the existing wicked-bus / wicked-testing
+All optional; defaults match the existing wicked-bus / wicked-testing <!-- historical -->
 shape (test from repo root, `npm install` + `npm test`).
 
 | input              | default                                              | notes |
@@ -80,7 +80,7 @@ trusted-publisher OIDC config) through to the reusable workflow.
 
 ## Caller examples
 
-### Simple — root package, no sync PR (wicked-testing)
+### Simple — root package, no sync PR (wicked-testing) <!-- historical -->
 
 ```yaml
 # .github/workflows/release.yml
@@ -96,7 +96,7 @@ jobs:
   release:
     uses: mikeparcewski/wicked-ci/.github/workflows/node-release.yml@v1
     with:
-      package_name: wicked-testing
+      package_name: wicked-testing # historical
     secrets: inherit
 ```
 
@@ -112,14 +112,14 @@ jobs:
     secrets: inherit
 ```
 
-### Nested package — root + server (wicked-brain)
+### Nested package — root + server (wicked-brain) <!-- historical -->
 
 ```yaml
 jobs:
   release:
     uses: mikeparcewski/wicked-ci/.github/workflows/node-release.yml@v1
     with:
-      package_name: wicked-brain
+      package_name: wicked-brain # historical
       test_working_dir: server
       version_dirs: |
         .
@@ -146,7 +146,7 @@ jobs:
     uses: mikeparcewski/wicked-ci/.github/workflows/node-ci.yml@v1
 ```
 
-For wicked-brain (tests live in `server/`):
+For wicked-brain (tests live in `server/`): <!-- historical -->
 
 ```yaml
 jobs:
@@ -156,7 +156,7 @@ jobs:
       test_working_dir: server
 ```
 
-Repo-specific extra jobs (e.g. wicked-brain's `wiki` job, wicked-testing's
+Repo-specific extra jobs (e.g. wicked-brain's `wiki` job, wicked-testing's <!-- historical -->
 `evals` job) stay in the caller as separate jobs alongside `uses:` —
 don't try to fold those into the shared workflow.
 
@@ -244,7 +244,7 @@ replace it with the SHA pin shown above when you copy them into a repo.
 
 ## Cutover
 
-For each npm consumer (wicked-bus, wicked-brain, wicked-testing, wicked-vault,
+For each npm consumer (wicked-bus, wicked-brain, wicked-testing, wicked-vault, <!-- historical -->
 wicked-loom):
 
 1. Replace `release.yml` (and `ci.yml` where it fits) with the caller stubs

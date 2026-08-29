@@ -5,7 +5,7 @@
 #
 # loom's CI (ci.yml) stays BESPOKE — its matrix is over Python versions
 # (3.9–3.12) plus an `npm pack` sanity job, which is genuinely repo-specific
-# (the same way wicked-brain's `wiki` job stays in the caller). Only the
+# (the same way wicked-brain's `wiki` job stays in the caller). Only the # historical
 # release converges on the shared workflow.
 name: Release
 
