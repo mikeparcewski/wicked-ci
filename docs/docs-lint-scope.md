@@ -61,6 +61,7 @@ Per live repo, relative to the repo root:
 **Scanned (docs surface):**
 - `README.md` and every root-level `*.md` (`CLAUDE.md`, `AGENTS.md`,
   `ARCHITECTURE.md`, `USERS_GUIDE.md`, `CONTRIBUTING.md`, …)
+- `packages/*/README.md` — published npm READMEs (the highest-drift surface)
 - `docs/**/*.md`
 - `reqs/**/*.md`
 - `skills/**/*.md`
