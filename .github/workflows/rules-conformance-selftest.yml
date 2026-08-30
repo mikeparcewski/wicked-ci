@@ -1,0 +1,54 @@
+# Selftest for the reusable rules-conformance workflow (AW-17) — runs on wicked-ci's own PRs.
+#
+# Two arms against the committed fixtures, plus a machine assertion on each arm's outputs, so a
+# regression in the seam fails THIS repo's CI (the reusable workflow itself stays green by
+# contract — v1 never blocks — which is exactly why the assertions live out here in the caller):
+#   valid/     → status=reported, and the report cites POL-9001 before PAT-9002 (severity order)
+#   violation/ → status=finding-ingest-failed (the malformed doc is reported, not silently skipped)
+# On pull_request events each arm also posts its sticky comment — the human-visible half of the
+# acceptance: a CI comment citing rule ids + wiki URIs, and one carrying the fixture violation.
+
+name: rules-conformance selftest
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  report-valid:
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/rules-conformance.yml
+    with:
+      rules_dir: examples/fixtures/rules-conformance/valid
+
+  report-violation:
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/rules-conformance.yml
+    with:
+      rules_dir: examples/fixtures/rules-conformance/violation
+
+  assert:
+    runs-on: ubuntu-latest
+    needs: [report-valid, report-violation]
+    steps:
+      - name: Assert the valid corpus was reported, severity-ordered
+        env:
+          STATUS: ${{ needs.report-valid.outputs.status }}
+          RULE_COUNT: ${{ needs.report-valid.outputs.rule_count }}
+          RULE_IDS: ${{ needs.report-valid.outputs.rule_ids }}
+        run: |
+          echo "valid arm: status=$STATUS count=$RULE_COUNT ids=$RULE_IDS"
+          test "$STATUS" = "reported" || { echo "::error::expected status=reported, got '$STATUS'"; exit 1; }
+          test "$RULE_COUNT" = "2" || { echo "::error::expected 2 rules, got '$RULE_COUNT'"; exit 1; }
+          test "$RULE_IDS" = "POL-9001,PAT-9002" || { echo "::error::expected severity order POL-9001,PAT-9002, got '$RULE_IDS'"; exit 1; }
+      - name: Assert the malformed corpus surfaced as a finding (not a silent skip, not a red job)
+        env:
+          STATUS: ${{ needs.report-violation.outputs.status }}
+        run: |
+          echo "violation arm: status=$STATUS"
+          test "$STATUS" = "finding-ingest-failed" || { echo "::error::expected status=finding-ingest-failed, got '$STATUS'"; exit 1; }
