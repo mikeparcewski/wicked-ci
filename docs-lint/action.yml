@@ -1,0 +1,41 @@
+name: 'wicked docs lint'
+description: >-
+  Cross-repo docs lint for the wicked-* family (DT-21, recon-2026-08
+  docs-R25). Fails on retired product names outside historical markers,
+  smoke-validates documented install commands parse-level against a static
+  family registry (no network), and optionally asserts version stamps.
+  Scope contract: docs/docs-lint-scope.md in mikeparcewski/wicked-ci.
+
+inputs:
+  path:
+    description: 'Repo subdirectory to lint (the repo root of the caller).'
+    required: false
+    default: '.'
+  check_versions:
+    description: 'Also assert doc version stamps against package.json / Cargo.toml (opt-in).'
+    required: false
+    default: 'false'
+  site_src:
+    description: >-
+      Space-separated site-source root(s) scanned as user-facing narrative.
+      Default: site/src. A repo whose site lives at the root (e.g. the apex
+      site) passes "src".
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: docs lint
+      shell: bash
+      env:
+        DL_PATH: ${{ inputs.path }}
+        DL_CHECK_VERSIONS: ${{ inputs.check_versions }}
+        DL_SITE_SRC: ${{ inputs.site_src }}
+      run: |
+        PY=python3
+        command -v python3 >/dev/null 2>&1 || PY=python
+        ARGS=""
+        [ "$DL_CHECK_VERSIONS" = "true" ] && ARGS="$ARGS --check-versions"
+        for s in $DL_SITE_SRC; do ARGS="$ARGS --site-src $s"; done
+        "$PY" "${{ github.action_path }}/docs_lint.py" "$DL_PATH" $ARGS

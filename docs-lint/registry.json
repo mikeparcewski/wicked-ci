@@ -1,0 +1,72 @@
+{
+  "_comment": "Static family registry for the docs lint (DT-21). Parse-level only, no network: these lists say what EXISTS so documented install commands can be smoke-validated. Update when a package/crate/plugin/bin is added, renamed, or retired. Retired names never join the allowlists; the retired-name rule owns them.",
+
+  "retired_names": ["testing", "brain", "signals"],
+
+  "npm_packages": [
+    "wicked-bus",
+    "wicked-core-ts",
+    "wicked-crew",
+    "wicked-crew-api-types",
+    "wicked-garden",
+    "wicked-installer",
+    "wicked-interactive",
+    "wicked-ledger",
+    "wicked-loom",
+    "wicked-studio",
+    "wicked-vault",
+    "wicked-web"
+  ],
+
+  "npm_bins": {
+    "wicked-bus-install": "wicked-bus",
+    "wicked-vault-install": "wicked-vault",
+    "wicked": "wicked-installer"
+  },
+
+  "cargo_crates": {
+    "wicked-estate": ["wicked-estate"],
+    "wicked-estate-mcp": ["wicked-estate-mcp"],
+    "wicked-estate-bench": ["wicked-estate-bench"],
+    "wicked-estate-core": [],
+    "wicked-estate-extract": [],
+    "wicked-estate-store": [],
+    "wicked-estate-knowledge": [],
+    "wicked-estate-memory": [],
+    "wicked-estate-memory-api": [],
+    "wicked-estate-memory-core": [],
+    "wicked-estate-rank": [],
+    "wicked-estate-resolve": [],
+    "wicked-estate-retrieve": [],
+    "wicked-estate-overlay": [],
+    "wicked-estate-observe": [],
+    "wicked-core": ["wicked-core"],
+    "wicked-core-ts": [],
+    "wicked-governance": [],
+    "wicked-council": [],
+    "wicked-orchestration": [],
+    "wicked-apps-core": []
+  },
+
+  "claude_plugins": [
+    "wicked-estate",
+    "wicked-garden",
+    "wicked-interactive"
+  ],
+
+  "claude_plugin_subcommands": [
+    "details",
+    "disable",
+    "enable",
+    "eval",
+    "init",
+    "install",
+    "list",
+    "marketplace",
+    "prune",
+    "tag",
+    "uninstall",
+    "update",
+    "validate"
+  ]
+}

@@ -12,12 +12,14 @@ __      _(_) ___| | _____  __| |       ___(_)
 Shared GitHub Actions reusable workflows for the wicked-* family of npm
 packages (wicked-testing, wicked-bus, wicked-brain, and future siblings). <!-- historical -->
 
-Two workflows live here:
+Three workflows live here:
 
 - `.github/workflows/node-ci.yml` — matrix test on ubuntu/macos/windows
 - `.github/workflows/node-release.yml` — publish to npm + GitHub Packages,
   cut a GitHub Release, and (optionally) open a catchup PR that bumps
   `package.json` on `main` to the released tag.
+- `.github/workflows/docs-lint.yml` — the family docs lint (also available
+  as the composite action `docs-lint/`), see **docs-lint** below.
 
 Consumers call them via `uses:`. Versions are pinned by tag — `@v1` for
 the latest non-breaking line.
@@ -198,6 +200,64 @@ jobs:
 A repo whose CI matrix is over *python versions* (loom's 3.9–3.12, the
 understanding suite's 3.10–3.12) is genuinely repo-specific — keep that
 `ci.yml` bespoke, the same way brain's `wiki` job stays in the caller.
+
+## docs-lint — the family docs lint
+
+A cross-repo docs lint (DT-21, recon-2026-08 docs-R25) that stops the two
+recurring docs-drift classes at the PR gate:
+
+- **retired-name** — a retired product name in a live doc, outside
+  historical markers and exempt paths, fails the build. The marker
+  convention, path scope, and pattern exclusions are the committed
+  contract: [`docs/docs-lint-scope.md`](docs/docs-lint-scope.md) (DT-22).
+  An unclosed historical block is itself an error.
+- **install-cmd** — documented install commands are smoke-validated
+  **parse-level, no network** against the static family registry
+  ([`docs-lint/registry.json`](docs-lint/registry.json)): npm/npx package
+  vs bin names, cargo crates and the bins they actually provide (including
+  same-line "puts X on PATH" claims), `claude plugin` subcommand allowlist,
+  plugin-name allowlist, and one-step `install` without a
+  `marketplace add` step in the same doc.
+- **version-stamp** *(opt-in: `check_versions`)* — doc stamps of the repo's
+  own package names (`name@1.2.3`, `name v1.2.3`) must match
+  `package.json` / `Cargo.toml`.
+
+The four recon-verified defect classes (docs-R2, R4, R17, R23) are pinned
+as test fixtures in `docs-lint/tests/` — the lint provably catches each
+pre-merge.
+
+### Callers
+
+Reusable workflow:
+
+```yaml
+jobs:
+  docs-lint:
+    uses: mikeparcewski/wicked-ci/.github/workflows/docs-lint.yml@v1
+```
+
+Or the composite action inside an existing job (checkout first):
+
+```yaml
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: mikeparcewski/wicked-ci/docs-lint@v1
+```
+
+Inputs (both forms): `check_versions` (default false), `site_src` —
+space-separated site-source roots scanned as user-facing narrative
+(default `site/src`; the apex site, whose site lives at the repo root,
+passes `src`). SHA-pin the ref per **Pinning** below.
+
+Local run (used to prove the corpus green before enabling):
+
+```bash
+python3 docs-lint/docs_lint.py /path/to/repo            # lint one repo
+python3 -m unittest discover -s docs-lint/tests          # the lint's tests
+```
+
+Keep `docs-lint/registry.json` current: when a package, crate, plugin, or
+bin is added, renamed, or retired, update the registry in the same PR.
+Retired names never join the allowlists — the retired-name rule owns them.
 
 ## Cross-repo dependency upgrades — Renovate
 
