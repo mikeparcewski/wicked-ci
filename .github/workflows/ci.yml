@@ -1,0 +1,27 @@
+# Self-test for this repo: the docs-lint unit tests (which prove the lint
+# would have caught recon-2026-08 docs-R2/R4/R17/R23 pre-merge) plus a
+# self-lint — wicked-ci's own docs surface must stay green.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  docs-lint:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: unit tests (docs-R2/R4/R17/R23 fixtures, markers, scope)
+        shell: bash
+        run: |
+          PY=python3
+          command -v python3 >/dev/null 2>&1 || PY=python
+          "$PY" -m unittest discover -s docs-lint/tests -v
+      - name: self-lint
+        uses: ./docs-lint

@@ -1,0 +1,5 @@
+# historical
+# example caller for the retired wicked-testing package
+package_name: wicked-testing
+# /historical
+name: CI

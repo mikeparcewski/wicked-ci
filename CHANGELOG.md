@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### docs-lint — the family docs lint (DT-21, recon-2026-08 docs-R25)
+
+- New reusable workflow `.github/workflows/docs-lint.yml` and composite
+  action `docs-lint/` (`docs-lint/docs_lint.py`, stdlib-only Python,
+  cross-platform). Rules: **retired-name** (retired product names outside
+  historical markers / exempt paths, per the DT-22 contract
+  `docs/docs-lint-scope.md`; unclosed marker blocks are errors),
+  **install-cmd** (parse-level, no-network smoke validation of documented
+  npm / npx / `cargo install` / `claude plugin` commands against the static
+  family registry `docs-lint/registry.json`), and opt-in **version-stamp**
+  (doc stamps of the repo's own packages vs `package.json` / `Cargo.toml`).
+- The recon-verified defects docs-R2 (cargo bin-on-PATH claim), docs-R4
+  (nonexistent `claude plugins add`; one-step `/plugin install`; not-a-plugin
+  install), docs-R17 (`npx` of a bin that is not an npm package), and
+  docs-R23 (one-step plugin install in a retirement banner) are pinned as
+  fixtures in `docs-lint/tests/` — each is provably caught pre-merge.
+- New self-test workflow `.github/workflows/ci.yml`: unit tests on
+  ubuntu/macos/windows + a self-lint of this repo's docs surface.
+
 ## v1.1.1
 
 - Drop `vitest` from the "wicked shared deps" group. It was matched by both that
