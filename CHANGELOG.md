@@ -20,6 +20,15 @@
   fixtures in `docs-lint/tests/` — each is provably caught pre-merge.
 - New self-test workflow `.github/workflows/ci.yml`: unit tests on
   ubuntu/macos/windows + a self-lint of this repo's docs surface.
+- **Repo-side enablement, pilot = this repo** (DT-22 top-up): `ci.yml`
+  now also calls the reusable `docs-lint.yml` via `workflow_call`
+  (`wicked_ci_ref` pinned to the building sha), exercising the exact seam
+  consumer repos will use. The 68 unmarked retired-name mentions across
+  wicked-garden / estate / vault / ledger / interactive / installer / core
+  were annotated per `docs/docs-lint-scope.md` in each repo's
+  `docs/dt22-topup` branch — the lint runs green on all seven, so consumer
+  enablement can proceed once `v1` is retagged onto a commit that carries
+  `docs-lint/`.
 
 ## v1.1.1
 

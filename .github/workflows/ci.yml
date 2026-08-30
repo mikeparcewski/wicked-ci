@@ -25,3 +25,13 @@ jobs:
           "$PY" -m unittest discover -s docs-lint/tests -v
       - name: self-lint
         uses: ./docs-lint
+
+  # Pilot enablement (DT-22 top-up -> DT-21): wicked-ci consumes its own
+  # reusable docs-lint workflow -- the first repo-side enablement, proving
+  # the workflow_call seam end-to-end before the other repos adopt it.
+  # The lint script/registry are taken from THIS ref (not the v1 tag,
+  # which trails until the post-merge retag).
+  docs-lint-reusable:
+    uses: ./.github/workflows/docs-lint.yml
+    with:
+      wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
