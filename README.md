@@ -20,6 +20,10 @@ Three workflows live here:
   `package.json` on `main` to the released tag.
 - `.github/workflows/docs-lint.yml` — the family docs lint (also available
   as the composite action `docs-lint/`), see **docs-lint** below.
+- `.github/workflows/rules-conformance.yml` — the CI conformance seam
+  (AW-17, recall-report v1): ingests the repo's governed rules corpus into
+  a scratch store and posts ONE sticky, advisory PR comment citing every
+  applicable rule's id + wiki URI. Never blocks; honest fail-open.
 
 Consumers call them via `uses:`. Versions are pinned by tag — `@v1` for
 the latest non-breaking line.
@@ -63,6 +67,41 @@ shape (test from repo root, `npm install` + `npm test`).
 | `node_version`              |          | `lts/*`                | |
 | `enable_sync_pr`            |          | `false`                | open a `release-sync/<tag>` PR that bumps `package.json` on `main` |
 | `enable_github_packages`    |          | `true`                 | mirror publish to GitHub Packages |
+
+## rules-conformance.yml — inputs & contract
+
+The CI conformance seam, v1 (recall-report — it reports the applicable
+governed ruleset, it does NOT evaluate the PR diff, and it NEVER blocks).
+Flow: fresh scratch ingest of the corpus (`wicked-core rules ingest`) →
+severity-ordered recall (`wicked-core rules recall --json`) → one sticky
+PR comment where every rule cites its id (`PAT-`/`POL-`) and its wiki URI
+(`<doc path>@<git blob sha>#<RULE-ID>`), linked to the doc at the PR head.
+
+| input              | default                    | notes |
+|--------------------|----------------------------|-------|
+| `rules_dir`        | `governance/packs`         | the corpus: frontmattered markdown rule docs (MarkdownAdapter convention) + optional `rules/*.json`, `policies/*.json` |
+| `wicked_core_repo` | `mikeparcewski/wicked-core`| where the toolchain is installed from |
+| `wicked_core_ref`  | `main`                     | branch/tag/sha; resolved to a sha that keys the binary build cache |
+| `comment`          | `true`                     | post/update the sticky PR comment (step summary is always written) |
+
+Outputs (for callers that assert on the seam — see the selftest):
+`status` (`reported` \| `finding-ingest-failed` \| `skipped-no-rules` \|
+`skipped-no-toolchain` \| `error-recall`), `rule_count`, `rule_ids`
+(severity-ordered, critical first).
+
+**Honest fail-open** (the estate blast-check pattern — infra absence never
+blocks, and every degradation is recorded, never silent): a missing corpus
+or an unavailable toolchain skips with a workflow notice; a corpus that
+FAILS TO INGEST (a malformed rule doc fails loud by design) is posted as a
+finding while the job stays green. Enforcement is not this comment's job —
+it lives in the engine gates (e.g. `engine:pre-build-scope`, the
+phase-scope write-deny gate the `governance/packs/phase-scope` pack in
+wicked-core documents).
+
+Caller permissions: `contents: read`, `pull-requests: write` (the
+comment). Selftest: `.github/workflows/rules-conformance-selftest.yml`
+runs the seam against `examples/fixtures/rules-conformance/{valid,violation}`
+on every wicked-ci PR and asserts the outputs.
 
 ## Required permissions on the caller
 

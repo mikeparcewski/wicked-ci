@@ -1,0 +1,254 @@
+# Reusable rules-conformance workflow — the AW-17 CI conformance seam, v1 (arch-R15).
+#
+# WHAT IT IS: a recall-REPORT. It ingests the repo's governed rules corpus (frontmattered
+# markdown docs in the wicked-governance MarkdownAdapter convention, plus optional
+# rules/*.json + policies/*.json lanes) into a fresh scratch store, recalls the applicable
+# ruleset severity-ordered, and posts/updates ONE sticky PR comment citing every rule's id
+# (PAT-/POL-) and its wiki URI (`<doc path>@<git blob sha>#<RULE-ID>`), linked back to the doc.
+#
+# WHAT IT IS NOT (v1, deliberately): it never evaluates the PR diff through the output-gate
+# context (the gate evaluates canonicalized tool-call JSON, not diffs — that path would be a new
+# evaluation harness dressed as reuse) and it NEVER BLOCKS: the job is green on findings, green
+# on degradation. Enforcement lives where enforcement can live — the engine gates (e.g. the
+# phase-scope gate `engine:pre-build-scope`) — not in a CI comment.
+#
+# HONEST FAIL-OPEN (the estate blast-check pattern: infra absence never blocks, and every
+# degradation is RECORDED, never silent):
+#   - no rules corpus at rules_dir        → skip, with a workflow notice
+#   - wicked-core toolchain unavailable   → skip, with a workflow notice
+#   - corpus fails to ingest (malformed)  → that IS a finding: commented verbatim, job stays green
+#   - recall itself errors                → notice + step summary, job stays green
+# The `status` output states which of these happened, so a caller can assert on it.
+#
+# Caller (comment posting requires pull-request write):
+#   jobs:
+#     rules-conformance:
+#       permissions:
+#         contents: read
+#         pull-requests: write
+#       uses: mikeparcewski/wicked-ci/.github/workflows/rules-conformance.yml@v1
+
+name: Reusable Rules Conformance
+
+on:
+  workflow_call:
+    inputs:
+      rules_dir:
+        type: string
+        default: 'governance/packs'
+        description: 'Directory holding the rules corpus (MarkdownAdapter docs / rules/*.json / policies/*.json). Missing dir = fail-open skip.'
+      wicked_core_repo:
+        type: string
+        default: 'mikeparcewski/wicked-core'
+        description: 'GitHub repo the wicked-core toolchain is installed from'
+      wicked_core_ref:
+        type: string
+        default: 'main'
+        description: 'Branch, tag, or 40-hex commit of wicked-core to install (resolved to a sha for the build cache key)'
+      comment:
+        type: boolean
+        default: true
+        description: 'Post/update the sticky PR comment (pull_request events only; the step summary is always written)'
+    outputs:
+      status:
+        description: 'reported | finding-ingest-failed | skipped-no-rules | skipped-no-toolchain | error-recall'
+        value: ${{ jobs.recall-report.outputs.status }}
+      rule_count:
+        description: 'Number of rules in the recall report (0 unless status=reported)'
+        value: ${{ jobs.recall-report.outputs.rule_count }}
+      rule_ids:
+        description: 'Comma-separated rule ids in report order (severity-ordered, critical first)'
+        value: ${{ jobs.recall-report.outputs.rule_ids }}
+
+jobs:
+  recall-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      status: ${{ steps.render.outputs.status }}
+      rule_count: ${{ steps.render.outputs.rule_count }}
+      rule_ids: ${{ steps.render.outputs.rule_ids }}
+    env:
+      RULES_DIR: ${{ inputs.rules_dir }}
+      CORE_REPO: ${{ inputs.wicked_core_repo }}
+      CORE_REF: ${{ inputs.wicked_core_ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Fail-open gate 1: no corpus, no report. A notice — never a failure — because a repo
+      # without governed rules is a legitimate state, and the seam must cost nothing to adopt.
+      - name: Locate rules corpus
+        id: corpus
+        run: |
+          if [ -d "$RULES_DIR" ] && [ -n "$(find "$RULES_DIR" -name '*.md' -o -name '*.json' 2>/dev/null | head -n 1)" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=rules-conformance::no rules corpus at '$RULES_DIR' — skipping (fail-open). Add frontmattered rule docs under '$RULES_DIR' to enable the recall report."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Resolve the toolchain ref to a commit sha: the sha keys the binary cache, so a moved
+      # branch rebuilds and an unmoved one restores. Resolution failure = toolchain absent
+      # (fail-open gate 2), not a job failure.
+      - name: Resolve wicked-core rev
+        id: rev
+        if: steps.corpus.outputs.present == 'true'
+        run: |
+          if echo "$CORE_REF" | grep -Eq '^[0-9a-f]{40}$'; then
+            sha="$CORE_REF"
+          else
+            sha="$(git ls-remote "https://github.com/${CORE_REPO}.git" "refs/heads/${CORE_REF}" "refs/tags/${CORE_REF}" 2>/dev/null | head -n 1 | cut -f 1)"
+          fi
+          if [ -n "$sha" ]; then
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=rules-conformance::cannot resolve ${CORE_REPO}@${CORE_REF} — skipping (fail-open: toolchain absence never blocks)"
+            echo "sha=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore wicked-core binary
+        id: cache
+        if: steps.corpus.outputs.present == 'true' && steps.rev.outputs.sha != ''
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/wicked-core
+          key: rules-conformance-wicked-core-${{ runner.os }}-${{ steps.rev.outputs.sha }}
+
+      - name: Install wicked-core
+        id: install
+        if: steps.corpus.outputs.present == 'true' && steps.rev.outputs.sha != '' && steps.cache.outputs.cache-hit != 'true'
+        run: |
+          if cargo install --git "https://github.com/${CORE_REPO}.git" --rev "${{ steps.rev.outputs.sha }}" --locked wicked-core; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=rules-conformance::wicked-core failed to build from ${CORE_REPO}@${{ steps.rev.outputs.sha }} — skipping (fail-open: toolchain absence never blocks)"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The report itself: fresh scratch ingest (id-keyed and idempotent — a throwaway store per
+      # run, never the repo's own), then the severity-ordered recall. An ingest failure is a
+      # FINDING (a malformed rule doc fails loud by design), not an infra skip: it reaches the
+      # comment verbatim, and the job still exits green (v1 never blocks).
+      - name: Ingest + recall
+        id: report
+        if: steps.corpus.outputs.present == 'true' && steps.rev.outputs.sha != '' && (steps.cache.outputs.cache-hit == 'true' || steps.install.outputs.ok == 'true')
+        run: |
+          bin="$HOME/.cargo/bin/wicked-core"
+          db="$RUNNER_TEMP/rules-scratch.db"
+          # Keep the fire-and-forget rule-lifecycle events (AW-22) in the scratch store too —
+          # hermetic, no dead-letter spool in the runner home. `--db` still wins for the store.
+          export WICKED_ESTATE_DB="$db"
+          if ! "$bin" rules ingest "$RULES_DIR" --db "$db" > "$RUNNER_TEMP/ingest-out.txt" 2>&1; then
+            echo "status=finding-ingest-failed" >> "$GITHUB_OUTPUT"
+            echo "::notice title=rules-conformance::the rules corpus under '$RULES_DIR' failed to ingest — reported as a finding (job stays green; v1 never blocks)"
+            exit 0
+          fi
+          if "$bin" rules recall --db "$db" --json > "$RUNNER_TEMP/report.json" 2> "$RUNNER_TEMP/recall-err.txt"; then
+            echo "status=reported" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=error-recall" >> "$GITHUB_OUTPUT"
+            echo "::notice title=rules-conformance::rules recall errored — skipping the report (fail-open; details in the step summary)"
+          fi
+
+      # Render the comment + step summary + machine outputs from whatever state the steps above
+      # reached. Pure python (no jq templating), reads files + env only.
+      - name: Render report
+        id: render
+        env:
+          REPORT_STATUS: ${{ steps.report.outputs.status }}
+          CORPUS_PRESENT: ${{ steps.corpus.outputs.present }}
+          TOOLCHAIN_SHA: ${{ steps.rev.outputs.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import html, json, os, pathlib
+
+          tmp = pathlib.Path(os.environ["RUNNER_TEMP"])
+          rules_dir = os.environ["RULES_DIR"].strip("/")
+          status = os.environ.get("REPORT_STATUS") or (
+              "skipped-no-rules" if os.environ.get("CORPUS_PRESENT") != "true"
+              else "skipped-no-toolchain"
+          )
+          marker = f"<!-- wicked-ci:rules-conformance:{rules_dir} -->"
+          blob_base = "{}/{}/blob/{}".format(
+              os.environ["SERVER_URL"], os.environ["REPOSITORY"], os.environ["HEAD_SHA"]
+          )
+
+          def cell(text: str) -> str:
+              # One table row per rule: newlines and pipes would break the markdown table.
+              return html.escape(text.replace("\n", " ").replace("|", "\\|").strip())
+
+          rule_ids, lines = [], [marker, "## Rules conformance — recall report", ""]
+          if status == "reported":
+              report = json.loads((tmp / "report.json").read_text())
+              rules = report.get("rules", [])
+              rule_ids = [r["id"] for r in rules]
+              lines.append(
+                  f"**{len(rules)} applicable rule(s)** from `{rules_dir}` — advisory: this report "
+                  "never blocks (CI conformance seam v1 is recall-report; enforcement lives in the "
+                  "engine gates)."
+              )
+              lines += ["", "| severity | rule | statement | source (wiki URI) |", "|---|---|---|---|"]
+              for r in rules:
+                  ref = (r.get("provenance") or {}).get("ref") or ""
+                  # wiki URI: `<doc path>@<git blob sha>#<RULE-ID>` (path relative to rules_dir)
+                  path, _, _ = ref.partition("@")
+                  link = f"[`{cell(ref)}`]({blob_base}/{rules_dir}/{path})" if path else "(none)"
+                  lines.append(
+                      f"| {cell(r['severity'])} | `{cell(r['id'])}` | {cell(r['statement'])} | {link} |"
+                  )
+              if not rules:
+                  lines.append("")
+                  lines.append(
+                      "_The corpus ingested but recalled no rules — if that is unexpected, check the "
+                      "docs carry a `## Rules` section._"
+                  )
+          elif status == "finding-ingest-failed":
+              ingest = (tmp / "ingest-out.txt").read_text() if (tmp / "ingest-out.txt").exists() else "(no output captured)"
+              lines += [
+                  f"**Finding:** the rules corpus under `{rules_dir}` failed to ingest — a malformed "
+                  "rule doc fails loud (never a silent skip, which would read as \"no rules\" and "
+                  "fail governance open):",
+                  "", "```", ingest.strip(), "```", "",
+                  "_Advisory: the job stays green — v1 of the seam reports, it does not block._",
+              ]
+          elif status == "error-recall":
+              err = (tmp / "recall-err.txt").read_text() if (tmp / "recall-err.txt").exists() else ""
+              lines += ["Recall errored (fail-open, recorded):", "", "```", err.strip(), "```"]
+          else:
+              lines.append(f"Skipped: `{status}` (fail-open — see the workflow notice).")
+
+          body = "\n".join(lines) + "\n"
+          (tmp / "comment.md").write_text(body)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(body)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"status={status}\n")
+              f.write(f"rule_count={len(rule_ids)}\n")
+              f.write(f"rule_ids={','.join(rule_ids)}\n")
+          PY
+
+      # ONE sticky comment per rules_dir, updated in place (keyed by the marker) — reruns must
+      # not stack comments. Posting failure is a notice, never a job failure.
+      - name: Post sticky PR comment
+        if: github.event_name == 'pull_request' && inputs.comment && (steps.render.outputs.status == 'reported' || steps.render.outputs.status == 'finding-ingest-failed')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          marker="<!-- wicked-ci:rules-conformance:$(echo "$RULES_DIR" | sed 's:^/*::;s:/*$::') -->"
+          existing="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"${marker}\")) | .id" 2>/dev/null | head -n 1)"
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${existing}" \
+              -F body=@"$RUNNER_TEMP/comment.md" > /dev/null \
+              || echo "::notice title=rules-conformance::could not update the report comment (missing pull-requests: write on the caller?)"
+          else
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              -F body=@"$RUNNER_TEMP/comment.md" > /dev/null \
+              || echo "::notice title=rules-conformance::could not post the report comment (missing pull-requests: write on the caller?)"
+          fi

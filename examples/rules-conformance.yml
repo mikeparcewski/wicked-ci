@@ -1,0 +1,24 @@
+# Example caller for the reusable rules-conformance workflow (AW-17 CI conformance seam v1).
+# Copy into a consumer repo as .github/workflows/rules-conformance.yml and point rules_dir at
+# the repo's governed rules corpus (frontmattered markdown docs in the wicked-governance
+# MarkdownAdapter convention — e.g. wicked-core's governance/packs).
+#
+# The report is ADVISORY: one sticky PR comment citing rule ids + wiki URIs, severity-ordered.
+# It never blocks — a missing corpus or missing toolchain skips with a notice (honest fail-open),
+# and a malformed corpus is commented as a finding while the job stays green.
+
+name: rules conformance
+
+on:
+  pull_request:
+
+jobs:
+  rules-conformance:
+    permissions:
+      contents: read       # checkout
+      pull-requests: write # the sticky report comment
+    uses: mikeparcewski/wicked-ci/.github/workflows/rules-conformance.yml@v1
+    with:
+      rules_dir: governance/packs
+      # wicked_core_ref: main        # or pin a tag/sha; it keys the toolchain build cache
+      # comment: true                # set false to keep the report in the step summary only
