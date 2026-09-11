@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### node-release — the test job arms the checks sandbox on Linux (wicked-core#433)
+
+- New input `arm_checks_sandbox` (boolean, default `true`): before `install_cmd`, Linux
+  test runners install `bubblewrap`, lift the ubuntu-24.04 AppArmor gate on unprivileged
+  user namespaces (`kernel.apparmor_restrict_unprivileged_userns=0`, best-effort) and run a
+  `bwrap … -- /bin/true` smoke that fails the step — not a test — when no boundary can be
+  armed. An engine at `wicked-core-ts` ≥ 0.7.20 re-runs a repository's checks INSIDE an OS
+  write boundary before the deliver phase pushes and fails closed without one; wicked-crew's
+  `deliver-e2e` suite drives that real deliver, and its `v0.7.29` release run went red on
+  `no OS write boundary could be armed` while the same suite was green on PR CI, whose
+  `ci.yml` arms exactly this step (wicked-crew#527). Default-on so every caller's release
+  gate runs in the environment its CI does; `false` opts a caller out. macOS / Windows
+  runners are untouched.
+
 ### docs-lint — the family docs lint (DT-21, recon-2026-08 docs-R25)
 
 - New reusable workflow `.github/workflows/docs-lint.yml` and composite

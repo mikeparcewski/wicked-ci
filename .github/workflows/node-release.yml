@@ -63,6 +63,10 @@ on:
         type: string
         default: ''
         description: 'Command run at repo root before publish to compile the package (e.g. "npm install && npm run -w packages/crew build") when its dist/ is gitignored and not committed. Runs with full dev deps. Empty = no build (default; unchanged for existing callers).'
+      arm_checks_sandbox:
+        type: boolean
+        default: true
+        description: 'On Linux test runners, install bubblewrap and lift the ubuntu-24.04 AppArmor gate on unprivileged user namespaces before install_cmd, so an engine pinned at wicked-core-ts >= 0.7.20 (wicked-core#433) can arm the OS write boundary its repo-checks floor requires; a runner that cannot arm one fails the step, not a test. Default true so the release gate runs in the same environment as callers'' CI; set false for a caller whose suite never drives a real deliver.'
 
 jobs:
   test:
@@ -80,6 +84,21 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ inputs.python_version }}
+      # wicked-core#433: an engine at wicked-core-ts >= 0.7.20 re-runs the repository's checks INSIDE
+      # an OS write boundary (Linux: bwrap) before the deliver phase pushes, failing closed without one
+      # ("no OS write boundary could be armed"). A caller whose suite drives a real deliver
+      # (wicked-crew's deliver e2e) arms the tool in its own CI; the release gate must run in the same
+      # environment — wicked-crew v0.7.29's first release run went red on exactly this while PR CI was
+      # green. ubuntu-24.04 images gate unprivileged user namespaces behind AppArmor, which bwrap
+      # needs. The smoke line fails THIS step, not a test, if the boundary cannot be armed.
+      - name: Arm the checks sandbox (bubblewrap) on Linux
+        if: inputs.arm_checks_sandbox && runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          bwrap --ro-bind / / --dev /dev --proc /proc --unshare-all --die-with-parent -- /bin/true
+          echo "bwrap can arm a boundary on this runner"
       - name: Install
         working-directory: ${{ inputs.test_working_dir }}
         run: ${{ inputs.install_cmd }}

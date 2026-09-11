@@ -67,6 +67,7 @@ shape (test from repo root, `npm install` + `npm test`).
 | `node_version`              |          | `lts/*`                | |
 | `enable_sync_pr`            |          | `false`                | open a `release-sync/<tag>` PR that bumps `package.json` on `main` |
 | `enable_github_packages`    |          | `true`                 | mirror publish to GitHub Packages |
+| `arm_checks_sandbox`        |          | `true`                 | Linux test runners: `apt-get install bubblewrap` + lift the ubuntu-24.04 AppArmor userns gate (+ a `bwrap … /bin/true` smoke) before `install_cmd`, so an engine at `wicked-core-ts` ≥ 0.7.20 (wicked-core#433) can arm the OS write boundary its repo-checks floor needs — the release gate then runs in the same environment as the caller's CI; `false` for suites that never drive a real deliver |
 
 ## rules-conformance.yml — inputs & contract
 
