@@ -63,6 +63,10 @@ on:
         type: string
         default: ''
         description: 'Command run at repo root before publish to compile the package (e.g. "npm install && npm run -w packages/crew build") when its dist/ is gitignored and not committed. Runs with full dev deps. Empty = no build (default; unchanged for existing callers).'
+      arm_checks_sandbox:
+        type: boolean
+        default: false
+        description: 'Opt-in. When true, Linux test runners install bubblewrap, lift the ubuntu-24.04 AppArmor gate on unprivileged user namespaces (best-effort) and run a bwrap smoke before install_cmd, failing the step - not a test - if no OS write boundary can be armed. Needed only by callers whose test suite drives a real deliver through wicked-core-ts >= 0.7.20 (wicked-core#433): that engine re-runs the repository checks inside an OS write boundary and fails closed without one. The smoke is a proxy for the engine''s bwrap argv, not identical to it. Default false leaves every existing caller''s test job unchanged; wicked-crew is the first caller to enable it.'
 
 jobs:
   test:
@@ -80,6 +84,22 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ inputs.python_version }}
+      # Opt-in (arm_checks_sandbox, default false). wicked-core#433: an engine at wicked-core-ts >= 0.7.20
+      # re-runs the repository's checks INSIDE an OS write boundary (Linux: bwrap) before the deliver
+      # phase pushes, failing closed without one ("no OS write boundary could be armed"). Only a caller
+      # whose test suite drives a real deliver needs this (wicked-crew's deliver e2e — its v0.7.29
+      # release run went red on exactly this while PR CI, which arms the tool itself, was green).
+      # ubuntu-24.04 images gate unprivileged user namespaces behind AppArmor, which bwrap needs. The
+      # smoke line below is a PROXY for the engine's own bwrap invocation (not the identical argv) and
+      # fails THIS step, not a test, if no boundary can be armed. When false the test job is unchanged.
+      - name: Arm the checks sandbox (bubblewrap) on Linux
+        if: inputs.arm_checks_sandbox && runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          bwrap --ro-bind / / --dev /dev --proc /proc --unshare-all --die-with-parent -- /bin/true
+          echo "bwrap can arm a boundary on this runner"
       - name: Install
         working-directory: ${{ inputs.test_working_dir }}
         run: ${{ inputs.install_cmd }}

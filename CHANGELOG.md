@@ -2,6 +2,64 @@
 
 ## Unreleased
 
+## v1.2.0
+
+Everything `v1` has floated onto since `v1.1.2`, now under a semver tag.
+No breaking change: every new input defaults to the pre-1.2.0 behaviour.
+
+### node-release — opt-in checks sandbox on Linux test runners (wicked-core#433)
+
+- New input `arm_checks_sandbox` (boolean, default `false` — **opt-in**). When `true`,
+  Linux test runners install `bubblewrap`, lift the ubuntu-24.04 AppArmor gate on
+  unprivileged user namespaces (`kernel.apparmor_restrict_unprivileged_userns=0`,
+  best-effort) and run a `bwrap … -- /bin/true` smoke before `install_cmd`; the smoke
+  fails the step — not a test — when no boundary can be armed. Needed only by callers
+  whose test suite drives a real deliver through `wicked-core-ts` ≥ 0.7.20: that engine
+  re-runs a repository's checks INSIDE an OS write boundary before the deliver phase
+  pushes and fails closed without one. wicked-crew's `deliver-e2e` suite is the first
+  such caller — its `v0.7.29` release run went red on `no OS write boundary could be
+  armed` while the same suite was green on PR CI, whose `ci.yml` arms exactly this
+  (wicked-crew#527). The smoke is a proxy for the engine's own `bwrap` invocation, not
+  the identical argv. Default `false` leaves every existing caller's test job unchanged;
+  macOS / Windows runners are untouched either way.
+
+### node-release — workspace publish dir + token-auth publish path (#7)
+
+- New input `publish_working_dir` (string, default `.`): the directory `npm publish` runs
+  from, in both the npm and the GitHub Packages publish jobs. Set it to the publishable
+  package dir of a workspace whose root is private (e.g. `packages/crew`).
+- New input `use_npm_token` (boolean, default `false`): publish with an `NPM_TOKEN` secret
+  (`NODE_AUTH_TOKEN`) instead of tokenless OIDC trusted publishing — for brand-new package
+  names that have no pre-registered trusted publisher. `--provenance` is still attached.
+  The caller passes `secrets: inherit` and defines `NPM_TOKEN`. Default `false` keeps every
+  existing caller on the OIDC path, byte-identical.
+
+### node-release — `build_cmd` (compile before publish)
+
+- New input `build_cmd` (string, default empty = no build): a command run at the repo root
+  before publish (e.g. `npm install && npm run -w packages/crew build`) for packages whose
+  `dist/` is gitignored rather than committed. Runs with full dev deps, in both publish
+  jobs. The empty default leaves existing callers unchanged.
+
+### rules-conformance — the CI conformance seam (AW-17, recall-report v1; #18)
+
+- New reusable workflow `.github/workflows/rules-conformance.yml`: ingests the caller's
+  governed rules corpus (`rules_dir`, default `governance/packs`) into a scratch store
+  with `wicked-core rules ingest`, recalls it severity-ordered with
+  `wicked-core rules recall --json`, and posts ONE sticky, advisory PR comment citing
+  every applicable rule's id and wiki URI. It reports the applicable ruleset; it does
+  NOT evaluate the diff and it NEVER blocks.
+- Inputs `rules_dir`, `wicked_core_repo` (default `mikeparcewski/wicked-core`),
+  `wicked_core_ref` (default `main`; resolved to a sha that keys the binary build cache),
+  `comment` (default `true`). Outputs `status` (`reported` | `finding-ingest-failed` |
+  `skipped-no-rules` | `skipped-no-toolchain` | `error-recall`), `rule_count`, `rule_ids`.
+- **Honest fail-open**: a missing corpus or unavailable toolchain skips with a workflow
+  notice; a corpus that fails to ingest is posted as a finding while the job stays
+  green. Caller permissions: `contents: read`, `pull-requests: write`.
+- Selftest `.github/workflows/rules-conformance-selftest.yml` runs the seam against
+  `examples/fixtures/rules-conformance/{valid,violation}` on every wicked-ci PR and
+  asserts the outputs; caller example in `examples/rules-conformance.yml`.
+
 ### docs-lint — the family docs lint (DT-21, recon-2026-08 docs-R25)
 
 - New reusable workflow `.github/workflows/docs-lint.yml` and composite
@@ -29,6 +87,18 @@
   `docs/dt22-topup` branch — the lint runs green on all seven, so consumer
   enablement can proceed once `v1` is retagged onto a commit that carries
   `docs-lint/`.
+
+### Dependencies (Renovate)
+
+- Action pins bumped in both reusable workflows: `actions/checkout` v6 → v7
+  (`3d3c42e`), `actions/setup-node` v6 → v7 (`8207627`), `actions/setup-python`
+  v6 → v7 (`5fda3b9`); `softprops/action-gh-release` stays on v3 at digest `efb3536`.
+
+## v1.1.2
+
+- `node-release.yml`: `publish-github-packages` now `needs: [test, publish-npm]` and is
+  gated on `needs.publish-npm.result == 'success'`, so GitHub Packages never mirrors a
+  version whose npm publish failed (closes the partial-release race; #3). No input change.
 
 ## v1.1.1
 

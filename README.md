@@ -67,6 +67,7 @@ shape (test from repo root, `npm install` + `npm test`).
 | `node_version`              |          | `lts/*`                | |
 | `enable_sync_pr`            |          | `false`                | open a `release-sync/<tag>` PR that bumps `package.json` on `main` |
 | `enable_github_packages`    |          | `true`                 | mirror publish to GitHub Packages |
+| `arm_checks_sandbox`        |          | `false`                | **opt-in.** `true` → Linux test runners `apt-get install bubblewrap`, lift the ubuntu-24.04 AppArmor userns gate (best-effort) and run a `bwrap … /bin/true` smoke before `install_cmd`; the smoke fails the step, not a test, if no boundary can be armed. Enable it only when the caller's test suite drives a real deliver through `wicked-core-ts` ≥ 0.7.20 (wicked-core#433 — the engine re-runs repo checks inside an OS write boundary and fails closed without one). The smoke is a proxy for the engine's `bwrap` argv, not identical. wicked-crew is the first caller; everyone else leaves it `false` |
 
 ## rules-conformance.yml — inputs & contract
 

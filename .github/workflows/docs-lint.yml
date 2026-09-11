@@ -51,6 +51,8 @@ jobs:
           ARGS=""
           [ "$DL_CHECK_VERSIONS" = "true" ] && ARGS="$ARGS --check-versions"
           for s in $DL_SITE_SRC; do ARGS="$ARGS --site-src $s"; done
+          # $ARGS is a deliberately word-split flag list (same pattern as docs-lint/action.yml).
+          # shellcheck disable=SC2086
           python3 .wicked-ci-docs-lint/docs-lint/docs_lint.py . $ARGS
       - name: remove lint tooling checkout
         if: always()
