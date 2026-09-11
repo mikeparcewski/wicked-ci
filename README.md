@@ -65,8 +65,14 @@ shape (test from repo root, `npm install` + `npm test`).
 | `install_cmd`               |          | `npm install`          | |
 | `test_cmd`                  |          | `npm test`             | |
 | `node_version`              |          | `lts/*`                | |
+| `os_matrix`                 |          | `["ubuntu-latest", "macos-latest", "windows-latest"]` | JSON array of runners for the pre-publish test matrix (narrow to e.g. `["ubuntu-latest"]` for bash/python gates that do not run on Windows) |
+| `setup_python`              |          | `false`                | also set up Python in the test job (for repos whose tests are pytest/bash, e.g. wicked-loom, wicked-vault) |
+| `python_version`            |          | `3.12`                 | Python version when `setup_python` is true |
 | `enable_sync_pr`            |          | `false`                | open a `release-sync/<tag>` PR that bumps `package.json` on `main` |
 | `enable_github_packages`    |          | `true`                 | mirror publish to GitHub Packages |
+| `publish_working_dir`       |          | `.`                    | directory to run `npm publish` from. Default `.` (single-package-at-root repo). Set to the publishable package dir for a workspace whose root is private (e.g. `packages/crew`) |
+| `use_npm_token`             |          | `false`                | publish with an `NPM_TOKEN` secret (`NODE_AUTH_TOKEN`) instead of tokenless OIDC trusted publishing. For repos publishing brand-new package names where a trusted publisher cannot be pre-registered. Caller must pass `secrets: inherit` and define an `NPM_TOKEN` secret. Default `false` keeps every existing caller on OIDC |
+| `build_cmd`                 |          | (empty)                | command run at repo root before publish to compile the package (e.g. `npm install && npm run -w packages/crew build`) when its `dist/` is gitignored and not committed. Runs with full dev deps. Empty = no build (default; unchanged for existing callers) |
 | `arm_checks_sandbox`        |          | `false`                | **opt-in.** `true` → Linux test runners `apt-get install bubblewrap`, lift the ubuntu-24.04 AppArmor userns gate (best-effort) and run a `bwrap … /bin/true` smoke before `install_cmd`; the smoke fails the step, not a test, if no boundary can be armed. Enable it only when the caller's test suite drives a real deliver through `wicked-core-ts` ≥ 0.7.20 (wicked-core#433 — the engine re-runs repo checks inside an OS write boundary and fails closed without one). The smoke is a proxy for the engine's `bwrap` argv, not identical. wicked-crew is the first caller; everyone else leaves it `false` |
 
 ## rules-conformance.yml — inputs & contract
