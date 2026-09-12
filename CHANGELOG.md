@@ -36,6 +36,9 @@
 - Docs: README **smoke** section, `smoke/README.md` (what it catches, the step table, how to add a
   step, the expected-fail rule), `docs/smoke-consumer-recipes.md` (post-publish in `node-release`
   callers for crew/core/bus/garden/studio; per-PR against the others' `latest`).
+- Self-test `.github/workflows/smoke-selftest.yml`: every PR touching `smoke/**` or the workflow runs
+  the reusable `smoke.yml` from that ref on ubuntu + macos against the current published set — the
+  workflow_call seam proven before any consumer adopts it (the docs-lint / rules-conformance idiom).
 
 ## v1.2.0
 

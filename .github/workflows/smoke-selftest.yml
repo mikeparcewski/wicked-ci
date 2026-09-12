@@ -1,0 +1,36 @@
+# Self-test for the smoke seam (the rules-conformance-selftest / docs-lint-reusable idiom): every PR
+# that touches the harness or its workflow runs the REUSABLE smoke.yml from THIS ref against the
+# current published set on ubuntu + macos — proving the workflow_call seam end-to-end before any
+# consumer adopts it. A `workflow_dispatch` is only possible once the file is on the default branch
+# (GitHub resolves dispatchable workflows there); until then the pull_request run is the proof.
+name: smoke-selftest
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'smoke/**'
+      - '.github/workflows/smoke.yml'
+      - '.github/workflows/smoke-selftest.yml'
+  workflow_dispatch:
+    inputs:
+      crew_version:
+        description: 'wicked-crew npm version'
+        type: string
+        default: 'latest'
+      steps:
+        description: 'Steps (empty = default set)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    uses: ./.github/workflows/smoke.yml
+    with:
+      crew_version: ${{ inputs.crew_version || 'latest' }}
+      steps: ${{ inputs.steps || '' }}
+      os_matrix: '["ubuntu-latest","macos-latest"]'
+      wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}

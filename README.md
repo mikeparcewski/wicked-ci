@@ -350,7 +350,9 @@ permissions: `contents: read`. Per-repo recipes — post-publish in
 [`docs/smoke-consumer-recipes.md`](docs/smoke-consumer-recipes.md).
 
 Locally: `node smoke/bin/wicked-smoke.mjs --crew 0.7.32 --bus 2.3.4 --garden 12.34.0 --keep --report-dir ./smoke-out`
-(needs node ≥ 22, git, tar, `uv`; Linux also `bubblewrap`).
+(needs node ≥ 22, git, tar, `uv`; Linux also `bubblewrap`). Self-test:
+`.github/workflows/smoke-selftest.yml` runs the reusable workflow from the PR's own ref on every PR
+that touches `smoke/**`.
 
 ## Cross-repo dependency upgrades — Renovate
 
