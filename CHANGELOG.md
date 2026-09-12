@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### smoke — wicked-smoke v1, the artifact-level smoke for the wicked-* seams (S01–S10)
+
+- New reusable workflow `.github/workflows/smoke.yml` (`workflow_call` + `workflow_dispatch`) and
+  harness `smoke/` (node ≥ 22, no dependencies). It installs the PUBLISHED artifacts — `wicked-crew`
+  (bundled studio inside), the prebuilt `wicked-core-ts` platform package crew pins, `wicked-bus`,
+  and the `wicked-garden` plugin tag laid out as the marketplace cache — into a hermetic temp root
+  (`HOME`, `CLAUDE_CONFIG_DIR`, `WICKED_*`, `TMPDIR`, npm prefix/cache all under it; the PATH carries
+  the shims, the temp prefix, node and the system dirs only), boots the daemon with shimmed seats
+  (claude answers; codex exits 401; copilot exits quota; opencode answers on its free tier; pi is
+  absent; `gh` and `wicked-estate` are stand-ins — no model calls, no GitHub), and asserts the wire:
+  S01 boot/packaging versions + served studio marker, S02 skills publish (portable == total, no
+  findings) + the F-083 stale-rules acceptance, S03 onboarding through the real engine with
+  `clis: []` (F-E2E-011) + the customer-visible debris (F-E2E-012), S04 the default-posture `bug`
+  run with the mixed roster (F-090 whole-phase units, F-7R2-006/F-7R3-001 benched seats NAMED,
+  F-E2E-030 deliver gate, F-E2E-029a `node_modules` provisioned into the worktree, push to a local
+  bare origin, F-087 diff after completion, F-E2E-013 acceptance read writes nothing), S05 bus
+  health under the two-SQLite-libraries trigger (F-E2E-021, incl. visibility in `recentErrors`),
+  S06 campaign fan-out (F-086), S09 the installed tree (platform package at the pinned version,
+  studio dist, F-004 roster paths), S10 SIGTERM ≤ 10 s + `PRAGMA integrity_check` + cleanup.
+  S07 (interactive) and S08 (chat) ship `--steps` opt-in with TODOs (cold `npx` bridge fetch; no
+  ACP-speaking shim yet).
+- Verdicts: one line per step `PASS` / `FAIL` / `EXPECTED-FAIL` with seconds and evidence path;
+  `EXPECTED-FAIL` is a check tagged with an acceptance finding the installed version is KNOWN to
+  still exhibit (`smoke/lib/expect.mjs`: F-E2E-021, F-E2E-030, F-E2E-002 on crew < 0.7.33;
+  F-E2E-012 by design) — named and reasoned, never a red job, never silently skipped;
+  `--no-expect-fail` runs strict. JSON report + daemon log + shim call log + evidence upload as
+  `wicked-smoke-<os>`; a step summary is written; exit non-zero on any FAIL.
+- Inputs `crew_version`, `core_ts_version` (`pinned`), `bus_version`, `garden_ref`, `steps`,
+  `os_matrix` (default `["ubuntu-latest","macos-latest"]`), `expect_fail_steps`,
+  `expect_fail_findings`, `wicked_ci_ref`; output `overall`. `--assert-hermetic` (always on in the
+  workflow) fails the run if anything under the real `$HOME` changed mtime.
+- Docs: README **smoke** section, `smoke/README.md` (what it catches, the step table, how to add a
+  step, the expected-fail rule), `docs/smoke-consumer-recipes.md` (post-publish in `node-release`
+  callers for crew/core/bus/garden/studio; per-PR against the others' `latest`).
+
 ## v1.2.0
 
 Everything `v1` has floated onto since `v1.1.2`, now under a semver tag.

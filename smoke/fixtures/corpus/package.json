@@ -1,0 +1,11 @@
+{
+  "name": "wicked-smoke-corpus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fixed corpus for the wicked-smoke harness: one module, one failing test (the seeded bug), zero dependencies.",
+  "type": "module",
+  "scripts": {
+    "test": "node test/run.mjs"
+  },
+  "license": "MIT"
+}

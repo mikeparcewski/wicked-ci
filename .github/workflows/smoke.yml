@@ -1,0 +1,198 @@
+# wicked-smoke — the artifact-level smoke for the wicked-* seams (S01–S10).
+#
+# Installs the PUBLISHED npm tarballs (wicked-crew + the wicked-core-ts platform package it pins,
+# wicked-bus) and the wicked-garden plugin tag into a hermetic temp root on the runner, boots the daemon
+# with shimmed seats (no model calls, no GitHub), and asserts the cross-repo wire: packaging, skills,
+# onboarding, the default-posture bug run with a mixed-auth roster, bus health, campaign fan-out,
+# teardown. Every step prints PASS / FAIL / EXPECTED-FAIL with its evidence path; the JSON report, the
+# daemon log, the shim call log and the evidence files are uploaded as an artifact; a step summary is
+# written. See smoke/README.md for what each step catches and the expected-fail labelling rule.
+#
+# Caller (SHA-pin the ref per the README's pinning policy):
+#
+#   jobs:
+#     smoke:
+#       uses: mikeparcewski/wicked-ci/.github/workflows/smoke.yml@v1
+#       with:
+#         crew_version: ${{ needs.release.outputs.version }}   # or "latest"
+#
+name: smoke
+
+on:
+  workflow_call:
+    inputs:
+      crew_version:
+        description: 'wicked-crew npm version to install (default: latest)'
+        type: string
+        required: false
+        default: 'latest'
+      core_ts_version:
+        description: 'wicked-core-ts version; "pinned" = whatever the installed crew pins (default)'
+        type: string
+        required: false
+        default: 'pinned'
+      bus_version:
+        description: 'wicked-bus npm version (default: latest)'
+        type: string
+        required: false
+        default: 'latest'
+      garden_ref:
+        description: 'wicked-garden git tag (e.g. 12.34.0) or "latest" (default)'
+        type: string
+        required: false
+        default: 'latest'
+      steps:
+        description: 'Steps to run, e.g. "S01..S06,S09,S10" (default: the v1 default set — S07/S08 are opt-in)'
+        type: string
+        required: false
+        default: ''
+      os_matrix:
+        description: 'JSON array of runners'
+        type: string
+        required: false
+        default: '["ubuntu-latest","macos-latest"]'
+      expect_fail_steps:
+        description: 'Comma-separated step ids whose failures are all expected on this version set (e.g. "S05")'
+        type: string
+        required: false
+        default: ''
+      expect_fail_findings:
+        description: 'Comma-separated finding ids to add to the expected-fail policy (e.g. "F-E2E-030")'
+        type: string
+        required: false
+        default: ''
+      wicked_ci_ref:
+        description: 'wicked-ci ref to take the harness from'
+        type: string
+        required: false
+        default: 'v1'
+      node_version:
+        type: string
+        required: false
+        default: 'lts/*'
+    outputs:
+      overall:
+        description: 'PASS | PASS (with expected failures) | FAIL — from the ubuntu leg when present, else the first leg'
+        value: ${{ jobs.smoke.outputs.overall }}
+  workflow_dispatch:
+    inputs:
+      crew_version:
+        description: 'wicked-crew npm version'
+        type: string
+        default: 'latest'
+      core_ts_version:
+        description: 'wicked-core-ts version or "pinned"'
+        type: string
+        default: 'pinned'
+      bus_version:
+        description: 'wicked-bus npm version'
+        type: string
+        default: 'latest'
+      garden_ref:
+        description: 'wicked-garden tag or "latest"'
+        type: string
+        default: 'latest'
+      steps:
+        description: 'Steps (empty = default set)'
+        type: string
+        default: ''
+      os_matrix:
+        description: 'JSON array of runners'
+        type: string
+        default: '["ubuntu-latest","macos-latest"]'
+      expect_fail_steps:
+        description: 'Step ids expected to fail'
+        type: string
+        default: ''
+      expect_fail_findings:
+        description: 'Finding ids added to the expected-fail policy'
+        type: string
+        default: ''
+      wicked_ci_ref:
+        description: 'wicked-ci ref to take the harness from (a dispatch runs the harness of the branch it is dispatched on when empty)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.os_matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    outputs:
+      overall: ${{ steps.verdict.outputs.overall }}
+    steps:
+      # The harness comes from wicked-ci at `wicked_ci_ref` (a dispatch with an empty ref runs the
+      # branch it was dispatched on: github.sha). The CALLER's repository is never checked out — the
+      # smoke is about published artifacts, not the caller's tree.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: mikeparcewski/wicked-ci
+          ref: ${{ inputs.wicked_ci_ref != '' && inputs.wicked_ci_ref || github.sha }}
+          path: .wicked-ci-smoke
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ inputs.node_version || 'lts/*' }}
+      # `uv` is a PRODUCT requirement: crew's skills seed runs `uv sync` for the garden bundle and
+      # BLOCKS the publish without it. The harness exposes the host uv through a passthrough wrapper.
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      # Linux: the engine's repo-checks floor and validator run inside an OS write boundary (bwrap) and
+      # fail closed without one — same arming as node-release's opt-in checks sandbox (wicked-core#433).
+      - name: Arm the checks sandbox (bubblewrap) on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          bwrap --ro-bind / / --dev /dev --proc /proc --unshare-all --die-with-parent -- /bin/true
+          echo "bwrap can arm a boundary on this runner"
+      - name: wicked-smoke
+        id: run
+        shell: bash
+        env:
+          SMOKE_CREW: ${{ inputs.crew_version || 'latest' }}
+          SMOKE_CORE_TS: ${{ inputs.core_ts_version || 'pinned' }}
+          SMOKE_BUS: ${{ inputs.bus_version || 'latest' }}
+          SMOKE_GARDEN: ${{ inputs.garden_ref || 'latest' }}
+          SMOKE_STEPS: ${{ inputs.steps }}
+          SMOKE_XF_STEPS: ${{ inputs.expect_fail_steps }}
+          SMOKE_XF_FINDINGS: ${{ inputs.expect_fail_findings }}
+        run: |
+          ARGS=(--crew "$SMOKE_CREW" --core-ts "$SMOKE_CORE_TS" --bus "$SMOKE_BUS" --garden "$SMOKE_GARDEN" --assert-hermetic --report-dir "$RUNNER_TEMP/wicked-smoke-report")
+          [ -n "$SMOKE_STEPS" ] && ARGS+=(--steps "$SMOKE_STEPS")
+          [ -n "$SMOKE_XF_STEPS" ] && ARGS+=(--expect-fail-steps "$SMOKE_XF_STEPS")
+          [ -n "$SMOKE_XF_FINDINGS" ] && ARGS+=(--expect-fail "$SMOKE_XF_FINDINGS")
+          set +e
+          node .wicked-ci-smoke/smoke/bin/wicked-smoke.mjs "${ARGS[@]}"
+          code=$?
+          set -e
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          exit $code
+      - name: verdict
+        id: verdict
+        if: always()
+        shell: bash
+        run: |
+          R="$RUNNER_TEMP/wicked-smoke-report/report.json"
+          if [ -f "$R" ]; then
+            node -e 'const r=require(process.argv[1]);console.log("overall="+r.overall)' "$R" >> "$GITHUB_OUTPUT"
+          else
+            echo "overall=FAIL (no report)" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: wicked-smoke-${{ matrix.os }}
+          path: ${{ runner.temp }}/wicked-smoke-report
+          if-no-files-found: warn
+          retention-days: 14
+      - name: remove harness checkout
+        if: always()
+        shell: bash
+        run: rm -rf .wicked-ci-smoke

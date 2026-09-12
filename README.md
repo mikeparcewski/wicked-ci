@@ -24,6 +24,11 @@ Three workflows live here:
   (AW-17, recall-report v1): ingests the repo's governed rules corpus into
   a scratch store and posts ONE sticky, advisory PR comment citing every
   applicable rule's id + wiki URI. Never blocks; honest fail-open.
+- `.github/workflows/smoke.yml` — **wicked-smoke**, the artifact-level
+  smoke for the wicked-* seams (harness under `smoke/`): installs the
+  PUBLISHED tarballs into a hermetic temp root, boots the daemon with
+  shimmed seats and asserts the cross-repo wire (S01–S10). See **smoke**
+  below and [`docs/smoke-consumer-recipes.md`](docs/smoke-consumer-recipes.md).
 
 Consumers call them via `uses:`. Versions are pinned by tag — `@v1` for
 the latest non-breaking line.
@@ -304,6 +309,48 @@ python3 -m unittest discover -s docs-lint/tests          # the lint's tests
 Keep `docs-lint/registry.json` current: when a package, crate, plugin, or
 bin is added, renamed, or retired, update the registry in the same PR.
 Retired names never join the allowlists — the retired-name rule owns them.
+
+## smoke — the artifact-level smoke for the wicked-* seams
+
+`smoke/` is a 5–8 minute harness that tests what a customer's `npm i -g`
+actually composes: it installs the **published** `wicked-crew` (bundled
+studio inside), the prebuilt `wicked-core-ts` platform package crew pins,
+`wicked-bus`, and the `wicked-garden` plugin tag into a hermetic temp root,
+boots the daemon with shimmed seats (claude answers, codex is signed out,
+copilot is quota-exhausted, opencode answers on its free tier, pi is not
+installed — no model calls, no GitHub), and asserts the wire step by step:
+boot/packaging (S01), skills publish + stale-rules (S02), onboarding through
+the real engine with `clis: []` (S03), the default-posture `bug` run with
+the mixed roster through a local bare origin (S04), bus health under the
+two-SQLite-libraries trigger (S05), campaign fan-out (S06), packaging of the
+installed tree (S09), teardown + `integrity_check` (S10); interactive (S07)
+and chat (S08) are opt-in in v1. Every step prints `PASS` / `FAIL` /
+`EXPECTED-FAIL` (a finding the installed version is KNOWN to still exhibit,
+named and reasoned — never silently skipped) with its evidence path; the
+JSON report, daemon log, shim call log and evidence upload as an artifact
+and a step summary is written. Full step table, the finding classes it
+catches, how to add a step and the expected-fail rule: [`smoke/README.md`](smoke/README.md).
+
+Reusable workflow (`workflow_call`; also `workflow_dispatch` for manual runs):
+
+```yaml
+jobs:
+  smoke:
+    uses: mikeparcewski/wicked-ci/.github/workflows/smoke.yml@v1
+    with:
+      crew_version: ${{ needs.version.outputs.v }}   # what was just published; default latest
+```
+
+Inputs: `crew_version`, `core_ts_version` (`pinned` = crew's own range),
+`bus_version`, `garden_ref`, `steps`, `os_matrix` (default
+`["ubuntu-latest","macos-latest"]`), `expect_fail_steps`,
+`expect_fail_findings`, `wicked_ci_ref`. Output `overall`. Caller
+permissions: `contents: read`. Per-repo recipes — post-publish in
+`node-release` callers and per-PR against the others' `latest` — live in
+[`docs/smoke-consumer-recipes.md`](docs/smoke-consumer-recipes.md).
+
+Locally: `node smoke/bin/wicked-smoke.mjs --crew 0.7.32 --bus 2.3.4 --garden 12.34.0 --keep --report-dir ./smoke-out`
+(needs node ≥ 22, git, tar, `uv`; Linux also `bubblewrap`).
 
 ## Cross-repo dependency upgrades — Renovate
 
