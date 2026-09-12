@@ -111,13 +111,22 @@ export function hermeticEnv(L, port) {
     WICKED_INTERACTIVE_ROOT: L.interactive,
     WICKED_BUS_DATA_DIR: L.bus,
     WICKED_MEMORY_EMBEDDER: 'hash',
-    TMPDIR: L.tmp,
-    TEMP: L.tmp,
-    TMP: L.tmp,
     WICKED_SMOKE_ROOT: L.root,
     WICKED_SMOKE_SHIM_LOG: L.shimLog,
   };
   if (port !== undefined) env.WICKED_CREW_API = `http://127.0.0.1:${port}`;
+  // The process temp dir. On macOS / Windows it lives under the root like everything else. On Linux
+  // the engine's validator and checks sandboxes are `bwrap … --tmpfs <std::env::temp_dir()>` with the
+  // run dir and the coverage store re-bound inside — a TMPDIR under the run root masked the engine's
+  // own scratch there and the pinned evidence floor answered "no coverage report was produced … the
+  // script denied before writing one" (observed on ubuntu-latest, 2026-09-12), while the same run on
+  // macOS passed. Linux therefore keeps the system temp dir, exactly the configuration wicked-crew's
+  // own deliver e2e runs under on its runners; what the engine writes there is ephemeral runner state.
+  if (process.platform !== 'linux') {
+    env.TMPDIR = L.tmp;
+    env.TEMP = L.tmp;
+    env.TMP = L.tmp;
+  }
   if (IS_WIN) {
     env.USERPROFILE = L.home;
     env.APPDATA = join(L.home, 'AppData', 'Roaming');

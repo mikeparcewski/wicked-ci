@@ -3,6 +3,7 @@
 // with shimmed seats, and assert the cross-repo seams on the wire (S01–S10). One line per step, a JSON
 // report, non-zero exit on any FAIL (EXPECTED-FAIL and SKIPPED never fail the run).
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import * as fsSync from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -18,6 +19,22 @@ import { compareHome, snapshotHome } from '../lib/hermetic.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const STEP_TIMEOUTS = { S04: 540, S05: 420 };
+
+/** chmod u+w every directory under `dir` (no symlink following) so a recursive remove can proceed. */
+function makeWritable(dir) {
+  const { lstatSync, readdirSync, chmodSync } = fsSync;
+  const stack = [dir];
+  while (stack.length) {
+    const d = stack.pop();
+    let st;
+    try { st = lstatSync(d); } catch { continue; }
+    if (!st.isDirectory()) continue;
+    try { chmodSync(d, (st.mode & 0o777) | 0o700); } catch { /* best effort */ }
+    let entries = [];
+    try { entries = readdirSync(d); } catch { continue; }
+    for (const e of entries) stack.push(join(d, e));
+  }
+}
 
 async function main() {
   let opts;
@@ -138,7 +155,9 @@ async function main() {
   writeSummaryIfCi(report);
   log(`wicked-smoke: ${overall} in ${((Date.now() - wall0) / 1000).toFixed(1)}s — report ${reportPath}${opts.reportDir ? ` (+ daemon log, shim calls, evidence in ${opts.reportDir})` : ''}`);
   if (!opts.keep) {
-    try { rmSync(root, { recursive: true, force: true }); log('wicked-smoke: temp root removed'); } catch (err) { log(`wicked-smoke: could not remove temp root: ${err.message}`); }
+    // The skills store locks published generations read-only (dirs 0555) — on Linux `rm` of their
+    // children needs the write bit back first.
+    try { makeWritable(root); rmSync(root, { recursive: true, force: true }); log('wicked-smoke: temp root removed'); } catch (err) { log(`wicked-smoke: could not remove temp root: ${err.message}`); }
     if (failed.length > 0) log('wicked-smoke: re-run with --keep (and --report-dir) to inspect the daemon log and evidence');
   } else log(`wicked-smoke: temp root kept at ${root}`);
   return failed.length > 0 || (hermetic && !hermetic.ok) ? 1 : 0;
