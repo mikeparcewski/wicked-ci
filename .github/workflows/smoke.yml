@@ -164,7 +164,12 @@ jobs:
           SMOKE_XF_STEPS: ${{ inputs.expect_fail_steps }}
           SMOKE_XF_FINDINGS: ${{ inputs.expect_fail_findings }}
         run: |
-          ARGS=(--crew "$SMOKE_CREW" --core-ts "$SMOKE_CORE_TS" --bus "$SMOKE_BUS" --garden "$SMOKE_GARDEN" --assert-hermetic --report-dir "$RUNNER_TEMP/wicked-smoke-report")
+          # The run root: on Linux NOT under RUNNER_TEMP — the engine's bwrap validator sandbox denied
+          # the pinned evidence floor for a corpus kept there ("no coverage report was produced … the
+          # script denied before writing one"); a root under the runner's HOME is the layout a
+          # customer's clone has. --assert-hermetic skips the root itself.
+          if [ "$RUNNER_OS" = "Linux" ]; then ROOT="$HOME/wicked-smoke-root"; else ROOT="$RUNNER_TEMP/wicked-smoke-root"; fi
+          ARGS=(--crew "$SMOKE_CREW" --core-ts "$SMOKE_CORE_TS" --bus "$SMOKE_BUS" --garden "$SMOKE_GARDEN" --root "$ROOT" --assert-hermetic --report-dir "$RUNNER_TEMP/wicked-smoke-report")
           [ -n "$SMOKE_STEPS" ] && ARGS+=(--steps "$SMOKE_STEPS")
           [ -n "$SMOKE_XF_STEPS" ] && ARGS+=(--expect-fail-steps "$SMOKE_XF_STEPS")
           [ -n "$SMOKE_XF_FINDINGS" ] && ARGS+=(--expect-fail "$SMOKE_XF_FINDINGS")

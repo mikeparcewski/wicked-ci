@@ -26,14 +26,18 @@ export function snapshotHome() {
   return { home, at: Date.now(), entries: out };
 }
 
-/** Compare two snapshots; returns {ok, changed: ['~/.claude/plugins', …]} (new, removed or touched). */
-export function compareHome(before, after) {
+/** Compare two snapshots; returns {ok, changed: ['~/.claude/plugins', …]} (new, removed or touched).
+ *  `ignore` lists absolute paths whose subtree is the run's own (a `--root` placed under HOME). */
+export function compareHome(before, after, { ignore = [] } = {}) {
+  const home = after.home;
+  const ignored = (k) => ignore.some((p) => { const rel = p.startsWith(home) ? p.slice(home.length).replace(/^[\\/]+/, '') : null; return rel !== null && (k === rel || k.startsWith(`${rel}/`)); });
   const changed = [];
   for (const [k, v] of after.entries) {
+    if (ignored(k)) continue;
     if (!before.entries.has(k)) changed.push(`~/${k} (new)`);
     else if (before.entries.get(k) !== v) changed.push(`~/${k}`);
   }
-  for (const k of before.entries.keys()) if (!after.entries.has(k)) changed.push(`~/${k} (removed)`);
+  for (const k of before.entries.keys()) if (!ignored(k) && !after.entries.has(k)) changed.push(`~/${k} (removed)`);
   // A shell history or a cache file the operator's own session touched is noise for THIS check
   // only when it is not one of the roots the run could have reached; report everything, let the
   // reader judge, but rank the wicked-relevant ones first.

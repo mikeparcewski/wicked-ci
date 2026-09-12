@@ -128,7 +128,7 @@ async function main() {
   // ── hermetic scan ──
   let hermetic = null;
   if (homeBefore) {
-    hermetic = compareHome(homeBefore, snapshotHome());
+    hermetic = compareHome(homeBefore, snapshotHome(), { ignore: [root] });
     log(`hermetic: ${hermetic.ok ? 'clean — nothing under $HOME changed' : `CHANGED under $HOME: ${hermetic.changed.join(', ')}`}`);
   }
 
