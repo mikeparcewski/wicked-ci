@@ -8,8 +8,10 @@
   harness `smoke/` (node ≥ 22, no dependencies). It installs the PUBLISHED artifacts — `wicked-crew`
   (bundled studio inside), the prebuilt `wicked-core-ts` platform package crew pins, `wicked-bus`,
   and the `wicked-garden` plugin tag laid out as the marketplace cache — into a hermetic temp root
-  (`HOME`, `CLAUDE_CONFIG_DIR`, `WICKED_*`, `TMPDIR`, npm prefix/cache all under it; the PATH carries
-  the shims, the temp prefix, node and the system dirs only), boots the daemon with shimmed seats
+  (`HOME`, `CLAUDE_CONFIG_DIR`, `WICKED_*`, npm prefix/cache all under it, `TMPDIR` too on macOS /
+  Windows — on Linux `TMPDIR` stays the SYSTEM temp dir by design, because the engine's bwrap
+  sandboxes `--tmpfs` the temp dir and a root-local TMPDIR masked the engine's own scratch; the PATH
+  carries the shims, the temp prefix, node and the system dirs only), boots the daemon with shimmed seats
   (claude answers; codex exits 401; copilot exits quota; opencode answers on its free tier; pi is
   absent; `gh` and `wicked-estate` are stand-ins — no model calls, no GitHub), and asserts the wire:
   S01 boot/packaging versions + served studio marker, S02 skills publish (portable == total, no
@@ -23,16 +25,25 @@
   studio dist, F-004 roster paths), S10 SIGTERM ≤ 10 s + `PRAGMA integrity_check` + cleanup.
   S07 (interactive) and S08 (chat) ship `--steps` opt-in with TODOs (cold `npx` bridge fetch; no
   ACP-speaking shim yet).
-- Verdicts: one line per step `PASS` / `FAIL` / `EXPECTED-FAIL` with seconds and evidence path;
-  `EXPECTED-FAIL` is a check tagged with an acceptance finding the installed version is KNOWN to
-  still exhibit (`smoke/lib/expect.mjs`: F-E2E-021, F-E2E-030, F-E2E-002 on crew < 0.7.33;
-  F-E2E-012 by design) — named and reasoned, never a red job, never silently skipped;
+- Verdicts: one line per step `PASS` / `FAIL` / `EXPECTED-FAIL` / `UNEXPECTED-PASS` with seconds and
+  evidence path; `EXPECTED-FAIL` is a check tagged with an acceptance finding the installed version
+  is KNOWN to still exhibit (`smoke/lib/expect.mjs`: F-E2E-021 + F-E2E-002 on crew < 0.7.33;
+  F-E2E-030 on core-ts < 0.7.24 — the deliver gate landed in the engine; F-7R2-006 / F-7R3-001 open
+  with no fix version yet; F-SMOKE-003 and F-087 open on node ≥ 26 hosts; F-SMOKE-001 open on
+  linux; F-E2E-012 by design) — named and reasoned, never a red
+  job, never silently skipped; a tagged check that PASSES while its finding is still expected is
+  `UNEXPECTED-PASS — retire the label` (step line, report `unexpectedPasses`, step summary; exit 3
+  unless `--allow-unexpected-pass`). Gates are judged by `awaitingHuman.gateKind` (core-ts ≥ 0.7.24),
+  never by prompt text; the deliver gate is approved so the push to the local bare origin is exercised.
   `--no-expect-fail` runs strict. JSON report + daemon log + shim call log + evidence upload as
   `wicked-smoke-<os>`; a step summary is written; exit non-zero on any FAIL.
 - Inputs `crew_version`, `core_ts_version` (`pinned`), `bus_version`, `garden_ref`, `steps`,
   `os_matrix` (default `["ubuntu-latest","macos-latest"]`), `expect_fail_steps`,
-  `expect_fail_findings`, `wicked_ci_ref`; output `overall`. `--assert-hermetic` (always on in the
-  workflow) fails the run if anything under the real `$HOME` changed mtime.
+  `expect_fail_findings`, `wicked_ci_ref` (empty = the commit the reusable workflow was called at,
+  `github.job_workflow_sha`, so a caller's SHA pin pins the harness too); output `overall` = the WORST
+  leg across the matrix (folded by a `verdict` job from per-leg artifacts). `--assert-hermetic`
+  (always on in the workflow) walks the wicked/CLI directories under the real `$HOME` fully (bounded)
+  and fails the run if anything changed.
 - Docs: README **smoke** section, `smoke/README.md` (what it catches, the step table, how to add a
   step, the expected-fail rule), `docs/smoke-consumer-recipes.md` (post-publish in `node-release`
   callers for crew/core/bus/garden/studio; per-PR against the others' `latest`).

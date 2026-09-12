@@ -27,10 +27,21 @@ permissions:
   contents: read
 
 jobs:
+  # The default composition: crew latest with the core-ts its range resolves TODAY (`pinned`).
   smoke:
     uses: ./.github/workflows/smoke.yml
     with:
       crew_version: ${{ inputs.crew_version || 'latest' }}
       steps: ${{ inputs.steps || '' }}
       os_matrix: '["ubuntu-latest","macos-latest"]'
+      wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
+  # The previous engine, explicitly re-pinned inside crew's tree — the expected-fail policy must read
+  # honestly on BOTH engines the published crew can compose with (one leg keeps runner minutes low).
+  smoke-core-ts-0-7-23:
+    uses: ./.github/workflows/smoke.yml
+    with:
+      crew_version: ${{ inputs.crew_version || 'latest' }}
+      core_ts_version: '0.7.23'
+      steps: ${{ inputs.steps || '' }}
+      os_matrix: '["macos-latest"]'
       wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}

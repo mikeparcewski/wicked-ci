@@ -130,7 +130,7 @@ export async function installGarden(L, env, ref, log) {
  * the latest known value, and S04 self-corrects from the engine's own mismatch message ("engine (napi
  * addon) is X") before its pipeline launch. `WICKED_SMOKE_CORE_SEMVER` overrides.
  */
-const ENGINE_SEMVER_BY_CORE_TS = { '0.7.21': '0.4.0', '0.7.22': '0.4.0', '0.7.23': '0.4.0' };
+const ENGINE_SEMVER_BY_CORE_TS = { '0.7.21': '0.4.0', '0.7.22': '0.4.0', '0.7.23': '0.4.0', '0.7.24': '0.4.0' };
 
 export function engineSemverFor(coreTs) {
   if (process.env.WICKED_SMOKE_CORE_SEMVER) return { semver: process.env.WICKED_SMOKE_CORE_SEMVER, source: 'env' };

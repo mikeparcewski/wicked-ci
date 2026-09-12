@@ -13,8 +13,16 @@ export function apiClient(origin, { log, verbose = false } = {}) {
     try {
       res = await fetch(base + path, init);
     } catch (err) {
-      if (verbose && log) log(`  http ${method} ${path} -> network error ${err.message}`);
-      return { status: 0, json: null, text: String(err.message), ms: Date.now() - t0 };
+      // One retry after a transport failure (a socket reset while the daemon is saturated on a loaded
+      // host): a smoke assertion must fail on what the daemon ANSWERED, not on a dropped connection.
+      if (verbose && log) log(`  http ${method} ${path} -> network error ${err.message}; retrying once`);
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        res = await fetch(base + path, init);
+      } catch (err2) {
+        if (log) log(`  http ${method} ${path} -> network error twice: ${err2.message}`);
+        return { status: 0, json: null, text: String(err2.message), ms: Date.now() - t0 };
+      }
     }
     const text = await res.text();
     let json = null;

@@ -344,8 +344,10 @@ jobs:
 Inputs: `crew_version`, `core_ts_version` (`pinned` = crew's own range),
 `bus_version`, `garden_ref`, `steps`, `os_matrix` (default
 `["ubuntu-latest","macos-latest"]`), `expect_fail_steps`,
-`expect_fail_findings`, `wicked_ci_ref`. Output `overall`. Caller
-permissions: `contents: read`. Per-repo recipes — post-publish in
+`expect_fail_findings`, `wicked_ci_ref` (empty = the commit your `uses:`
+pin resolved — no double pin). Output `overall` = the worst leg of the
+matrix (`FAIL` > `UNEXPECTED-PASS` > `PASS (with expected failures)` >
+`PASS`). Caller permissions: `contents: read`. Per-repo recipes — post-publish in
 `node-release` callers and per-PR against the others' `latest` — live in
 [`docs/smoke-consumer-recipes.md`](docs/smoke-consumer-recipes.md).
 

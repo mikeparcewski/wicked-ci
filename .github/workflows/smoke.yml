@@ -62,18 +62,18 @@ on:
         required: false
         default: ''
       wicked_ci_ref:
-        description: 'wicked-ci ref to take the harness from'
+        description: 'wicked-ci ref to take the harness from. Empty (default) = the SAME commit this reusable workflow was called at (github.job_workflow_sha) — a SHA-pinned `uses:` therefore pins the harness too; a dispatch on a branch runs that branch.'
         type: string
         required: false
-        default: 'v1'
+        default: ''
       node_version:
         type: string
         required: false
         default: 'lts/*'
     outputs:
       overall:
-        description: 'PASS | PASS (with expected failures) | FAIL — from the ubuntu leg when present, else the first leg'
-        value: ${{ jobs.smoke.outputs.overall }}
+        description: 'The WORST leg across the os matrix: FAIL if any leg failed, else UNEXPECTED-PASS if any leg reported one, else PASS (with expected failures) if any did, else PASS. Per-leg reports are in the wicked-smoke-<os> artifacts.'
+        value: ${{ jobs.verdict.outputs.overall }}
   workflow_dispatch:
     inputs:
       crew_version:
@@ -124,16 +124,16 @@ jobs:
         os: ${{ fromJSON(inputs.os_matrix) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
-    outputs:
-      overall: ${{ steps.verdict.outputs.overall }}
     steps:
-      # The harness comes from wicked-ci at `wicked_ci_ref` (a dispatch with an empty ref runs the
-      # branch it was dispatched on: github.sha). The CALLER's repository is never checked out — the
-      # smoke is about published artifacts, not the caller's tree.
+      # The harness comes from wicked-ci at `wicked_ci_ref`; empty = github.job_workflow_sha (the
+      # commit this reusable workflow itself was resolved at — so a caller's SHA pin pins the harness
+      # too, no double pin), which is empty on a workflow_dispatch and falls back to github.sha (the
+      # dispatched branch). The CALLER's repository is never checked out — the smoke is about
+      # published artifacts, not the caller's tree.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: mikeparcewski/wicked-ci
-          ref: ${{ inputs.wicked_ci_ref != '' && inputs.wicked_ci_ref || github.sha }}
+          ref: ${{ inputs.wicked_ci_ref != '' && inputs.wicked_ci_ref || github.job_workflow_sha || github.sha }}
           path: .wicked-ci-smoke
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -179,16 +179,16 @@ jobs:
           set -e
           echo "exit=$code" >> "$GITHUB_OUTPUT"
           exit $code
-      - name: verdict
-        id: verdict
+      - name: per-leg verdict
         if: always()
         shell: bash
         run: |
           R="$RUNNER_TEMP/wicked-smoke-report/report.json"
+          mkdir -p "$RUNNER_TEMP/wicked-smoke-verdict"
           if [ -f "$R" ]; then
-            node -e 'const r=require(process.argv[1]);console.log("overall="+r.overall)' "$R" >> "$GITHUB_OUTPUT"
+            node -e 'const r=require(process.argv[1]);process.stdout.write(r.overall)' "$R" > "$RUNNER_TEMP/wicked-smoke-verdict/${{ matrix.os }}.txt"
           else
-            echo "overall=FAIL (no report)" >> "$GITHUB_OUTPUT"
+            printf '%s' 'FAIL (no report)' > "$RUNNER_TEMP/wicked-smoke-verdict/${{ matrix.os }}.txt"
           fi
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
@@ -197,7 +197,43 @@ jobs:
           path: ${{ runner.temp }}/wicked-smoke-report
           if-no-files-found: warn
           retention-days: 14
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: wicked-smoke-verdict-${{ matrix.os }}
+          path: ${{ runner.temp }}/wicked-smoke-verdict
+          retention-days: 14
       - name: remove harness checkout
         if: always()
         shell: bash
         run: rm -rf .wicked-ci-smoke
+
+  # The matrix's outputs are last-writer-wins, so the workflow's `overall` is folded here from every
+  # leg's verdict file: the WORST leg wins.
+  verdict:
+    needs: smoke
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      overall: ${{ steps.fold.outputs.overall }}
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: wicked-smoke-verdict-*
+          path: verdicts
+          merge-multiple: true
+      - id: fold
+        shell: bash
+        run: |
+          worst="PASS"
+          for f in verdicts/*.txt; do
+            [ -f "$f" ] || continue
+            v="$(cat "$f")"; echo "$(basename "$f" .txt): $v"
+            case "$v" in
+              FAIL*) worst="FAIL";;
+              UNEXPECTED-PASS*) [ "$worst" = "FAIL" ] || worst="UNEXPECTED-PASS";;
+              "PASS (with expected failures)") [ "$worst" = "FAIL" ] || [ "$worst" = "UNEXPECTED-PASS" ] || worst="PASS (with expected failures)";;
+            esac
+          done
+          echo "overall=$worst" >> "$GITHUB_OUTPUT"
+          echo "overall: $worst"

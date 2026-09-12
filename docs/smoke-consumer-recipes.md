@@ -24,10 +24,15 @@ readable form.
 | `os_matrix` | `["ubuntu-latest","macos-latest"]` | Windows is not in the default matrix (the repo-checks floor has no OS write boundary there and fails closed) |
 | `expect_fail_steps` | `` | step ids whose failures are ALL expected on this version set |
 | `expect_fail_findings` | `` | finding ids added to the built-in expected-fail policy |
-| `wicked_ci_ref` | `v1` | where the harness is taken from |
+| `wicked_ci_ref` | `` (= the commit your `uses:` pin resolved) | where the harness is taken from — a SHA-pinned caller pins the harness too |
 
-Output `overall`: `PASS`, `PASS (with expected failures)` or `FAIL`. The job fails only on a FAIL
-(an EXPECTED-FAIL step never fails the job — it is printed and reported as such).
+Output `overall`: the worst leg of the matrix — `FAIL` > `UNEXPECTED-PASS` > `PASS (with expected
+failures)` > `PASS`. The job fails on a FAIL and on an UNEXPECTED-PASS (a labelled check that passed:
+the product fixed something the policy still expects to fail — retire the label the same day); an
+EXPECTED-FAIL step never fails the job — it is printed and reported as such. `core_ts_version:
+pinned` re-pins nothing: it takes whatever the installed crew's `^x.y.z` range resolves TODAY, so a
+new core-ts publish changes the default smoke's engine the minute it lands (the reason the policy is
+keyed per component).
 
 ## wicked-crew — post-publish, in the release workflow
 

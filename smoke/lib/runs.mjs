@@ -1,5 +1,5 @@
 // Run-lifecycle helpers over the daemon API: read a run, its events, wait for a terminal state while
-// answering human gates through a callback.
+// answering human gates through a callback that receives the gate's KIND (never only its prompt).
 import { sleep } from './proc.mjs';
 
 export const TERMINAL = new Set(['completed', 'failed', 'cancelled', 'archived']);
@@ -17,16 +17,38 @@ export async function runEvents(api, runId) {
 }
 
 /**
- * Poll until the run is terminal. `onAwaiting(view)` is invoked (once per distinct gate) when the run
- * is `awaiting_human`; return `'approve'` to POST /resume, `'cancel'` to cancel, anything else to leave
- * it parked. Returns {view, gates: [...], timedOut}.
+ * Why the run paused. core-ts ≥ 0.7.24 says so on the wire — `awaitingHuman.gateKind`: `run_level` |
+ * `def` | `deliver` | `terminal` | `escalation` | `failure` | `triage` (additive, review of core#456
+ * F7) — and a consumer keys on that, never on the prompt's wording. Older engines carry no kind; for
+ * them the LAST-RESORT fallback derives one from the cursor unit's phase and the prompt's opening
+ * words, and says so (`source: 'fallback'`) so the caller can refuse to take an irreversible action
+ * on a guess.
  */
-export async function waitTerminal(api, runId, { ms = 120_000, every = 500, onAwaiting = null } = {}) {
+export function gateKindOf({ events, ord, unitPhase, prompt }) {
+  const frames = events.filter((e) => e.type === 'awaitingHuman' && (ord === undefined || e.ord === ord));
+  const last = frames[frames.length - 1];
+  if (last && typeof last.gateKind === 'string' && last.gateKind !== '') return { kind: last.gateKind, source: 'wire' };
+  const p = String(prompt ?? '');
+  if (unitPhase === 'deliver') return { kind: 'deliver', source: 'fallback' };
+  if (/^Approve unit \d+ before it runs/i.test(p)) return { kind: 'run_level', source: 'fallback' };
+  if (/^Approve delivery before unit \d+ runs/i.test(p)) return { kind: 'deliver', source: 'fallback' };
+  if (/^Unit \d+ failed|^Unit \d+ verdict is NOT PASS|escalat/i.test(p)) return { kind: 'escalation', source: 'fallback' };
+  return { kind: 'unknown', source: 'fallback' };
+}
+
+/**
+ * Poll until the run is terminal. `onAwaiting(view, record)` is invoked once per distinct gate with
+ * `record.kind` / `record.kindSource` filled in; return `'approve'`, `'cancel'`, `'reassign:<cli>'`, or
+ * anything else to leave the gate parked. `signal` (AbortSignal) ends the wait early with
+ * `timedOut: true, aborted: true`. Returns {view, gates, timedOut}.
+ */
+export async function waitTerminal(api, runId, { ms = 120_000, every = 500, onAwaiting = null, signal = null } = {}) {
   const deadline = Date.now() + ms;
   const gates = [];
   let lastGateKey = null;
   let view = null;
   while (Date.now() < deadline) {
+    if (signal?.aborted) return { view, gates, timedOut: true, aborted: true };
     view = await runView(api, runId);
     if (view === null) { await sleep(every); continue; }
     const status = view.session.status;
@@ -39,7 +61,9 @@ export async function waitTerminal(api, runId, { ms = 120_000, every = 500, onAw
       if (key !== lastGateKey) {
         lastGateKey = key;
         const unit = view.units.find((u) => u.ord === (view.session.unit_ix ?? 0) + 1) ?? view.units[view.session.unit_ix] ?? null;
-        const record = { at: new Date().toISOString(), key, unitIx: view.session.unit_ix, unitId: unit?.id ?? null, unitStatus: unit?.status ?? null, gate: gate.json ?? gate.text };
+        const events = await runEvents(api, runId);
+        const { kind, source } = gateKindOf({ events, ord: unit?.ord, unitPhase: phaseOf(unit), prompt: gate.json?.prompt });
+        const record = { at: new Date().toISOString(), key, unitIx: view.session.unit_ix, unitId: unit?.id ?? null, unitStatus: unit?.status ?? null, kind, kindSource: source, gate: gate.json ?? gate.text };
         const decision = await onAwaiting(view, record);
         record.decision = decision;
         gates.push(record);
