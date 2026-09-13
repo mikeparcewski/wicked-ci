@@ -1,0 +1,18 @@
+{
+  "name": "wicked-smoke",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Artifact-level smoke harness for the wicked-* seams: installs the PUBLISHED tarballs into a hermetic temp root, boots the daemon with shimmed seats, and asserts the wire (S01-S10).",
+  "type": "module",
+  "bin": {
+    "wicked-smoke": "bin/wicked-smoke.mjs"
+  },
+  "scripts": {
+    "smoke": "node bin/wicked-smoke.mjs",
+    "check": "node --check bin/wicked-smoke.mjs && node lib/selfcheck.mjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "MIT"
+}

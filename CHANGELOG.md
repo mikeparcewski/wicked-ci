@@ -2,6 +2,70 @@
 
 ## Unreleased
 
+### smoke — wicked-smoke v1, the artifact-level smoke for the wicked-* seams (S01–S10)
+
+- New reusable workflow `.github/workflows/smoke.yml` (`workflow_call` + `workflow_dispatch`) and
+  harness `smoke/` (node ≥ 22, no dependencies). It installs the PUBLISHED artifacts — `wicked-crew`
+  (bundled studio inside), the prebuilt `wicked-core-ts` platform package crew pins, `wicked-bus`,
+  and the `wicked-garden` plugin tag laid out as the marketplace cache — into a hermetic temp root
+  (`HOME`, `CLAUDE_CONFIG_DIR`, `WICKED_*`, npm prefix/cache all under it, `TMPDIR` too on macOS /
+  Windows — on Linux `TMPDIR` stays the SYSTEM temp dir by design, because the engine's bwrap
+  sandboxes `--tmpfs` the temp dir and a root-local TMPDIR masked the engine's own scratch; the PATH
+  carries the shims, the temp prefix, node and the system dirs only), boots the daemon with shimmed seats
+  (claude answers; codex exits 401; copilot exits quota; opencode answers on its free tier; pi is
+  absent; `gh` and `wicked-estate` are stand-ins — no model calls, no GitHub), and asserts the wire:
+  S01 boot/packaging versions + served studio marker, S02 skills publish (portable == total, no
+  findings) + the F-083 stale-rules acceptance, S03 onboarding through the real engine with
+  `clis: []` (F-E2E-011) + the customer-visible debris (F-E2E-012), S04 the default-posture `bug`
+  run with the mixed roster (F-090 whole-phase units, F-7R2-006/F-7R3-001 benched seats NAMED,
+  F-E2E-030 deliver gate, F-E2E-029a `node_modules` provisioned into the worktree, push to a local
+  bare origin, F-087 diff after completion, F-E2E-013 acceptance read writes nothing), S05 bus
+  health under the two-SQLite-libraries trigger (F-E2E-021, incl. visibility in `recentErrors`),
+  S06 campaign fan-out (F-086), S09 the installed tree (platform package at the pinned version,
+  studio dist, F-004 roster paths), S10 SIGTERM ≤ 10 s + `PRAGMA integrity_check` + cleanup.
+  S07 (interactive) and S08 (chat) ship `--steps` opt-in with TODOs (cold `npx` bridge fetch; no
+  ACP-speaking shim yet).
+- Verdicts: one line per step `PASS` / `FAIL` / `EXPECTED-FAIL` / `UNEXPECTED-PASS` with seconds and
+  evidence path; `EXPECTED-FAIL` is a check tagged with an acceptance finding the installed version
+  is KNOWN to still exhibit (`smoke/lib/expect.mjs`, keyed to the REAL fix versions: F-E2E-021 on
+  crew < 0.7.33 — fixed by crew #541/#542, S05 passes from 0.7.33, FLAKY below it (the race stayed
+  clean on 1 of 13 loops); F-E2E-030 on core-ts < 0.7.24 —
+  the deliver gate landed in the engine, and on crew ≥ 0.7.33 S04 asserts the
+  `GET /health.capabilities.deliverGate` wire against the installed engine untagged; F-E2E-002,
+  F-7R2-006 / F-7R3-001 (the F-SMOKE-002 residual) and F-SMOKE-003 open with no fix version yet —
+  F-SMOKE-003 on every node and engine and declared FLAKY, both `delivered` and `stranded` having
+  been observed on identical inputs; F-087 open on node ≥ 26 hosts and FLAKY too (500 on two runs,
+  200 on the third); F-SMOKE-001 open on linux;
+  F-E2E-012 by design) — named and reasoned, never a red
+  job, never silently skipped; a tagged check that PASSES while its finding is still expected is
+  `UNEXPECTED-PASS — retire the label` (step line, report `unexpectedPasses`, step summary; exit 3
+  unless `--allow-unexpected-pass`). Gates are judged by `awaitingHuman.gateKind` (core-ts ≥ 0.7.24),
+  never by prompt text; the deliver gate is approved so the push to the local bare origin is exercised.
+  `--no-expect-fail` runs strict. JSON report + daemon log + shim call log + evidence upload as
+  `wicked-smoke-<os>`; a step summary is written; exit non-zero on any FAIL.
+- Inputs `crew_version`, `core_ts_version` (`pinned`), `bus_version`, `garden_ref`, `steps`,
+  `os_matrix` (default `["ubuntu-latest","macos-latest"]`), `expect_fail_steps`,
+  `expect_fail_findings`, `wicked_ci_ref` (empty = the commit the reusable workflow was called at,
+  `github.job_workflow_sha`, so a caller's SHA pin pins the harness too), `artifact_suffix` (set it
+  when one run calls the smoke twice: artifact names carry `-<suffix>` so the two invocations' verdict
+  folds never merge each other's legs); output `overall` = the WORST leg across the matrix (folded by
+  a `verdict` job from per-leg artifacts). `--assert-hermetic` (always on in the workflow) walks the
+  wicked/CLI directories under the real `$HOME` fully (bounded) and fails the run if anything
+  changed (`~/Library` is recorded to its grandchildren, watched where a third-party tool writes);
+  three classes are reported as `noise`, not a leak: the macOS user media folders (a hosted macOS
+  runner's own daemons write there — `photoanalysisd` under `~/Pictures`, a bare mtime move on
+  `~/Movies`), Apple's own state under `~/Library` (`com.apple.*` preferences and caches, `Biome`,
+  `Daemon Containers`, … — the runner churns them for the whole run), and a directory whose own mtime
+  moved while none of its recorded direct children changed or whose changed descendants are all noise.
+- Docs: README **smoke** section, `smoke/README.md` (what it catches, the step table, how to add a
+  step, the expected-fail rule), `docs/smoke-consumer-recipes.md` (post-publish in `node-release`
+  callers for crew/core/bus/garden/studio; per-PR against the others' `latest`).
+- Self-test `.github/workflows/smoke-selftest.yml`: every PR touching `smoke/**` or the workflow runs
+  the reusable `smoke.yml` from that ref on ubuntu + macos against the current published set, plus one
+  macOS leg on the PREVIOUS published set (crew 0.7.32 / core-ts 0.7.23, `artifact_suffix: prev`) so
+  the expected-fail policy is proven on both sets a customer can be running — the workflow_call seam
+  proven before any consumer adopts it (the docs-lint / rules-conformance idiom).
+
 ## v1.2.0
 
 Everything `v1` has floated onto since `v1.1.2`, now under a semver tag.
