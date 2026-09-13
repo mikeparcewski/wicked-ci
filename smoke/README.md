@@ -90,15 +90,16 @@ product needs (`uv`, `python3`) reach the run through per-binary passthrough wra
 everywhere, a FULL bounded walk under the directories the wicked family and the CLIs write —
 `.claude .config .wicked* .npm .codex .copilot .pi .local .cargo …` — so an in-place edit of
 `~/.config/wicked-council/clis.toml` or a new file four levels down in a plugin cache is caught) and
-fails the run if anything changed; a `--root` placed under `$HOME` is excluded from the scan. One
-classification is NOT a leak: a directory whose own mtime moved while nothing recorded beneath it
-changed, inside a root the scan walked completely in both snapshots — a child created and removed
-during the run. A hosted macOS runner does that to `~/Movies` by itself (selftest run 34722047107
-went red on `CHANGED under $HOME: ~/Movies` with nothing inside, on a leg whose twin was clean), so
-`Movies Music Pictures Public` are walked too and such an entry is reported `transient` (printed,
-kept in the JSON `hermetic.transient`, verdict unchanged); a leak leaves a file, and a file anywhere
-under a walked root is still `changed`. A bare mtime move on a directory the scan did NOT walk (e.g.
-`~/Library`) stays a real change. On a shared workstation the scan reports OTHER processes' writes
+fails the run if anything changed; a `--root` placed under `$HOME` is excluded from the scan. Two
+classes are reported as `noise` (printed, kept in the JSON `hermetic.noise`, verdict unchanged) and
+are NOT leaks: anything under the macOS user media folders `Movies Music Pictures Public` — a hosted
+macOS runner's own daemons write there during a run (`photoanalysisd` under `~/Pictures/Photos
+Library.photoslibrary/…`, selftest run 34744141719; a bare mtime move on `~/Movies`, run 34722047107),
+nothing wicked does; and a directory whose own mtime moved while nothing recorded beneath it changed,
+inside a root the scan walked completely in both snapshots (a child created and removed during the
+run). A leak leaves a file, and a file anywhere under a walked root is still `changed`; a bare mtime
+move on a directory the scan did NOT walk (e.g. `~/Library`) stays a real change. On a shared
+workstation the scan reports OTHER processes' writes
 too (a live daemon's WAL files, another session's tool caches) — it is designed for a dedicated
 runner, where it is always on.
 

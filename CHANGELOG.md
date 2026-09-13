@@ -48,10 +48,10 @@
   when one run calls the smoke twice: artifact names carry `-<suffix>` so the two invocations' verdict
   folds never merge each other's legs); output `overall` = the WORST leg across the matrix (folded by
   a `verdict` job from per-leg artifacts). `--assert-hermetic` (always on in the workflow) walks the
-  wicked/CLI directories (and the macOS user folders) under the real `$HOME` fully (bounded) and fails
-  the run if anything changed; a directory whose own mtime moved while nothing beneath it changed,
-  inside a fully walked root, is reported `transient` (a hosted macOS runner does that to `~/Movies`
-  by itself) and is not a leak.
+  wicked/CLI directories under the real `$HOME` fully (bounded) and fails the run if anything
+  changed; two classes are reported as `noise`, not a leak: the macOS user media folders (a hosted
+  macOS runner's own daemons write there — `photoanalysisd` under `~/Pictures`, a bare mtime move on
+  `~/Movies`) and a fully walked directory whose own mtime moved while nothing beneath it changed.
 - Docs: README **smoke** section, `smoke/README.md` (what it catches, the step table, how to add a
   step, the expected-fail rule), `docs/smoke-consumer-recipes.md` (post-publish in `node-release`
   callers for crew/core/bus/garden/studio; per-PR against the others' `latest`).
