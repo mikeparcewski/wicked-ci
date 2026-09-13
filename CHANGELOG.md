@@ -33,7 +33,8 @@
   `GET /health.capabilities.deliverGate` wire against the installed engine untagged; F-E2E-002,
   F-7R2-006 / F-7R3-001 (the F-SMOKE-002 residual) and F-SMOKE-003 open with no fix version yet —
   F-SMOKE-003 on every node and engine and declared FLAKY, both `delivered` and `stranded` having
-  been observed on identical inputs; F-087 open on node ≥ 26 hosts; F-SMOKE-001 open on linux;
+  been observed on identical inputs; F-087 open on node ≥ 26 hosts and FLAKY too (500 on two runs,
+  200 on the third); F-SMOKE-001 open on linux;
   F-E2E-012 by design) — named and reasoned, never a red
   job, never silently skipped; a tagged check that PASSES while its finding is still expected is
   `UNEXPECTED-PASS — retire the label` (step line, report `unexpectedPasses`, step summary; exit 3
@@ -49,9 +50,11 @@
   folds never merge each other's legs); output `overall` = the WORST leg across the matrix (folded by
   a `verdict` job from per-leg artifacts). `--assert-hermetic` (always on in the workflow) walks the
   wicked/CLI directories under the real `$HOME` fully (bounded) and fails the run if anything
-  changed; two classes are reported as `noise`, not a leak: the macOS user media folders (a hosted
-  macOS runner's own daemons write there — `photoanalysisd` under `~/Pictures`, a bare mtime move on
-  `~/Movies`) and a fully walked directory whose own mtime moved while nothing beneath it changed.
+  changed (every other top-level directory is recorded to its grandchildren); two classes are reported
+  as `noise`, not a leak: the macOS user media folders (a hosted macOS runner's own daemons write
+  there — `photoanalysisd` under `~/Pictures`, a bare mtime move on `~/Movies`) and a directory whose
+  own mtime moved while none of its recorded direct children changed (the runner does that to
+  `~/Library` too).
 - Docs: README **smoke** section, `smoke/README.md` (what it catches, the step table, how to add a
   step, the expected-fail rule), `docs/smoke-consumer-recipes.md` (post-publish in `node-release`
   callers for crew/core/bus/garden/studio; per-PR against the others' `latest`).

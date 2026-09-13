@@ -70,7 +70,10 @@ const RULES = {
   // route shells `git diff --no-index -- /dev/null <untracked>` per untracked file and answers 500
   // ("Command failed: git diff … tmp/wicked-checks/tmp/node-compile-cache/…") on the checks' compile
   // cache under the worktree scratch. Every node 24 runner (CI, 2026-09-12) answered 200 with the same
-  // cache present, so the trigger is keyed to the host node major as well. No crew fix version yet.
+  // cache present, so the trigger is keyed to the host node major as well — and on node 26 itself the
+  // route answered 500 on two runs (the independent review's) and 200 on the third (wicked-smoke run
+  // (a), 2026-09-13, crew 0.7.32), so the finding is FLAKY: a 200 is disclosed, never a verdict.
+  // No crew fix version yet.
   'F-087': ({ crew, nodeMajor }) => (crew && !gte(crew, NOT_FIXED_YET) && (nodeMajor ?? 0) >= 26 ? `crew ${crew} on node ${nodeMajor}: GET /runs/:id/diff answers 500 on a completed run whose worktree scratch holds the checks' node compile cache (git diff --no-index fails per untracked file) — open, no fix version yet` : null),
   // F-SMOKE-001 — Linux only: the pinned evidence floor (`git status --porcelain | grep -q . || git
   // log …`, run inside the engine's `bwrap --ro-bind / / … --bind <worktree>` validator sandbox)
@@ -88,12 +91,13 @@ const RULES = {
  * deterministically on an unloaded runner (every CI leg, the independent review) but has been seen to
  * pass under heavy host load — for F-7R2-006 / F-7R3-001 the ballot ledger DOES bench a dead seat
  * when its later (probation) ballot rounds also fail, which a slow host makes likely; for F-SMOKE-003
- * the PR URL sometimes survives the transcript cap (both readings on identical inputs, see the rule).
+ * the PR URL sometimes survives the transcript cap (both readings on identical inputs, see the rule);
+ * for F-087 the diff route answered 500 on two node-26 runs and 200 on the third.
  * An unexpected PASS on a flaky finding is still printed and recorded (`unexpectedPasses[].flaky:
  * true`) but does not fail the run: it is disclosure of a flake, not a stale label. Retire the flag
  * with the label.
  */
-const FLAKY = new Set(['F-7R2-006', 'F-7R3-001', 'F-SMOKE-003']);
+const FLAKY = new Set(['F-7R2-006', 'F-7R3-001', 'F-SMOKE-003', 'F-087']);
 
 export class ExpectPolicy {
   constructor(versions, { extra = [], disabled = false } = {}) {

@@ -88,19 +88,23 @@ and `--assert-hermetic` does not cover `/tmp` there. The PATH the daemon sees is
 node that runs the harness, and the SYSTEM directories only — never `~/.local/bin`, `~/.cargo/bin` or
 a package manager's bin (so a real `claude`, `codex` or `pi` on the host is unreachable). Host tools the
 product needs (`uv`, `python3`) reach the run through per-binary passthrough wrappers.
-`--assert-hermetic` snapshots the mtimes/sizes under your real `$HOME` before the install (depth 1
-everywhere, a FULL bounded walk under the directories the wicked family and the CLIs write —
-`.claude .config .wicked* .npm .codex .copilot .pi .local .cargo …` — so an in-place edit of
-`~/.config/wicked-council/clis.toml` or a new file four levels down in a plugin cache is caught) and
+`--assert-hermetic` snapshots the mtimes/sizes under your real `$HOME` before the install (a FULL
+bounded walk under the directories the wicked family and the CLIs write — `.claude .config .wicked*
+.npm .codex .copilot .pi .local .cargo …` — so an in-place edit of `~/.config/wicked-council/clis.toml`
+or a new file four levels down in a plugin cache is caught; every other top-level directory is
+recorded to its grandchildren; entries are visited sorted so the per-root entry budget cuts at the
+same place in both snapshots) and
 fails the run if anything changed; a `--root` placed under `$HOME` is excluded from the scan. Two
 classes are reported as `noise` (printed, kept in the JSON `hermetic.noise`, verdict unchanged) and
 are NOT leaks: anything under the macOS user media folders `Movies Music Pictures Public` — a hosted
 macOS runner's own daemons write there during a run (`photoanalysisd` under `~/Pictures/Photos
 Library.photoslibrary/…`, selftest run 34744141719; a bare mtime move on `~/Movies`, run 34722047107),
-nothing wicked does; and a directory whose own mtime moved while nothing recorded beneath it changed,
-inside a root the scan walked completely in both snapshots (a child created and removed during the
-run). A leak leaves a file, and a file anywhere under a walked root is still `changed`; a bare mtime
-move on a directory the scan did NOT walk (e.g. `~/Library`) stays a real change. On a shared
+nothing wicked does; and a directory whose own mtime moved while NONE of its recorded direct children
+changed (a directory's mtime moves only when a direct child is added, removed or renamed) — a child
+created and removed during the run; a hosted macOS runner does that to `~/Library` by itself (run
+34745299650). A leak leaves a file, and a recorded file that is new, removed or modified is still
+`changed`; a bare mtime move on a directory whose children were NOT recorded (deeper than the
+shallow record, or past the entry budget) stays a real change. On a shared
 workstation the scan reports OTHER processes' writes
 too (a live daemon's WAL files, another session's tool caches) — it is designed for a dedicated
 runner, where it is always on.
