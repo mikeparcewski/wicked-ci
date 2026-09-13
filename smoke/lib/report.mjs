@@ -115,7 +115,7 @@ export function summaryMarkdown(report) {
   }
   if (report.hermetic) {
     lines.push('');
-    lines.push(`hermetic scan: ${report.hermetic.ok ? 'clean' : `CHANGED under $HOME: ${report.hermetic.changed.join(', ')}`}${report.hermetic.noise?.length ? ` (noise, not a leak: ${report.hermetic.noise.join(', ')})` : ''}`);
+    lines.push(`hermetic scan: ${report.hermetic.ok ? 'clean' : `CHANGED under $HOME: ${report.hermetic.changed.join(', ')}`}${report.hermetic.noise?.length ? ` (noise, not a leak — ${report.hermetic.noise.length} entr${report.hermetic.noise.length === 1 ? 'y' : 'ies'}, all in report.json: ${report.hermetic.noise.slice(0, 6).join(', ')}${report.hermetic.noise.length > 6 ? ` … (+${report.hermetic.noise.length - 6})` : ''})` : ''}`);
   }
   const xpass = report.steps.flatMap((s) => s.checks.filter((c) => c.ok && c.unexpectedPass && !c.flaky).map((c) => `${s.id}: ${c.name} (${c.finding})`));
   if (xpass.length) {

@@ -291,7 +291,10 @@ export async function run(ctx, t) {
   const productSays = view?.session?.delivery ?? null;
   // The product's wire value beside the evidence: when the branch IS on the origin and the PR WAS
   // opened but the wire says otherwise, that disagreement is F-SMOKE-003 (the deliver output cap).
-  t.check('session.delivery agrees with the origin evidence (delivered ⇔ branch pushed + PR opened) (F-SMOKE-003)', delivered ? productSays === 'delivered' : productSays !== 'delivered', `product: ${productSays}; evidence: pushed=${pushed !== null} prCreated=${prCreated}; deliver output ${(pipe.outputs?.deliver ?? '').length} chars captured`, delivered && productSays !== 'delivered' ? { finding: 'F-SMOKE-003', evidence: evDelivery } : { evidence: evDelivery });
+  // Tagged UNCONDITIONALLY: a tag attached only on failure could never surface as UNEXPECTED-PASS, so
+  // the label would outlive the fix; the finding is FLAKY, so a `delivered` reading prints as
+  // "~ passed this time" (disclosure), never as a verdict.
+  t.check('session.delivery agrees with the origin evidence (delivered ⇔ branch pushed + PR opened) (F-SMOKE-003)', delivered ? productSays === 'delivered' : productSays !== 'delivered', `product: ${productSays}; evidence: pushed=${pushed !== null} prCreated=${prCreated}; deliver output ${(pipe.outputs?.deliver ?? '').length} chars captured`, { finding: 'F-SMOKE-003', evidence: evDelivery });
 
   // F-087 — the files view never goes dark after completion. Observed by this harness (node ≥ 24
   // hosts): the route shells `git diff --no-index -- /dev/null <untracked file>` per untracked file
