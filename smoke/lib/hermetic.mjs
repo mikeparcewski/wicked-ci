@@ -27,7 +27,7 @@ const RUNNER_NOISE = new Set(['Movies', 'Music', 'Pictures', 'Public']);
  *  runner noise. Everything else under `~/Library` is Apple's state — noise by construction. */
 const LIBRARY = 'Library';
 const LIBRARY_WATCHED = new Set(['Application Support', 'Caches', 'Preferences', 'Logs', 'LaunchAgents', 'Python', 'pnpm', 'Developer', 'Containers', 'HTTPStorages', 'WebKit', 'Saved Application State']);
-const LIBRARY_APPLE_LEAVES = new Set(['Caches/CloudKit', 'Preferences/ByHost', 'Preferences/diagnostics_agent.plist', 'Application Support/CloudDocs', 'Application Support/AddressBook', 'Application Support/CallHistoryDB', 'Application Support/CallHistoryTransactions', 'Application Support/Knowledge', 'Application Support/FileProvider', 'Application Support/iCloud', 'Logs/DiagnosticReports', 'Logs/CoreSimulator']);
+const LIBRARY_APPLE_LEAVES = new Set(['Caches/CloudKit', 'Preferences/ByHost', 'Preferences/diagnostics_agent.plist', 'Application Support/CloudDocs', 'Application Support/AddressBook', 'Application Support/CallHistoryDB', 'Application Support/CallHistoryTransactions', 'Application Support/Knowledge', 'Application Support/FileProvider', 'Application Support/iCloud', 'Logs/DiagnosticReports', 'Logs/CoreSimulator', 'Logs/hca.log']); // hca.log: a macOS system agent's log the hosted runner appends to (selftest 34748419498). A leaf not listed here reads as a real change NAMING the path — extend the list, never the subtree.
 const APPLE_SEGMENT = /^(com\.apple\.|group\.com\.apple\.|[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$)/i;
 /** Is this `Library/…` entry Apple's own churn (noise) rather than a place a tool leak would show? */
 function isAppleLibraryNoise(key) {
