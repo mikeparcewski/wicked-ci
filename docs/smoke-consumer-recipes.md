@@ -25,6 +25,7 @@ readable form.
 | `expect_fail_steps` | `` | step ids whose failures are ALL expected on this version set |
 | `expect_fail_findings` | `` | finding ids added to the built-in expected-fail policy |
 | `wicked_ci_ref` | `` (= the commit your `uses:` pin resolved) | where the harness is taken from — a SHA-pinned caller pins the harness too |
+| `artifact_suffix` | `` | set it when ONE workflow run calls the smoke more than once (two version sets): artifacts upload as `wicked-smoke-<suffix>-<os>` / `wicked-smoke-verdict-<suffix>-<os>` and each invocation's verdict folds only its own legs; empty keeps `wicked-smoke-<os>` |
 
 Output `overall`: the worst leg of the matrix — `FAIL` > `UNEXPECTED-PASS` > `PASS (with expected
 failures)` > `PASS`. The job fails on a FAIL and on an UNEXPECTED-PASS (a labelled check that passed:
@@ -150,17 +151,25 @@ For a PR that changes an engine seam (crew's adapter, core-ts bindings), add `S0
 
 The harness carries a small policy (`smoke/lib/expect.mjs`): a check tagged with an acceptance finding
 that the installed version is KNOWN to still exhibit is reported **EXPECTED-FAIL** with the finding id
-and the reason, never silently skipped and never a red job. On crew `< 0.7.33` that is S05
-(F-E2E-021: the bus WAL loop + its invisibility in `/diagnostics.recentErrors`), the deliver-gate
-check in S04 (F-E2E-030), the publish-warnings check in S02 (F-E2E-002), and the branch/worktree
-debris check in S03 (F-E2E-012, retention by design). When a fix ships, flip the rule; if the
-harness then still reports EXPECTED-FAIL on the fixed version, that is a bug in the rule, not the
-product. `--no-expect-fail` (harness) runs strict.
+and the reason, never silently skipped and never a red job — and a tagged check that PASSES while its
+finding is still expected is **UNEXPECTED-PASS** (exit 3), so a stale label is retired the day the fix
+ships. Keyed to the real fix versions: S05 (F-E2E-021, the bus WAL loop + its invisibility in
+`/diagnostics.recentErrors`) is EXPECTED-FAIL on crew `< 0.7.33` and must PASS from 0.7.33 (crew #541 +
+#542); the S04 deliver-gate check (F-E2E-030) is EXPECTED-FAIL on core-ts `< 0.7.24` — the gate is the
+ENGINE's, and on crew ≥ 0.7.33 S04 also asserts `GET /health.capabilities.deliverGate` against the
+installed engine; the publish-warnings check in S02 (F-E2E-002), the seat-routing checks in S04
+(F-7R2-006 / F-7R3-001 — the F-SMOKE-002 residual, open on core-ts 0.7.24) and the branch/worktree
+debris check in S03 (F-E2E-012, retention by design) are open on every published version. When a fix
+ships, flip the rule; if the harness then still reports EXPECTED-FAIL on the fixed version, that is a
+bug in the rule, not the product. `--no-expect-fail` (harness) runs strict. Full table:
+[`smoke/README.md`](../smoke/README.md#the-expected-fail-labelling-rule).
 
 ## Running it locally
 
 ```bash
-node smoke/bin/wicked-smoke.mjs --crew 0.7.32 --bus 2.3.4 --garden 12.34.0 --keep --report-dir ./smoke-out
+node smoke/bin/wicked-smoke.mjs --crew 0.7.33 --bus 2.3.4 --garden 12.35.0 --keep --report-dir ./smoke-out
+# the previous published set, explicitly pinned (raise the step ceilings on a loaded host)
+node smoke/bin/wicked-smoke.mjs --crew 0.7.32 --core-ts 0.7.23 --step-timeout 900
 ```
 
 Requirements on the host: node ≥ 22, git, tar, `uv` (crew's skills seed), and on Linux `bubblewrap`

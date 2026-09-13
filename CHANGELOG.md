@@ -27,10 +27,14 @@
   ACP-speaking shim yet).
 - Verdicts: one line per step `PASS` / `FAIL` / `EXPECTED-FAIL` / `UNEXPECTED-PASS` with seconds and
   evidence path; `EXPECTED-FAIL` is a check tagged with an acceptance finding the installed version
-  is KNOWN to still exhibit (`smoke/lib/expect.mjs`: F-E2E-021 + F-E2E-002 on crew < 0.7.33;
-  F-E2E-030 on core-ts < 0.7.24 — the deliver gate landed in the engine; F-7R2-006 / F-7R3-001 open
-  with no fix version yet; F-SMOKE-003 and F-087 open on node ≥ 26 hosts; F-SMOKE-001 open on
-  linux; F-E2E-012 by design) — named and reasoned, never a red
+  is KNOWN to still exhibit (`smoke/lib/expect.mjs`, keyed to the REAL fix versions: F-E2E-021 on
+  crew < 0.7.33 — fixed by crew #541/#542, S05 passes from 0.7.33; F-E2E-030 on core-ts < 0.7.24 —
+  the deliver gate landed in the engine, and on crew ≥ 0.7.33 S04 asserts the
+  `GET /health.capabilities.deliverGate` wire against the installed engine untagged; F-E2E-002,
+  F-7R2-006 / F-7R3-001 (the F-SMOKE-002 residual) and F-SMOKE-003 open with no fix version yet —
+  F-SMOKE-003 on every node and engine and declared FLAKY, both `delivered` and `stranded` having
+  been observed on identical inputs; F-087 open on node ≥ 26 hosts; F-SMOKE-001 open on linux;
+  F-E2E-012 by design) — named and reasoned, never a red
   job, never silently skipped; a tagged check that PASSES while its finding is still expected is
   `UNEXPECTED-PASS — retire the label` (step line, report `unexpectedPasses`, step summary; exit 3
   unless `--allow-unexpected-pass`). Gates are judged by `awaitingHuman.gateKind` (core-ts ≥ 0.7.24),
@@ -40,16 +44,22 @@
 - Inputs `crew_version`, `core_ts_version` (`pinned`), `bus_version`, `garden_ref`, `steps`,
   `os_matrix` (default `["ubuntu-latest","macos-latest"]`), `expect_fail_steps`,
   `expect_fail_findings`, `wicked_ci_ref` (empty = the commit the reusable workflow was called at,
-  `github.job_workflow_sha`, so a caller's SHA pin pins the harness too); output `overall` = the WORST
-  leg across the matrix (folded by a `verdict` job from per-leg artifacts). `--assert-hermetic`
-  (always on in the workflow) walks the wicked/CLI directories under the real `$HOME` fully (bounded)
-  and fails the run if anything changed.
+  `github.job_workflow_sha`, so a caller's SHA pin pins the harness too), `artifact_suffix` (set it
+  when one run calls the smoke twice: artifact names carry `-<suffix>` so the two invocations' verdict
+  folds never merge each other's legs); output `overall` = the WORST leg across the matrix (folded by
+  a `verdict` job from per-leg artifacts). `--assert-hermetic` (always on in the workflow) walks the
+  wicked/CLI directories (and the macOS user folders) under the real `$HOME` fully (bounded) and fails
+  the run if anything changed; a directory whose own mtime moved while nothing beneath it changed,
+  inside a fully walked root, is reported `transient` (a hosted macOS runner does that to `~/Movies`
+  by itself) and is not a leak.
 - Docs: README **smoke** section, `smoke/README.md` (what it catches, the step table, how to add a
   step, the expected-fail rule), `docs/smoke-consumer-recipes.md` (post-publish in `node-release`
   callers for crew/core/bus/garden/studio; per-PR against the others' `latest`).
 - Self-test `.github/workflows/smoke-selftest.yml`: every PR touching `smoke/**` or the workflow runs
-  the reusable `smoke.yml` from that ref on ubuntu + macos against the current published set — the
-  workflow_call seam proven before any consumer adopts it (the docs-lint / rules-conformance idiom).
+  the reusable `smoke.yml` from that ref on ubuntu + macos against the current published set, plus one
+  macOS leg on the PREVIOUS published set (crew 0.7.32 / core-ts 0.7.23, `artifact_suffix: prev`) so
+  the expected-fail policy is proven on both sets a customer can be running — the workflow_call seam
+  proven before any consumer adopts it (the docs-lint / rules-conformance idiom).
 
 ## v1.2.0
 

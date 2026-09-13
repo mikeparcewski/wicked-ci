@@ -46,8 +46,11 @@ Each step is its own module under `lib/steps/` so a failing step names the seam.
 node smoke/bin/wicked-smoke.mjs
 
 # a pinned set, keep the root, collect the report + daemon log + evidence
-node smoke/bin/wicked-smoke.mjs --crew 0.7.32 --bus 2.3.4 --garden 12.34.0 \
+node smoke/bin/wicked-smoke.mjs --crew 0.7.33 --bus 2.3.4 --garden 12.35.0 \
   --keep --root /tmp/smoke-1 --report-dir ./smoke-out --assert-hermetic
+
+# the PREVIOUS published set, explicitly pinned (the policy must read honestly there too)
+node smoke/bin/wicked-smoke.mjs --crew 0.7.32 --core-ts 0.7.23 --step-timeout 900
 
 # one seam
 node smoke/bin/wicked-smoke.mjs --steps S03,S04
@@ -87,9 +90,17 @@ product needs (`uv`, `python3`) reach the run through per-binary passthrough wra
 everywhere, a FULL bounded walk under the directories the wicked family and the CLIs write —
 `.claude .config .wicked* .npm .codex .copilot .pi .local .cargo …` — so an in-place edit of
 `~/.config/wicked-council/clis.toml` or a new file four levels down in a plugin cache is caught) and
-fails the run if anything changed; a `--root` placed under `$HOME` is excluded from the scan. On a
-shared workstation the scan reports OTHER processes' writes too (a live daemon's WAL files, another
-session's tool caches) — it is designed for a dedicated runner, where it is always on.
+fails the run if anything changed; a `--root` placed under `$HOME` is excluded from the scan. One
+classification is NOT a leak: a directory whose own mtime moved while nothing recorded beneath it
+changed, inside a root the scan walked completely in both snapshots — a child created and removed
+during the run. A hosted macOS runner does that to `~/Movies` by itself (selftest run 34722047107
+went red on `CHANGED under $HOME: ~/Movies` with nothing inside, on a leg whose twin was clean), so
+`Movies Music Pictures Public` are walked too and such an entry is reported `transient` (printed,
+kept in the JSON `hermetic.transient`, verdict unchanged); a leak leaves a file, and a file anywhere
+under a walked root is still `changed`. A bare mtime move on a directory the scan did NOT walk (e.g.
+`~/Library`) stays a real change. On a shared workstation the scan reports OTHER processes' writes
+too (a live daemon's WAL files, another session's tool caches) — it is designed for a dedicated
+runner, where it is always on.
 
 ## What is stubbed (and what is not)
 
@@ -139,19 +150,21 @@ the run with exit 3 unless `--allow-unexpected-pass`: the product changed (or th
 the policy must move the same day. One exception, declared per finding (`FLAKY` in `lib/expect.mjs`):
 a class whose failure is timing-dependent in the product — F-7R2-006 / F-7R3-001 fail on every unloaded
 runner but the ledger DOES bench a dead seat when its later ballot rounds also fail, which a slow host
-makes likely — reports an unexpected pass as `~ passed this time … timing-dependent` (printed, in
-`unexpectedPasses` with `flaky: true`) without changing the verdict. Rules today (a bound of `0.7.99`
-means "no fix version exists yet"):
+makes likely; F-SMOKE-003's PR URL sometimes survives the transcript cap — reports an unexpected pass
+as `~ passed this time … timing-dependent` (printed, in `unexpectedPasses` with `flaky: true`) without
+changing the verdict. Rules today, keyed to the REAL fix versions (npm latest 2026-09-13: crew 0.7.33
+pinning core-ts ^0.7.24 / bus ^2.3.4 / studio ^0.5.9; a bound of `0.7.99` means "no fix version
+exists yet"):
 
 | finding | expected on | rule |
 |---|---|---|
-| F-E2E-021 | crew < 0.7.33 | the bus WAL loop after `GET /projects/:id/activity` + external emit, and its absence from `recentErrors` (S05) |
-| F-E2E-030 | core-ts < 0.7.24 | no human gate before the deliver push under `humanConfirm: before:1` (S04) — the gate landed in the ENGINE (core-ts 0.7.24 `should_pause` before a `deliver` Tool unit), so the rule is keyed to the addon |
-| F-E2E-002 | crew < 0.7.33 | publish warnings dropped from `/diagnostics.skills.findings` (S02) |
+| F-E2E-021 | crew < 0.7.33 | the bus WAL loop after `GET /projects/:id/activity` + external emit, and its absence from `recentErrors` (S05) — FIXED in crew 0.7.33 (#541 one SQLite library per db file per process, #542 connection-fatal bus errors reach `recentErrors`): S05 PASSES there and is EXPECTED-FAIL on 0.7.32, where the malformed loop is observed |
+| F-E2E-030 | core-ts < 0.7.24 | no human gate before the deliver push under `humanConfirm: before:1` (S04) — the gate landed in the ENGINE (core-ts 0.7.24 `should_pause` before a `deliver` Tool unit), so the rule is keyed to the addon. crew 0.7.33 adds the WIRE around it (`deliverGate` on `POST /runs`, `GET /health.capabilities.deliverGate`, `session.auto_deliver`) — S04 asserts that wire untagged whenever crew ≥ 0.7.33 is installed: the capability must equal (core-ts ≥ 0.7.24) |
+| F-E2E-002 | crew < 0.7.99 (open — no fix yet) | publish warnings dropped from `/diagnostics.skills.findings` (S02) — the 0.7.33 CHANGELOG carries no fix; an earlier bound of 0.7.33 was a guess |
 | F-E2E-012 | every version (by design) | tool-only onboarding keeps `wicked/<run-id>` + its worktree (S03) — retention, F-7R2-013 |
-| F-7R2-006 / F-7R3-001 | core-ts < 0.7.99 (open — no fix yet) | **observed by this harness on 0.7.23 AND 0.7.24**: codex fails every round-1 ballot `not_logged_in`, copilot `quota_exhausted` (both classified on `councilSeatFailed.reason`), the dispatcher's own bench answers round 2 with `benched`, and the distribution's ballot ledger benches neither — `degradedReason` names only the launcher-benched seat and `evaluator_distinct` / the judge rotation seat units and judges on the dead codex/copilot. The smoke reassigns to a live seat at the escalation gate and asserts the pipeline half on a live-seat rerun; the routing checks stay EXPECTED-FAIL until core benches from every round. Worth a wicked-core issue. |
-| F-SMOKE-003 | crew < 0.7.99 AND (host node ≥ 26 OR core-ts ≥ 0.7.24) (open — no fix yet) | **observed by this harness**: `session.delivery` reads `stranded` for a run whose branch IS on the origin and whose PR WAS opened. Two triggers seen: on node ≥ 26 hundreds of `EXCLUDED (scratch-dir): …node-compile-cache/…` lines push the PR URL past the deliver output cap; on core-ts 0.7.24 the same disagreement appears on a node 24 runner where 0.7.23 read `delivered` (the engine's deliver-phase changes altered what crew's delivery-index sees). S04 judges delivery from the bare origin (`git ls-remote`) + the `gh` shim call first and labels the product's disagreeing wire value with this finding. |
-| F-087 | crew < 0.7.99 AND host node ≥ 26 (open) | `GET /runs/:id/diff` answers 500 on a COMPLETED run whose worktree scratch holds the checks' compile cache (`git diff --no-index` fails per untracked file) — the F-087 "not robust to what the worktree holds" class, observed by this harness on node 26 hosts. |
+| F-7R2-006 / F-7R3-001 | core-ts < 0.7.99 (open — no fix yet; the F-SMOKE-002 residual) | **observed by this harness on 0.7.23 AND 0.7.24 (crew 0.7.32 and 0.7.33)**: codex fails every round-1 ballot `not_logged_in`, copilot `quota_exhausted` (both classified on `councilSeatFailed.reason`), the dispatcher's own bench answers round 2 with `benched`, and the distribution's ballot ledger benches neither — `degradedReason` names only the launcher-benched seat and `evaluator_distinct` / the judge rotation seat units and judges on the dead codex/copilot. The smoke reassigns to a live seat at the escalation gate and asserts the pipeline half on a live-seat rerun; the routing checks stay EXPECTED-FAIL until core benches from every round. Worth a wicked-core issue. |
+| F-SMOKE-003 | crew < 0.7.99, every node and engine (open — no fix yet; FLAKY) | **observed by this harness**: `session.delivery` reads `stranded` for a run whose branch IS on the origin and whose PR WAS opened. crew derives `delivered` from a `run.delivered` trail entry it records by grepping the deliver transcript for the PR URL (`delivery-index.ts prUrlFrom`); the transcript carries one `deliver: EXCLUDED (scratch-dir): …` line per file the checks floor left under the worktree scratch (npm logs, node's on-disk compile cache — node 24 and 26 both write one) and whether the URL survives the cap varies with that count: selftest run 34722047107 read `delivered` on core-ts 0.7.24 and `stranded` on 0.7.23 on node 24 with byte-identical transcript heads, the run before the reverse. S04 judges delivery from the bare origin (`git ls-remote`) + the `gh` shim call first and labels the product's disagreeing wire value with this finding; a `delivered` reading is disclosed as a flaky pass, not a verdict. |
+| F-087 | crew < 0.7.99 AND host node ≥ 26 (open) | `GET /runs/:id/diff` answers 500 on a COMPLETED run whose worktree scratch holds the checks' compile cache (`git diff --no-index` fails per untracked file) — the F-087 "not robust to what the worktree holds" class, observed by this harness on node 26 hosts; every node 24 runner answered 200 with the same cache present. |
 | F-SMOKE-001 | core-ts < 0.7.99 on linux (open) | the pinned evidence floor denies the `fix` unit inside the engine's `bwrap` validator sandbox ("no coverage report was produced … the script denied before writing one") although the judge PASSED and the worker's write succeeded — deterministic on ubuntu-latest (three root layouts, core-ts 0.7.23 and 0.7.24), absent on macOS; confirmed by the independent review as a core-ts finding. The pipeline checks downstream of `fix` carry this tag ONLY when the fix unit's denial has that signature (a cascade of one finding, not five regressions). |
 
 When a fix ships: flip the rule's version bound (or delete it). If the harness then still reports

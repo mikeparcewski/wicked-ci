@@ -331,7 +331,10 @@ JSON report, daemon log, shim call log and evidence upload as an artifact
 and a step summary is written. Full step table, the finding classes it
 catches, how to add a step and the expected-fail rule: [`smoke/README.md`](smoke/README.md).
 
-Reusable workflow (`workflow_call`; also `workflow_dispatch` for manual runs):
+Reusable workflow (`workflow_call`; also `workflow_dispatch` for manual runs;
+inputs `crew_version`, `core_ts_version`, `bus_version`, `garden_ref`, `steps`,
+`os_matrix`, `expect_fail_steps`, `expect_fail_findings`, `wicked_ci_ref`,
+`artifact_suffix` — see [`docs/smoke-consumer-recipes.md`](docs/smoke-consumer-recipes.md)):
 
 ```yaml
 jobs:
