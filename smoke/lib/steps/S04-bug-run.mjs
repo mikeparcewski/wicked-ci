@@ -26,6 +26,7 @@ import { join } from 'node:path';
 import { ISSUE_TEXT, branches } from '../corpus.mjs';
 import { gitTry } from '../proc.mjs';
 import { eventsOfType, phaseOf, runEvents, unitDigest, waitTerminal } from '../runs.mjs';
+import { gte } from '../semver.mjs';
 
 export const id = 'S04';
 export const name = 'bug-run (mixed roster)';
@@ -78,6 +79,12 @@ async function launchAndFollow(ctx, api, t, label, body) {
             out.deadSeatEscalations.push({ phase, assignedCli: unit.assigned_cli ?? null, reassignedTo: alt, kind: rec.kind, kindSource: rec.kindSource, prompt: prompt.slice(0, 300) });
             return `reassign:${alt}`;
           }
+          // A dead-seat JUDGE: the prompt ("Unit N verdict is NOT PASS …") does not name the seat, the
+          // unit's denial_reason does ("no eligible seat produced a verdict (copilot (… quota …))").
+          // Recorded as the same F-7R3-001 class; no reassign can seat a different judge, so a WIRE
+          // kind ends the run (the pipeline half re-runs on the live seats).
+          const denial = String(unit.denial_reason ?? '');
+          if (DEAD_SEAT_RE.test(denial)) out.deadSeatEscalations.push({ phase, assignedCli: unit.assigned_cli ?? null, reassignedTo: null, via: 'denial_reason (judge seat)', kind: rec.kind, kindSource: rec.kindSource, prompt: prompt.slice(0, 300), denial: denial.slice(0, 300) });
           // Any other failure escalation is a seam the shims could not carry. Cancel only on a WIRE
           // kind; a guessed kind approves once (retry) so a text guess is never irreversible.
           out.escalation = out.escalation ?? `${phase} [${rec.kind}/${rec.kindSource}]: ${prompt.slice(0, 400)}`;
@@ -148,6 +155,19 @@ export async function run(ctx, t) {
   t.info('probe view of the seats to be benched', JSON.stringify(Object.fromEntries(BENCHED.map((k) => [k, { auth: byKey[k]?.auth, eligible: byKey[k]?.council_eligible }]))));
   t.info('pi credential', ctx.state.piCredential ? 'present (WICKED_SMOKE_PI_CREDENTIAL=1): the engine must learn not_installed from the ballot' : 'absent: pi benched by the launcher as signed out (the fresh-machine shape)');
 
+  // The deliverGate WIRE (crew ≥ 0.7.33, api-types 0.37.0): `GET /health.capabilities.deliverGate`
+  // is version-derived from the installed addon (≥ 0.7.24 keeps the engine gate). Untagged: on a
+  // crew that declares the capability it must agree with the engine actually installed — a stale
+  // studio composer promise ("pauses at the deliver gate") is exactly the composition drift this
+  // smoke exists for. Older crews carry no `capabilities`; recorded, not judged.
+  const health = await api.get('/health');
+  const caps = health.json?.capabilities ?? null;
+  const evCaps = t.evidence('health-capabilities', { crew: ctx.versions.crew, coreTs: ctx.versions.coreTs, capabilities: caps });
+  if (ctx.versions.crew && gte(ctx.versions.crew, '0.7.33')) {
+    const engineHasGate = Boolean(ctx.versions.coreTs && gte(ctx.versions.coreTs, '0.7.24'));
+    t.check(`GET /health.capabilities.deliverGate == ${engineHasGate} (crew ${ctx.versions.crew} on core-ts ${ctx.versions.coreTs})`, caps?.deliverGate === engineHasGate, `capabilities: ${JSON.stringify(caps)}`, { evidence: evCaps });
+  } else t.info('health.capabilities', caps ? JSON.stringify(caps) : `absent (crew ${ctx.versions.crew} predates the 0.7.33 wire)`);
+
   // ── the MIXED run ─────────────────────────────────────────────────────────────────────────────
   const base = { problem: ISSUE_TEXT, workflow: 'bug', humanConfirm: 'before:1', deliver: 'pr', repoRef: ctx.state.repoId ?? 'corpus' };
   const mixed = await launchAndFollow(ctx, api, t, 'mixed', base);
@@ -181,7 +201,7 @@ export async function run(ctx, t) {
   }
   const routedTo = dist.filter((d) => d.routingMethod !== 'tool').map((d) => d.cli);
   t.check('no unit routed to a dead seat (signed out / quota / not installed)', routedTo.every((c) => !BENCHED.includes(c)), `routed: ${routedTo.join(',')}`, { finding: 'F-7R3-001', evidence: evSeats });
-  t.check('no unit or judge was seated on a dead seat (no dead-seat escalation / denial) (F-7R3-001)', mixed.deadSeatEscalations.length === 0 && !mixed.deadSeatDenial, [...mixed.deadSeatEscalations.map((d) => `${d.phase} on ${d.assignedCli} → reassigned to ${d.reassignedTo}`), ...mixed.denials.filter((d) => DEAD_SEAT_RE.test(d))].join(' | ').slice(0, 400), { finding: 'F-7R3-001', evidence: evSeats });
+  t.check('no unit or judge was seated on a dead seat (no dead-seat escalation / denial) (F-7R3-001)', mixed.deadSeatEscalations.length === 0 && !mixed.deadSeatDenial, [...mixed.deadSeatEscalations.map((d) => (d.reassignedTo ? `${d.phase} on ${d.assignedCli} → reassigned to ${d.reassignedTo}` : `${d.phase}: judge on a dead seat (${d.via})`)), ...mixed.denials.filter((d) => DEAD_SEAT_RE.test(d))].join(' | ').slice(0, 400), { finding: 'F-7R3-001', evidence: evSeats });
   t.check('codex + copilot ballots were actually spawned (the engine had to learn, not the probe)', calls.some((c) => c.shim === 'codex') && calls.some((c) => c.shim === 'copilot'), `shims called: ${[...new Set(calls.map((c) => c.shim))].join(',')}`);
   // pi from the WIRE (no shim exists to record a call): never routed, and every council outcome for it is the not-installed spawn failure or the launcher's bench.
   const piOutcomes = seatFailed.filter((f) => f.cli === 'pi').map((f) => `${f.kind}/${f.reason ?? '-'}`);
@@ -233,6 +253,9 @@ export async function run(ctx, t) {
   t.info('pipeline gate kinds', pipe.gates.map((g) => `${g.phase}: ${g.kind} (${g.kindSource}) → ${g.decision}`).join(', ') || 'none');
   const reachedDeliver = pipe.units.some((u) => phaseOf(u) === 'deliver' && u.status !== 'pending' && u.status !== 'distributed') || pipe.deliverGateSeen || pipeCompleted;
 
+  // The default posture never opts out of the gate: `session.auto_deliver` (api-types 0.37.0, absent
+  // on an engine that predates the gate) must not read true on a launch that sent no `deliverGate`.
+  t.check('session.auto_deliver is not true under the default posture (no deliverGate sent)', view?.session?.auto_deliver !== true, `auto_deliver: ${JSON.stringify(view?.session?.auto_deliver ?? null)}`, { evidence: evRun });
   // Governance posture — F-E2E-030: a gate of kind `deliver` (wire) paused the run before the push.
   // Judged only when the run got as far as the deliver phase; a run that died earlier says nothing
   // about the gate (the earlier failure is already on the record above).

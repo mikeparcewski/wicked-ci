@@ -5,8 +5,9 @@
 # with shimmed seats (no model calls, no GitHub), and asserts the cross-repo wire: packaging, skills,
 # onboarding, the default-posture bug run with a mixed-auth roster, bus health, campaign fan-out,
 # teardown. Every step prints PASS / FAIL / EXPECTED-FAIL with its evidence path; the JSON report, the
-# daemon log, the shim call log and the evidence files are uploaded as an artifact; a step summary is
-# written. See smoke/README.md for what each step catches and the expected-fail labelling rule.
+# daemon log, the shim call log and the evidence files are uploaded as an artifact
+# (`wicked-smoke[-<artifact_suffix>]-<os>`); a step summary is written. See smoke/README.md for what
+# each step catches and the expected-fail labelling rule.
 #
 # Caller (SHA-pin the ref per the README's pinning policy):
 #
@@ -70,6 +71,11 @@ on:
         type: string
         required: false
         default: 'lts/*'
+      artifact_suffix:
+        description: 'Discriminator for the uploaded artifact names when ONE workflow run calls this reusable workflow more than once (e.g. two version sets): artifacts upload as wicked-smoke-<suffix>-<os> / wicked-smoke-verdict-<suffix>-<os> and the verdict job folds only its own legs. Empty (default) keeps wicked-smoke-<os>.'
+        type: string
+        required: false
+        default: ''
     outputs:
       overall:
         description: 'The WORST leg across the os matrix: FAIL if any leg failed, else UNEXPECTED-PASS if any leg reported one, else PASS (with expected failures) if any did, else PASS. Per-leg reports are in the wicked-smoke-<os> artifacts.'
@@ -112,9 +118,20 @@ on:
         description: 'wicked-ci ref to take the harness from (a dispatch runs the harness of the branch it is dispatched on when empty)'
         type: string
         default: ''
+      artifact_suffix:
+        description: 'Artifact-name discriminator (empty = wicked-smoke-<os>)'
+        type: string
+        default: ''
 
 permissions:
   contents: read
+
+env:
+  # `-<suffix>` or empty — every artifact name below carries it, so two invocations of this workflow in
+  # one run (the selftest's two version sets) never upload the same name, and each verdict job's
+  # `download-artifact` pattern sees only its own legs (a shared name merged the OTHER invocation's
+  # macOS verdict over this one's — run 34722047107 folded a passing leg to FAIL that way).
+  SMOKE_ARTIFACT_SUFFIX: ${{ inputs.artifact_suffix != '' && format('-{0}', inputs.artifact_suffix) || '' }}
 
 jobs:
   smoke:
@@ -193,14 +210,14 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: wicked-smoke-${{ matrix.os }}
+          name: wicked-smoke${{ env.SMOKE_ARTIFACT_SUFFIX }}-${{ matrix.os }}
           path: ${{ runner.temp }}/wicked-smoke-report
           if-no-files-found: warn
           retention-days: 14
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: wicked-smoke-verdict-${{ matrix.os }}
+          name: wicked-smoke-verdict${{ env.SMOKE_ARTIFACT_SUFFIX }}-${{ matrix.os }}
           path: ${{ runner.temp }}/wicked-smoke-verdict
           retention-days: 14
       - name: remove harness checkout
@@ -219,7 +236,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
-          pattern: wicked-smoke-verdict-*
+          pattern: wicked-smoke-verdict${{ env.SMOKE_ARTIFACT_SUFFIX }}-*
           path: verdicts
           merge-multiple: true
       - id: fold

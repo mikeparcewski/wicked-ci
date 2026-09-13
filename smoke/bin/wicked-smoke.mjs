@@ -150,7 +150,7 @@ async function main() {
   let hermetic = null;
   if (homeBefore) {
     hermetic = compareHome(homeBefore, snapshotHome(), { ignore: [root] });
-    log(`hermetic: ${hermetic.ok ? 'clean — nothing under $HOME changed' : `CHANGED under $HOME: ${hermetic.changed.slice(0, 40).join(', ')}${hermetic.changed.length > 40 ? ` … (+${hermetic.changed.length - 40})` : ''}`}${hermetic.truncated.length ? ` (scan bounded under ${hermetic.truncated.join(', ')})` : ''}`);
+    log(`hermetic: ${hermetic.ok ? 'clean — nothing under $HOME changed' : `CHANGED under $HOME: ${hermetic.changed.slice(0, 40).join(', ')}${hermetic.changed.length > 40 ? ` … (+${hermetic.changed.length - 40})` : ''}`}${hermetic.transient?.length ? ` (transient, not a leak: ${hermetic.transient.join(', ')})` : ''}${hermetic.truncated.length ? ` (scan bounded under ${hermetic.truncated.join(', ')})` : ''}`);
   }
 
   // ── report ──

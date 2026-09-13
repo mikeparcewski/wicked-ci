@@ -115,7 +115,7 @@ export function summaryMarkdown(report) {
   }
   if (report.hermetic) {
     lines.push('');
-    lines.push(`hermetic scan: ${report.hermetic.ok ? 'clean' : `CHANGED under $HOME: ${report.hermetic.changed.join(', ')}`}`);
+    lines.push(`hermetic scan: ${report.hermetic.ok ? 'clean' : `CHANGED under $HOME: ${report.hermetic.changed.join(', ')}`}${report.hermetic.transient?.length ? ` (transient, not a leak: ${report.hermetic.transient.join(', ')})` : ''}`);
   }
   const xpass = report.steps.flatMap((s) => s.checks.filter((c) => c.ok && c.unexpectedPass && !c.flaky).map((c) => `${s.id}: ${c.name} (${c.finding})`));
   if (xpass.length) {

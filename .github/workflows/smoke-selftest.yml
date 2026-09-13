@@ -27,7 +27,9 @@ permissions:
   contents: read
 
 jobs:
-  # The default composition: crew latest with the core-ts its range resolves TODAY (`pinned`).
+  # The default composition: crew latest with the core-ts its range resolves TODAY (`pinned`) —
+  # crew 0.7.33 / core-ts 0.7.24 at the time of writing: S05 must PASS, S04 must run through the
+  # engine's deliver gate to the local bare origin.
   smoke:
     uses: ./.github/workflows/smoke.yml
     with:
@@ -35,13 +37,17 @@ jobs:
       steps: ${{ inputs.steps || '' }}
       os_matrix: '["ubuntu-latest","macos-latest"]'
       wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
-  # The previous engine, explicitly re-pinned inside crew's tree — the expected-fail policy must read
-  # honestly on BOTH engines the published crew can compose with (one leg keeps runner minutes low).
-  smoke-core-ts-0-7-23:
+  # The PREVIOUS published set (crew 0.7.32 / core-ts 0.7.23, explicitly pinned) — the expected-fail
+  # policy must read honestly on the set a customer who has not upgraded still runs: S05 EXPECTED-FAIL
+  # (F-E2E-021) with the malformed loop actually observed, S04's deliver-gate check EXPECTED-FAIL
+  # (F-E2E-030). One macOS leg keeps runner minutes low; its artifacts carry the `prev` suffix so the
+  # two invocations' verdict folds never see each other's legs.
+  smoke-previous-set:
     uses: ./.github/workflows/smoke.yml
     with:
-      crew_version: ${{ inputs.crew_version || 'latest' }}
+      crew_version: '0.7.32'
       core_ts_version: '0.7.23'
       steps: ${{ inputs.steps || '' }}
       os_matrix: '["macos-latest"]'
+      artifact_suffix: prev
       wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
