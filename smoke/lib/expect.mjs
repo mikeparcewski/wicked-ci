@@ -21,7 +21,10 @@ const RULES = {
   // F-E2E-021: two SQLite libraries on one WAL bus db (node:sqlite read in projects/activity) → the
   // daemon's six subscribers die "database disk image is malformed"; recentErrors stays empty.
   // FIXED in crew 0.7.33 (#541 one library per db file per process; #542 connection-fatal bus errors
-  // reach /diagnostics.recentErrors) — S05 must PASS from 0.7.33 on.
+  // reach /diagnostics.recentErrors) — S05 must PASS from 0.7.33 on. On < 0.7.33 the race is
+  // TIMING-DEPENDENT in the product: it fired on 12 of 13 loops observed (locally and on every hosted
+  // runner) and stayed clean once (selftest 34748757134, previous-set leg) — FLAKY, so a clean loop on
+  // 0.7.32 is disclosed, never a verdict; the retire bound is the fix version, not that run.
   'F-E2E-021': ({ crew }) => (lt(crew, '0.7.33') ? `crew ${crew} < 0.7.33 — bus WAL loop after GET /projects/:id/activity + external emit, silent in /diagnostics.recentErrors (fixed in 0.7.33: crew#541 + #542)` : null),
   // F-E2E-012: a tool-only run (onboarding) keeps `wicked/<run-id>` + a full worktree in the
   // customer's clone. STILL PRESENT on 0.7.33 and documented as retention BY DESIGN (F-7R2-013);
@@ -92,12 +95,13 @@ const RULES = {
  * pass under heavy host load — for F-7R2-006 / F-7R3-001 the ballot ledger DOES bench a dead seat
  * when its later (probation) ballot rounds also fail, which a slow host makes likely; for F-SMOKE-003
  * the PR URL sometimes survives the transcript cap (both readings on identical inputs, see the rule);
- * for F-087 the diff route answered 500 on two node-26 runs and 200 on the third.
+ * for F-087 the diff route answered 500 on two node-26 runs and 200 on the third; for F-E2E-021 the
+ * WAL race stayed clean on 1 of 13 loops on crew 0.7.32.
  * An unexpected PASS on a flaky finding is still printed and recorded (`unexpectedPasses[].flaky:
  * true`) but does not fail the run: it is disclosure of a flake, not a stale label. Retire the flag
  * with the label.
  */
-const FLAKY = new Set(['F-7R2-006', 'F-7R3-001', 'F-SMOKE-003', 'F-087']);
+const FLAKY = new Set(['F-7R2-006', 'F-7R3-001', 'F-SMOKE-003', 'F-087', 'F-E2E-021']);
 
 export class ExpectPolicy {
   constructor(versions, { extra = [], disabled = false } = {}) {

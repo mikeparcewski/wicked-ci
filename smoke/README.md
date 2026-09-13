@@ -164,7 +164,9 @@ the run with exit 3 unless `--allow-unexpected-pass`: the product changed (or th
 the policy must move the same day. One exception, declared per finding (`FLAKY` in `lib/expect.mjs`):
 a class whose failure is timing-dependent in the product — F-7R2-006 / F-7R3-001 fail on every unloaded
 runner but the ledger DOES bench a dead seat when its later ballot rounds also fail, which a slow host
-makes likely; F-SMOKE-003's PR URL sometimes survives the transcript cap — reports an unexpected pass
+makes likely; F-SMOKE-003's PR URL sometimes survives the transcript cap; F-087's diff route answered
+200 on one node-26 run in three; F-E2E-021's WAL race stayed clean on 1 of 13 loops on crew 0.7.32 —
+reports an unexpected pass
 as `~ passed this time … timing-dependent` (printed, in `unexpectedPasses` with `flaky: true`) without
 changing the verdict. Rules today, keyed to the REAL fix versions (npm latest 2026-09-13: crew 0.7.33
 pinning core-ts ^0.7.24 / bus ^2.3.4 / studio ^0.5.9; a bound of `0.7.99` means "no fix version
@@ -172,7 +174,7 @@ exists yet"):
 
 | finding | expected on | rule |
 |---|---|---|
-| F-E2E-021 | crew < 0.7.33 | the bus WAL loop after `GET /projects/:id/activity` + external emit, and its absence from `recentErrors` (S05) — FIXED in crew 0.7.33 (#541 one SQLite library per db file per process, #542 connection-fatal bus errors reach `recentErrors`): S05 PASSES there and is EXPECTED-FAIL on 0.7.32, where the malformed loop is observed |
+| F-E2E-021 | crew < 0.7.33 (FLAKY) | the bus WAL loop after `GET /projects/:id/activity` + external emit, and its absence from `recentErrors` (S05) — FIXED in crew 0.7.33 (#541 one SQLite library per db file per process, #542 connection-fatal bus errors reach `recentErrors`): S05 PASSES there and is EXPECTED-FAIL on 0.7.32, where the malformed loop is observed on 12 of 13 runs (a clean loop is a disclosed flaky pass, not a verdict) |
 | F-E2E-030 | core-ts < 0.7.24 | no human gate before the deliver push under `humanConfirm: before:1` (S04) — the gate landed in the ENGINE (core-ts 0.7.24 `should_pause` before a `deliver` Tool unit), so the rule is keyed to the addon. crew 0.7.33 adds the WIRE around it (`deliverGate` on `POST /runs`, `GET /health.capabilities.deliverGate`, `session.auto_deliver`) — S04 asserts that wire untagged whenever crew ≥ 0.7.33 is installed: the capability must equal (core-ts ≥ 0.7.24) |
 | F-E2E-002 | crew < 0.7.99 (open — no fix yet) | publish warnings dropped from `/diagnostics.skills.findings` (S02) — the 0.7.33 CHANGELOG carries no fix; an earlier bound of 0.7.33 was a guess |
 | F-E2E-012 | every version (by design) | tool-only onboarding keeps `wicked/<run-id>` + its worktree (S03) — retention, F-7R2-013 |

@@ -28,7 +28,8 @@
 - Verdicts: one line per step `PASS` / `FAIL` / `EXPECTED-FAIL` / `UNEXPECTED-PASS` with seconds and
   evidence path; `EXPECTED-FAIL` is a check tagged with an acceptance finding the installed version
   is KNOWN to still exhibit (`smoke/lib/expect.mjs`, keyed to the REAL fix versions: F-E2E-021 on
-  crew < 0.7.33 — fixed by crew #541/#542, S05 passes from 0.7.33; F-E2E-030 on core-ts < 0.7.24 —
+  crew < 0.7.33 — fixed by crew #541/#542, S05 passes from 0.7.33, FLAKY below it (the race stayed
+  clean on 1 of 13 loops); F-E2E-030 on core-ts < 0.7.24 —
   the deliver gate landed in the engine, and on crew ≥ 0.7.33 S04 asserts the
   `GET /health.capabilities.deliverGate` wire against the installed engine untagged; F-E2E-002,
   F-7R2-006 / F-7R3-001 (the F-SMOKE-002 residual) and F-SMOKE-003 open with no fix version yet —
