@@ -91,20 +91,27 @@ product needs (`uv`, `python3`) reach the run through per-binary passthrough wra
 `--assert-hermetic` snapshots the mtimes/sizes under your real `$HOME` before the install (a FULL
 bounded walk under the directories the wicked family and the CLIs write — `.claude .config .wicked*
 .npm .codex .copilot .pi .local .cargo …` — so an in-place edit of `~/.config/wicked-council/clis.toml`
-or a new file four levels down in a plugin cache is caught; every other top-level directory is
-recorded to its grandchildren; entries are visited sorted so the per-root entry budget cuts at the
-same place in both snapshots) and
-fails the run if anything changed; a `--root` placed under `$HOME` is excluded from the scan. Two
+or a new file four levels down in a plugin cache is caught; `~/Library` is recorded to its
+grandchildren; every other top-level directory by its own mtime; entries are visited sorted so the
+per-root entry budget cuts at the same place in both snapshots) and
+fails the run if anything changed; a `--root` placed under `$HOME` is excluded from the scan. Three
 classes are reported as `noise` (printed, kept in the JSON `hermetic.noise`, verdict unchanged) and
 are NOT leaks: anything under the macOS user media folders `Movies Music Pictures Public` — a hosted
 macOS runner's own daemons write there during a run (`photoanalysisd` under `~/Pictures/Photos
 Library.photoslibrary/…`, selftest run 34744141719; a bare mtime move on `~/Movies`, run 34722047107),
-nothing wicked does; and a directory whose own mtime moved while NONE of its recorded direct children
-changed (a directory's mtime moves only when a direct child is added, removed or renamed) — a child
-created and removed during the run; a hosted macOS runner does that to `~/Library` by itself (run
-34745299650). A leak leaves a file, and a recorded file that is new, removed or modified is still
-`changed`; a bare mtime move on a directory whose children were NOT recorded (deeper than the
-shallow record, or past the entry budget) stays a real change. On a shared
+nothing wicked does; Apple's own state under `~/Library` — the scan watches only the subtrees a
+third-party tool writes to (`Application Support`, `Caches`, `Preferences`, `Logs`, `LaunchAgents`,
+`Python`, `pnpm`, `Developer`, `Containers`, …) and inside them treats `com.apple.*`,
+`group.com.apple.*`, UUID-named and a few named Apple leaves as noise (a hosted macOS runner churns
+`Preferences/com.apple.*.plist`, `Caches/com.apple.*`, `Biome`, `Daemon Containers` for the whole
+run — selftest 34746373419), so `~/Library/Caches/ms-playwright (new)` or
+`~/Library/Application Support/<tool>` is still `changed`; and a directory whose own mtime moved while
+none of its recorded direct children changed, or whose changed descendants are all noise (a
+directory's mtime moves only when a direct child is added, removed or renamed — a child created and
+removed during the run, or Apple's; the runner does that to `~/Library` itself, run 34745299650). A
+leak leaves a file, and a recorded file that is new, removed or modified is still `changed`; a bare
+mtime move on a directory whose children were NOT recorded (deeper than the record, or past the
+entry budget) stays a real change. On a shared
 workstation the scan reports OTHER processes' writes
 too (a live daemon's WAL files, another session's tool caches) — it is designed for a dedicated
 runner, where it is always on.

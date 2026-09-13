@@ -50,11 +50,12 @@
   folds never merge each other's legs); output `overall` = the WORST leg across the matrix (folded by
   a `verdict` job from per-leg artifacts). `--assert-hermetic` (always on in the workflow) walks the
   wicked/CLI directories under the real `$HOME` fully (bounded) and fails the run if anything
-  changed (every other top-level directory is recorded to its grandchildren); two classes are reported
-  as `noise`, not a leak: the macOS user media folders (a hosted macOS runner's own daemons write
-  there — `photoanalysisd` under `~/Pictures`, a bare mtime move on `~/Movies`) and a directory whose
-  own mtime moved while none of its recorded direct children changed (the runner does that to
-  `~/Library` too).
+  changed (`~/Library` is recorded to its grandchildren, watched where a third-party tool writes);
+  three classes are reported as `noise`, not a leak: the macOS user media folders (a hosted macOS
+  runner's own daemons write there — `photoanalysisd` under `~/Pictures`, a bare mtime move on
+  `~/Movies`), Apple's own state under `~/Library` (`com.apple.*` preferences and caches, `Biome`,
+  `Daemon Containers`, … — the runner churns them for the whole run), and a directory whose own mtime
+  moved while none of its recorded direct children changed or whose changed descendants are all noise.
 - Docs: README **smoke** section, `smoke/README.md` (what it catches, the step table, how to add a
   step, the expected-fail rule), `docs/smoke-consumer-recipes.md` (post-publish in `node-release`
   callers for crew/core/bus/garden/studio; per-PR against the others' `latest`).
