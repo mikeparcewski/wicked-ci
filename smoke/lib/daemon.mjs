@@ -19,10 +19,14 @@ export function freePort() {
 }
 
 export class Daemon {
-  constructor(L, crewBin, log) {
+  /** `bootTimeoutMs`: how long a start (and a re-check) may wait for /health — the CLI passes the
+   *  step budget (`--step-timeout`, ≥ 300 s), because a COLD first boot publishes the garden bundle
+   *  (`uv sync` of its pyproject) and took 11 minutes on a loaded workstation where a runner takes 5 s. */
+  constructor(L, crewBin, log, { bootTimeoutMs = 300_000 } = {}) {
     this.L = L;
     this.crewBin = crewBin;
     this.log = log;
+    this.bootTimeoutMs = bootTimeoutMs;
     this.child = null;
     this.port = null;
     this.env = null;
@@ -33,7 +37,7 @@ export class Daemon {
   }
 
   /** Wait until /health answers (a start that timed out may still come up under host load). */
-  async waitHealthy({ timeoutMs = 120_000 } = {}) {
+  async waitHealthy({ timeoutMs = this.bootTimeoutMs } = {}) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       if (!this.child) throw new Error(`daemon is not running (last exit ${this.lastExitCode})`);
@@ -50,7 +54,7 @@ export class Daemon {
     return `http://127.0.0.1:${this.port}`;
   }
 
-  async start({ timeoutMs = 300_000 } = {}) {
+  async start({ timeoutMs = this.bootTimeoutMs } = {}) {
     if (this.child) throw new Error('daemon already running');
     this.port = this.port ?? (await freePort());
     this.env = hermeticEnv(this.L, this.port);
@@ -77,6 +81,7 @@ export class Daemon {
         const res = await fetch(`${this.origin}/api/v1/health`);
         if (res.ok) {
           this.bootMs = Date.now() - t0;
+          if (this.firstBootMs === undefined) this.firstBootMs = this.bootMs;
           this.healthy = true;
           this.log(`daemon: healthy after ${(this.bootMs / 1000).toFixed(1)}s`);
           return;

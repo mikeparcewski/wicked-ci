@@ -68,8 +68,10 @@ INSIDE the installed crew tree (what a customer's `npm update` composes); `pinne
 whatever crew's range resolves — S09's "crew's pin resolves to the installed" check is the intended
 signal when a caller pins outside that range. The report is `<root>/report.json`, copied to
 `--report-dir`, or to `./wicked-smoke-report.json` when the root is removed without one.
-`--step-timeout` raises the built-in ceilings (S04 540 s, S05 420 s); a step that hits its ceiling
-is ABORTED (its wait loops stop), reported `ERROR`, and the run continues.
+`--step-timeout` raises the built-in ceilings (S01 300 s — also the daemon's boot wait, S04 540 s,
+S05 420 s); a step that hits its ceiling is ABORTED (its wait loops stop), reported `ERROR`, and the
+run continues. A COLD first boot publishes the garden bundle (`uv sync` of its pyproject): 5 s on a
+hosted runner, 11 minutes on a loaded workstation (load ≈ 30) — raise `--step-timeout` there.
 
 ## Hermetic by construction
 

@@ -24,7 +24,9 @@ usage: node bin/wicked-smoke.mjs [options]
   --no-expect-fail        disable every built-in expected-fail rule (strict mode)
   --allow-unexpected-pass do not fail the run when a labelled check unexpectedly passes (it is still printed)
   --assert-hermetic       fail if anything under the real $HOME changed during the run
-  --step-timeout <secs>   per-step ceiling; raises the built-in ceilings (S04 540 s, S05 420 s) when larger (default: 300)
+  --step-timeout <secs>   per-step ceiling; raises the built-in ceilings (S01 boot 300 s, S04 540 s, S05 420 s) when
+                          larger (default: 300) — also the daemon's boot wait (a cold first boot publishes the
+                          garden bundle with uv; minutes on a loaded workstation, seconds on a runner)
   --verbose               echo every HTTP call and shim invocation
   -h, --help
 `;

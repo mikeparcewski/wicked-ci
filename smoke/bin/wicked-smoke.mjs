@@ -18,8 +18,9 @@ import { STATUS, StepTrace, classify, printStep, writeSummaryIfCi } from '../lib
 import { compareHome, snapshotHome } from '../lib/hermetic.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-/** Built-in per-step ceilings (seconds); `--step-timeout` RAISES them when larger, never lowers. */
-const STEP_CEILINGS = { S04: 540, S05: 420 };
+/** Built-in per-step ceilings (seconds); `--step-timeout` RAISES them when larger, never lowers. S01's
+ *  ceiling is also the daemon's BOOT wait (a cold first boot publishes the garden bundle). */
+const STEP_CEILINGS = { S01: 300, S04: 540, S05: 420 };
 
 /** chmod u+w every directory under `dir` (no symlink following) so a recursive remove can proceed. */
 function makeWritable(dir) {
@@ -92,13 +93,15 @@ async function main() {
   versions.platform = process.platform;
   const policy = new ExpectPolicy(versions, { extra: opts.expectFail, disabled: opts.noExpectFail });
   log(`wicked-smoke: expected-fail policy active: ${Object.keys(policy.active()).join(', ') || 'none'}`);
-  const daemon = new Daemon(L, tree.crewBin, log);
+  const daemon = new Daemon(L, tree.crewBin, log, { bootTimeoutMs: Math.max(STEP_CEILINGS.S01, opts.stepTimeout) * 1000 });
   const ctx = {
     L, env, opts, log, tree, versions, daemon, policy, state: { piCredential: creds.piCredential }, signal: null,
     api: () => apiClient(daemon.origin, { log, verbose: opts.verbose }),
     async ensureDaemon() {
-      if (!daemon.child) await daemon.start();
-      else if (!daemon.healthy) await daemon.waitHealthy();
+      // Both waits are bounded by what is left of the current step's budget (never a second clock).
+      const remaining = () => Math.max(30_000, (ctx.stepDeadline ?? Date.now() + daemon.bootTimeoutMs) - Date.now() - 5_000);
+      if (!daemon.child) await daemon.start({ timeoutMs: remaining() });
+      else if (!daemon.healthy) await daemon.waitHealthy({ timeoutMs: remaining() });
     },
     shimCalls() {
       if (!existsSync(L.shimLog)) return [];
@@ -163,7 +166,8 @@ async function main() {
       : results.some((r) => r.status === STATUS.XFAIL) ? 'PASS (with expected failures)' : 'PASS';
   const report = {
     tool: 'wicked-smoke', schema: 2, at: new Date().toISOString(), overall, wallMs: Date.now() - wall0,
-    host: { platform: process.platform, arch: process.arch, node: process.version, ci: Boolean(process.env.GITHUB_ACTIONS) },
+    host: { platform: process.platform, arch: process.arch, node: process.version, ci: Boolean(process.env.GITHUB_ACTIONS), loadavg: (await import('node:os')).loadavg().map((x) => Math.round(x)) },
+    daemon: { firstBootMs: daemon.firstBootMs ?? null, starts: daemon.starts, port: daemon.port },
     requested: { crew: opts.crew, coreTs: opts.coreTs, bus: opts.bus, garden: opts.garden, steps: selected },
     versions, expectedFailPolicy: policy.active(), shims, root: opts.keep ? root : null,
     unexpectedPasses: results.flatMap((r) => r.checks.filter((c) => c.ok && c.unexpectedPass).map((c) => ({ step: r.id, check: c.name, finding: c.finding, reason: c.unexpectedPass, flaky: Boolean(c.flaky) }))),
