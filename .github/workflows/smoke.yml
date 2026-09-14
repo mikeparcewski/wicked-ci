@@ -63,7 +63,7 @@ on:
         required: false
         default: ''
       wicked_ci_ref:
-        description: 'wicked-ci ref to take the harness from. Empty (default) = the SAME commit this reusable workflow was called at (github.job_workflow_sha) — a SHA-pinned `uses:` therefore pins the harness too; a dispatch on a branch runs that branch.'
+        description: 'wicked-ci ref to take the harness from. Empty (default) = the SAME commit this reusable workflow was called at (github.job_workflow_sha) — a SHA-pinned `uses:` therefore pins the harness too; a dispatch on a branch runs that branch. On a CROSS-REPO workflow_call GitHub leaves job_workflow_sha EMPTY (wicked-ci #30: the crew 0.7.35 release run fell back to the CALLER sha and could not check out the harness), so a caller in another repository MUST pass the SHA it pinned in `uses:` — the job fails fast with that instruction instead of running on the wrong ref.'
         type: string
         required: false
         default: ''
@@ -144,13 +144,36 @@ jobs:
     steps:
       # The harness comes from wicked-ci at `wicked_ci_ref`; empty = github.job_workflow_sha (the
       # commit this reusable workflow itself was resolved at — so a caller's SHA pin pins the harness
-      # too, no double pin), which is empty on a workflow_dispatch and falls back to github.sha (the
-      # dispatched branch). The CALLER's repository is never checked out — the smoke is about
-      # published artifacts, not the caller's tree.
+      # too, no double pin). `github.sha` is a valid fallback ONLY when the calling workflow lives in
+      # THIS repository (a workflow_dispatch / pull_request here): on a cross-repo workflow_call
+      # GitHub leaves job_workflow_sha empty and `github.sha` is the CALLER's commit — the crew 0.7.35
+      # release run checked out wicked-ci at crew's tag sha and failed before S01 (wicked-ci #30). Such
+      # a caller must pass `wicked_ci_ref`; resolving nothing is a hard failure with that instruction,
+      # never a silent run on the wrong ref. The CALLER's repository is never checked out — the smoke
+      # is about published artifacts, not the caller's tree.
+      - id: harness_ref
+        name: Resolve the wicked-ci harness ref
+        shell: bash
+        env:
+          INPUT_REF: ${{ inputs.wicked_ci_ref }}
+          JOB_WORKFLOW_SHA: ${{ github.job_workflow_sha }}
+          CALLER_REPO: ${{ github.repository }}
+          CALLER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_REF" ]; then ref="$INPUT_REF"; src="inputs.wicked_ci_ref"
+          elif [ -n "$JOB_WORKFLOW_SHA" ]; then ref="$JOB_WORKFLOW_SHA"; src="github.job_workflow_sha"
+          elif [ "$CALLER_REPO" = "mikeparcewski/wicked-ci" ]; then ref="$CALLER_SHA"; src="github.sha (same-repo call)"
+          else
+            echo "::error::wicked-smoke: cannot resolve the harness ref — this is a cross-repo workflow_call from $CALLER_REPO, GitHub exposed no job_workflow_sha, and wicked_ci_ref was not passed. Pass the SHA you pinned in \`uses:\` as \`with: wicked_ci_ref: <sha>\` (wicked-ci #30). Refusing to run the harness at the caller's commit $CALLER_SHA."
+            exit 1
+          fi
+          echo "harness ref: $ref (from $src)"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: mikeparcewski/wicked-ci
-          ref: ${{ inputs.wicked_ci_ref != '' && inputs.wicked_ci_ref || github.job_workflow_sha || github.sha }}
+          ref: ${{ steps.harness_ref.outputs.ref }}
           path: .wicked-ci-smoke
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -254,3 +277,10 @@ jobs:
           done
           echo "overall=$worst" >> "$GITHUB_OUTPUT"
           echo "overall: $worst"
+          # wicked-ci #30: the fold used to report FAIL / UNEXPECTED-PASS and exit 0, so a caller's
+          # `needs: smoke` job went green on a red set unless it read `outputs.overall` itself. The
+          # verdict job now FAILS on either — the release run turns red where it must. The output is
+          # written first, so a caller may still read the exact word.
+          case "$worst" in
+            FAIL*|UNEXPECTED-PASS*) echo "::error::wicked-smoke overall verdict: $worst"; exit 1;;
+          esac
