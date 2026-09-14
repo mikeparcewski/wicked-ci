@@ -13,8 +13,10 @@
   token file exists the next evaluator turn consumes it (rename) and answers `VERDICT: FAIL` with a
   finding above the line.
 - **S04 gains S-L1 (label `F-RC1-131`, `lt(coreTs, '0.7.27')`)**: the mixed run is launched with one
-  failing verdict armed; the run must park at `gateEscalated.condition: verdict_not_pass`
-  (`denialSource: evaluator_verdict`) with 0 `toolExecutorDispatched` for the deliver unit ahead of it;
+  failing verdict armed; the run must park at the evaluator-verdict gate — `gateEscalated.denialSource:
+  evaluator_verdict`, or `condition: verdict_not_pass` only when the shim log shows the armed FAIL was
+  answered (that condition also names the layer-2 judge's denial on older engines) — with 0
+  `toolExecutorDispatched` for the deliver unit ahead of it;
   the harness approves ONCE (retry — the token is spent, the seat answers PASS) and the pipeline half
   continues unchanged. Below 0.7.27 the FAIL is recorded PASS and the run proceeds → EXPECTED-FAIL;
   UNEXPECTED-PASS = label rot. An untagged arm check proves exactly one FAIL was answered whenever the
