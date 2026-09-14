@@ -23,6 +23,15 @@ export const NOT_FIXED_YET = '0.7.99';
  * Each returns a reason string (expected on this version) or null (must pass).
  */
 const RULES = {
+  // F-RC1-044 (crew #551): with no daemon answering, `wicked-crew status` printed the whole
+  // `TypeError: fetch failed … ECONNREFUSED` stack through main().catch, and a non-2xx body as JSON
+  // with exit 0. FIXED in crew 0.7.35 (`daemonFetch`: one remedy line, exit 1) — S10 asserts it
+  // against the daemon it has just stopped. Labelled to the fix version BEFORE 0.7.35 publishes
+  // (FIX-IT-ALL L10-7), so the rehearsal on 0.7.34 reads EXPECTED-FAIL and the fixed set must PASS.
+  'F-RC1-044': ({ crew }) => (crew && lt(crew, '0.7.35') ? `crew ${crew} < 0.7.35 — \`wicked-crew status\` with the daemon down prints a fetch-failed stack trace instead of one remedy line (fixed in crew 0.7.35)` : null),
+  // F-003 (crew #493): `wicked-crew --version` answered "Unknown command". FIXED in crew 0.7.35 (three
+  // lines for THIS install: crew, wicked-core-ts, bundled studio) — S09 compares them to the tree.
+  'F-003': ({ crew }) => (crew && lt(crew, '0.7.35') ? `crew ${crew} < 0.7.35 — \`wicked-crew --version\` answers "Unknown command" (fixed in crew 0.7.35)` : null),
   // F-E2E-021: two SQLite libraries on one WAL bus db (node:sqlite read in projects/activity) → the
   // daemon's six subscribers die "database disk image is malformed"; recentErrors stays empty.
   // FIXED in crew 0.7.33 (#541 one library per db file per process; #542 connection-fatal bus errors
