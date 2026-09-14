@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### smoke — the release-run gate actually gates (wicked-ci #30) · S08 labels flipped (wicked-ci #31)
+
+- **`smoke.yml` resolves its own harness ref explicitly and fails fast when it cannot.** On a CROSS-REPO
+  `workflow_call` GitHub leaves `github.job_workflow_sha` empty, so the checkout fell back to
+  `github.sha` — the CALLER's commit — and crew's 0.7.35 release run tried to check out wicked-ci at
+  crew's tag sha and died before S01 (release verdict crew 0.7.35 §Smoke gate). A new
+  `Resolve the wicked-ci harness ref` step takes `inputs.wicked_ci_ref`, else `job_workflow_sha`, else
+  `github.sha` ONLY for a same-repo call (dispatch / pull_request here), else a hard `::error` naming
+  the remedy (`with: wicked_ci_ref: <the sha pinned in uses:>`). Callers in other repositories pass
+  the ref (crew `release.yml` does from crew PR #599).
+- **The `verdict` fold fails its job on `FAIL` / `UNEXPECTED-PASS`** (after writing `outputs.overall`),
+  so a caller's `needs: smoke` turns red on a red set without reading the output itself.
+- **Label rot flipped (UNEXPECTED-PASS on both legs of run 34865500000, crew 0.7.35 / core-ts 0.7.26):**
+  `F-RC1-110`, `F-RC1-113` → expected only on `core-ts < 0.7.26`; `F-RC1-112`, `F-RC1-116` → expected
+  only on `crew < 0.7.35`. `F-003` and `F-RC1-044` flipped as designed on the same run.
+
 ### smoke — S-L1: the evaluator-verdict gate (wicked-core #488 / #498; F-RC1-131 — FIX-IT-ALL L10 for L1)
 
 - **Seat shims end an EVALUATOR turn with `VERDICT: PASS`.** From core-ts 0.7.26 the engine appends core
