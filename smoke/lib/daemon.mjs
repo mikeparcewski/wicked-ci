@@ -54,16 +54,23 @@ export class Daemon {
     return `http://127.0.0.1:${this.port}`;
   }
 
-  async start({ timeoutMs = this.bootTimeoutMs } = {}) {
+  /**
+   * `extraEnv`: variables laid OVER the hermetic env for this and every later start until replaced
+   * (a step that needs the daemon booted with a product knob — S08's `WICKED_CHAT_TURN_SECS` — says
+   * so here rather than reaching into the env). Pass `{}` to clear.
+   */
+  async start({ timeoutMs = this.bootTimeoutMs, extraEnv } = {}) {
     if (this.child) throw new Error('daemon already running');
     this.port = this.port ?? (await freePort());
-    this.env = hermeticEnv(this.L, this.port);
+    if (extraEnv !== undefined) this.extraEnv = extraEnv;
+    this.env = { ...hermeticEnv(this.L, this.port), ...(this.extraEnv ?? {}) };
     this.starts += 1;
     this.healthy = false;
     const fd = openSync(this.L.daemonLog, 'a');
-    appendFileSync(this.L.daemonLog, `\n===== wicked-smoke daemon start #${this.starts} port=${this.port} ${new Date().toISOString()} =====\n`);
+    const extra = Object.entries(this.extraEnv ?? {}).map(([k, v]) => `${k}=${v}`).join(' ');
+    appendFileSync(this.L.daemonLog, `\n===== wicked-smoke daemon start #${this.starts} port=${this.port} ${new Date().toISOString()}${extra ? ` ${extra}` : ''} =====\n`);
     const argv = [process.execPath, this.crewBin, 'serve', '--port', String(this.port), '--db', `${this.L.state}/core.db`];
-    this.log(`daemon: start #${this.starts} on :${this.port}`);
+    this.log(`daemon: start #${this.starts} on :${this.port}${extra ? ` (${extra})` : ''}`);
     const t0 = Date.now();
     this.child = spawnLogged(argv, { cwd: this.L.root, env: this.env, logFd: fd });
     this.exited = new Promise((resolve) => {
@@ -112,9 +119,9 @@ export class Daemon {
     return { exitedInTime: true, ms, outcome };
   }
 
-  async restart() {
+  async restart(opts = {}) {
     await this.stop();
-    await this.start();
+    await this.start(opts);
   }
 
   logText() {

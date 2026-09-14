@@ -16,6 +16,10 @@ export const SEATS = [
   { key: 'copilot', shim: 'copilot', present: true, behaviour: 'exits 1 "exceeded your monthly quota"' },
   { key: 'opencode', shim: 'opencode', present: true, behaviour: 'answers (free tier, no credential)' },
   { key: 'pi', shim: null, present: false, behaviour: 'not installed (no binary on PATH; no credential either unless WICKED_SMOKE_PI_CREDENTIAL=1)' },
+  // v2 (DES-L5 S-CHAT-01): the ONE seat that speaks ACP over stdio — what a chat turn runs on. Its
+  // overlay record carries `[cli.acp]` (shims/acp-agent.mjs) and `enabled_for_council = false`, so
+  // the S04 council roster above is exactly what it was; S08 names it with `clis: ['acp-smoke']`.
+  { key: 'acp-smoke', shim: 'acp-agent', present: true, behaviour: 'answers every chat turn over ACP (initialize / session/new / session/prompt); sleeps WICKED_SMOKE_ACP_SLEEP_MS or a per-prompt smoke-acp-sleep-ms=<n> token first; council-disabled' },
 ];
 
 /** Tools the engine/daemon spawn that must never reach the real thing (or are absent on a fresh
@@ -58,13 +62,22 @@ export function writeShims(L) {
  *     The overlay pins every shimmed seat's `binary` / `headless_invocation` to the ABSOLUTE shim path.
  *  2. Every built-in seat has an `[cli.acp]` block; a worker turn on such a seat goes over the ACP
  *     transport (`claude-agent-acp` → the real Claude Agent SDK) and an auth refusal there is NOT
- *     retried on the wrapped carrier. The v1 shims speak only the headless one-shot contract, so the
- *     overlay OMITS `[cli.acp]` — the registry's documented wholesale-replace hatch "to run a seat
- *     wrapped". (An ACP-speaking shim is the v2 item that lets S08 chat complete.)
+ *     retried on the wrapped carrier. The v1 seat shims speak only the headless one-shot contract, so
+ *     the overlay OMITS `[cli.acp]` on their records — the registry's documented wholesale-replace
+ *     hatch "to run a seat wrapped".
+ *
+ * The SIXTH record is the v2 exception: `acp-smoke` is a NEW key (the merged registry appends a user
+ * record whose key matches no built-in), its `[cli.acp]` names the ACP-speaking shim
+ * (shims/acp-agent.mjs, stdio transport), and it is `enabled_for_council = false` so the mixed-auth
+ * council roster S04 asserts is untouched. It is the seat S08 opens a chat on — the ONLY place the
+ * daemon's ACP path (`chat_ensure` → spawn → initialize → session/new → session/prompt) runs in the
+ * smoke; before it, "a chat turn completes" was unprovable here (F-RC1-110/111/112 landed live).
  *
  * `pi` is deliberately NOT overlaid: the built-in bare `pi` must fail to resolve — that is the
  * `not_installed` seat.
  */
+export const ACP_SEAT_KEY = 'acp-smoke';
+
 export function writeCouncilOverlay(L) {
   const bin = (name) => join(L.bin, name).replace(/\\/g, '/');
   const seats = [
@@ -72,6 +85,7 @@ export function writeCouncilOverlay(L) {
     { key: 'codex', display: 'Codex (smoke shim, signed out)', bin: bin('codex'), inv: `${bin('codex')} exec --skip-git-repo-check "{PROMPT}"` },
     { key: 'copilot', display: 'Copilot (smoke shim, quota)', bin: bin('copilot'), inv: `${bin('copilot')} -p "{PROMPT}"` },
     { key: 'opencode', display: 'OpenCode (smoke shim, free tier)', bin: bin('opencode'), inv: `${bin('opencode')} run "{PROMPT}"` },
+    { key: ACP_SEAT_KEY, display: 'ACP seat (smoke shim, stdio)', bin: bin('acp-agent'), inv: `${bin('acp-agent')} -p "{PROMPT}"`, council: false, acp: bin('acp-agent') },
   ];
   const toml = seats.map((s) => [
     '[[cli]]',
@@ -79,7 +93,9 @@ export function writeCouncilOverlay(L) {
     `display_name = "${s.display}"`,
     `binary = "${s.bin}"`,
     `headless_invocation = '${s.inv}'`,
-    'enabled_for_council = true',
+    `enabled_for_council = ${s.council === false ? 'false' : 'true'}`,
+    // `[cli.acp]` binds to the `[[cli]]` record above it (TOML sub-table of the last array element).
+    ...(s.acp ? ['', '[cli.acp]', `binary = "${s.acp}"`, 'transport = "stdio"'] : []),
     '',
   ].join('\n')).join('\n');
   const dir = join(L.home, '.config', 'wicked-council');

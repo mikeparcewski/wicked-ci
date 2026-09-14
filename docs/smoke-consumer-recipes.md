@@ -20,7 +20,7 @@ readable form.
 | `core_ts_version` | `pinned` | `pinned` = whatever the installed crew's `wicked-core-ts` range resolves; an explicit version re-pins it inside crew's tree |
 | `bus_version` | `latest` | wicked-bus npm version |
 | `garden_ref` | `latest` | wicked-garden git tag (`12.34.0`), laid out as the marketplace cache |
-| `steps` | default set | `S01..S06,S09,S10`; `S07` (interactive) and `S08` (chat) are opt-in in v1 |
+| `steps` | default set | `S01..S06,S08..S10`; `S07` (interactive) is opt-in (cold `npx` fetch); `S08` (chat) joined the default set in v2 |
 | `os_matrix` | `["ubuntu-latest","macos-latest"]` | Windows is not in the default matrix (the repo-checks floor has no OS write boundary there and fails closed) |
 | `expect_fail_steps` | `` | step ids whose failures are ALL expected on this version set |
 | `expect_fail_findings` | `` | finding ids added to the built-in expected-fail policy |

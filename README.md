@@ -323,8 +323,10 @@ boot/packaging (S01), skills publish + stale-rules (S02), onboarding through
 the real engine with `clis: []` (S03), the default-posture `bug` run with
 the mixed roster through a local bare origin (S04), bus health under the
 two-SQLite-libraries trigger (S05), campaign fan-out (S06), packaging of the
+a chat turn on an ACP-speaking seat shim — open, streamed reply, the turn
+budget, re-seat, close (S08), packaging of the
 installed tree (S09), teardown + `integrity_check` (S10); interactive (S07)
-and chat (S08) are opt-in in v1. Every step prints `PASS` / `FAIL` /
+is opt-in. Every step prints `PASS` / `FAIL` /
 `EXPECTED-FAIL` (a finding the installed version is KNOWN to still exhibit,
 named and reasoned — never silently skipped) with its evidence path; the
 JSON report, daemon log, shim call log and evidence upload as an artifact
