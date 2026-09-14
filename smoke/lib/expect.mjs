@@ -3,11 +3,16 @@
 // reason is printed — the harness says which finding, and why it is expected on this version. Flip
 // or remove a rule when the fix ships; `--no-expect-fail` runs strict; `--expect-fail F-…` adds one.
 //
-// Keyed to the REAL fix versions (verified against the published CHANGELOGs, 2026-09-13):
-//   crew 0.7.33 (npm latest; pins core-ts ^0.7.24, bus ^2.3.4, studio ^0.5.9) — F-E2E-021 root cause
-//   (#541) + visibility (#542), the `deliverGate` wire (#543), rosterWithStanding at every seam (#544).
+// Keyed to the REAL fix versions (verified against the published CHANGELOGs, 2026-09-14):
+//   crew 0.7.34 (npm latest; pins core-ts ^0.7.25, bus ^2.3.4, studio ^0.5.9) — state-home preflight
+//   409 (#555), BASE skill warn-first (#557), distinctnessFallback + NoEligibleSeat 409 (#558);
+//   crew 0.7.33 — F-E2E-021 root cause (#541) + visibility (#542), the `deliverGate` wire (#543).
+//   core-ts 0.7.25 — the ballot LEDGER fix (wicked-core #473, bench-on-abstention: a dead-class ballot
+//   corroborated by the dispatcher's abstention benches the seat) closes F-7R2-006 / F-7R3-001; every
+//   denial now PAUSES at an `escalation` gate (#477) and the creator owes the repo-checks floor (#476)
+//   — which changes the SHAPE of F-SMOKE-001 on Linux (see its rule), not its presence.
 //   core-ts 0.7.24 — the ENGINE deliver gate (F-E2E-030), floor provisioning (F-E2E-029a),
-//   `awaitingHuman.gateKind`. NO ledger fix: F-7R2-006 / F-7R3-001 (the F-SMOKE-002 residual) stay open.
+//   `awaitingHuman.gateKind`.
 import { gte, lt } from './semver.mjs';
 
 /** A deliberately unreachable version bound: "expected on every version published so far". */
@@ -48,13 +53,14 @@ const RULES = {
   // `quota_exhausted` (both classified on `councilSeatFailed.reason`), the dispatcher's own bench then
   // answered round 2 with `benched`, and the distribution's ballot LEDGER benched neither —
   // `degradedReason` named only the launcher-benched seat and `evaluator_distinct` seated the review
-  // units on the signed-out codex (the run escalated "triage judge failed: (cli `codex` exited 1) Not
-  // logged in"). The ledger fires only when a seat fails a later (probation) round. NO FIXED VERSION
-  // EXISTS YET (0.7.24 ships the deliver gate and floor provisioning only): the bound below is a
-  // deliberately unreachable placeholder — replace it with the real fix version when core ships one,
-  // and the UNEXPECTED-PASS surfacing in report.mjs will say so the moment the product starts passing.
-  'F-7R2-006': ({ coreTs }) => (coreTs && !gte(coreTs, NOT_FIXED_YET) ? `core-ts ${coreTs}: the ballot ledger does not bench a seat whose dead-class failure was on round 1 and whose round-2 outcome is the dispatcher's own bench — degradedReason omits it (F-SMOKE-002 residual, open — no fix version yet; observed by wicked-smoke on 0.7.23 and 0.7.24)` : null),
-  'F-7R3-001': ({ coreTs }) => (coreTs && !gte(coreTs, NOT_FIXED_YET) ? `core-ts ${coreTs}: evaluator_distinct seats the review unit / judge on a seat that failed every ballot (not benched by the ledger, see F-7R2-006 / F-SMOKE-002) — the smoke reassigns to a live seat and continues (open — no fix version yet)` : null),
+  // units on the signed-out codex. FIXED in core-ts 0.7.25 — wicked-core #473 (S5 bench-on-abstention:
+  // a dead-class ballot corroborated by the dispatcher's own abstention benches the seat for the run;
+  // the evaluator≠creator fallback is disclosed as `unitDistributed.distinctnessFallback`). Observed
+  // by wicked-smoke run 34798471429 (crew 0.7.34 / core-ts 0.7.25, ubuntu AND macos): codex and copilot
+  // benched and NAMED in degradedReason, no unit routed to a dead seat — all three checks passed on
+  // both legs, so the placeholder bound moved to the real fix version the same day.
+  'F-7R2-006': ({ coreTs }) => (coreTs && lt(coreTs, '0.7.25') ? `core-ts ${coreTs} < 0.7.25 — the ballot ledger does not bench a seat whose dead-class failure was on round 1 and whose round-2 outcome is the dispatcher's own bench — degradedReason omits it (F-SMOKE-002 residual; fixed in core-ts 0.7.25, wicked-core#473)` : null),
+  'F-7R3-001': ({ coreTs }) => (coreTs && lt(coreTs, '0.7.25') ? `core-ts ${coreTs} < 0.7.25 — evaluator_distinct seats the review unit / judge on a seat that failed every ballot (not benched by the ledger, see F-7R2-006 / F-SMOKE-002) — the smoke reassigns to a live seat and continues (fixed in core-ts 0.7.25, wicked-core#473)` : null),
   // F-SMOKE-003 — OBSERVED BY wicked-smoke (2026-09-12): `session.delivery` reads `stranded` for a run
   // whose branch IS on the local origin and whose PR WAS opened through the gh shim. crew derives
   // `delivered` from a `run.delivered` trail entry it records by grepping the deliver transcript for
@@ -78,15 +84,21 @@ const RULES = {
   // (a), 2026-09-13, crew 0.7.32), so the finding is FLAKY: a 200 is disclosed, never a verdict.
   // No crew fix version yet.
   'F-087': ({ crew, nodeMajor }) => (crew && !gte(crew, NOT_FIXED_YET) && (nodeMajor ?? 0) >= 26 ? `crew ${crew} on node ${nodeMajor}: GET /runs/:id/diff answers 500 on a completed run whose worktree scratch holds the checks' node compile cache (git diff --no-index fails per untracked file) — open, no fix version yet` : null),
-  // F-SMOKE-001 — Linux only: the pinned evidence floor (`git status --porcelain | grep -q . || git
-  // log …`, run inside the engine's `bwrap --ro-bind / / … --bind <worktree>` validator sandbox)
-  // denies the `fix` unit "no coverage report was produced … the script denied before writing one"
-  // although the judge PASSED and the worker's `src/add.js` write succeeded. Deterministic on
-  // ubuntu-latest (every selftest run, three root layouts, core-ts 0.7.23 and 0.7.24), absent on macOS
-  // with byte-identical inputs; confirmed by the independent review as a core-ts finding. The
-  // pipeline half cannot proceed past `fix` there; its checks are tagged with this finding ONLY when
-  // the fix unit's denial carries that signature. No fix version yet.
-  'F-SMOKE-001': ({ coreTs, platform }) => (platform === 'linux' && coreTs && !gte(coreTs, NOT_FIXED_YET) ? `core-ts ${coreTs} on linux: the pinned evidence floor denies the fix unit inside the bwrap validator sandbox ("no coverage report was produced … the script denied before writing one") — open, no fix version yet` : null),
+  // F-SMOKE-001 — Linux only: the fix unit's floors fail inside the engine's `bwrap` sandbox although
+  // the judge PASSED and the worker's `src/add.js` write succeeded. core-ts 0.7.23 / 0.7.24: the pinned
+  // evidence floor (`git status --porcelain | grep -q . || git log …`, run inside the validator sandbox)
+  // denies "no coverage report was produced … the script denied before writing one" and the run ENDS.
+  // core-ts 0.7.25 (wicked-smoke run 34798471429, ubuntu-latest, crew 0.7.34): the creator floor (#476)
+  // runs first and its `install` check exits 1 inside the checks sandbox (`repoChecksEvaluated.outcome:
+  // 'failed'`), the pinned validator then denies with the same signature prefixed "the run left a change
+  // in its worktree (done is re-derived from the diff, never asserted)", and #477 PARKS the run at an
+  // `escalation` gate (`gateEscalated.condition: 'floor_failed'`, source `pinned_validator`) that S04
+  // cancels. Deterministic on ubuntu-latest (every selftest run, three root layouts, core-ts 0.7.23,
+  // 0.7.24 and 0.7.25), absent on macOS with byte-identical inputs; confirmed by the independent review
+  // as a core-ts finding. The pipeline half cannot proceed past `fix` there; its checks are tagged with
+  // this finding ONLY when the fix unit's denial carries that signature (S04 `floorDenied` /
+  // `floorEscalation`). No fix version yet.
+  'F-SMOKE-001': ({ coreTs, platform }) => (platform === 'linux' && coreTs && !gte(coreTs, NOT_FIXED_YET) ? `core-ts ${coreTs} on linux: the fix unit's floors fail inside the bwrap sandbox — the pinned evidence floor denies ("no coverage report was produced … the script denied before writing one"; on ≥ 0.7.25 prefixed "the run left a change in its worktree", after the creator floor's install exited 1, and the denial pauses at an escalation gate the smoke cancels) — open, no fix version yet` : null),
 };
 
 /**
@@ -99,7 +111,10 @@ const RULES = {
  * WAL race stayed clean on 1 of 13 loops on crew 0.7.32.
  * An unexpected PASS on a flaky finding is still printed and recorded (`unexpectedPasses[].flaky:
  * true`) but does not fail the run: it is disclosure of a flake, not a stale label. Retire the flag
- * with the label.
+ * with the label. The flag matters only while the finding's rule is ACTIVE for the installed
+ * versions: F-7R2-006 / F-7R3-001 stay listed for the sets their rule still covers (core-ts <
+ * 0.7.25, where the ledger flake is real); on core-ts ≥ 0.7.25 the rule is off and the checks are
+ * plain PASS / FAIL.
  */
 const FLAKY = new Set(['F-7R2-006', 'F-7R3-001', 'F-SMOKE-003', 'F-087', 'F-E2E-021']);
 

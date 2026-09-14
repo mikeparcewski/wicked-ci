@@ -13,14 +13,18 @@
 //    `GET /runs/:id/diff` answers after completion (F-087); `GET /runs/:id/acceptance` writes nothing
 //    into the customer clone (F-E2E-013).
 // When the mixed run cannot complete BECAUSE of the routing class (a judge or a unit seated on a dead
-// seat — what core-ts 0.7.23/0.7.24 do today), the pipeline half is asserted on a second launch whose
+// seat — what core-ts 0.7.23/0.7.24 did; fixed in 0.7.25, wicked-core#473), the pipeline half is asserted on a second launch whose
 // seat pool is the two live seats only, so every downstream seam is still exercised on this version.
 //
 // GATES are judged by their KIND (`awaitingHuman.gateKind`, core-ts ≥ 0.7.24), never by prompt text:
 // run_level / def → approve; deliver → approve (the push goes to the local bare origin through the
 // `gh` shim); escalation / failure / triage → reassign to a live seat when the failure names a dead
 // seat, otherwise record and cancel. On an engine without `gateKind` the fallback derives a kind from
-// the cursor phase and the prompt's OPENING words and never cancels from a guess.
+// the cursor phase and the prompt's OPENING words and never cancels from a guess. A deterministic-FLOOR
+// escalation (core-ts ≥ 0.7.25, wicked-core#477: a denial PAUSES the run instead of ending it) is
+// cancelled the same way — a retry would run the same shim into the same floor — and RECORDED as
+// `floorEscalation`, so on Linux the checks it ends carry the F-SMOKE-001 tag (the pinned-validator /
+// sandbox class) instead of reading as a regression.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ISSUE_TEXT, branches } from '../corpus.mjs';
@@ -33,6 +37,11 @@ export const name = 'bug-run (mixed roster)';
 
 const BENCHED = ['codex', 'copilot', 'pi'];
 const DEAD_SEAT_RE = /not logged in|unauthenticated|quota|ACP unavailable for '(codex|copilot|pi)'|cli `(codex|copilot|pi)`|seat '(codex|copilot|pi)'/i;
+/** F-SMOKE-001 (Linux): the pinned evidence floor's denial signature on the fix unit — on the unit's
+ *  `denial_reason` and, since core-ts 0.7.25 (wicked-core#477), on the escalation gate's prompt too. */
+const FLOOR_DENIAL_RE = /no coverage report was produced.*denied before writing one/i;
+/** The #477 escalation gate a deterministic-floor denial opens ("Unit N failed its deterministic floor (pinned_validator): …"). */
+const FLOOR_GATE_RE = /failed its deterministic floor \(pinned_validator\)/i;
 const ESCALATION_KINDS = new Set(['escalation', 'failure', 'triage']);
 
 /** Launch + follow one run, answering gates by kind the way an operator would. */
@@ -42,7 +51,7 @@ async function launchAndFollow(ctx, api, t, label, body) {
   t.check(`POST /runs 201 (${label})`, launch.status === 201, `status ${launch.status} ${launch.text?.slice(0, 300)}`);
   const runId = launch.json?.runId;
   if (!runId) return null;
-  const out = { runId, deliverGateSeen: false, intakeGateSeen: false, escalation: null, deadSeatEscalations: [], guessedKinds: [] };
+  const out = { runId, deliverGateSeen: false, intakeGateSeen: false, escalation: null, floorEscalation: null, deadSeatEscalations: [], guessedKinds: [] };
   let decisions = 0;
   // The wait budget is whatever is left of the step's ceiling (raised with --step-timeout on a loaded
   // host), never a second, smaller clock of its own.
@@ -85,6 +94,13 @@ async function launchAndFollow(ctx, api, t, label, body) {
           // kind ends the run (the pipeline half re-runs on the live seats).
           const denial = String(unit.denial_reason ?? '');
           if (DEAD_SEAT_RE.test(denial)) out.deadSeatEscalations.push({ phase, assignedCli: unit.assigned_cli ?? null, reassignedTo: null, via: 'denial_reason (judge seat)', kind: rec.kind, kindSource: rec.kindSource, prompt: prompt.slice(0, 300), denial: denial.slice(0, 300) });
+          // A deterministic-floor denial (core-ts ≥ 0.7.25, wicked-core#477): the run PAUSES here
+          // ("confirm to retry the phase, or reject to cancel the run") where it used to end `failed`.
+          // A retry would run the same shim into the same floor, so the harness still cancels below —
+          // and records the class so the checks this ends can carry the F-SMOKE-001 tag on Linux.
+          if (FLOOR_GATE_RE.test(prompt) || FLOOR_DENIAL_RE.test(denial) || FLOOR_DENIAL_RE.test(prompt)) {
+            out.floorEscalation = { phase, assignedCli: unit.assigned_cli ?? null, kind: rec.kind, kindSource: rec.kindSource, denial: (denial || prompt).slice(0, 300) };
+          }
           // Any other failure escalation is a seam the shims could not carry. Cancel only on a WIRE
           // kind; a guessed kind approves once (retry) so a text guess is never irreversible.
           out.escalation = out.escalation ?? `${phase} [${rec.kind}/${rec.kindSource}]: ${prompt.slice(0, 400)}`;
@@ -207,10 +223,10 @@ export async function run(ctx, t) {
   const piOutcomes = seatFailed.filter((f) => f.cli === 'pi').map((f) => `${f.kind}/${f.reason ?? '-'}`);
   t.check('pi never routed; its only council outcomes are not_installed / benched', !routedTo.includes('pi') && piOutcomes.every((o) => /spawn_failed\/not_installed|^benched\//.test(o)), `routed pi=${routedTo.includes('pi')}; outcomes: ${[...new Set(piOutcomes)].join(',') || 'none (benched by the launcher before any ballot)'}`);
   const escalationIsDeadSeat = mixed.escalation !== null && mixed.deadSeatDenial;
-  t.check('no other failure escalation in the mixed run (a seam the shims could not carry)', mixed.escalation === null, mixed.escalation ?? '', escalationIsDeadSeat ? { finding: 'F-7R3-001', evidence: evSeats } : {});
+  t.check('no other failure escalation in the mixed run (a seam the shims could not carry)', mixed.escalation === null, mixed.escalation ?? '', escalationIsDeadSeat ? { finding: 'F-7R3-001', evidence: evSeats } : mixed.floorEscalation ? { finding: 'F-SMOKE-001', evidence: evSeats } : {});
   const mixedCompleted = mixed.view?.session?.status === 'completed';
   const routingClass = !mixedCompleted && (mixed.deadSeatEscalations.length > 0 || mixed.deadSeatDenial);
-  t.check('mixed run completed (dead seats benched, live seats carried every unit and judge)', mixedCompleted, `status ${mixed.view?.session?.status}; ${mixed.denials.join(' | ').slice(0, 300)}`, routingClass ? { finding: 'F-7R3-001', evidence: evSeats } : {});
+  t.check('mixed run completed (dead seats benched, live seats carried every unit and judge)', mixedCompleted, `status ${mixed.view?.session?.status}; ${mixed.denials.join(' | ').slice(0, 300)}`, routingClass ? { finding: 'F-7R3-001', evidence: evSeats } : mixed.floorEscalation ? { finding: 'F-SMOKE-001', evidence: evSeats } : {});
   if (!mixedCompleted) worktreeEvidence(ctx, t, 'mixed', mixed.view);
 
   // The wicked-core shim must report the ENGINE's crate semver (crew#275 skew guard). When the table
@@ -242,13 +258,14 @@ export async function run(ctx, t) {
   // F-SMOKE-001 (Linux): the pinned evidence floor's denial signature on the fix unit. When it is what
   // stopped the run, every downstream pipeline check is a CASCADE of that one finding and carries its
   // tag; on any other failure they stay untagged (a real regression must read FAIL).
-  const FLOOR_DENIAL_RE = /no coverage report was produced.*denied before writing one/i;
-  const floorDenied = !pipeCompleted && pipe.denials.some((d) => /^fix \(/.test(d) && FLOOR_DENIAL_RE.test(d));
+  const floorDenied = !pipeCompleted && (pipe.denials.some((d) => /^fix \(/.test(d) && FLOOR_DENIAL_RE.test(d)) || pipe.floorEscalation?.phase === 'fix');
   const cascade = (extra = {}) => (floorDenied ? { finding: 'F-SMOKE-001', evidence: evRun, ...extra } : { evidence: evRun, ...extra });
   t.check('pipeline run completed', pipeCompleted, `status ${view?.session?.status}; ${pipe.denials.join(' | ').slice(0, 400)}`, cascade());
-  // Not part of the cascade: a floor denial ends the run WITHOUT an escalation gate, so this check
-  // legitimately passes there — tagging it would read as an unexpected pass.
-  t.check('pipeline run: no failure escalation', pipe.escalation === null && pipe.deadSeatEscalations.length === 0, pipe.escalation ?? pipe.deadSeatEscalations.map((d) => d.phase).join(','), { evidence: evRun });
+  // Before core-ts 0.7.25 a floor denial ended the run WITHOUT an escalation gate, so this check passed
+  // there untagged (tagging it would have read as an unexpected pass). Since wicked-core#477 the denial
+  // PAUSES at an escalation gate the harness cancels, so when THAT is the escalation the check is part
+  // of the same cascade and carries its tag; any other escalation is still a regression.
+  t.check('pipeline run: no failure escalation', pipe.escalation === null && pipe.deadSeatEscalations.length === 0, pipe.escalation ?? pipe.deadSeatEscalations.map((d) => d.phase).join(','), pipe.floorEscalation ? cascade() : { evidence: evRun });
   if (!pipeCompleted && pipe !== mixed) worktreeEvidence(ctx, t, 'live', view);
   t.info('pipeline gate kinds', pipe.gates.map((g) => `${g.phase}: ${g.kind} (${g.kindSource}) → ${g.decision}`).join(', ') || 'none');
   const reachedDeliver = pipe.units.some((u) => phaseOf(u) === 'deliver' && u.status !== 'pending' && u.status !== 'distributed') || pipe.deliverGateSeen || pipeCompleted;
@@ -271,9 +288,14 @@ export async function run(ctx, t) {
   const installRan = Array.isArray(runsList) && runsList.some((r) => /install/i.test(String(r.name ?? r.check ?? '')));
   const workdir = view?.session?.workdir ?? null;
   const nodeModulesInWorktree = typeof workdir === 'string' && existsSync(join(workdir, 'node_modules'));
-  t.check('repo-checks floor ran (repoChecksEvaluated emitted)', checks.length > 0, `${checks.length} evaluation(s)`, cascade({ evidence: evChecks }));
+  // Since core-ts 0.7.25 (wicked-core#476) the CREATOR owes the floor: it runs in the fix phase, before
+  // the pinned validator can deny, so `repoChecksEvaluated` is emitted and the install attempted even on
+  // the Linux leg where the validator then denies (F-SMOKE-001) — these two checks left the cascade at
+  // 0.7.25 (both passed on run 34798471429, ubuntu-latest). Whether the floor PASSED stays in it.
+  const floorRunsFirst = gte(ctx.versions.coreTs ?? '0.0.0', '0.7.25');
+  t.check('repo-checks floor ran (repoChecksEvaluated emitted)', checks.length > 0, `${checks.length} evaluation(s)`, floorRunsFirst ? { evidence: evChecks } : cascade({ evidence: evChecks }));
   t.check('repo checks passed', checks.length > 0 && (report?.passed === true || lastChecks?.passed === true), JSON.stringify(report).slice(0, 400), cascade({ evidence: evChecks }));
-  t.check('node_modules provisioned INTO the run worktree (F-E2E-029a)', installRan || nodeModulesInWorktree, `install check in report=${installRan}; node_modules present now=${nodeModulesInWorktree} (${workdir})`, cascade({ evidence: evChecks }));
+  t.check('node_modules provisioned INTO the run worktree (F-E2E-029a)', installRan || nodeModulesInWorktree, `install check in report=${installRan}; node_modules present now=${nodeModulesInWorktree} (${workdir})`, floorRunsFirst ? { evidence: evChecks } : cascade({ evidence: evChecks }));
 
   // Delivery — judged from the LOCAL bare origin first (the artifact), then the product's own word.
   const originBranches = branches(origin, env, 'wicked/');

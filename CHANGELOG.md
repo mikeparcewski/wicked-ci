@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### smoke — expected-fail policy follows the 2026-09-14 release train (crew 0.7.34 / core-ts 0.7.25)
+
+- **F-7R2-006 / F-7R3-001 → fixed in core-ts 0.7.25** (wicked-core #473, bench-on-abstention). The
+  placeholder bound `0.7.99` moved to the real fix version after smoke run 34798471429 (crew 0.7.34 /
+  core-ts 0.7.25 / garden 12.36.0, ubuntu + macos) reported all three routing checks passing on both
+  legs (`~ passed this time` only because the ids are FLAKY). The FLAKY flag stays for the sets the
+  rule still covers (core-ts < 0.7.25); on ≥ 0.7.25 the checks are plain PASS / FAIL.
+- **F-SMOKE-001 keeps its bound, gains its 0.7.25 shape.** With wicked-core #477 every denial PAUSES
+  at an `escalation` gate instead of ending the run, and with #476 the creator floor runs before the
+  pinned validator: on ubuntu-latest S04 now sees the floor's `install` exit 1 in the checks sandbox,
+  the pinned-validator denial (same signature, new "the run left a change in its worktree" prefix) and
+  a `floor_failed` / `pinned_validator` escalation gate. S04 records that gate as `floorEscalation`
+  (cancelling as before — a retry would run the same shim into the same floor) and routes the checks
+  it ends (`mixed run completed`, `no other failure escalation`, `pipeline run: no failure
+  escalation`) into the F-SMOKE-001 cascade on Linux; `repo-checks floor ran` and `node_modules
+  provisioned` left the cascade at core-ts ≥ 0.7.25 (they pass there — they were UNEXPECTED-PASS on
+  the run). `repo checks passed` stays in it.
+- **Hermetic scan: `~/Library/Preferences/pbs.plist` is Apple's pasteboard-server preference** — the
+  one Apple leaf under Preferences without a `com.apple.` prefix; the macos-latest leg of the same run
+  rewrote it as the ONLY change under `$HOME` and the scan read it as a leak. Classified as runner
+  noise with the other named Apple leaves.
+
 ### smoke — wicked-smoke v1, the artifact-level smoke for the wicked-* seams (S01–S10)
 
 - New reusable workflow `.github/workflows/smoke.yml` (`workflow_call` + `workflow_dispatch`) and
