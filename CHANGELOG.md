@@ -22,7 +22,9 @@
 - **Hermetic scan: `~/Library/Preferences/pbs.plist` is Apple's pasteboard-server preference** — the
   one Apple leaf under Preferences without a `com.apple.` prefix; the macos-latest leg of the same run
   rewrote it as the ONLY change under `$HOME` and the scan read it as a leak. Classified as runner
-  noise with the other named Apple leaves.
+  noise with the other named Apple leaves — as is `~/Library/Application Support/locationaccessstored`
+  (Apple's location-access store), which the previous-set leg of this PR's own selftest surfaced the
+  same way.
 
 ### smoke — wicked-smoke v1, the artifact-level smoke for the wicked-* seams (S01–S10)
 

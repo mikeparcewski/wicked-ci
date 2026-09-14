@@ -28,10 +28,12 @@ const RUNNER_NOISE = new Set(['Movies', 'Music', 'Pictures', 'Public']);
  *  `Preferences/pbs.plist` is Apple's pasteboard server (com.apple.pbs) preference file, the one
  *  Apple leaf under Preferences without a `com.apple.` prefix: a hosted macOS runner rewrote it
  *  during smoke run 34798471429 (crew 0.7.34 leg) as the ONLY change under $HOME — nothing wicked
- *  touches the pasteboard. */
+ *  touches the pasteboard. `Application Support/locationaccessstored` is Apple's location-access
+ *  store (locationd family), created by the runner image during selftest run 34799139356
+ *  (previous-set leg) as the only change under $HOME — same class, same prefix-less name. */
 const LIBRARY = 'Library';
 const LIBRARY_WATCHED = new Set(['Application Support', 'Caches', 'Preferences', 'Logs', 'LaunchAgents', 'Python', 'pnpm', 'Developer', 'Containers', 'HTTPStorages', 'WebKit', 'Saved Application State']);
-const LIBRARY_APPLE_LEAVES = new Set(['Caches/CloudKit', 'Preferences/ByHost', 'Preferences/diagnostics_agent.plist', 'Preferences/pbs.plist', 'Application Support/CloudDocs', 'Application Support/AddressBook', 'Application Support/CallHistoryDB', 'Application Support/CallHistoryTransactions', 'Application Support/Knowledge', 'Application Support/FileProvider', 'Application Support/iCloud', 'Logs/DiagnosticReports', 'Logs/CoreSimulator', 'Logs/hca.log']); // hca.log: a macOS system agent's log the hosted runner appends to (selftest 34748419498). A leaf not listed here reads as a real change NAMING the path — extend the list, never the subtree.
+const LIBRARY_APPLE_LEAVES = new Set(['Caches/CloudKit', 'Preferences/ByHost', 'Preferences/diagnostics_agent.plist', 'Preferences/pbs.plist', 'Application Support/locationaccessstored', 'Application Support/CloudDocs', 'Application Support/AddressBook', 'Application Support/CallHistoryDB', 'Application Support/CallHistoryTransactions', 'Application Support/Knowledge', 'Application Support/FileProvider', 'Application Support/iCloud', 'Logs/DiagnosticReports', 'Logs/CoreSimulator', 'Logs/hca.log']); // hca.log: a macOS system agent's log the hosted runner appends to (selftest 34748419498). A leaf not listed here reads as a real change NAMING the path — extend the list, never the subtree.
 const APPLE_SEGMENT = /^(com\.apple\.|group\.com\.apple\.|[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$)/i;
 /** Is this `Library/…` entry Apple's own churn (noise) rather than a place a tool leak would show? */
 function isAppleLibraryNoise(key) {
