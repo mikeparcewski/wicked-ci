@@ -51,7 +51,7 @@ async function main() {
   if (existsSync(root) && readdirSync(root).length > 0) {
     if (!opts.reuseRoot) { console.error(`wicked-smoke: --root ${root} is not empty (a previous run's?). Pass --reuse-root to clear its repos/, state/, bus/, evidence/ and re-use the installed tree, or choose another --root.`); return 2; }
     for (const sub of ['repos', 'state', 'bus', 'evidence', 'worker', 'home', 'tmp', 'interactive']) { makeWritable(join(root, sub)); rmSync(join(root, sub), { recursive: true, force: true }); }
-    for (const f of readdirSync(root)) if (/-origin\.git$/.test(f) || /^(daemon\.log|shim-calls\.ndjson|report\.json|core-semver\.txt)$/.test(f)) rmSync(join(root, f), { recursive: true, force: true });
+    for (const f of readdirSync(root)) if (/-origin\.git$/.test(f) || /^(daemon\.log|shim-calls\.ndjson|report\.json|core-semver\.txt|verdict-fail-once(\.consumed-.*)?)$/.test(f)) rmSync(join(root, f), { recursive: true, force: true });
   }
   const L = layout(root);
   ensureLayout(L);

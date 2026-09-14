@@ -25,7 +25,15 @@
 // cancelled the same way — a retry would run the same shim into the same floor — and RECORDED as
 // `floorEscalation`, so on Linux the checks it ends carry the F-SMOKE-001 tag (the pinned-validator /
 // sandbox class) instead of reading as a regression.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+//  S-L1 (F-RC1-131, the evaluator-verdict gate — wicked-core #488 / FIX-IT-ALL L1): before the mixed
+//    launch the harness ARMS one failing verdict (`WICKED_SMOKE_VERDICT_FAIL_ONCE` token file; the shim
+//    consumes it on the first evaluator prompt that carries core #498's convention sentence and ends its
+//    output `VERDICT: FAIL`). On core-ts ≥ 0.7.27 the run must PARK at an escalation gate
+//    (`gateEscalated.condition: verdict_not_pass`, `denialSource: evaluator_verdict`) with the deliver
+//    unit never dispatched ahead of it; the harness approves ONCE (retry — the token is spent, the seat
+//    answers PASS) and the run goes on to deliver. Below 0.7.27 the FAIL is recorded PASS and the run
+//    proceeds — EXPECTED-FAIL under the label until the fix version; an UNEXPECTED-PASS is label rot.
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ISSUE_TEXT, branches } from '../corpus.mjs';
 import { gitTry } from '../proc.mjs';
@@ -42,6 +50,18 @@ const DEAD_SEAT_RE = /not logged in|unauthenticated|quota|ACP unavailable for '(
 const FLOOR_DENIAL_RE = /no coverage report was produced.*denied before writing one/i;
 /** The #477 escalation gate a deterministic-floor denial opens ("Unit N failed its deterministic floor (pinned_validator): …"). */
 const FLOOR_GATE_RE = /failed its deterministic floor \(pinned_validator\)/i;
+/**
+ * The evaluator-verdict gate (core-ts ≥ 0.7.27) — judged from the WIRE, never from prompt words:
+ * `gateEscalated.denialSource === 'evaluator_verdict'` (the 0.7.27 layer token). `condition:
+ * 'verdict_not_pass'` ALONE is not it — that condition pre-exists for the layer-2 JUDGE denial and a
+ * worker failure (api-types: "the layer-2 judge, a worker failure, or …"), and on core-ts 0.7.23 the
+ * dead-seat-judge gate carried it (selftest 34847593511 read S-L1 as UNEXPECTED-PASS). It counts only
+ * when the shim log proves the harness's OWN armed `VERDICT: FAIL` was answered: nothing else could
+ * have produced an evaluator-verdict denial.
+ */
+const isVerdictGate = (e, failAnswered) => e?.type === 'gateEscalated' && (e.denialSource === 'evaluator_verdict' || (e.condition === 'verdict_not_pass' && failAnswered > 0));
+/** How many evaluator turns since `sinceOffset` answered `VERDICT: FAIL` (the shims record `kind: verdict`). */
+const failsAnswered = (ctx, sinceOffset) => ctx.shimCalls().slice(sinceOffset).filter((c) => c.kind === 'verdict' && c.verdict === 'FAIL').length;
 const ESCALATION_KINDS = new Set(['escalation', 'failure', 'triage']);
 
 /** Launch + follow one run, answering gates by kind the way an operator would. */
@@ -51,7 +71,7 @@ async function launchAndFollow(ctx, api, t, label, body) {
   t.check(`POST /runs 201 (${label})`, launch.status === 201, `status ${launch.status} ${launch.text?.slice(0, 300)}`);
   const runId = launch.json?.runId;
   if (!runId) return null;
-  const out = { runId, deliverGateSeen: false, intakeGateSeen: false, escalation: null, floorEscalation: null, deadSeatEscalations: [], guessedKinds: [] };
+  const out = { runId, deliverGateSeen: false, intakeGateSeen: false, escalation: null, floorEscalation: null, verdictGate: null, deadSeatEscalations: [], guessedKinds: [] };
   let decisions = 0;
   // The wait budget is whatever is left of the step's ceiling (raised with --step-timeout on a loaded
   // host), never a second, smaller clock of its own.
@@ -81,6 +101,21 @@ async function launchAndFollow(ctx, api, t, label, body) {
         case 'escalation':
         case 'failure':
         case 'triage': {
+          // S-L1: the evaluator-verdict gate (F-RC1-131) — the run parked because the seat said
+          // `VERDICT: FAIL` (the one the harness armed). Approve ONCE: the retry re-runs the same unit,
+          // the token is spent, the shim answers PASS and the run continues. A second such gate means
+          // the retry did not answer PASS — a seam, recorded and cancelled like any other.
+          const frames = await runEvents(api, runId);
+          const armedFails = failsAnswered(ctx, ctx.state.sl1ShimOffset ?? 0);
+          const vg = frames.find((e) => isVerdictGate(e, armedFails) && e.ord === unit.ord);
+          if (vg) {
+            if (out.verdictGate === null) {
+              out.verdictGate = { phase, ord: unit.ord, assignedCli: unit.assigned_cli ?? null, condition: vg.condition ?? null, denialSource: vg.denialSource ?? null, attempt: vg.attempt ?? v.session.attempt ?? null, kind: rec.kind, kindSource: rec.kindSource, prompt: prompt.slice(0, 300), eventIndex: frames.indexOf(vg) };
+              return 'approve';
+            }
+            out.escalation = out.escalation ?? `${phase}: a SECOND verdict gate — the retried evaluator turn did not answer VERDICT: PASS`;
+            return 'cancel';
+          }
           // A unit or its judge seated on a DEAD seat (the shims' own words) — the F-7R3-001 class:
           // crew's approve-then-reassign to a live seat, recorded as the violation it is.
           if (DEAD_SEAT_RE.test(prompt) && out.deadSeatEscalations.length < 3) {
@@ -185,8 +220,16 @@ export async function run(ctx, t) {
   } else t.info('health.capabilities', caps ? JSON.stringify(caps) : `absent (crew ${ctx.versions.crew} predates the 0.7.33 wire)`);
 
   // ── the MIXED run ─────────────────────────────────────────────────────────────────────────────
+  // S-L1 arm (F-RC1-131): one failing evaluator verdict, consumed by the first evaluator turn that sees
+  // core #498's convention sentence. Removed again right after the run so no later step inherits it.
+  const failOnceToken = env.WICKED_SMOKE_VERDICT_FAIL_ONCE ?? join(ctx.L.root, 'verdict-fail-once');
+  ctx.state.sl1ShimOffset = shimOffset; // the gate handler counts answered FAILs from here
+  writeFileSync(failOnceToken, 'wicked-smoke S-L1: the next evaluator turn answers VERDICT: FAIL once (F-RC1-131)\n');
+  t.info('S-L1 arm', `verdict fail-once token written (${failOnceToken}); the evaluator turn that carries the core #498 convention consumes it`);
   const base = { problem: ISSUE_TEXT, workflow: 'bug', humanConfirm: 'before:1', deliver: 'pr', repoRef: ctx.state.repoId ?? 'corpus' };
   const mixed = await launchAndFollow(ctx, api, t, 'mixed', base);
+  const tokenStillArmed = existsSync(failOnceToken);
+  rmSync(failOnceToken, { force: true });
   if (!mixed) return;
   ctx.state.bugRunId = mixed.runId;
   const calls = ctx.shimCalls().slice(shimOffset);
@@ -224,6 +267,27 @@ export async function run(ctx, t) {
   t.check('pi never routed; its only council outcomes are not_installed / benched', !routedTo.includes('pi') && piOutcomes.every((o) => /spawn_failed\/not_installed|^benched\//.test(o)), `routed pi=${routedTo.includes('pi')}; outcomes: ${[...new Set(piOutcomes)].join(',') || 'none (benched by the launcher before any ballot)'}`);
   const escalationIsDeadSeat = mixed.escalation !== null && mixed.deadSeatDenial;
   t.check('no other failure escalation in the mixed run (a seam the shims could not carry)', mixed.escalation === null, mixed.escalation ?? '', escalationIsDeadSeat ? { finding: 'F-7R3-001', evidence: evSeats } : mixed.floorEscalation ? { finding: 'F-SMOKE-001', evidence: evSeats } : {});
+  // ── S-L1: the evaluator-verdict gate (F-RC1-131; wicked-core #488 / #498, core-ts 0.7.27) ────
+  const verdictRecords = calls.filter((c) => c.kind === 'verdict');
+  const failAnswered = verdictRecords.filter((c) => c.verdict === 'FAIL').length;
+  const passAnswered = verdictRecords.filter((c) => c.verdict === 'PASS').length;
+  const verdictGateEvents = mixed.events.filter((e) => isVerdictGate(e, failAnswered));
+  const firstGateIx = mixed.events.findIndex((e) => isVerdictGate(e, failAnswered));
+  const deliverOrd = mixed.units.find((u) => phaseOf(u) === 'deliver')?.ord ?? null;
+  const deliverDispatchedEarly = mixed.events.filter((e, i) => e.type === 'toolExecutorDispatched' && e.ord === deliverOrd && (firstGateIx < 0 || i < firstGateIx));
+  const evVerdict = t.evidence('verdict-gate', { tokenStillArmed, failAnswered, passAnswered, verdictRecords, verdictGate: mixed.verdictGate, verdictGateEvents, deliverOrd, deliverDispatchedEarly: deliverDispatchedEarly.length, coreTs: ctx.versions.coreTs });
+  if (verdictRecords.length === 0) {
+    t.info('S-L1 arm', `no shim turn carried the core #498 evaluator convention (core-ts ${ctx.versions.coreTs} < 0.7.26) — the armed FAIL was never answered; the gate checks below read from the label`);
+  } else {
+    t.check('S-L1 arm: exactly one evaluator turn answered VERDICT: FAIL (the token was consumed once), the rest PASS', failAnswered === 1 && !tokenStillArmed && passAnswered >= 0, `FAIL ×${failAnswered}, PASS ×${passAnswered}, token still armed after the run: ${tokenStillArmed}`, { evidence: evVerdict });
+  }
+  t.check('S-L1: an evaluator VERDICT: FAIL parks the run at an escalation gate — gateEscalated.condition verdict_not_pass / denialSource evaluator_verdict — instead of being recorded PASS (F-RC1-131)', mixed.verdictGate !== null && verdictGateEvents.length >= 1, mixed.verdictGate ? `${mixed.verdictGate.phase} on ${mixed.verdictGate.assignedCli}: condition=${mixed.verdictGate.condition} denialSource=${mixed.verdictGate.denialSource} (approved once → retry)` : `no verdict gate; run ${mixed.view?.session?.status}; FAIL answered ×${failAnswered}`, { finding: 'F-RC1-131', evidence: evVerdict });
+  t.check('S-L1: deliver was not dispatched ahead of the verdict gate (0 toolExecutorDispatched for the deliver unit before it) (F-RC1-131)', firstGateIx >= 0 && deliverDispatchedEarly.length === 0, `verdict gate at event #${firstGateIx}; deliver (ord ${deliverOrd}) dispatched ahead of it ×${deliverDispatchedEarly.length}`, { finding: 'F-RC1-131', evidence: evVerdict });
+  // Only meaningful once the gate was seen (there is no approve, hence no retried turn, before it);
+  // labelled all the same so a wrongly-recognised gate on an older engine reads as the label's
+  // business, never as an untagged red leg.
+  if (mixed.verdictGate !== null) t.check('S-L1: after the approve the retried evaluator turn answered VERDICT: PASS and the run went on (F-RC1-131)', passAnswered >= 1 && mixed.view?.session?.status === 'completed', `PASS ×${passAnswered}; status ${mixed.view?.session?.status}`, { finding: 'F-RC1-131', evidence: evVerdict });
+
   const mixedCompleted = mixed.view?.session?.status === 'completed';
   const routingClass = !mixedCompleted && (mixed.deadSeatEscalations.length > 0 || mixed.deadSeatDenial);
   t.check('mixed run completed (dead seats benched, live seats carried every unit and judge)', mixedCompleted, `status ${mixed.view?.session?.status}; ${mixed.denials.join(' | ').slice(0, 300)}`, routingClass ? { finding: 'F-7R3-001', evidence: evSeats } : mixed.floorEscalation ? { finding: 'F-SMOKE-001', evidence: evSeats } : {});

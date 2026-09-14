@@ -113,6 +113,9 @@ export function hermeticEnv(L, port) {
     WICKED_MEMORY_EMBEDDER: 'hash',
     WICKED_SMOKE_ROOT: L.root,
     WICKED_SMOKE_SHIM_LOG: L.shimLog,
+    // S-L1 (F-RC1-131): the token FILE whose presence makes the next evaluator turn answer VERDICT: FAIL
+    // once (shims/_lib.mjs consumeFailOnce). The path is fixed here; S04 creates the file to arm it.
+    WICKED_SMOKE_VERDICT_FAIL_ONCE: join(L.root, 'verdict-fail-once'),
   };
   if (port !== undefined) env.WICKED_CREW_API = `http://127.0.0.1:${port}`;
   // The process temp dir. On macOS / Windows it lives under the root like everything else. On Linux

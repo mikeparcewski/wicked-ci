@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### smoke — S-L1: the evaluator-verdict gate (wicked-core #488 / #498; F-RC1-131 — FIX-IT-ALL L10 for L1)
+
+- **Seat shims end an EVALUATOR turn with `VERDICT: PASS`.** From core-ts 0.7.26 the engine appends core
+  #498's convention sentence to every evaluator unit's prompt, and from 0.7.27 an output whose last
+  verdict line is not PASS is DENIED into an escalation gate — a shim that never said the line would
+  park every review unit. `shims/_lib.mjs` detects the sentence (`isEvaluatorPrompt`) and appends the
+  line after the turn's prose; recorded as `kind: verdict` in `shim-calls.ndjson`.
+- **`WICKED_SMOKE_VERDICT_FAIL_ONCE`** (set by `hermeticEnv` to `<root>/verdict-fail-once`): while that
+  token file exists the next evaluator turn consumes it (rename) and answers `VERDICT: FAIL` with a
+  finding above the line.
+- **S04 gains S-L1 (label `F-RC1-131`, `lt(coreTs, '0.7.27')`)**: the mixed run is launched with one
+  failing verdict armed; the run must park at the evaluator-verdict gate — `gateEscalated.denialSource:
+  evaluator_verdict`, or `condition: verdict_not_pass` only when the shim log shows the armed FAIL was
+  answered (that condition also names the layer-2 judge's denial on older engines) — with 0
+  `toolExecutorDispatched` for the deliver unit ahead of it;
+  the harness approves ONCE (retry — the token is spent, the seat answers PASS) and the pipeline half
+  continues unchanged. Below 0.7.27 the FAIL is recorded PASS and the run proceeds → EXPECTED-FAIL;
+  UNEXPECTED-PASS = label rot. An untagged arm check proves exactly one FAIL was answered whenever the
+  convention was seen; on < 0.7.26 (no sentence) it is an info line. The token is removed after the run.
+- README: S04 row, the policy table row, the shim behaviour paragraph.
+
 ### smoke — S08 chat joins the default set on an ACP-speaking seat shim (DES-L5 S-CHAT-01 — FIX-IT-ALL L5-ci)
 
 - **New shim `smoke/shims/acp-agent.mjs`**: an Agent Client Protocol agent over stdio (`initialize` →

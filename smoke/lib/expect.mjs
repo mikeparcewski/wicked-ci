@@ -23,6 +23,17 @@ export const NOT_FIXED_YET = '0.7.99';
  * Each returns a reason string (expected on this version) or null (must pass).
  */
 const RULES = {
+  // F-RC1-131 (wicked-core #488 — the evaluator false-pass class; FIX-IT-ALL L1): an EVALUATOR unit whose
+  // output ends `VERDICT: FAIL` (or carries no verdict line) is recorded PASS and the run proceeds to
+  // deliver. FIXED in core-ts 0.7.27 (L1 PR-1A: the missing/non-PASS verdict is DENIED into an
+  // escalation gate — `gateEscalated.condition: verdict_not_pass`, `denialSource: evaluator_verdict`;
+  // Approve retries the unit). S04 arms ONE failing verdict on the mixed run (the shim consumes the
+  // `WICKED_SMOKE_VERDICT_FAIL_ONCE` token) and asserts the gate + that deliver was not dispatched
+  // ahead of it. On core-ts < 0.7.26 the convention sentence (core #498) is not even in the prompt, so
+  // the shim answers no verdict at all — same outcome, same label. Labelled BEFORE 0.7.27 publishes
+  // (rule 2): today's set reads EXPECTED-FAIL, the fixed set must PASS, a stale label reads
+  // UNEXPECTED-PASS.
+  'F-RC1-131': ({ coreTs }) => (coreTs && lt(coreTs, '0.7.27') ? `core-ts ${coreTs} < 0.7.27 — an evaluator unit's VERDICT: FAIL (or missing verdict) is recorded PASS and the run proceeds to deliver (wicked-core #488; fixed in core-ts 0.7.27: parked at an escalation gate, condition verdict_not_pass)` : null),
   // F-RC1-044 (crew #551): with no daemon answering, `wicked-crew status` printed the whole
   // `TypeError: fetch failed … ECONNREFUSED` stack through main().catch, and a non-2xx body as JSON
   // with exit 0. FIXED in crew 0.7.35 (`daemonFetch`: one remedy line, exit 1) — S10 asserts it
