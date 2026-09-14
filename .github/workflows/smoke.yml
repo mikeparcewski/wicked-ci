@@ -43,7 +43,7 @@ on:
         required: false
         default: 'latest'
       steps:
-        description: 'Steps to run, e.g. "S01..S06,S09,S10" (default: the v1 default set — S07/S08 are opt-in)'
+        description: 'Steps to run, e.g. "S01..S06,S08..S10" (default: the default set — S07 is opt-in)'
         type: string
         required: false
         default: ''

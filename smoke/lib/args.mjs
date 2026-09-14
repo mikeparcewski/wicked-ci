@@ -1,8 +1,9 @@
 // CLI argument parsing for wicked-smoke. No dependencies; every flag takes `--flag value`.
 
 export const ALL_STEPS = ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10'];
-/** Steps that run without `--steps`: S07 (interactive) and S08 (chat) are opt-in in v1 — see README. */
-export const DEFAULT_STEPS = ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S09', 'S10'];
+/** Steps that run without `--steps`: S07 (interactive) stays opt-in (a cold `npx` fetch); S08 (chat)
+ *  joined the default set in v2 with the ACP-speaking seat shim — see README. */
+export const DEFAULT_STEPS = ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S08', 'S09', 'S10'];
 
 export const HELP = `wicked-smoke — artifact-level smoke harness for the wicked-* seams
 

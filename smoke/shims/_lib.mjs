@@ -25,6 +25,17 @@ export function record(shim, extra = {}) {
 }
 
 /**
+ * One more NDJSON record for a shim that does several things per process (the ACP seat records one
+ * line per JSON-RPC method, after {@link record} logged the spawn). Same log, same shape (`t` +
+ * `shim` + whatever the caller adds); diagnostics only — a write failure is swallowed like above.
+ */
+export function appendRecord(rec) {
+  const log = process.env.WICKED_SMOKE_SHIM_LOG;
+  if (!log) return;
+  try { appendFileSync(log, `${JSON.stringify({ t: new Date().toISOString(), ...rec })}\n`); } catch { /* diagnostics only */ }
+}
+
+/**
  * The prompt is ONE argv element. The engine's wrapped runner places it after a `--` guard when the
  * preceding token is not a flag, or as the value of `-p` (claude) / the positional after `exec` (codex)
  * / `run` (opencode); it also injects flags whose VALUES can be longer than the prompt — the

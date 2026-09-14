@@ -32,6 +32,23 @@ const RULES = {
   // F-003 (crew #493): `wicked-crew --version` answered "Unknown command". FIXED in crew 0.7.35 (three
   // lines for THIS install: crew, wicked-core-ts, bundled studio) — S09 compares them to the tree.
   'F-003': ({ crew }) => (crew && lt(crew, '0.7.35') ? `crew ${crew} < 0.7.35 — \`wicked-crew --version\` answers "Unknown command" (fixed in crew 0.7.35)` : null),
+  // ── S08 chat (FIX-IT-ALL L5, S-CHAT-01) — the four chat findings the harness could not see until
+  // a seat spoke ACP (shims/acp-agent.mjs). All four are OPEN on every published set; their fixes are
+  // designed (DES-L5: core-ts wave-1 cut + the crew that pins it) but not published, so the bound is
+  // the placeholder — move each to the REAL fix version the day it publishes (the F-7R2-006 rule).
+  // F-RC1-113 (wicked-core #487 / crew #563): a chat seat is opened with `SkillsDelivery::None` — no
+  // skills snapshot handed, no `WICKED_GARDEN_ROOT`, so the garden shims are unreachable from a
+  // chat. Fixed: `chat_ensure` hands the same delivery a unit gets and logs "handed skills gen".
+  'F-RC1-113': ({ coreTs }) => (coreTs && !gte(coreTs, NOT_FIXED_YET) ? `core-ts ${coreTs}: chat seats are warmed with SkillsDelivery::None — no "handed skills gen" line, the seat cannot reach the garden skills (open — no fix version yet; DES-L5)` : null),
+  // F-RC1-110 (crew #562): a turn over the budget is reported as `turn ended TimedOut: …` — the budget
+  // (WICKED_CHAT_TURN_SECS) is unnamed and the re-seat remedy unstated. Fixed: a typed eviction text.
+  'F-RC1-110': ({ coreTs }) => (coreTs && !gte(coreTs, NOT_FIXED_YET) ? `core-ts ${coreTs}: a chat turn cut at the budget reads "turn ended TimedOut" — the budget variable and the re-seat remedy are unnamed (open — no fix version yet; DES-L5)` : null),
+  // F-RC1-112 (crew #503 = F-085): no transcript — `GET /chats/:id` carries no `messages`; the thread
+  // lives only in the tab that asked. Fixed: one JSONL per chat, returned on the existing GET.
+  'F-RC1-112': ({ crew }) => (crew && !gte(crew, NOT_FIXED_YET) ? `crew ${crew}: GET /chats/:id has no messages — the chat transcript exists only in the asking tab (open — no fix version yet; DES-L5)` : null),
+  // F-RC1-116 (wicked-core #412, chat half): `chatReply` carries no `usage` — chat turns are unmetered
+  // although the adapters report usage on the prompt result. Fixed: one additive nullable field.
+  'F-RC1-116': ({ crew }) => (crew && !gte(crew, NOT_FIXED_YET) ? `crew ${crew}: chatReply carries no usage — chat turns are unmetered on the wire (open — no fix version yet; DES-L5)` : null),
   // F-E2E-021: two SQLite libraries on one WAL bus db (node:sqlite read in projects/activity) → the
   // daemon's six subscribers die "database disk image is malformed"; recentErrors stays empty.
   // FIXED in crew 0.7.33 (#541 one library per db file per process; #542 connection-fatal bus errors

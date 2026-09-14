@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### smoke — S08 chat joins the default set on an ACP-speaking seat shim (DES-L5 S-CHAT-01 — FIX-IT-ALL L5-ci)
+
+- **New shim `smoke/shims/acp-agent.mjs`**: an Agent Client Protocol agent over stdio (`initialize` →
+  `session/new` → `session/prompt` answered with two `agent_message_chunk` deltas and a result carrying
+  `usage`; `session/cancel` honoured; unknown requests refused with -32601). It sleeps before answering
+  — `WICKED_SMOKE_ACP_SLEEP_MS` (env) or a per-prompt `smoke-acp-sleep-ms=<n>` token — so the chat turn
+  budget is observable. Every JSON-RPC method is recorded in `shim-calls.ndjson`.
+- **Sixth overlay seat `acp-smoke`** (`lib/shims.mjs`): a NEW registry key whose `[cli.acp]` names the
+  shim (stdio transport) and which is `enabled_for_council = false` — S04's mixed-auth council roster is
+  exactly what it was. It is the only seat the daemon's ACP path (`chat_ensure` → spawn → handshake →
+  prompt) runs on in the smoke.
+- **S08 promoted to the default step list** (`S01..S06,S08..S10`; S07 stays opt-in) with the S-CHAT-01
+  assertions on a daemon restarted with `WICKED_CHAT_TURN_SECS=5` (`Daemon.start/restart({extraEnv})`):
+  refusal by name (F-2R2-009, kept), open → 201 + the "handed skills gen" log line (F-RC1-113), one turn
+  → 202 / `chatDelta` / `chatReply {ok:true}` on `/ws` with `usage` (F-RC1-116) / the shim's
+  `session/prompt` record / `GET /chats/:id.messages` (F-RC1-112), a 20 s turn cut at the 5 s budget →
+  `chatReply {ok:false}` naming the seat (untagged) and the budget variable + re-seat remedy
+  (F-RC1-110), the seat released, the `targets` re-seat → 202 + an ok reply (untagged), `DELETE` →
+  `chatClosed {reason: requested}`, `seats: []`, `messages: []` (F-RC1-112). New `lib/ws.mjs` collects
+  `/ws` frames (node ≥ 22's WebSocket global; chat replies travel only there on the published daemon).
+- **Four expected-fail labels** at the placeholder bound (`F-RC1-110`, `F-RC1-112`, `F-RC1-113`,
+  `F-RC1-116` — open on every published set; their fixes are designed in DES-L5 for the wave-1 core-ts
+  cut and the crew that pins it): move each to the REAL fix version the day it publishes, as
+  F-7R2-006's did. The step's other checks are untagged and must pass on the published set.
+
 ### smoke — S10 `status` after SIGTERM, S09 `--version` (crew #551 / #493 — FIX-IT-ALL L10-7)
 
 - **S10** runs `wicked-crew status --port <port>` against the daemon it has just SIGTERMed and asserts

@@ -33,16 +33,16 @@ Every finding below was green in its repo's own CI when it shipped.
 | S05 | bus-health | 8 quick launches back-to-back with `GET /projects/:id/activity` between them and an external `wicked-bus emit` after each (the F-E2E-021 trigger sequence) → 0 "database disk image is malformed" lines in the daemon log; when the bus DOES break, `/diagnostics.recentErrors` must carry it; on a clean loop a WAL-sidecar fault is injected and its visibility asserted | F-E2E-021 |
 | S06 | campaign fan-out | `POST /testing/recon` over 2 corpus copies → 201, `campaignRegistered: true` (not the F-086 500), both siblings `awaiting_human` at intake on `GET /campaigns/:id`; then cancelled (no council convenes) | F-086 |
 | S07 | interactive (opt-in) | the studio's doc-create path through crew's proxy answers honestly; the bridge is a cold `npx` fetch in v1, so this step is `--steps` opt-in — see TODO in the module | — |
-| S08 | chat (opt-in) | `POST /chats` refuses a signed-out seat BY NAME, open/list/close answer; a real chat turn needs an ACP-speaking shim (v2) | F-2R2-009 |
-| S09 | packaging | the installed tree: the host's `wicked-core-ts-<platform>` package is present at the core-ts version and satisfies crew's pin; `dist/studio/index.html` present; nothing the roster displays (`headless_invocation`, `login_invocation`, `binary`) points outside the temp root | six-package train, F-004 |
-| S10 | teardown | SIGTERM → exit within 10 s; `bus.db` passes `PRAGMA integrity_check`; the temp root is removed (unless `--keep`) | F-E2E-021b |
+| S08 | chat | on a daemon booted with `WICKED_CHAT_TURN_SECS=5`: a seat that cannot take a turn (codex) is refused BY NAME; `POST /chats {clis: [acp-smoke]}` warms the ACP-speaking seat shim (201; the daemon log says the seat was handed the skills snapshot); one turn → 202, `chatDelta` then `chatReply {ok: true}` on `/ws` with `usage`, the shim saw `session/prompt`, `GET /chats/:id.messages` holds both records; a 20 s turn is cut at the 5 s budget → `chatReply {ok: false}` naming the seat, the budget variable and the re-seat remedy, the seat released; the next send with `targets: [acp-smoke]` re-seats it (202 + an ok reply); `DELETE` → `chatClosed {reason: requested}`, `seats: []`, `messages: []` | F-2R2-009, F-RC1-110, F-RC1-112, F-RC1-113, F-RC1-116 |
+| S09 | packaging | `wicked-crew --version` prints three `<name> <version>` lines equal to the installed tree (F-003); the installed tree: the host's `wicked-core-ts-<platform>` package is present at the core-ts version and satisfies crew's pin; `dist/studio/index.html` present; nothing the roster displays (`headless_invocation`, `login_invocation`, `binary`) points outside the temp root | six-package train, F-004 |
+| S10 | teardown | SIGTERM → exit within 10 s; `wicked-crew status` against the stopped daemon exits ≠ 0 with one remedy line and no stack (F-RC1-044); `bus.db` passes `PRAGMA integrity_check`; the temp root is removed (unless `--keep`) | F-E2E-021b, F-RC1-044 |
 
 Each step is its own module under `lib/steps/` so a failing step names the seam.
 
 ## Run it locally
 
 ```bash
-# defaults: crew latest, core-ts as crew pins it, bus latest, garden latest tag; S01..S06,S09,S10
+# defaults: crew latest, core-ts as crew pins it, bus latest, garden latest tag; S01..S06,S08..S10
 node smoke/bin/wicked-smoke.mjs
 
 # a pinned set, keep the root, collect the report + daemon log + evidence
@@ -131,6 +131,7 @@ Shimmed (`smoke/shims/*.mjs`, launched through `sh`/`.cmd` wrappers that carry t
 | `codex` | credential file present, every turn exits 1 "Not logged in … 401" | the engine must learn `not_logged_in` from the ballot, not the probe |
 | `copilot` | credential present, every turn exits 1 "exceeded your monthly quota" | the engine must bench `quota_exhausted` |
 | `pi` | NOT on PATH | `not_installed` from the spawn error |
+| `acp-agent` (seat key `acp-smoke`) | speaks ACP over stdio: `initialize` → `session/new` → `session/prompt` answered with two `agent_message_chunk` deltas and a result carrying `usage`; sleeps `WICKED_SMOKE_ACP_SLEEP_MS` (env) or a per-prompt `smoke-acp-sleep-ms=<n>` token first; every JSON-RPC method recorded | the chat carrier (S08): a chat warms its seats over ACP, and until a seat spoke it a turn could not complete in the smoke — the F-RC1-110/111/112 class landed live. Council-disabled in the overlay so S04's roster is unchanged |
 | `gh` | `pr create` prints a URL on a reserved host; `api user` prints an identity | the deliver phase opens its "PR" without GitHub |
 | `wicked-estate` | records argv, exits 0 | onboarding's two tool phases run without an estate binary |
 | `wicked-core` (CLI) | answers `gate-hook --protocol-version` with the protocol line; allows any hook call | the WRAPPED claude carrier probes it to arm input governance and fails the unit without it ("could not arm input governance: could not run `wicked-core gate-hook --protocol-version`", observed on 0.7.32) — the engine itself is the napi addon inside crew, never shimmed |
@@ -142,16 +143,19 @@ invocation is recorded in `<root>/shim-calls.ndjson` with its kind and cwd.
 
 The shimmed seats are pinned through a council registry overlay the harness writes into the hermetic
 `$HOME/.config/wicked-council/clis.toml` (the registry's documented wholesale-replace hatch): each
-record names the ABSOLUTE shim path and carries no `[cli.acp]` block, so every turn runs on the wrapped
-one-shot carrier. Two live observations on crew 0.7.32 make this necessary rather than cosmetic —
+record names the ABSOLUTE shim path and — for the five v1 seats — carries no `[cli.acp]` block, so every
+unit turn runs on the wrapped one-shot carrier; the sixth record, `acp-smoke`, is the exception: a NEW key
+(the merged registry appends it) whose `[cli.acp]` names the ACP-speaking shim and which is
+`enabled_for_council = false`. Two live observations on crew 0.7.32 make this necessary rather than cosmetic —
 the daemon prepends its bundled ACP bridges' `node_modules/.bin` to PATH, and that directory carries a
 REAL `codex` (`@openai/codex`, a dependency of `codex-acp`) that would win over any shim and call
 OpenAI; and an ACP auth refusal on a worker turn is not retried on the wrapped carrier. `pi` is not
 overlaid: its bare built-in name must fail to resolve.
 
-Not shimmed in v1: the ACP transport (`claude-agent-acp`, `opencode acp`) — an ACP-speaking shim is
-what lets S08 (chat) complete a turn; `wicked-interactive` (crew spawns it via `npx`, a network
-fetch) — S07 is opt-in.
+The ACP transport is shimmed for ONE seat only (`acp-agent`, above): the real bridges
+(`claude-agent-acp`, `opencode acp`, `codex-acp`) are never spawned — the five v1 seats have no
+`[cli.acp]`. Not shimmed: `wicked-interactive` (crew spawns it via `npx`, a network fetch) — S07 is
+opt-in.
 
 ## The expected-fail labelling rule
 
@@ -176,6 +180,10 @@ exists yet"):
 |---|---|---|
 | F-RC1-044 | crew < 0.7.35 | `wicked-crew status` with the daemon down prints the `TypeError: fetch failed` stack (and a non-2xx body as JSON, exit 0) instead of one remedy line + exit 1 (S10, after SIGTERM) — FIXED in crew 0.7.35 (`daemonFetch`); labelled ahead of the publish (FIX-IT-ALL L10-7) so the fixed set must PASS |
 | F-003 | crew < 0.7.35 | `wicked-crew --version` answers "Unknown command" instead of the three `<name> <version>` lines of THIS install (S09, compared to the installed tree) — FIXED in crew 0.7.35 |
+| F-RC1-113 | core-ts < 0.7.99 (open — fix designed, DES-L5) | a chat seat is warmed with `SkillsDelivery::None` (wicked-core #487 / crew #563): no "handed skills gen" line in the daemon log, no `WICKED_GARDEN_ROOT` on the seat, so the garden skills are unreachable from a chat (S08) |
+| F-RC1-110 | core-ts < 0.7.99 (open — fix designed, DES-L5) | a chat turn cut at `WICKED_CHAT_TURN_SECS` reads `seat '<cli>' turn ended TimedOut: …` — the budget variable and the re-seat remedy are unnamed (crew #562); the cut itself, the seat being named and released, and the `targets` re-seat are asserted UNTAGGED (S08) |
+| F-RC1-112 | crew < 0.7.99 (open — fix designed, DES-L5) | `GET /chats/:id` carries no `messages`: the transcript exists only in the tab that asked (crew #503 = F-085) (S08, after a turn and after close) |
+| F-RC1-116 | crew < 0.7.99 (open — fix designed, DES-L5) | `chatReply` carries no `usage` although the shim reports it on the prompt result — chat turns are unmetered on the wire (wicked-core #412, chat half) (S08) |
 | F-E2E-021 | crew < 0.7.33 (FLAKY) | the bus WAL loop after `GET /projects/:id/activity` + external emit, and its absence from `recentErrors` (S05) — FIXED in crew 0.7.33 (#541 one SQLite library per db file per process, #542 connection-fatal bus errors reach `recentErrors`): S05 PASSES there and is EXPECTED-FAIL on 0.7.32, where the malformed loop is observed on 12 of 13 runs (a clean loop is a disclosed flaky pass, not a verdict) |
 | F-E2E-030 | core-ts < 0.7.24 | no human gate before the deliver push under `humanConfirm: before:1` (S04) — the gate landed in the ENGINE (core-ts 0.7.24 `should_pause` before a `deliver` Tool unit), so the rule is keyed to the addon. crew 0.7.33 adds the WIRE around it (`deliverGate` on `POST /runs`, `GET /health.capabilities.deliverGate`, `session.auto_deliver`) — S04 asserts that wire untagged whenever crew ≥ 0.7.33 is installed: the capability must equal (core-ts ≥ 0.7.24) |
 | F-E2E-002 | crew < 0.7.99 (open — no fix yet) | publish warnings dropped from `/diagnostics.skills.findings` (S02) — the 0.7.33 CHANGELOG carries no fix; an earlier bound of 0.7.33 was a guess |
@@ -214,7 +222,8 @@ from a guess (a guessed escalation is approved once and re-judged).
 
 `ctx` gives you the layout (`ctx.L`), the hermetic `env`, the `daemon` (start/stop/restart/log
 greps), `api()` (a JSON client on the daemon), `tree` + `versions` (the installed artifacts),
-`shimCalls()` (every shim invocation with its prompt kind), and `state` (what earlier steps produced —
+`shimCalls()` (every shim invocation with its prompt kind — the ACP seat adds one record per JSON-RPC
+method), `lib/ws.mjs`'s `openFrames(daemon.origin)` for the `/ws` stream, and `state` (what earlier steps produced —
 `corpus`, `origin`, `repoId`, `bugRunId`).
 
 ## Files
@@ -228,10 +237,11 @@ smoke/
   lib/shims.mjs               shim wrappers, host passthroughs, seat credential artifacts
   lib/daemon.mjs              serve / health-wait / SIGTERM timing / log greps
   lib/http.mjs lib/proc.mjs lib/runs.mjs lib/corpus.mjs lib/semver.mjs
+  lib/ws.mjs                  /ws frame collector (chat replies travel only on /ws)
   lib/expect.mjs              the expected-fail policy
   lib/report.mjs              checks → PASS/FAIL/EXPECTED-FAIL, JSON report, step summary
   lib/hermetic.mjs            $HOME mtime scan (--assert-hermetic)
   lib/steps/S01…S10           one module per seam
-  shims/                      claude codex copilot opencode gh wicked-estate (+ _lib)
+  shims/                      claude codex copilot opencode acp-agent gh wicked-estate wicked-core (+ _lib)
   fixtures/corpus/            the fixed repo (initialised into git at run time)
 ```
