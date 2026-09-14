@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### smoke — S10 `status` after SIGTERM, S09 `--version` (crew #551 / #493 — FIX-IT-ALL L10-7)
+
+- **S10** runs `wicked-crew status --port <port>` against the daemon it has just SIGTERMed and asserts
+  exit ≠ 0, ONE remedy line (`no daemon answering on 127.0.0.1:<port> — start it with \`wicked-crew
+  serve\``) on stderr, empty stdout and no stack frame — the operator's "it worked before the reboot"
+  moment (crew #551, F-RC1-044). **S09** runs `wicked-crew --version` and compares its three lines to
+  the installed tree (crew `package.json`, the resolved `wicked-core-ts`, `dist/studio`'s marker), exit
+  0, empty stderr (crew #493, F-003). Both are labelled to their fix version in `lib/expect.mjs`
+  (`lt(crew, '0.7.35')`) BEFORE 0.7.35 publishes: a rehearsal on `latest` (0.7.34) reads EXPECTED-FAIL,
+  the fixed set must PASS, and a stale label reads UNEXPECTED-PASS. First callers of `smoke.yml`: crew's
+  `release.yml` gains `version` (npm view, ≤ 10 min) + `smoke` jobs after `release` (post-publish
+  release-verify; D-L10-1 pre-`latest` gate owed).
+
 ### smoke — expected-fail policy follows the 2026-09-14 release train (crew 0.7.34 / core-ts 0.7.25)
 
 - **F-7R2-006 / F-7R3-001 → fixed in core-ts 0.7.25** (wicked-core #473, bench-on-abstention). The
