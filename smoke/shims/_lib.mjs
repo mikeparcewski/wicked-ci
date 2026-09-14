@@ -2,10 +2,14 @@
 // A shim is a stand-in for a coding-agent CLI the engine spawns headlessly (`claude -p "<prompt>"`,
 // `codex exec … "<prompt>"`, `opencode run "<prompt>"`), for a council BALLOT, an agent JUDGE turn, or a
 // WORKER turn. It never calls a model and never touches the network.
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+/** The shim name of this process, for records appended after {@link record} (the verdict line). */
+let currentShim = 'shim';
+
 export function record(shim, extra = {}) {
+  currentShim = shim;
   const log = process.env.WICKED_SMOKE_SHIM_LOG;
   const argv = process.argv.slice(2);
   const prompt = promptOf(argv);
@@ -84,6 +88,51 @@ export function isVersionProbe(argv) {
 }
 
 export const BALLOT = ['RECOMMENDATION: 1', 'TOP_RISK: none', 'CHANGE_MY_MIND: no', 'DISQUALIFIER: none'].join('\n');
+
+/**
+ * The evaluator-verdict convention (wicked-core #498, core-ts ≥ 0.7.26): the engine appends ONE sentence
+ * to every EVALUATOR unit's prompt — `||| VERDICT (evaluator unit): make the LAST line of your output
+ * exactly VERDICT: PASS or VERDICT: FAIL, findings above it; no verdict line = FAIL (human gate)` — and
+ * from core-ts 0.7.27 (FIX-IT-ALL L1 PR-1A, core #488) an evaluator output whose last VERDICT line is
+ * not PASS is DENIED into an escalation gate (`gateEscalated.condition: verdict_not_pass`,
+ * `denialSource: evaluator_verdict`) instead of being recorded PASS. A shim that never says
+ * `VERDICT: PASS` would therefore park every review unit on 0.7.27, so an evaluator turn ends with the
+ * line — and S04 can arm ONE deliberate `VERDICT: FAIL` (F-RC1-131) through a token file the shim
+ * consumes: `WICKED_SMOKE_VERDICT_FAIL_ONCE` names the path; while the file exists the next evaluator
+ * turn renames it away (the consume) and answers FAIL with a finding above the line.
+ */
+export const EVALUATOR_CONVENTION_RE = /VERDICT \(evaluator unit\): make the LAST line of your output exactly VERDICT: PASS or VERDICT: FAIL/;
+export const VERDICT_FAIL_ONCE_ENV = 'WICKED_SMOKE_VERDICT_FAIL_ONCE';
+
+export function isEvaluatorPrompt(prompt) {
+  return EVALUATOR_CONVENTION_RE.test(prompt);
+}
+
+/** Consume the fail-once token when armed: `true` exactly once per token (the rename is the claim). */
+export function consumeFailOnce() {
+  const token = process.env[VERDICT_FAIL_ONCE_ENV];
+  if (!token || !existsSync(token)) return false;
+  try {
+    renameSync(token, `${token}.consumed-${process.pid}-${Date.now()}`);
+    return true;
+  } catch {
+    return false; // another evaluator turn claimed it first
+  }
+}
+
+/**
+ * The lines an evaluator turn ends with (empty for a non-evaluator prompt), recorded in the shim log
+ * as `kind: 'verdict'` so the harness can prove which turn answered what.
+ */
+export function verdictLines(prompt) {
+  if (!isEvaluatorPrompt(prompt)) return [];
+  const fail = consumeFailOnce();
+  appendRecord({ shim: currentShim, kind: 'verdict', verdict: fail ? 'FAIL' : 'PASS', failOnceConsumed: fail, cwd: process.cwd(), argv: [] });
+  if (fail) {
+    return ['', 'Finding (deliberate, wicked-smoke S-L1): the harness armed ONE failing verdict to prove the evaluator-verdict gate parks the run instead of recording PASS (F-RC1-131). Nothing about the change itself is wrong; approve to retry and this seat answers PASS.', 'VERDICT: FAIL'];
+  }
+  return ['', 'VERDICT: PASS'];
+}
 export const JUDGE_PASS = ['PASS', 'the work meets the criterion (smoke shim: deterministic judge)', 'PASS'].join('\n');
 
 /**
@@ -93,6 +142,13 @@ export const JUDGE_PASS = ['PASS', 'the work meets the criterion (smoke shim: de
  * reproduce / verify) print prose and touch nothing (the worktree guard would deny them otherwise).
  */
 export function workerTurn(prompt) {
+  const body = workerBody(prompt);
+  const verdict = verdictLines(prompt);
+  return verdict.length === 0 ? body : `${body}\n${verdict.join('\n')}`;
+}
+
+/** The turn's prose (and the fix phase's write) — the verdict line, when owed, comes after it. */
+function workerBody(prompt) {
   const cwd = process.cwd();
   const target = join(cwd, 'src', 'add.js');
   // The engine spells the phase out: "… ||| PHASE SCOPE: this is the <phase> phase. …" — read it from
