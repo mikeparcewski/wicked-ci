@@ -180,7 +180,7 @@ jobs:
           node-version: ${{ inputs.node_version || 'lts/*' }}
       # `uv` is a PRODUCT requirement: crew's skills seed runs `uv sync` for the garden bundle and
       # BLOCKS the publish without it. The harness exposes the host uv through a passthrough wrapper.
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       # Linux: the engine's repo-checks floor and validator run inside an OS write boundary (bwrap) and
       # fail closed without one — same arming as node-release's opt-in checks sandbox (wicked-core#433).
       - name: Arm the checks sandbox (bubblewrap) on Linux
