@@ -139,8 +139,11 @@ const RULES = {
   // 0.7.24 and 0.7.25), absent on macOS with byte-identical inputs; confirmed by the independent review
   // as a core-ts finding. The pipeline half cannot proceed past `fix` there; its checks are tagged with
   // this finding ONLY when the fix unit's denial carries that signature (S04 `floorDenied` /
-  // `floorEscalation`). No fix version yet.
-  'F-SMOKE-001': ({ coreTs, platform }) => (platform === 'linux' && coreTs && !gte(coreTs, NOT_FIXED_YET) ? `core-ts ${coreTs} on linux: the fix unit's floors fail inside the bwrap sandbox — the pinned evidence floor denies ("no coverage report was produced … the script denied before writing one"; on ≥ 0.7.25 prefixed "the run left a change in its worktree", after the creator floor's install exited 1, and the denial pauses at an escalation gate the smoke cancels) — open, no fix version yet` : null),
+  // `floorEscalation`). FIXED in core-ts 0.7.27 (wicked-core #505, C8 revised: the whole-temp `--tmpfs`
+  // hid a nested worktree's `<clone>/.git/worktrees/<name>` gitdir, so the floor's `git status` died
+  // with "not a git repository"; wicked-core #460 carries the nested-worktree regression test). The
+  // ubuntu S04 leg reached deliver on crew 0.7.40 / core-ts 0.7.30 (wicked-ci run 36067791652).
+  'F-SMOKE-001': ({ coreTs, platform }) => (platform === 'linux' && coreTs && lt(coreTs, '0.7.27') ? `core-ts ${coreTs} < 0.7.27 on linux: the fix unit's floors fail inside the bwrap sandbox — the pinned evidence floor denies ("no coverage report was produced … the script denied before writing one"; on ≥ 0.7.25 prefixed "the run left a change in its worktree", after the creator floor's install exited 1, and the denial pauses at an escalation gate the smoke cancels) — fixed in core-ts 0.7.27 (wicked-core #505: no tmpfs over the system temp dir, so a nested worktree's gitdir stays visible)` : null),
 };
 
 /**
