@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### smoke — F-SMOKE-001 retired (wicked-core #460)
+
+- **`F-SMOKE-001` is expected only on `core-ts < 0.7.27` on linux.** The Linux floor denial came from the
+  validator jail's `--tmpfs` over the system temp dir, which hid a nested run worktree's gitdir
+  (`<clone>/.git/worktrees/<name>`), so the pinned floor's `git status` died with "not a git
+  repository" and denied work that was there. wicked-core #505 (C8 revised) removed the tmpfs and
+  shipped in core-ts 0.7.27; wicked-core #460 adds the nested-worktree regression test on the ubuntu
+  bwrap leg. The ubuntu S04 leg reached deliver on crew 0.7.40 / core-ts 0.7.30 (run 36067791652).
+
 ### smoke — the release-run gate actually gates (wicked-ci #30) · S08 labels flipped (wicked-ci #31)
 
 - **`smoke.yml` resolves its own harness ref explicitly and fails fast when it cannot.** On a CROSS-REPO
