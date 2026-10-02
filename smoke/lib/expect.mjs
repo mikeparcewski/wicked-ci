@@ -103,6 +103,20 @@ const RULES = {
   // both legs, so the placeholder bound moved to the real fix version the same day.
   'F-7R2-006': ({ coreTs }) => (coreTs && lt(coreTs, '0.7.25') ? `core-ts ${coreTs} < 0.7.25 — the ballot ledger does not bench a seat whose dead-class failure was on round 1 and whose round-2 outcome is the dispatcher's own bench — degradedReason omits it (F-SMOKE-002 residual; fixed in core-ts 0.7.25, wicked-core#473)` : null),
   'F-7R3-001': ({ coreTs }) => (coreTs && lt(coreTs, '0.7.25') ? `core-ts ${coreTs} < 0.7.25 — evaluator_distinct seats the review unit / judge on a seat that failed every ballot (not benched by the ledger, see F-7R2-006 / F-SMOKE-002) — the smoke reassigns to a live seat and continues (fixed in core-ts 0.7.25, wicked-core#473)` : null),
+  // F-SMOKE-004 — OBSERVED BY the crew 0.7.45 release smoke (run 36946090323, macOS and ubuntu,
+  // core-ts 0.7.33): wicked-core#590 S5 removed the per-phase ballots, so a seat that reads signed in
+  // but cannot work (the copilot shim: quota) is no longer found before routing. Distribution put
+  // both review units on it; its first refusal benched it for the run (`source: worker`), and the
+  // second unit was STILL dispatched to it (copilot turns: 2), with nothing on the wire naming the
+  // bench. FIXED in core-ts 0.7.34 (wicked-core#689: the later unit is re-seated before it runs, and
+  // the bench is emitted as `seatBenched`). Labelled BEFORE 0.7.34 publishes: the 0.7.33 set reads
+  // EXPECTED-FAIL, the fixed set must PASS, a stale label reads UNEXPECTED-PASS.
+  'F-SMOKE-004': ({ coreTs }) => (coreTs && gte(coreTs, '0.7.33') && lt(coreTs, '0.7.34') ? `core-ts ${coreTs}: a seat benched mid-run on its own refusal is still dispatched the later units it was planned for, and no seatBenched frame names it (wicked-core#590 S5 removed the ballots; fixed in core-ts 0.7.34, wicked-core#689)` : null),
+  // F-SMOKE-005 — the same class across runs: the engine's in-run bench was not carried to the next
+  // launch, so every new run handed the dead seat a unit again. FIXED in crew 0.7.46 (wicked-crew
+  // folds `seatBenched` into the roster standing for 30 minutes; it pins core-ts ^0.7.34, which
+  // emits it). Keyed to crew, labelled before 0.7.46 publishes.
+  'F-SMOKE-005': ({ crew }) => (crew && lt(crew, '0.7.46') ? `crew ${crew} < 0.7.46: the engine's in-run bench of a dead-but-signed-in seat is not carried to the next launch — GET /roster still reads it council-eligible (fixed in crew 0.7.46)` : null),
   // F-SMOKE-003 — OBSERVED BY wicked-smoke (2026-09-12): `session.delivery` reads `stranded` for a run
   // whose branch IS on the local origin and whose PR WAS opened through the gh shim. crew derives
   // `delivered` from a `run.delivered` trail entry it records by grepping the deliver transcript for

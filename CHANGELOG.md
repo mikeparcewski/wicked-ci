@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### smoke — S04 asserts the teamed routing (wicked-core#590 S5) · F-SMOKE-004 / F-SMOKE-005
+
+- **S04 tells the two routing eras apart and asserts the current one.** crew 0.7.45's release smoke
+  (run 36946090323) failed S04 on both legs. core-ts 0.7.33 ships wicked-core#590 S5, which removed
+  the per-phase ballots, and two of the three failing checks asserted that ballot behaviour. On core-ts
+  ≥ 0.7.33 (or any `routingMethod: teamed` on the wire) each ballot check is replaced by the teamed
+  contract's equivalent. No coverage is dropped:
+  - "copilot benched and NAMED (ballot ledger)" → copilot benched in the run on its own refusal and
+    named by `seatBenched` (`F-SMOKE-004`);
+  - "no unit routed to a dead seat" → no unit routed to a launcher-benched seat (codex, pi; untagged),
+    plus copilot handed exactly ONE unit turn, with later units re-seated (`F-SMOKE-004`);
+  - "codex + copilot ballots were spawned" → copilot spawned (only its own refusal can tell) and codex
+    never spawned (the probe benched it; untagged);
+  - new: after the run, `GET /roster` reads copilot `council_eligible: false` with the engine's cause
+    (`F-SMOKE-005`).
+
+  The ballot-era checks are unchanged for core-ts < 0.7.33.
+- **`F-SMOKE-004`** (core-ts 0.7.33; fixed in core-ts 0.7.34, wicked-core#689) and **`F-SMOKE-005`**
+  (crew < 0.7.46) are labelled before the fixes publish. The 0.7.45 set reads EXPECTED-FAIL. The
+  fixed set (crew 0.7.46 on core-ts 0.7.34) must PASS, and a stale label reads UNEXPECTED-PASS.
+
 ### smoke — F-SMOKE-001 retired (wicked-core #460)
 
 - **`F-SMOKE-001` is expected only on `core-ts < 0.7.27` on linux.** The Linux floor denial came from the

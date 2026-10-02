@@ -3,10 +3,17 @@
 // answers), codex (401), copilot (quota), opencode (free tier, answers), pi (not installed, no login).
 //
 // Two halves, asserted on the wire:
-//  ROUTING (the mixed run): whole-phase plan units (F-090); the engine benches codex / copilot / pi and
-//    NAMES them in `unitDistributed.degradedReason`, no unit or judge is seated on a dead seat
-//    (F-7R2-006 / F-7R3-001); the intake gate pauses the run; a human gate before the deliver push
-//    (F-E2E-030).
+//  ROUTING (the mixed run): whole-phase plan units (F-090); the intake gate pauses the run; a human
+//    gate before the deliver push (F-E2E-030). Dead seats, by era:
+//    - BALLOT era (core-ts < 0.7.33): the engine benches codex / copilot / pi and NAMES them in
+//      `unitDistributed.degradedReason`, no unit or judge is seated on a dead seat (F-7R2-006 /
+//      F-7R3-001).
+//    - TEAMED era (core-ts >= 0.7.33, wicked-core#590 S5: no ballots): the launcher benches the dead
+//      seats its probe can see (codex, pi) and they are NAMED and never routed; copilot reads signed in,
+//      so its FIRST unit finds it dead: it is benched for the run and named by `seatBenched`, handed no
+//      further unit (exactly one copilot turn; later units re-seated) — F-SMOKE-004, core-ts 0.7.34 —
+//      and after the run the roster reads it ineligible, so the next launch does not hand it work —
+//      F-SMOKE-005, crew 0.7.46.
 //  PIPELINE: the repo-checks floor provisions `node_modules` INTO the worktree and passes (F-E2E-029a);
 //    the branch lands on the LOCAL bare origin through the `gh` shim carrying the correction — judged
 //    from the origin FIRST, with the product's `session.delivery` reported beside it (F-SMOKE-003);
@@ -44,6 +51,8 @@ export const id = 'S04';
 export const name = 'bug-run (mixed roster)';
 
 const BENCHED = ['codex', 'copilot', 'pi'];
+/** The dead seats crew's launcher probe can SEE (teamed era): codex's status command says "Not logged in"; pi has no credential. */
+const LAUNCHER_BENCHED = ['codex', 'pi'];
 const DEAD_SEAT_RE = /not logged in|unauthenticated|quota|ACP unavailable for '(codex|copilot|pi)'|cli `(codex|copilot|pi)`|seat '(codex|copilot|pi)'/i;
 /** F-SMOKE-001 (Linux): the pinned evidence floor's denial signature on the fix unit — on the unit's
  *  `denial_reason` and, since core-ts 0.7.25 (wicked-core#477), on the escalation gate's prompt too. */
@@ -243,28 +252,75 @@ export async function run(ctx, t) {
   t.check('plan units == the def phases (+ deliver): triage, reproduce, fix, verify, deliver (F-090)', phases.join(',') === 'triage,reproduce,fix,verify,deliver', phases.join(','));
   t.check('workflowSelected.unitCount == 5', selected?.unitCount === 5, JSON.stringify(selected ?? null).slice(0, 200));
 
-  // Seat routing — the engine had to learn from the ballots and NAME the benched seats.
+  // Seat routing. Two eras, told apart on the wire (`unitDistributed.routingMethod`) and by the
+  // installed engine:
+  //  - BALLOT era (core-ts < 0.7.33): a council per phase; the ledger learned codex / copilot from
+  //    their round-1 ballots and the distribution never seated them.
+  //  - TEAMED era (core-ts >= 0.7.33, wicked-core#590 S5): no ballot. A unit takes the first
+  //    eligible seat; the launcher's probe benches what it can see (codex: its status command says
+  //    "Not logged in"; pi: no credential). A seat that reads signed in but cannot work (copilot:
+  //    quota) is found by its FIRST unit, benched for the run on its own refusal, and from core-ts
+  //    0.7.34 (`seatBenched`) never handed another unit of the run; from crew 0.7.46 the bench is
+  //    carried to the next launch (the roster reads it ineligible). The ballot assertions do not
+  //    apply there; each is replaced by the teamed contract's equivalent below.
   const dist = eventsOfType(mixed.events, 'unitDistributed');
   const reasons = dist.map((d) => d.degradedReason).filter((r) => typeof r === 'string' && r !== '');
   const seatFailed = eventsOfType(mixed.events, 'councilSeatFailed').map((e) => ({ cli: e.cli, kind: e.kind, reason: e.reason, round: e.round, ord: e.ord }));
-  const evSeats = t.evidence('seat-routing', { distributed: dist.map((d) => ({ ord: d.ord, cli: d.cli, routingMethod: d.routingMethod, degradedReason: d.degradedReason })), councilSeatFailed: seatFailed, deadSeatEscalations: mixed.deadSeatEscalations, denials: mixed.denials });
+  const seatBenched = eventsOfType(mixed.events, 'seatBenched').map((e) => ({ ord: e.ord, cli: e.cli, reason: e.reason, source: e.source }));
+  const reassigned = eventsOfType(mixed.events, 'unitReassigned').map((e) => ({ ord: e.ord, previousCli: e.previousCli, newCli: e.newCli }));
+  const teamed = dist.some((d) => d.routingMethod === 'teamed') || Boolean(ctx.versions.coreTs && gte(ctx.versions.coreTs, '0.7.33'));
+  const evSeats = t.evidence('seat-routing', { era: teamed ? 'teamed' : 'ballot', distributed: dist.map((d) => ({ ord: d.ord, cli: d.cli, routingMethod: d.routingMethod, degradedReason: d.degradedReason })), councilSeatFailed: seatFailed, seatBenched, unitReassigned: reassigned, deadSeatEscalations: mixed.deadSeatEscalations, denials: mixed.denials });
   const joined = reasons.join('\n');
-  for (const seat of BENCHED) {
-    const named = new RegExp(`\\b${seat}\\b`, 'i').test(joined);
-    const failedBallots = seatFailed.filter((f) => f.cli === seat && f.round === 1).map((f) => f.reason ?? f.kind);
-    // codex / copilot must be learned from the BALLOT (the F-7R2-006 ledger class). pi carries no
-    // credential, so crew's launcher benches it BEFORE any ballot ("pi (signed out — launcher)") — a
-    // different mechanism that works today, hence no finding tag on that check.
-    const opts = seat === 'pi' ? { evidence: evSeats } : { finding: 'F-7R2-006', evidence: evSeats };
-    t.check(`${seat} benched and NAMED in degradedReason (${seat === 'pi' ? 'launcher bench, crew standing' : 'ballot ledger, F-7R2-006 / F-7R3-001'})`, named, `named=${named}; round-1 ballots: ${failedBallots.join(',') || 'none'}; reasons: ${joined.slice(0, 200)}`, opts);
-  }
   const routedTo = dist.filter((d) => d.routingMethod !== 'tool').map((d) => d.cli);
-  t.check('no unit routed to a dead seat (signed out / quota / not installed)', routedTo.every((c) => !BENCHED.includes(c)), `routed: ${routedTo.join(',')}`, { finding: 'F-7R3-001', evidence: evSeats });
+  t.info('routing era', teamed ? `teamed (core-ts ${ctx.versions.coreTs}; wicked-core#590 S5 — no ballots)` : `ballot (core-ts ${ctx.versions.coreTs})`);
+  if (!teamed) {
+    for (const seat of BENCHED) {
+      const named = new RegExp(`\\b${seat}\\b`, 'i').test(joined);
+      const failedBallots = seatFailed.filter((f) => f.cli === seat && f.round === 1).map((f) => f.reason ?? f.kind);
+      // codex / copilot must be learned from the BALLOT (the F-7R2-006 ledger class). pi carries no
+      // credential, so crew's launcher benches it BEFORE any ballot ("pi (signed out — launcher)") — a
+      // different mechanism that works today, hence no finding tag on that check.
+      const opts = seat === 'pi' ? { evidence: evSeats } : { finding: 'F-7R2-006', evidence: evSeats };
+      t.check(`${seat} benched and NAMED in degradedReason (${seat === 'pi' ? 'launcher bench, crew standing' : 'ballot ledger, F-7R2-006 / F-7R3-001'})`, named, `named=${named}; round-1 ballots: ${failedBallots.join(',') || 'none'}; reasons: ${joined.slice(0, 200)}`, opts);
+    }
+    t.check('no unit routed to a dead seat (signed out / quota / not installed)', routedTo.every((c) => !BENCHED.includes(c)), `routed: ${routedTo.join(',')}`, { finding: 'F-7R3-001', evidence: evSeats });
+  } else {
+    // codex / pi: the launcher's probe sees them, so they are benched before routing and NAMED.
+    for (const seat of LAUNCHER_BENCHED) {
+      const named = new RegExp(`\\b${seat}\\b`, 'i').test(joined);
+      t.check(`${seat} benched by the launcher and NAMED in degradedReason (teamed routing)`, named, `named=${named}; reasons: ${joined.slice(0, 200)}`, { evidence: evSeats });
+    }
+    t.check('no unit routed to a launcher-benched seat (codex signed out, pi not installed)', routedTo.every((c) => !LAUNCHER_BENCHED.includes(c)), `routed: ${routedTo.join(',')}`, { evidence: evSeats });
+    // copilot reads signed in, so nothing benches it before its first unit. Its first refusal must
+    // bench it for the run, by name, on the wire (replaces "copilot benched and NAMED (ballot ledger)").
+    const copilotBench = seatBenched.find((b) => b.cli === 'copilot');
+    t.check('copilot (signed in, out of quota) benched in the run on its own refusal and NAMED on the wire (seatBenched, F-SMOKE-004)', copilotBench !== undefined && /quota/i.test(String(copilotBench.reason)), `seatBenched: ${JSON.stringify(seatBenched)}`, { finding: 'F-SMOKE-004', evidence: evSeats });
+    // …and from then on it is handed nothing: exactly one copilot turn (the one that found it dead),
+    // and every later unit planned on it re-seated (replaces "no unit routed to a dead seat").
+    const copilotTurns = calls.filter((c) => c.shim === 'copilot' && c.kind !== 'noprompt').length;
+    const stillPlannedOn = reassigned.filter((r) => r.previousCli === 'copilot').map((r) => `${r.ord}→${r.newCli}`);
+    t.check('copilot was handed exactly ONE unit turn — after its refusal benched it, no unit of the run was dispatched to it (F-SMOKE-004)', copilotTurns === 1, `copilot turns: ${copilotTurns}; planned on copilot: ${routedTo.filter((c) => c === 'copilot').length}; re-seated off it: ${stillPlannedOn.join(',') || 'none'}`, { finding: 'F-SMOKE-004', evidence: evSeats });
+  }
+  if (!teamed) {
+    t.check('codex + copilot ballots were actually spawned (the engine had to learn, not the probe)', calls.some((c) => c.shim === 'codex') && calls.some((c) => c.shim === 'copilot'), `shims called: ${[...new Set(calls.map((c) => c.shim))].join(',')}`);
+  } else {
+    // Replaces the ballot-spawn check: the probe-visible dead seat (codex) is never spawned; the
+    // probe-INVISIBLE one (copilot) is, because only its own refusal can tell.
+    t.check('copilot was actually spawned (the engine learned from its own refusal, not the probe); codex was benched by the probe and never spawned', calls.some((c) => c.shim === 'copilot' && c.kind !== 'noprompt') && !calls.some((c) => c.shim === 'codex' && c.kind !== 'noprompt'), `shims called: ${[...new Set(calls.filter((c) => c.kind !== 'noprompt').map((c) => c.shim))].join(',')}`, { evidence: evSeats });
+  }
   t.check('no unit or judge was seated on a dead seat (no dead-seat escalation / denial) (F-7R3-001)', mixed.deadSeatEscalations.length === 0 && !mixed.deadSeatDenial, [...mixed.deadSeatEscalations.map((d) => (d.reassignedTo ? `${d.phase} on ${d.assignedCli} → reassigned to ${d.reassignedTo}` : `${d.phase}: judge on a dead seat (${d.via})`)), ...mixed.denials.filter((d) => DEAD_SEAT_RE.test(d))].join(' | ').slice(0, 400), { finding: 'F-7R3-001', evidence: evSeats });
-  t.check('codex + copilot ballots were actually spawned (the engine had to learn, not the probe)', calls.some((c) => c.shim === 'codex') && calls.some((c) => c.shim === 'copilot'), `shims called: ${[...new Set(calls.map((c) => c.shim))].join(',')}`);
   // pi from the WIRE (no shim exists to record a call): never routed, and every council outcome for it is the not-installed spawn failure or the launcher's bench.
   const piOutcomes = seatFailed.filter((f) => f.cli === 'pi').map((f) => `${f.kind}/${f.reason ?? '-'}`);
   t.check('pi never routed; its only council outcomes are not_installed / benched', !routedTo.includes('pi') && piOutcomes.every((o) => /spawn_failed\/not_installed|^benched\//.test(o)), `routed pi=${routedTo.includes('pi')}; outcomes: ${[...new Set(piOutcomes)].join(',') || 'none (benched by the launcher before any ballot)'}`);
+  if (teamed) {
+    // The bench outlives the run that found it (crew >= 0.7.46 carries the engine's `seatBenched`
+    // for a bounded window): the roster the NEXT launch is built from reads copilot ineligible, with
+    // the engine's cause, so a new run does not hand it a unit again.
+    const after = await api.get('/roster');
+    const copilotAfter = (after.json?.roster ?? []).find((s) => s.key === 'copilot') ?? null;
+    const evAfter = t.evidence('roster-after-mixed-run', { status: after.status, copilot: copilotAfter });
+    t.check('after the run GET /roster reads copilot council_eligible: false, naming the engine\'s cause (the bench is carried to the next launch) (F-SMOKE-005)', copilotAfter?.council_eligible === false && /quota/i.test(String(copilotAfter?.council_ineligible_reason ?? '')), `copilot: ${JSON.stringify({ auth: copilotAfter?.auth, council_eligible: copilotAfter?.council_eligible, reason: copilotAfter?.council_ineligible_reason ?? null })}`, { finding: 'F-SMOKE-005', evidence: evAfter });
+  }
   const escalationIsDeadSeat = mixed.escalation !== null && mixed.deadSeatDenial;
   t.check('no other failure escalation in the mixed run (a seam the shims could not carry)', mixed.escalation === null, mixed.escalation ?? '', escalationIsDeadSeat ? { finding: 'F-7R3-001', evidence: evSeats } : mixed.floorEscalation ? { finding: 'F-SMOKE-001', evidence: evSeats } : {});
   // ── S-L1: the evaluator-verdict gate (F-RC1-131; wicked-core #488 / #498, core-ts 0.7.27) ────
