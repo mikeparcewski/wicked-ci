@@ -294,12 +294,15 @@ export async function run(ctx, t) {
     // copilot reads signed in, so nothing benches it before its first unit. Its first refusal must
     // bench it for the run, by name, on the wire (replaces "copilot benched and NAMED (ballot ledger)").
     const copilotBench = seatBenched.find((b) => b.cli === 'copilot');
-    t.check('copilot (signed in, out of quota) benched in the run on its own refusal and NAMED on the wire (seatBenched, F-SMOKE-004)', copilotBench !== undefined && /quota/i.test(String(copilotBench.reason)), `seatBenched: ${JSON.stringify(seatBenched)}`, { finding: 'F-SMOKE-004', evidence: evSeats });
+    t.check('copilot (signed in, out of quota) benched in the run on its own refusal and NAMED on the wire (seatBenched, F-SMOKE-004)', copilotBench !== undefined && copilotBench.source === 'worker' && /quota/i.test(String(copilotBench.reason)), `seatBenched: ${JSON.stringify(seatBenched)}`, { finding: 'F-SMOKE-004', evidence: evSeats });
     // …and from then on it is handed nothing: exactly one copilot turn (the one that found it dead),
     // and every later unit planned on it re-seated (replaces "no unit routed to a dead seat").
+    // Every OTHER unit planned on copilot (all but the one whose refusal benched it) must be moved
+    // off it on the wire (`unitReassigned {previousCli: 'copilot'}`) before it runs.
     const copilotTurns = calls.filter((c) => c.shim === 'copilot' && c.kind !== 'noprompt').length;
-    const stillPlannedOn = reassigned.filter((r) => r.previousCli === 'copilot').map((r) => `${r.ord}→${r.newCli}`);
-    t.check('copilot was handed exactly ONE unit turn — after its refusal benched it, no unit of the run was dispatched to it (F-SMOKE-004)', copilotTurns === 1, `copilot turns: ${copilotTurns}; planned on copilot: ${routedTo.filter((c) => c === 'copilot').length}; re-seated off it: ${stillPlannedOn.join(',') || 'none'}`, { finding: 'F-SMOKE-004', evidence: evSeats });
+    const laterPlanned = dist.filter((d) => d.cli === 'copilot' && d.ord !== copilotBench?.ord).map((d) => d.ord);
+    const reseatedOff = laterPlanned.filter((o) => reassigned.some((r) => r.ord === o && r.previousCli === 'copilot'));
+    t.check('copilot was handed exactly ONE unit turn — after its refusal benched it, every later unit planned on it was re-seated on the wire (unitReassigned) and none was dispatched to it (F-SMOKE-004)', copilotTurns === 1 && reseatedOff.length === laterPlanned.length, `copilot turns: ${copilotTurns}; planned on copilot after the bench: ${laterPlanned.join(',') || 'none'}; re-seated off it: ${reassigned.filter((r) => r.previousCli === 'copilot').map((r) => `${r.ord}→${r.newCli}`).join(',') || 'none'}`, { finding: 'F-SMOKE-004', evidence: evSeats });
   }
   if (!teamed) {
     t.check('codex + copilot ballots were actually spawned (the engine had to learn, not the probe)', calls.some((c) => c.shim === 'codex') && calls.some((c) => c.shim === 'copilot'), `shims called: ${[...new Set(calls.map((c) => c.shim))].join(',')}`);
