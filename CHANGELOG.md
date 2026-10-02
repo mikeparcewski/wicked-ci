@@ -22,6 +22,10 @@
 - **`F-SMOKE-004`** (core-ts 0.7.33; fixed in core-ts 0.7.34, wicked-core#689) and **`F-SMOKE-005`**
   (crew < 0.7.46) are labelled before the fixes publish. The 0.7.45 set reads EXPECTED-FAIL. The
   fixed set (crew 0.7.46 on core-ts 0.7.34) must PASS, and a stale label reads UNEXPECTED-PASS.
+- **hermetic: `~/Library/Preferences/ContextStoreAgent.plist` is Apple runner noise.** The hosted macOS
+  runner rewrote it during this PR's selftest (run 36952156549). It was the only non-allowlisted change,
+  and every step read PASS or EXPECTED-FAIL. Allowlisted as a leaf, never the subtree, beside
+  `Application Support/CrashReporter`.
 
 ### smoke — F-SMOKE-001 retired (wicked-core #460)
 
