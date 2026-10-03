@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### smoke — S08 counts the turn's own records, not every record (crew 0.7.48)
+
+- **S08 no longer asserts "exactly 2 records" after a chat turn.** crew 0.7.48's release smoke (run
+  37140085699) failed S08 on both legs with `3 record(s): user, seat, decisions`. crew 0.7.48 ships
+  decision capture's studio-chat host (wicked-crew#773), which appends one derived `decisions` record
+  per turn to the transcript, by design — a reader folds it onto the turn's `user` record, exactly as
+  it folds `citations`. The check now asserts what F-RC1-112 is about: exactly ONE `user` record and
+  exactly ONE `seat` reply from the seat, and nothing beside them but the derived kinds crew's wire
+  contract names (`citations`, `decisions`, `system`). A second user or seat record, or a record of
+  an unknown kind, still fails. On crew < 0.7.48 the transcript holds the same two records as before
+  and the check passes unchanged.
+
 ### smoke — S04 asserts the teamed routing (wicked-core#590 S5) · F-SMOKE-004 / F-SMOKE-005
 
 - **S04 tells the two routing eras apart and asserts the current one.** crew 0.7.45's release smoke
