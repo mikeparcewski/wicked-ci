@@ -14,7 +14,8 @@
 //   3. A turn: `POST /chats/:id/messages` → 202 `seats` names the seat; on /ws at least one
 //      `chatDelta` then a `chatReply {ok: true}` for it; the shim log shows the turn reached it over
 //      ACP (`session/prompt`); the reply carries `usage` — F-RC1-116; `GET /chats/:id.messages` has
-//      the user message + the seat reply — F-RC1-112.
+//      the user message + the seat reply, one each (derived records — `citations`, `decisions`,
+//      `system` — may sit beside them) — F-RC1-112.
 //   4. Budget: a turn whose prompt makes the shim sleep 20 s → `chatReply {ok: false}` within the
 //      5 s budget (+ grace), naming the seat; the text names the budget variable and the re-seat
 //      remedy — F-RC1-110; the seat is gone from `GET /chats/:id.seats` (evicted).
@@ -31,6 +32,8 @@ import { openFrames } from '../ws.mjs';
 export const id = 'S08';
 export const name = 'chat';
 
+/** Every transcript record kind crew serves (`ChatTranscriptRecord`): the turn's own two, and the derived ones. */
+const TRANSCRIPT_KINDS = new Set(['user', 'seat', 'citations', 'decisions', 'system']);
 /** The per-turn budget the daemon is booted with for this step (seconds). */
 export const CHAT_TURN_SECS = 5;
 /** How long the slow prompt makes the shim sleep — comfortably past the budget on a loaded host. */
@@ -107,7 +110,16 @@ export async function run(ctx, t) {
       const messages = detail.json?.messages;
       const ev2 = t.evidence('chat-detail-after-turn-1', { status: detail.status, body: detail.json ?? detail.text?.slice(0, 800) });
       t.check('GET /chats/:id → 200 with the seat warm', detail.status === 200 && Array.isArray(detail.json?.seats) && detail.json.seats.includes(ACP_SEAT_KEY), `status ${detail.status}; seats ${JSON.stringify(detail.json?.seats ?? null)}`, { evidence: ev2 });
-      t.check('GET /chats/:id.messages holds the user message + the seat reply (2 records, F-RC1-112)', Array.isArray(messages) && messages.length === 2 && messages.some((m) => m.kind === 'user') && messages.some((m) => m.kind === 'seat' && m.cliKey === ACP_SEAT_KEY), Array.isArray(messages) ? `${messages.length} record(s): ${messages.map((m) => m.kind).join(', ')}` : `messages ${JSON.stringify(messages ?? null)} (absent on a daemon without the transcript)`, { finding: 'F-RC1-112', evidence: ev2 });
+      // The turn's own records are exactly ONE `user` and ONE `seat` reply. A daemon may append DERIVED
+      // records beside them, each folded onto the turn by a reader (crew-api-types
+      // `ChatTranscriptRecord`): `citations`, `system`, and — from crew 0.7.48, decision capture's
+      // studio-chat host — one `decisions` record per turn. Any OTHER kind, or a second user/seat
+      // record, fails: the transcript must not grow records nobody can name.
+      const kinds = Array.isArray(messages) ? messages.map((m) => m?.kind) : [];
+      const users = kinds.filter((k) => k === 'user').length;
+      const seatReplies = Array.isArray(messages) ? messages.filter((m) => m?.kind === 'seat' && m.cliKey === ACP_SEAT_KEY).length : 0;
+      const unknownKinds = kinds.filter((k) => !TRANSCRIPT_KINDS.has(k));
+      t.check('GET /chats/:id.messages holds the user message + the seat reply (one each; only derived records beside them, F-RC1-112)', Array.isArray(messages) && users === 1 && seatReplies === 1 && kinds.filter((k) => k === 'seat').length === 1 && unknownKinds.length === 0, Array.isArray(messages) ? `${messages.length} record(s): ${kinds.join(', ')}${unknownKinds.length > 0 ? ` — unknown kind(s): ${unknownKinds.join(', ')}` : ''}` : `messages ${JSON.stringify(messages ?? null)} (absent on a daemon without the transcript)`, { finding: 'F-RC1-112', evidence: ev2 });
     }
 
     // ── 4. The turn budget: a slow seat is cut at WICKED_CHAT_TURN_SECS and released ──
