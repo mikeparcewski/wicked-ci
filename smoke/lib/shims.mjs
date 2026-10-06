@@ -78,14 +78,23 @@ export function writeShims(L) {
  */
 export const ACP_SEAT_KEY = 'acp-smoke';
 
-export function writeCouncilOverlay(L) {
+/**
+ * `acpSeatForCouncil` (S08, crew ≥ 0.8.2): the ACP seat is written `enabled_for_council = true`. From
+ * crew 0.8.2 an ask is a team PATH (DES-ASK-TEAM-CHAT-001 Amendment 6): `POST /chats` admits the
+ * DEFAULT roster and seats NAMED in `clis` by ONE rule (`chatSeatAdmission`), and that rule refuses
+ * a council-disabled seat ("disabled for the council, so it takes no turn") — the engine's roster
+ * (`registry_roster`) does not even list one. So the seat the chat step speaks to must be
+ * council-enabled for THAT daemon. S08 is the last step that convenes a seat (S09/S10 launch no
+ * work), so it re-writes the overlay before its own restart and S04's mixed roster is untouched.
+ */
+export function writeCouncilOverlay(L, { acpSeatForCouncil = false } = {}) {
   const bin = (name) => join(L.bin, name).replace(/\\/g, '/');
   const seats = [
     { key: 'claude', display: 'Claude Code (smoke shim)', bin: bin('claude'), inv: `${bin('claude')} -p "{PROMPT}"` },
     { key: 'codex', display: 'Codex (smoke shim, signed out)', bin: bin('codex'), inv: `${bin('codex')} exec --skip-git-repo-check "{PROMPT}"` },
     { key: 'copilot', display: 'Copilot (smoke shim, quota)', bin: bin('copilot'), inv: `${bin('copilot')} -p "{PROMPT}"` },
     { key: 'opencode', display: 'OpenCode (smoke shim, free tier)', bin: bin('opencode'), inv: `${bin('opencode')} run "{PROMPT}"` },
-    { key: ACP_SEAT_KEY, display: 'ACP seat (smoke shim, stdio)', bin: bin('acp-agent'), inv: `${bin('acp-agent')} -p "{PROMPT}"`, council: false, acp: bin('acp-agent') },
+    { key: ACP_SEAT_KEY, display: 'ACP seat (smoke shim, stdio)', bin: bin('acp-agent'), inv: `${bin('acp-agent')} -p "{PROMPT}"`, council: acpSeatForCouncil, acp: bin('acp-agent') },
   ];
   const toml = seats.map((s) => [
     '[[cli]]',
@@ -95,7 +104,10 @@ export function writeCouncilOverlay(L) {
     `headless_invocation = '${s.inv}'`,
     `enabled_for_council = ${s.council === false ? 'false' : 'true'}`,
     // `[cli.acp]` binds to the `[[cli]]` record above it (TOML sub-table of the last array element).
-    ...(s.acp ? ['', '[cli.acp]', `binary = "${s.acp}"`, 'transport = "stdio"'] : []),
+    // `acp_input_governance = true`: the engine dispatches a path's `answer-N` step (executes_code:
+    // false) to a seat only when its ACP adapter is admitted to input governance; without it the
+    // unit is REFUSED ("not admitted to input governance") and S08's turn never reaches the shim.
+    ...(s.acp ? ['', '[cli.acp]', `binary = "${s.acp}"`, 'transport = "stdio"', 'acp_input_governance = true'] : []),
     '',
   ].join('\n')).join('\n');
   const dir = join(L.home, '.config', 'wicked-council');

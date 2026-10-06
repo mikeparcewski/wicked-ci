@@ -65,6 +65,12 @@ const RULES = {
   // although the adapters report usage on the prompt result. Fixed: one additive nullable field.
   // FIXED on the crew 0.7.35 set (chatReply.usage true on both legs of run 34865500000; wicked-ci #31).
   'F-RC1-116': ({ crew }) => (crew && lt(crew, '0.7.35') ? `crew ${crew} < 0.7.35: chatReply carries no usage — chat turns are unmetered on the wire (fixed on the crew 0.7.35 set, DES-L5)` : null),
+  // F-A6-USAGE (crew #824): from crew 0.8.2 an ask is a team PATH and the reply is folded by the ask
+  // relay from the answer unit's output — the frame carries no `usage`, so a path turn is unmetered
+  // again (F-RC1-116's claim, on the new wire). OPEN on every path-wire crew published so far; the
+  // bound is the placeholder — move it to the REAL fix version the day it publishes (the F-7R2-006
+  // rule). S08 tags the path wire's usage check with this label (the pool wire keeps F-RC1-116).
+  'F-A6-USAGE': ({ crew }) => (crew && gte(crew, '0.8.2') && lt(crew, '0.8.99') ? `crew ${crew} ≥ 0.8.2: a path turn's chatReply carries no usage — the ask relay folds the unit's output and the unit frames carry none (crew #824, open)` : null),
   // F-E2E-021: two SQLite libraries on one WAL bus db (node:sqlite read in projects/activity) → the
   // daemon's six subscribers die "database disk image is malformed"; recentErrors stays empty.
   // FIXED in crew 0.7.33 (#541 one library per db file per process; #542 connection-fatal bus errors
