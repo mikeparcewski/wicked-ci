@@ -2,6 +2,49 @@
 
 ## Unreleased
 
+### smoke — S08 follows the ask-path wire (crew 0.8.2) · F-A6-USAGE
+
+- **S08 asserts the chat wire of the crew it installed — pool (< 0.8.2) or path (≥ 0.8.2).** crew
+  0.8.2's release smoke (run 37426596418) failed S08 on both legs at the open: `POST /chats {clis:
+  [acp-smoke]}` → 409 `seat 'acp-smoke' is not in the roster`. From crew 0.8.2 an ask is a team
+  PATH (DES-ASK-TEAM-CHAT-001; DES-STUDIO-REBUILD-001 Amendment 6): `POST /chats` warms nothing and
+  admits the default roster and the seats NAMED in `clis` by ONE rule, which refuses a
+  council-disabled seat (the engine's roster does not list one), so the harness's ACP seat — written
+  `enabled_for_council = false` so S04's mixed roster stays mixed — could no longer be spoken to.
+  Harness lag, not a crew regression. On crew ≥ 0.8.2 S08 now:
+  - re-writes the council overlay with the ACP seat `enabled_for_council = true` before its own
+    restart (`writeCouncilOverlay(L, { acpSeatForCouncil: true })`; S08 is the last step that
+    convenes a seat, S04's roster is untouched) and boots the daemon with its defaults — the pool
+    knob `WICKED_CHAT_TURN_SECS` bounds no path step, but crew's turn index still derives a turn's
+    staleness from it (wicked-crew#826), so a 5 s boot would un-stamp the 20 s step;
+  - asserts the path wire: the open warms nothing (no ACP call, no `path` yet, `singleSeat`
+    disclosed); the FIRST message launches the run — 202 `{seats, turnId, runId, stepId:
+    "answer-1"}`, `GET /chats/:id.path` names it with `pa: acp-smoke`; ONE `chatReply{ok, run_id,
+    ord, turn_id}` for the PA (one voice), the shim's own answer (no `[wicked-core]` refusal),
+    reached over ACP (handshake + `session/prompt` after the first message), the run's events on
+    the ACP carrier for the seat; the transcript's one `user` + one `seat` record; a slow step (the
+    shim sleeps 20 s) → 202 `answer-2`, a send DURING it → 409 `turn_in_flight` naming the seat and
+    the turn, the slow reply lands `ok: true` AFTER the sleep and STAMPED, the refused send left no
+    record; a follow-up → 202 `answer-3` on the same run and the path's `stepId` moves; End →
+    `chatClosed{reason: "closed"}`, `seats: []`, `messages: []`, the run `cancelled`.
+  - keeps the pool wire's cases (5 s budget cut, eviction, re-seat by `targets`, `chatClosed
+    {reason: "requested"}`) for crew < 0.8.2, unchanged.
+- **`[cli.acp]` in the overlay now carries `acp_input_governance = true`.** The engine dispatches a
+  path's `answer-N` step (`executes_code: false`) to a seat only when its ACP adapter is admitted to
+  input governance; without it the unit is REFUSED ("not admitted to input governance") — and the
+  ask relay surfaced that refusal text as a `chatReply{ok: true}` (run 2 of this change, kept in the
+  lane's evidence).
+- **F-A6-USAGE (wicked-crew#824), expected-fail on crew ≥ 0.8.2.** A path turn's `chatReply` carries
+  no `usage` (the relay folds the unit's output; the unit frames carry none) — F-RC1-116's claim on
+  the new wire. The pool wire keeps F-RC1-116. The bound is the placeholder; move it to the real fix
+  version when it publishes.
+- **The skills handing is disclosed, not asserted, on the path wire.** The engine hands a snapshot
+  per seat LEVER (`SkillsSnapshot::delivery(cli)`); a synthetic seat it knows no lever for
+  (acp-smoke) is handed none and emits no `skillsSnapshotHanded`, so the pool wire's F-RC1-113
+  check has no path-wire equivalent in this harness — S08 reports the count as info.
+- Verified locally against the published set: crew 0.8.2 / core-ts 0.7.38 / studio bundle 0.6.2 /
+  garden 12.43.0 — S08 35 checks, 34 pass, 1 expected-fail (F-A6-USAGE).
+
 ### smoke — S08 counts the turn's own records, not every record (crew 0.7.48)
 
 - **S08 no longer asserts "exactly 2 records" after a chat turn.** crew 0.7.48's release smoke (run
