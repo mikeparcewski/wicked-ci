@@ -211,6 +211,13 @@ export async function run(ctx, t) {
     }
 
     if (askWire) {
+      // The Nth reply of this chat (0-based), waited for: `ws.waitFor` resolves with the FIRST frame
+      // its predicate accepts, scanning from the start, so a "count grew" predicate could hand back
+      // turn 1's reply once a later one exists — the reply is picked by its index instead.
+      const nthReply = async (n, ms) => {
+        const grown = await ws.waitFor(() => ws.frames.filter(isReply).length > n, { ms, signal: ctx.signal });
+        return grown === null ? null : ws.frames.filter(isReply)[n] ?? null;
+      };
       // ── 4 (path). In flight: a slow step, a send during it is 409, the slow reply lands uncut ──
       {
         const before = ws.frames.filter(isReply).length;
@@ -220,7 +227,7 @@ export async function run(ctx, t) {
         const during = await api.post(`/chats/${enc(chatId)}/messages`, { text: 'wicked-smoke: are you there? (sent during turn 2)' });
         const evDuring = t.evidence('chat-send-during-turn', { status: during.status, body: during.json ?? during.text?.slice(0, 600) });
         t.check(`a send DURING the turn is refused: 409 turn_in_flight naming ${ACP_SEAT_KEY} and the turn (F-RECON-017)`, during.status === 409 && during.json?.code === 'turn_in_flight' && typeof during.json?.error === 'string' && during.json.error.includes(ACP_SEAT_KEY) && during.json?.turn?.turnId === send.json?.turnId, `status ${during.status}: ${JSON.stringify(during.json ?? during.text).slice(0, 240)}`, { evidence: evDuring });
-        const reply = await ws.waitFor((f) => isReply(f) && ws.frames.filter(isReply).length > before, { ms: SLOW_TURN_SLEEP_MS + PATH_TURN_MS, signal: ctx.signal });
+        const reply = await nthReply(before, SLOW_TURN_SLEEP_MS + PATH_TURN_MS);
         const replyMs = Date.now() - sent;
         const ev = t.evidence('chat-turn-slow', { poolBudgetSecs: CHAT_TURN_SECS, shimSleepMs: SLOW_TURN_SLEEP_MS, send: send.json ?? send.text, replyMs, reply });
         t.check(`the slow step answered ok:true AFTER the shim's ${SLOW_TURN_SLEEP_MS / 1000} s sleep (the step's own budget is the ask's 600 s, not WICKED_CHAT_TURN_SECS)`, reply !== null && reply.ok === true && replyMs >= SLOW_TURN_SLEEP_MS && reply.run_id === runId, reply ? `ok ${reply.ok} in ${replyMs} ms` : `no chatReply within ${(SLOW_TURN_SLEEP_MS + PATH_TURN_MS) / 1000} s`, { evidence: ev });
@@ -242,7 +249,7 @@ export async function run(ctx, t) {
         const send = await api.post(`/chats/${enc(chatId)}/messages`, { text: 'wicked-smoke: hello again (turn 3, follow-up)' });
         const ev0 = t.evidence('chat-turn-followup-send', { status: send.status, body: send.json ?? send.text?.slice(0, 500) });
         t.check('follow-up: POST /chats/:id/messages → 202 {stepId: "answer-3", runId: the same run}', send.status === 202 && send.json?.stepId === 'answer-3' && send.json?.runId === runId, `status ${send.status}: ${JSON.stringify(send.json ?? send.text).slice(0, 200)}`, { evidence: ev0 });
-        const reply = await ws.waitFor((f) => isReply(f) && ws.frames.filter(isReply).length > before, { ms: PATH_TURN_MS, signal: ctx.signal });
+        const reply = await nthReply(before, PATH_TURN_MS);
         const replyMs = Date.now() - sent;
         const ev = t.evidence('chat-turn-followup', { replyMs, reply });
         t.check('follow-up: an ok chatReply follows on the same run', reply?.ok === true && reply?.run_id === runId, reply ? `ok ${reply.ok} in ${replyMs} ms: ${JSON.stringify(reply.text).slice(0, 160)}` : `no chatReply within ${PATH_TURN_MS / 1000} s`, { evidence: ev });
