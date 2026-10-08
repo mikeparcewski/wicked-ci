@@ -15,8 +15,10 @@
 //   `awaitingHuman.gateKind`.
 import { gte, lt } from './semver.mjs';
 
-/** A deliberately unreachable version bound: "expected on every version published so far". */
-export const NOT_FIXED_YET = '0.7.99';
+// No placeholder bound. The old `NOT_FIXED_YET = '0.7.99'` stopped being "unreachable" the day crew
+// 0.8.0 published, and every rule keyed to it went quiet without saying so (F-E2E-002, then
+// F-SMOKE-003 and F-087). A rule whose fix has not shipped is keyed to the version it was observed on
+// (`lt(crew, '<next>')`) and moved the day the fix publishes; selfcheck pins each rule's edge.
 
 /**
  * Built-in rules, evaluated against the INSTALLED versions.
@@ -140,7 +142,11 @@ const RULES = {
   // read the reverse. Hence: keyed to crew only (no fix version yet), on every node and every engine,
   // and declared FLAKY — a `delivered` reading is disclosed, never a verdict. The harness classifies
   // delivery from the bare origin first and labels the product's disagreeing wire value with this id.
-  'F-SMOKE-003': ({ crew }) => (crew && !gte(crew, NOT_FIXED_YET) ? `crew ${crew}: session.delivery reads 'stranded' while the branch is on the origin and the PR was opened — the wire disagrees with the artifact (deliver-transcript URL behind a variable number of EXCLUDED lines; open — no fix version yet; both readings observed on identical inputs)` : null),
+  // FIXED in crew 0.8.5 (wicked-crew#851 / #859: the root cause was a read race, not the transcript
+  // cap — `run.delivered` was resolved asynchronously after the terminal frame, and a poll inside that
+  // window fell through to the worktree stat; `DeliveryResolver` now owns the read and the run routes
+  // await it). The 0.8.3 release smoke's macOS leg was the last red observation; 0.8.6 passed both legs.
+  'F-SMOKE-003': ({ crew }) => (crew && lt(crew, '0.8.5') ? `crew ${crew} < 0.8.5: session.delivery reads 'stranded' while the branch is on the origin and the PR was opened — a GET inside the completion window derives delivery from the worktree stat before run.delivered is recorded (fixed in crew 0.8.5, wicked-crew#851; both readings observed on identical inputs)` : null),
   // F-087 — `GET /runs/:id/diff` is not robust to what the worktree holds. Acceptance: a half-reaped
   // worktree → 500. OBSERVED BY wicked-smoke (2026-09-12, node 26 hosts): on a COMPLETED run the
   // route shells `git diff --no-index -- /dev/null <untracked>` per untracked file and answers 500
@@ -149,8 +155,11 @@ const RULES = {
   // cache present, so the trigger is keyed to the host node major as well — and on node 26 itself the
   // route answered 500 on two runs (the independent review's) and 200 on the third (wicked-smoke run
   // (a), 2026-09-13, crew 0.7.32), so the finding is FLAKY: a 200 is disclosed, never a verdict.
-  // No crew fix version yet.
-  'F-087': ({ crew, nodeMajor }) => (crew && !gte(crew, NOT_FIXED_YET) && (nodeMajor ?? 0) >= 26 ? `crew ${crew} on node ${nodeMajor}: GET /runs/:id/diff answers 500 on a completed run whose worktree scratch holds the checks' node compile cache (git diff --no-index fails per untracked file) — open, no fix version yet` : null),
+  // FIXED in crew 0.7.45 (ship-proof F3): the whole-worktree diff runs the deliver exclusion
+  // predicate (`core/deliver-exclusions.ts`, `tmp/` is a scratch dir at any depth) over its untracked
+  // candidates, so the compile cache under `tmp/wicked-checks/` is never handed to `git diff
+  // --no-index`; crew 0.8.0 (#790) also turned a git timeout into 503 `diff_busy`, never a bare 500.
+  'F-087': ({ crew, nodeMajor }) => (crew && lt(crew, '0.7.45') && (nodeMajor ?? 0) >= 26 ? `crew ${crew} < 0.7.45 on node ${nodeMajor}: GET /runs/:id/diff answers 500 on a completed run whose worktree scratch holds the checks' node compile cache (git diff --no-index fails per untracked file) — fixed in crew 0.7.45 (the diff's untracked pass skips scratch dirs)` : null),
   // F-SMOKE-001 — Linux only: the fix unit's floors fail inside the engine's `bwrap` sandbox although
   // the judge PASSED and the worker's `src/add.js` write succeeded. core-ts 0.7.23 / 0.7.24: the pinned
   // evidence floor (`git status --porcelain | grep -q . || git log …`, run inside the validator sandbox)
