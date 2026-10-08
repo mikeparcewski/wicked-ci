@@ -22,6 +22,10 @@ package was sound.
 - **S04: gates are judged on the LATEST `gateEscalated` of the paused unit.** The handler matched the
   first verdict gate in the whole stream on every later pause of the same unit, so 0.8.5's
   `judge_unavailable` gate read as "a SECOND verdict gate".
+- **S04 (ballot era, core-ts < 0.7.25): a pipeline run whose only escalations were dead-seat units
+  reassigned to a live seat carries the F-7R3-001 tag.** With the third live seat the 0.7.23 mixed
+  run completes through those reassignments and is itself the pipeline run (it used to fall back to
+  the live-seat rerun), so "pipeline run: no failure escalation" now reads EXPECTED-FAIL there.
 - **F-A6-USAGE retired at crew 0.8.5** (crew #824 / #863: the ask relay sums the answer attempt's
   `cliUsage` into `chatReply.usage`; UNEXPECTED-PASS on both legs of run 37762305091).
 - **F-E2E-002 bound moved to crew 0.8.6.** The `0.7.99` placeholder had expired, so the check read a

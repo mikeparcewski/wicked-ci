@@ -415,7 +415,11 @@ export async function run(ctx, t) {
   // there untagged (tagging it would have read as an unexpected pass). Since wicked-core#477 the denial
   // PAUSES at an escalation gate the harness cancels, so when THAT is the escalation the check is part
   // of the same cascade and carries its tag; any other escalation is still a regression.
-  t.check('pipeline run: no failure escalation', pipe.escalation === null && pipe.deadSeatEscalations.length === 0, pipe.escalation ?? pipe.deadSeatEscalations.map((d) => d.phase).join(','), pipe.floorEscalation ? cascade() : { evidence: evRun });
+  // A pipeline run whose ONLY escalations were units seated on a dead seat (reassigned to a live one)
+  // is the F-7R3-001 class (ballot era, core-ts < 0.7.25) — with the third live seat the mixed run now
+  // completes through those reassignments and IS the pipeline run, so the check carries that tag.
+  const deadSeatOnly = pipe.escalation === null && pipe.deadSeatEscalations.length > 0;
+  t.check('pipeline run: no failure escalation', pipe.escalation === null && pipe.deadSeatEscalations.length === 0, pipe.escalation ?? pipe.deadSeatEscalations.map((d) => `${d.phase} on ${d.assignedCli}${d.reassignedTo ? ` → ${d.reassignedTo}` : ''}`).join(','), pipe.floorEscalation ? cascade() : deadSeatOnly ? { finding: 'F-7R3-001', evidence: evRun } : { evidence: evRun });
   if (!pipeCompleted && pipe !== mixed) worktreeEvidence(ctx, t, 'live', view);
   t.info('pipeline gate kinds', pipe.gates.map((g) => `${g.phase}: ${g.kind} (${g.kindSource}) → ${g.decision}`).join(', ') || 'none');
   const reachedDeliver = pipe.units.some((u) => phaseOf(u) === 'deliver' && u.status !== 'pending' && u.status !== 'distributed') || pipe.deliverGateSeen || pipeCompleted;
