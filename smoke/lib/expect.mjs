@@ -66,11 +66,13 @@ const RULES = {
   // FIXED on the crew 0.7.35 set (chatReply.usage true on both legs of run 34865500000; wicked-ci #31).
   'F-RC1-116': ({ crew }) => (crew && lt(crew, '0.7.35') ? `crew ${crew} < 0.7.35: chatReply carries no usage — chat turns are unmetered on the wire (fixed on the crew 0.7.35 set, DES-L5)` : null),
   // F-A6-USAGE (crew #824): from crew 0.8.2 an ask is a team PATH and the reply is folded by the ask
-  // relay from the answer unit's output — the frame carries no `usage`, so a path turn is unmetered
-  // again (F-RC1-116's claim, on the new wire). OPEN on every path-wire crew published so far; the
-  // bound is the placeholder — move it to the REAL fix version the day it publishes (the F-7R2-006
-  // rule). S08 tags the path wire's usage check with this label (the pool wire keeps F-RC1-116).
-  'F-A6-USAGE': ({ crew }) => (crew && gte(crew, '0.8.2') && lt(crew, '0.8.99') ? `crew ${crew} ≥ 0.8.2: a path turn's chatReply carries no usage — the ask relay folds the unit's output and the unit frames carry none (crew #824, open)` : null),
+  // relay from the answer unit's output — the frame carried no `usage`, so a path turn was unmetered
+  // again (F-RC1-116's claim, on the new wire). FIXED in crew 0.8.5 (crew #863: the ask relay sums the
+  // answer attempt's `cliUsage` frames into `chatReply.usage`) — observed by the crew 0.8.5 release
+  // smoke (run 37762305091, both legs: UNEXPECTED-PASS, usage {inputTokens: 1167, outputTokens: 61}),
+  // so the placeholder bound moved to the real fix version. S08 tags the path wire's usage check with
+  // this label (the pool wire keeps F-RC1-116).
+  'F-A6-USAGE': ({ crew }) => (crew && gte(crew, '0.8.2') && lt(crew, '0.8.5') ? `crew ${crew}: 0.8.2 ≤ crew < 0.8.5 — a path turn's chatReply carries no usage (the ask relay folded the unit's output and the unit frames carry none; fixed in crew 0.8.5, crew #824 / #863)` : null),
   // F-E2E-021: two SQLite libraries on one WAL bus db (node:sqlite read in projects/activity) → the
   // daemon's six subscribers die "database disk image is malformed"; recentErrors stays empty.
   // FIXED in crew 0.7.33 (#541 one library per db file per process; #542 connection-fatal bus errors
@@ -85,10 +87,13 @@ const RULES = {
   // product stops minting a branch/worktree for tool-only workflows.
   'F-E2E-012': () => 'tool-only onboarding keeps its wicked/<run-id> branch + worktree (retention by design, F-7R2-013) — flip when the product changes',
   // F-E2E-002: a publish that lands with warnings shows `skills.findings: []` in /diagnostics — the
-  // warnings live only in the daemon log. Open on every crew published so far (the 0.7.33 CHANGELOG
-  // carries no fix; an earlier bound of 0.7.33 here was a guess and would have flipped this check to a
-  // hard FAIL the day 0.7.33 landed) — replace the placeholder bound with the real fix version.
-  'F-E2E-002': ({ crew }) => (crew && !gte(crew, NOT_FIXED_YET) ? `crew ${crew}: publish warnings are dropped from /diagnostics.skills.findings (open — no fix version yet)` : null),
+  // warnings live only in the daemon log. The placeholder bound (0.7.99) had silently EXPIRED: on crew
+  // 0.8.x the rule answered null and the check read a hard FAIL (crew 0.8.5 release smoke, run
+  // 37762305091: 13 warnings logged, 0 findings — garden 12.44.0's mcp-scaffold TS templates). FIXED in
+  // crew 0.8.6: one `skills.publish-warning` finding per warning of the current generation's publish
+  // (and a skill's `assets/` templates are no longer ref-checked, so 12.44.0 publishes clean). Labelled
+  // BEFORE 0.8.6 publishes: the 0.8.5 set reads EXPECTED-FAIL, the fixed set must PASS.
+  'F-E2E-002': ({ crew }) => (crew && lt(crew, '0.8.6') ? `crew ${crew} < 0.8.6: publish warnings are dropped from /diagnostics.skills.findings — they live only in the daemon log (fixed in crew 0.8.6: skills.publish-warning findings)` : null),
   // F-E2E-030: `deliver: pr` under the default `humanConfirm: before:1` posture pushed + opened the PR
   // with no human gate before the push. The gate landed in the ENGINE — core-ts 0.7.24 (`should_pause`
   // pauses before a Tool unit whose phase id is `deliver`, whatever the run-level human_confirm says),

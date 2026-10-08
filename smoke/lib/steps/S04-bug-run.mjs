@@ -1,6 +1,14 @@
 // S04 default-posture bug run — the seeded `bug` workflow launched the way the studio composer does
 // (`humanConfirm: before:1`, `deliver: pr`) against the corpus with the MIXED roster: claude (signed in,
-// answers), codex (401), copilot (quota), opencode (free tier, answers), pi (not installed, no login).
+// answers), codex (401), copilot (quota), opencode (free tier, answers), pi (not installed, no login),
+// smoke-judge (a third live seat, last in the registry — the distinct judge the verify unit needs).
+//
+//  JUDGE DISTINCTNESS (core-ts >= 0.7.40, wicked-core#774 / #780): a unit's judge is a seat distinct
+//    from the unit's seat AND its creator; when the only such seats are benched the gate FAILS CLOSED
+//    (`gateEscalated.condition: judge_unavailable`) instead of skipping the judge. The mixed run
+//    carries a third live seat so the bug run is proven end to end; a separate short launch WITHOUT
+//    it (`nojudge`: the same mixed roster, every distinct judge dead) asserts the fail-closed gate —
+//    the run parks at `judge_unavailable` with deliver undispatched, and the harness cancels it.
 //
 // Two halves, asserted on the wire:
 //  ROUTING (the mixed run): whole-phase plan units (F-090); the intake gate pauses the run; a human
@@ -46,6 +54,7 @@ import { ISSUE_TEXT, branches } from '../corpus.mjs';
 import { gitTry } from '../proc.mjs';
 import { eventsOfType, phaseOf, runEvents, unitDigest, waitTerminal } from '../runs.mjs';
 import { gte } from '../semver.mjs';
+import { JUDGE_SEAT_KEY } from '../shims.mjs';
 
 export const id = 'S04';
 export const name = 'bug-run (mixed roster)';
@@ -72,6 +81,10 @@ const isVerdictGate = (e, failAnswered) => e?.type === 'gateEscalated' && (e.den
 /** How many evaluator turns since `sinceOffset` answered `VERDICT: FAIL` (the shims record `kind: verdict`). */
 const failsAnswered = (ctx, sinceOffset) => ctx.shimCalls().slice(sinceOffset).filter((c) => c.kind === 'verdict' && c.verdict === 'FAIL').length;
 const ESCALATION_KINDS = new Set(['escalation', 'failure', 'triage']);
+/** core-ts >= 0.7.40 (wicked-core#774 / #780): the judge could not run — no identity-distinct seat left. */
+const isJudgeUnavailableGate = (e) => e?.type === 'gateEscalated' && (e.condition === 'judge_unavailable' || e.denialSource === 'judge_unavailable');
+/** The engine that fails closed on a benched-out judge pool instead of skipping the judge. */
+const JUDGE_FAIL_CLOSED_CORE_TS = '0.7.40';
 
 /** Launch + follow one run, answering gates by kind the way an operator would. */
 async function launchAndFollow(ctx, api, t, label, body) {
@@ -80,7 +93,7 @@ async function launchAndFollow(ctx, api, t, label, body) {
   t.check(`POST /runs 201 (${label})`, launch.status === 201, `status ${launch.status} ${launch.text?.slice(0, 300)}`);
   const runId = launch.json?.runId;
   if (!runId) return null;
-  const out = { runId, deliverGateSeen: false, intakeGateSeen: false, escalation: null, floorEscalation: null, verdictGate: null, deadSeatEscalations: [], guessedKinds: [] };
+  const out = { runId, deliverGateSeen: false, intakeGateSeen: false, escalation: null, floorEscalation: null, verdictGate: null, judgeUnavailableGate: null, deadSeatEscalations: [], guessedKinds: [] };
   let decisions = 0;
   // The wait budget is whatever is left of the step's ceiling (raised with --step-timeout on a loaded
   // host), never a second, smaller clock of its own.
@@ -114,9 +127,22 @@ async function launchAndFollow(ctx, api, t, label, body) {
           // `VERDICT: FAIL` (the one the harness armed). Approve ONCE: the retry re-runs the same unit,
           // the token is spent, the shim answers PASS and the run continues. A second such gate means
           // the retry did not answer PASS — a seam, recorded and cancelled like any other.
+          // Judged on the gate THIS pause is for: the LATEST `gateEscalated` of the unit. (A `find` over
+          // the whole stream matched the FIRST verdict gate again on every later pause of the same unit,
+          // so the crew 0.8.5 smoke read core-ts 0.7.40's `judge_unavailable` gate as "a SECOND verdict
+          // gate", run 37762305091.)
           const frames = await runEvents(api, runId);
           const armedFails = failsAnswered(ctx, ctx.state.sl1ShimOffset ?? 0);
-          const vg = frames.find((e) => isVerdictGate(e, armedFails) && e.ord === unit.ord);
+          const latest = frames.filter((e) => e.type === 'gateEscalated' && e.ord === unit.ord).at(-1) ?? null;
+          // The fail-closed judge gate (core-ts >= 0.7.40): no distinct judge left for this unit. A
+          // retry draws from the same benched pool, so it is recorded and cancelled — the `nojudge`
+          // launch asserts it; on the mixed run it is a seam (the third live seat should have judged).
+          if (isJudgeUnavailableGate(latest)) {
+            out.judgeUnavailableGate = out.judgeUnavailableGate ?? { phase, ord: unit.ord, assignedCli: unit.assigned_cli ?? null, condition: latest.condition ?? null, denialSource: latest.denialSource ?? null, attempt: latest.attempt ?? null, kind: rec.kind, kindSource: rec.kindSource, prompt: prompt.slice(0, 400), denial: String(unit.denial_reason ?? '').slice(0, 400), eventIndex: frames.indexOf(latest) };
+            out.escalation = out.escalation ?? `${phase}: judge_unavailable — no identity-distinct judge seat left (${String(unit.denial_reason ?? prompt).slice(0, 300)})`;
+            return 'cancel';
+          }
+          const vg = latest !== null && isVerdictGate(latest, armedFails) ? latest : null;
           if (vg) {
             if (out.verdictGate === null) {
               out.verdictGate = { phase, ord: unit.ord, assignedCli: unit.assigned_cli ?? null, condition: vg.condition ?? null, denialSource: vg.denialSource ?? null, attempt: vg.attempt ?? v.session.attempt ?? null, kind: rec.kind, kindSource: rec.kindSource, prompt: prompt.slice(0, 300), eventIndex: frames.indexOf(vg) };
@@ -212,6 +238,7 @@ export async function run(ctx, t) {
   t.check('roster lists the five seats', ['claude', 'codex', 'copilot', 'opencode', 'pi'].every((k) => byKey[k]), Object.keys(byKey).join(','));
   t.check('claude signed_in + council_eligible', byKey.claude?.auth === 'signed_in' && byKey.claude?.council_eligible === true, JSON.stringify({ auth: byKey.claude?.auth, eligible: byKey.claude?.council_eligible }));
   t.check('opencode not_required (free tier) + council_eligible', byKey.opencode?.auth === 'not_required' && byKey.opencode?.council_eligible === true, JSON.stringify({ auth: byKey.opencode?.auth, eligible: byKey.opencode?.council_eligible }));
+  t.check(`${JUDGE_SEAT_KEY} (the third live seat) listed + council_eligible`, byKey[JUDGE_SEAT_KEY]?.council_eligible === true, JSON.stringify({ auth: byKey[JUDGE_SEAT_KEY]?.auth, eligible: byKey[JUDGE_SEAT_KEY]?.council_eligible }));
   t.info('probe view of the seats to be benched', JSON.stringify(Object.fromEntries(BENCHED.map((k) => [k, { auth: byKey[k]?.auth, eligible: byKey[k]?.council_eligible }]))));
   t.info('pi credential', ctx.state.piCredential ? 'present (WICKED_SMOKE_PI_CREDENTIAL=1): the engine must learn not_installed from the ballot' : 'absent: pi benched by the launcher as signed out (the fresh-machine shape)');
 
@@ -366,8 +393,8 @@ export async function run(ctx, t) {
   // ── the PIPELINE half: on the mixed run when it completed, else on a live-seat rerun ─────────
   let pipe = mixed;
   if (!mixedCompleted && (routingClass || semverCorrected)) {
-    const live = seats.filter((s) => s.key === 'claude' || s.key === 'opencode');
-    t.info('pipeline rerun', 'the mixed run could not complete because a unit/judge was seated on a dead seat (F-7R3-001) — re-launching with the two live seats only so the downstream seams are still exercised');
+    const live = seats.filter((s) => s.key === 'claude' || s.key === 'opencode' || s.key === JUDGE_SEAT_KEY);
+    t.info('pipeline rerun', `the mixed run could not complete because a unit/judge was seated on a dead seat (F-7R3-001) — re-launching with the three live seats only (claude, opencode, ${JUDGE_SEAT_KEY}) so the downstream seams are still exercised`);
     pipe = await launchAndFollow(ctx, api, t, 'live', { ...base, clisJson: JSON.stringify(live) });
     if (!pipe) return;
   }
@@ -388,7 +415,11 @@ export async function run(ctx, t) {
   // there untagged (tagging it would have read as an unexpected pass). Since wicked-core#477 the denial
   // PAUSES at an escalation gate the harness cancels, so when THAT is the escalation the check is part
   // of the same cascade and carries its tag; any other escalation is still a regression.
-  t.check('pipeline run: no failure escalation', pipe.escalation === null && pipe.deadSeatEscalations.length === 0, pipe.escalation ?? pipe.deadSeatEscalations.map((d) => d.phase).join(','), pipe.floorEscalation ? cascade() : { evidence: evRun });
+  // A pipeline run whose ONLY escalations were units seated on a dead seat (reassigned to a live one)
+  // is the F-7R3-001 class (ballot era, core-ts < 0.7.25) — with the third live seat the mixed run now
+  // completes through those reassignments and IS the pipeline run, so the check carries that tag.
+  const deadSeatOnly = pipe.escalation === null && pipe.deadSeatEscalations.length > 0;
+  t.check('pipeline run: no failure escalation', pipe.escalation === null && pipe.deadSeatEscalations.length === 0, pipe.escalation ?? pipe.deadSeatEscalations.map((d) => `${d.phase} on ${d.assignedCli}${d.reassignedTo ? ` → ${d.reassignedTo}` : ''}`).join(','), pipe.floorEscalation ? cascade() : deadSeatOnly ? { finding: 'F-7R3-001', evidence: evRun } : { evidence: evRun });
   if (!pipeCompleted && pipe !== mixed) worktreeEvidence(ctx, t, 'live', view);
   t.info('pipeline gate kinds', pipe.gates.map((g) => `${g.phase}: ${g.kind} (${g.kindSource}) → ${g.decision}`).join(', ') || 'none');
   const reachedDeliver = pipe.units.some((u) => phaseOf(u) === 'deliver' && u.status !== 'pending' && u.status !== 'distributed') || pipe.deliverGateSeen || pipeCompleted;
@@ -457,6 +488,31 @@ export async function run(ctx, t) {
   t.check('GET /runs/:id/acceptance 200', acc.status === 200, `status ${acc.status}`);
   const created = snapshot().filter((l) => !before.includes(l));
   t.check('acceptance read created nothing in the customer clone (F-E2E-013)', created.length === 0 && !existsSync(join(corpus, '.wicked-testing')) && !existsSync(join(corpus, '.wicked-qe')), created.join(',').slice(0, 300));
+  // ── JUDGE DISTINCTNESS: no distinct judge left → the gate fails closed (core-ts >= 0.7.40) ────
+  // The same mixed roster WITHOUT the third live seat: the verify unit's evaluator and its creator are
+  // the two live seats, every other seat is dead (benched), so no identity-distinct judge remains.
+  // wicked-core#774: that is a seat-failure DENY booked `judge_unavailable` (#780: its own gate
+  // condition, naming the failed seats), never a skipped judge — evaluator ≠ creator is an invariant,
+  // so the run must park with deliver undispatched. Older engines skipped the judge (UNGATED pass).
+  if (ctx.versions.coreTs && gte(ctx.versions.coreTs, JUDGE_FAIL_CLOSED_CORE_TS)) {
+    const rosterNow = (await api.get('/roster')).json?.roster ?? seats;
+    const noJudgePool = rosterNow.filter((s) => s.key !== JUDGE_SEAT_KEY && s.key !== 'acp-smoke');
+    t.info('judge distinctness', `launching the bug run on ${noJudgePool.map((s) => s.key).join(', ')} (no ${JUDGE_SEAT_KEY}): the verify unit has no identity-distinct live judge`);
+    const nj = await launchAndFollow(ctx, api, t, 'nojudge', { ...base, clisJson: JSON.stringify(noJudgePool) });
+    if (nj) {
+      const njFrames = nj.events.filter(isJudgeUnavailableGate);
+      const njDeliverOrd = nj.units.find((u) => phaseOf(u) === 'deliver')?.ord ?? null;
+      const njDeliverDispatched = nj.events.filter((e) => e.type === 'toolExecutorDispatched' && e.ord === njDeliverOrd).length;
+      const njGate = nj.judgeUnavailableGate;
+      const evNj = t.evidence('judge-unavailable', { gate: njGate, gateEscalated: njFrames, deliverOrd: njDeliverOrd, deliverDispatched: njDeliverDispatched, status: nj.view?.session?.status ?? null, denials: nj.denials, gates: nj.gates.map((g) => `${g.phase}/${g.kind}/${g.decision}`) });
+      t.check(`no distinct judge left: the run parks at a judge_unavailable gate (gateEscalated.condition judge_unavailable) instead of skipping the judge (core-ts >= ${JUDGE_FAIL_CLOSED_CORE_TS}, wicked-core#774/#780)`, njGate !== null && njFrames.length >= 1, njGate ? `${njGate.phase} (ord ${njGate.ord}) on ${njGate.assignedCli}: condition=${njGate.condition} denialSource=${njGate.denialSource}` : `no judge_unavailable gate; status ${nj.view?.session?.status}; gates ${nj.gates.map((g) => `${g.phase}/${g.kind}`).join(',') || 'none'}`, { evidence: evNj });
+      t.check('the judge_unavailable gate names the dead seats it could not use (the reason is not "rejected")', njGate !== null && /codex|copilot|pi/.test(`${njGate.denial} ${njGate.prompt}`), njGate ? `${njGate.denial || njGate.prompt}`.slice(0, 300) : 'no gate', { evidence: evNj });
+      t.check('no distinct judge left: deliver was never dispatched and the run did not complete', njDeliverDispatched === 0 && nj.view?.session?.status !== 'completed' && !nj.deliverGateSeen, `deliver (ord ${njDeliverOrd}) dispatched ×${njDeliverDispatched}; deliver gate seen ${nj.deliverGateSeen}; status ${nj.view?.session?.status}`, { evidence: evNj });
+    }
+  } else {
+    t.info('judge distinctness', `not judged — core-ts ${ctx.versions.coreTs} < ${JUDGE_FAIL_CLOSED_CORE_TS} skips a judge with no distinct seat (the pre-wicked-core#774 UNGATED path)`);
+  }
+
   const ledgerErr = ctx.daemon.grepLog(/wicked-ledger\] SQLite write failed/, 0, 3);
   t.check('no "[wicked-ledger] SQLite write failed" in the daemon log', ledgerErr.length === 0, ledgerErr.join(' | ').slice(0, 300));
   t.evidence('shim-calls-all', pcalls.map((c) => ({ shim: c.shim, kind: c.kind, cwd: c.cwd })));
