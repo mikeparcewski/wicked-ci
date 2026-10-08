@@ -87,9 +87,13 @@ export async function run(ctx, t) {
     const ev3 = t.evidence('diagnostics-skills-after-stale-rules', s2);
     const stale = (s2?.findings ?? []).filter((f) => f.kind === 'skills.stale-rules');
     const others = (s2?.findings ?? []).filter((f) => f.kind !== 'skills.stale-rules');
+    // `skills.publish-warning` (crew >= 0.8.6, F-E2E-002) belongs to the PUBLISH that found it and is
+    // held in memory — the restart above re-verifies `current` without re-scanning it — so the boot
+    // publish's warnings are not expected again here; every other finding must carry over unchanged.
+    const carried = findings.filter((f) => f.kind !== 'skills.publish-warning');
     t.check('stale-rules generation ACCEPTED (state still published, F-083)', s2?.state === 'published', `state ${s2?.state}: ${JSON.stringify(s2?.findings ?? []).slice(0, 300)}`, { evidence: ev3 });
     t.check('exactly ONE skills.stale-rules warning', stale.length === 1 && (stale[0].severity ?? 'warning') === 'warning', `${stale.length} stale-rules finding(s): ${JSON.stringify(stale).slice(0, 300)}`, { evidence: ev3 });
-    t.check('no other new finding from the stale-rules republish', others.length === findings.length, `${others.length} other finding(s)`, { evidence: ev3 });
+    t.check('no other new finding from the stale-rules republish', others.length === carried.length, `${others.length} other finding(s); ${carried.length} carried from the boot read`, { evidence: ev3 });
     const sk2 = await api.get('/skills');
     t.check('GET /skills current.rules.stale == true', sk2.json?.current?.rules?.stale === true, JSON.stringify(sk2.json?.current?.rules ?? null).slice(0, 300));
     t.check('engineInput still a real snapshot (not the refused/ path)', typeof s2?.engineInput === 'string' && !/refused/.test(s2.engineInput) && s2.engineInput.startsWith(ctx.L.root), String(s2?.engineInput));

@@ -9,6 +9,9 @@ import { IS_WIN } from './env.mjs';
 
 const SHIMS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'shims');
 
+/** The third live seat's registry key (and shim name) — see its SEATS row. */
+export const JUDGE_SEAT_KEY = 'smoke-judge';
+
 /** The roster the mixed-auth run exercises. `present: false` = deliberately NOT on PATH. */
 export const SEATS = [
   { key: 'claude', shim: 'claude', present: true, behaviour: 'answers (signed in)' },
@@ -20,6 +23,13 @@ export const SEATS = [
   // overlay record carries `[cli.acp]` (shims/acp-agent.mjs) and `enabled_for_council = false`, so
   // the S04 council roster above is exactly what it was; S08 names it with `clis: ['acp-smoke']`.
   { key: 'acp-smoke', shim: 'acp-agent', present: true, behaviour: 'answers every chat turn over ACP (initialize / session/new / session/prompt); sleeps WICKED_SMOKE_ACP_SLEEP_MS or a per-prompt smoke-acp-sleep-ms=<n> token first; council-disabled' },
+  // The THIRD live seat (core-ts >= 0.7.40, wicked-core#774): a judge must be identity-distinct from
+  // the unit's seat AND its creator, and when every such seat is benched the gate fails closed
+  // (`judge_unavailable`) instead of skipping the judge. With only claude + opencode live, the
+  // `verify` unit (evaluator opencode, creator claude) had no judge left and the bug run could not
+  // deliver (crew 0.8.5 release smoke, run 37762305091). A custom registry key (crew has no
+  // credential rule for it: `auth: unknown`, council-eligible), written LAST so routing is unchanged.
+  { key: JUDGE_SEAT_KEY, shim: 'smoke-judge', present: true, behaviour: 'answers (no credential rule — auth unknown, council-eligible); the distinct judge the verify unit needs' },
 ];
 
 /** Tools the engine/daemon spawn that must never reach the real thing (or are absent on a fresh
@@ -66,6 +76,9 @@ export function writeShims(L) {
  *     the overlay OMITS `[cli.acp]` on their records — the registry's documented wholesale-replace
  *     hatch "to run a seat wrapped".
  *
+ * The LAST record, `smoke-judge`, is the third live seat (see its SEATS row): a plain headless
+ * record like the v1 seats, council-enabled, written last.
+ *
  * The SIXTH record is the v2 exception: `acp-smoke` is a NEW key (the merged registry appends a user
  * record whose key matches no built-in), its `[cli.acp]` names the ACP-speaking shim
  * (shims/acp-agent.mjs, stdio transport), and it is `enabled_for_council = false` so the mixed-auth
@@ -95,6 +108,9 @@ export function writeCouncilOverlay(L, { acpSeatForCouncil = false } = {}) {
     { key: 'copilot', display: 'Copilot (smoke shim, quota)', bin: bin('copilot'), inv: `${bin('copilot')} -p "{PROMPT}"` },
     { key: 'opencode', display: 'OpenCode (smoke shim, free tier)', bin: bin('opencode'), inv: `${bin('opencode')} run "{PROMPT}"` },
     { key: ACP_SEAT_KEY, display: 'ACP seat (smoke shim, stdio)', bin: bin('acp-agent'), inv: `${bin('acp-agent')} -p "{PROMPT}"`, council: acpSeatForCouncil, acp: bin('acp-agent') },
+    // LAST, so the engine's seat order (and the S04 routing it asserts) is what it was; the judge
+    // rotation reaches it after the dead seats.
+    { key: JUDGE_SEAT_KEY, display: 'Judge seat (smoke shim, third live seat)', bin: bin('smoke-judge'), inv: `${bin('smoke-judge')} -p "{PROMPT}"` },
   ];
   const toml = seats.map((s) => [
     '[[cli]]',

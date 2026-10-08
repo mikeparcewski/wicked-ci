@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### smoke — S04 gets a distinct judge seat and asserts the fail-closed judge gate · F-A6-USAGE retired · F-E2E-002 re-bound (crew 0.8.5 release smoke)
+
+crew 0.8.5's release smoke (run 37762305091) was red on both legs for three harness reasons; the
+package was sound.
+
+- **S04: a third live seat, `smoke-judge`.** From core-ts 0.7.40 (wicked-core#774 / #780) a unit's
+  judge must be a seat distinct from the unit's seat AND its creator, and when the only such seats are
+  benched the gate fails closed (`gateEscalated.condition: judge_unavailable`) instead of skipping
+  the judge (0.7.39 skipped it and allowed). The smoke's two live seats (claude, opencode) left the
+  `verify` unit (evaluator opencode, creator claude) no judge, so the bug run parked and was
+  cancelled. `smoke-judge` is a custom registry key crew has no credential rule for (`auth:
+  unknown`, council-eligible), answers like claude, and is written LAST in the overlay so the routing
+  S04 asserts is unchanged; the live-seat rerun pool includes it.
+- **S04: the fail-closed judge gate is asserted on its own.** On core-ts ≥ 0.7.40 a second short
+  launch on the same mixed roster WITHOUT `smoke-judge` must park at a `judge_unavailable` gate that
+  names the dead seats, with deliver never dispatched; the harness cancels it. Older engines are
+  reported, not judged.
+- **S04: gates are judged on the LATEST `gateEscalated` of the paused unit.** The handler matched the
+  first verdict gate in the whole stream on every later pause of the same unit, so 0.8.5's
+  `judge_unavailable` gate read as "a SECOND verdict gate".
+- **F-A6-USAGE retired at crew 0.8.5** (crew #824 / #863: the ask relay sums the answer attempt's
+  `cliUsage` into `chatReply.usage`; UNEXPECTED-PASS on both legs of run 37762305091).
+- **F-E2E-002 bound moved to crew 0.8.6.** The `0.7.99` placeholder had expired, so the check read a
+  hard FAIL on 0.8.x (13 `unresolved-ref` warnings logged by garden 12.44.0's mcp-scaffold TS
+  templates, 0 findings). crew 0.8.6 reports a publish's warnings as `skills.publish-warning`
+  findings and no longer ref-checks a skill's `assets/`. S02's stale-rules carry-over check leaves
+  `skills.publish-warning` out (it belongs to the publish that found it; a restart does not re-scan).
+
 ### smoke — S08 follows the ask-path wire (crew 0.8.2) · F-A6-USAGE
 
 - **S08 asserts the chat wire of the crew it installed — pool (< 0.8.2) or path (≥ 0.8.2).** crew
