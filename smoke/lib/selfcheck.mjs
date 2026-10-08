@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ALL_STEPS, parseSteps } from './args.mjs';
 import { compare, satisfies } from './semver.mjs';
+import { ExpectPolicy } from './expect.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const stepFiles = readdirSync(join(here, 'steps')).filter((f) => f.endsWith('.mjs')).sort();
@@ -23,4 +24,14 @@ for (const f of readdirSync(join(here, '..', 'shims')).filter((f) => f.endsWith(
 if (parseSteps('S01..S03').join(',') !== 'S01,S02,S03') throw new Error('parseSteps range');
 if (compare('0.7.32', '0.7.33') !== -1) throw new Error('semver compare');
 if (!satisfies('0.7.23', '^0.7.23') || satisfies('0.8.0', '^0.7.23')) throw new Error('semver satisfies');
+// The re-bound rules hold on the last affected version and stop on the fix (no silent expiry).
+const edges = [
+  ['F-SMOKE-003', { crew: '0.8.4' }, { crew: '0.8.5' }],
+  ['F-087', { crew: '0.7.44', nodeMajor: 26 }, { crew: '0.7.45', nodeMajor: 26 }],
+  ['F-E2E-002', { crew: '0.8.5' }, { crew: '0.8.6' }],
+];
+for (const [f, before, fixed] of edges) {
+  if (!new ExpectPolicy(before).reasonFor(f)) throw new Error(`${f}: no reason on ${JSON.stringify(before)}`);
+  if (new ExpectPolicy(fixed).reasonFor(f) !== null) throw new Error(`${f}: still expected on ${JSON.stringify(fixed)}`);
+}
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);
