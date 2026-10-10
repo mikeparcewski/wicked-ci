@@ -263,6 +263,15 @@ export async function run(ctx, t) {
   writeFileSync(failOnceToken, 'wicked-smoke S-L1: the next evaluator turn answers VERDICT: FAIL once (F-RC1-131)\n');
   t.info('S-L1 arm', `verdict fail-once token written (${failOnceToken}); the evaluator turn that carries the core #498 convention consumes it`);
   const base = { problem: ISSUE_TEXT, workflow: 'bug', humanConfirm: 'before:1', deliver: 'pr', repoRef: ctx.state.repoId ?? 'corpus' };
+  // QE acceptance (crew 0.9.3 / wicked-core#861): `bug` now requires an attributed QE PASS, and the
+  // hermetic corpus has neither a QE ledger nor a code graph (its impact score fails closed at 100),
+  // so a run that skips nothing parks at the deliver refusal for ever. S04 proves routing, the
+  // verdict gate and delivery, not QE acceptance: on a crew that offers the override it takes the
+  // explicit, labelled operator skip, and the skip itself is asserted on the run's receipt below.
+  const qeSkip = caps?.qeAcceptanceOverride === true;
+  const QE_SKIP_REASON = 'wicked-smoke S04: the hermetic corpus has no QE ledger; this step proves delivery, not QE acceptance';
+  if (qeSkip) base.skipQeAcceptance = { reason: QE_SKIP_REASON };
+  t.info('QE acceptance', qeSkip ? `explicit operator skip sent (capabilities.qeAcceptanceOverride): ${QE_SKIP_REASON}` : 'no override on this crew; nothing sent');
   const mixed = await launchAndFollow(ctx, api, t, 'mixed', base);
   const tokenStillArmed = existsSync(failOnceToken);
   rmSync(failOnceToken, { force: true });
@@ -272,6 +281,10 @@ export async function run(ctx, t) {
   t.evidence('shim-calls-mixed', calls.map((c) => ({ shim: c.shim, kind: c.kind, cwd: c.cwd, argvHead: c.argv.slice(0, 3) })));
 
   t.check('mixed run reached a terminal state within the budget', !mixed.timedOut && mixed.view !== null, `status ${mixed.view?.session?.status} after ${mixed.gates.length} gate(s)${mixed.aborted ? ' (aborted at the step ceiling)' : ''}`);
+  if (qeSkip) {
+    const qe = mixed.view?.session?.assurance?.qe ?? null;
+    t.check('QE acceptance: the run records the operator skip with its reason (skipped / operator)', qe?.status === 'skipped' && qe?.basis === 'operator' && String(qe?.reason ?? '').includes('hermetic corpus'), JSON.stringify(qe));
+  }
   t.check('intake gate paused the run (humanConfirm before:1)', mixed.intakeGateSeen, `gates: ${mixed.gates.map((g) => `${g.phase}/${g.kind}${g.kindSource === 'fallback' ? '?' : ''}/${g.decision}`).join(',')}`);
   t.info('gate kinds', mixed.gates.map((g) => `${g.phase}: ${g.kind} (${g.kindSource})`).join(', ') || 'none');
   const selected = eventsOfType(mixed.events, 'workflowSelected')[0];
