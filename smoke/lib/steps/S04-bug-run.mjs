@@ -326,7 +326,11 @@ export async function run(ctx, t) {
     // and every later unit planned on it re-seated (replaces "no unit routed to a dead seat").
     // Every OTHER unit planned on copilot (all but the one whose refusal benched it) must be moved
     // off it on the wire (`unitReassigned {previousCli: 'copilot'}`) before it runs.
-    const copilotTurns = calls.filter((c) => c.shim === 'copilot' && c.kind !== 'noprompt').length;
+    // Only THIS run's turns: a worker turn runs in its run's worktree (`wicked-worktrees/<run id>`).
+    // Another run in the window — S03's chained onboarding capture, which core-ts 0.7.47 (core#649 A)
+    // no longer pauses — may seat a step on copilot too; that turn is not this run's (crew 0.9.1 smoke).
+    const ofThisRun = (c) => typeof c.cwd !== 'string' || !c.cwd.includes('/wicked-worktrees/') || c.cwd.includes(`/wicked-worktrees/${mixed.runId}`);
+    const copilotTurns = calls.filter((c) => c.shim === 'copilot' && c.kind !== 'noprompt' && ofThisRun(c)).length;
     const laterPlanned = dist.filter((d) => d.cli === 'copilot' && d.ord !== copilotBench?.ord).map((d) => d.ord);
     const reseatedOff = laterPlanned.filter((o) => reassigned.some((r) => r.ord === o && r.previousCli === 'copilot'));
     t.check('copilot was handed exactly ONE unit turn — after its refusal benched it, every later unit planned on it was re-seated on the wire (unitReassigned) and none was dispatched to it (F-SMOKE-004)', copilotTurns === 1 && reseatedOff.length === laterPlanned.length, `copilot turns: ${copilotTurns}; planned on copilot after the bench: ${laterPlanned.join(',') || 'none'}; re-seated off it: ${reassigned.filter((r) => r.previousCli === 'copilot').map((r) => `${r.ord}→${r.newCli}`).join(',') || 'none'}`, { finding: 'F-SMOKE-004', evidence: evSeats });
