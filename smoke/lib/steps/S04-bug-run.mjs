@@ -278,19 +278,41 @@ export async function run(ctx, t) {
   if (!mixed) return;
   ctx.state.bugRunId = mixed.runId;
   const calls = ctx.shimCalls().slice(shimOffset);
-  t.evidence('shim-calls-mixed', calls.map((c) => ({ shim: c.shim, kind: c.kind, cwd: c.cwd, argvHead: c.argv.slice(0, 3) })));
+  t.evidence('shim-calls-mixed', calls.map((c) => ({ shim: c.shim, kind: c.kind, cwd: c.cwd, argvHead: Array.isArray(c.argv) ? c.argv.slice(0, 3) : null, acp: c.acp ?? null })));
 
   t.check('mixed run reached a terminal state within the budget', !mixed.timedOut && mixed.view !== null, `status ${mixed.view?.session?.status} after ${mixed.gates.length} gate(s)${mixed.aborted ? ' (aborted at the step ceiling)' : ''}`);
   if (qeSkip) {
     const qe = mixed.view?.session?.assurance?.qe ?? null;
     t.check('QE acceptance: the run records the operator skip with its reason (skipped / operator)', qe?.status === 'skipped' && qe?.basis === 'operator' && String(qe?.reason ?? '').includes('hermetic corpus'), JSON.stringify(qe));
   }
-  t.check('intake gate paused the run (humanConfirm before:1)', mixed.intakeGateSeen, `gates: ${mixed.gates.map((g) => `${g.phase}/${g.kind}${g.kindSource === 'fallback' ? '?' : ''}/${g.decision}`).join(',')}`);
+  // PRESET era (wicked-core#864): `before:1` is manual mode. The engine never pauses before the
+  // read-only scope step; it pauses ONCE after it, at the plan approval (wicked-core
+  // scope_tests x1_manual_mode_pauses_once_after_the_scope_step_and_edits_wait_for_the_plan).
+  const presetPlan = phaseOf(mixed.units[0] ?? {}) === 'pa-scope';
+  const gateList = `gates: ${mixed.gates.map((g) => `${g.phase}/${g.kind}${g.kindSource === 'fallback' ? '?' : ''}/${g.decision}`).join(',')}`;
+  if (presetPlan) t.check('manual mode (humanConfirm before:1) paused the run once after the scope step, at the plan approval (wicked-core#864)', !mixed.intakeGateSeen && mixed.gates.some((g) => g.kind === 'plan_approval' && g.unitIx === 1), gateList);
+  else t.check('intake gate paused the run (humanConfirm before:1)', mixed.intakeGateSeen, gateList);
   t.info('gate kinds', mixed.gates.map((g) => `${g.phase}: ${g.kind} (${g.kindSource})`).join(', ') || 'none');
   const selected = eventsOfType(mixed.events, 'workflowSelected')[0];
   const phases = mixed.units.map(phaseOf);
-  t.check('plan units == the def phases (+ deliver): triage, reproduce, fix, verify, deliver (F-090)', phases.join(',') === 'triage,reproduce,fix,verify,deliver', phases.join(','));
-  t.check('workflowSelected.unitCount == 5', selected?.unitCount === 5, JSON.stringify(selected ?? null).slice(0, 200));
+  // Two plan eras, told apart by the plan's first unit:
+  //  - DEF era (core-ts < 0.8.2): `bug` is a registered def; the plan is its phases + deliver and
+  //    workflowSelected names all five units (F-090).
+  //  - PRESET era (core-ts >= 0.8.2, wicked-core#864 X-MIG M1): `bug` is a built-in preset; the PA
+  //    scopes it first (plan-1 = the one `pa-scope` unit), then the re-plan keeps the preset's phases
+  //    in order, adds the floor phases the band requires, and ends with deliver.
+  if (presetPlan) {
+    const DEF_PHASES = ['triage', 'reproduce', 'fix', 'verify'];
+    const FLOOR_PHASES = new Set(['design', 'architecture', 'review', 'security_review']);
+    const inner = phases.slice(1, -1);
+    const defOrder = inner.filter((p) => DEF_PHASES.includes(p));
+    const extras = inner.filter((p) => !DEF_PHASES.includes(p));
+    t.check('plan units == pa-scope, the preset phases in order (triage, reproduce, fix, verify) with only floor phases added, then deliver (wicked-core#864)', phases.at(-1) === 'deliver' && defOrder.join(',') === DEF_PHASES.join(',') && extras.every((p) => FLOOR_PHASES.has(p)), phases.join(','));
+    t.check('workflowSelected.unitCount == 1 (the PA scope plan, before the re-plan)', selected?.unitCount === 1, JSON.stringify(selected ?? null).slice(0, 200));
+  } else {
+    t.check('plan units == the def phases (+ deliver): triage, reproduce, fix, verify, deliver (F-090)', phases.join(',') === 'triage,reproduce,fix,verify,deliver', phases.join(','));
+    t.check('workflowSelected.unitCount == 5', selected?.unitCount === 5, JSON.stringify(selected ?? null).slice(0, 200));
+  }
 
   // Seat routing. Two eras, told apart on the wire (`unitDistributed.routingMethod`) and by the
   // installed engine:
