@@ -548,7 +548,11 @@ export async function run(ctx, t) {
       const njGate = nj.judgeUnavailableGate;
       const evNj = t.evidence('judge-unavailable', { gate: njGate, gateEscalated: njFrames, deliverOrd: njDeliverOrd, deliverDispatched: njDeliverDispatched, status: nj.view?.session?.status ?? null, denials: nj.denials, gates: nj.gates.map((g) => `${g.phase}/${g.kind}/${g.decision}`) });
       t.check(`no distinct judge left: the run parks at a judge_unavailable gate (gateEscalated.condition judge_unavailable) instead of skipping the judge (core-ts >= ${JUDGE_FAIL_CLOSED_CORE_TS}, wicked-core#774/#780)`, njGate !== null && njFrames.length >= 1, njGate ? `${njGate.phase} (ord ${njGate.ord}) on ${njGate.assignedCli}: condition=${njGate.condition} denialSource=${njGate.denialSource}` : `no judge_unavailable gate; status ${nj.view?.session?.status}; gates ${nj.gates.map((g) => `${g.phase}/${g.kind}`).join(',') || 'none'}`, { evidence: evNj });
-      t.check('the judge_unavailable gate names the dead seats it could not use (the reason is not "rejected")', njGate !== null && /codex|copilot|pi/.test(`${njGate.denial} ${njGate.prompt}`), njGate ? `${njGate.denial || njGate.prompt}`.slice(0, 300) : 'no gate', { evidence: evNj });
+      // wicked-core#902 (S04 ruling revised): a judge that answers without a PASS/REJECT verdict escalates
+      // at once, naming THAT seat ("<seat> (judge gave no verdict)"), with no rotation onto the dead seats.
+      // Either shape names the seats the gate could not use; neither may read as a rejection.
+      const njText = njGate ? `${njGate.denial ?? ''} ${njGate.prompt ?? ''}` : '';
+      t.check('the judge_unavailable gate names the seats it could not use: the dead seats, or the judge that gave no verdict (wicked-core#902), and the reason is not a rejection', njGate !== null && (/codex|copilot|pi/.test(njText) || /\(judge gave no verdict\)/.test(njText)) && !/validator rejected/.test(njText), njGate ? `${njGate.denial || njGate.prompt}`.slice(0, 300) : 'no gate', { evidence: evNj });
       t.check('no distinct judge left: deliver was never dispatched and the run did not complete', njDeliverDispatched === 0 && nj.view?.session?.status !== 'completed' && !nj.deliverGateSeen, `deliver (ord ${njDeliverOrd}) dispatched ×${njDeliverDispatched}; deliver gate seen ${nj.deliverGateSeen}; status ${nj.view?.session?.status}`, { evidence: evNj });
     }
   } else {
