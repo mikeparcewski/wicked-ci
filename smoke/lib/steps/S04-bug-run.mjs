@@ -57,6 +57,8 @@ import { gte } from '../semver.mjs';
 import { JUDGE_SEAT_KEY } from '../shims.mjs';
 
 export const id = 'S04';
+/** crew release whose default launch roster leaves opencode out (operator ruling 2026-10-11). */
+const OPENCODE_OPT_IN_CREW = '0.9.10';
 export const name = 'bug-run (mixed roster)';
 
 const BENCHED = ['codex', 'copilot', 'pi'];
@@ -272,7 +274,13 @@ export async function run(ctx, t) {
   const QE_SKIP_REASON = 'wicked-smoke S04: the hermetic corpus has no QE ledger; this step proves delivery, not QE acceptance';
   if (qeSkip) base.skipQeAcceptance = { reason: QE_SKIP_REASON };
   t.info('QE acceptance', qeSkip ? `explicit operator skip sent (capabilities.qeAcceptanceOverride): ${QE_SKIP_REASON}` : 'no override on this crew; nothing sent');
-  const mixed = await launchAndFollow(ctx, api, t, 'mixed', base);
+  // crew 0.9.10 (operator ruling 2026-10-11): opencode is OPT-IN — the daemon's default launch roster
+  // leaves it out. The mixed run's delivery path needs it as the verify unit's distinct judge, so the
+  // run OPTS IN explicitly, the way an operator ticks it in the launch wizard: the full roster as
+  // served. (Older crews' default roster was the same list, so nothing changes there.) The
+  // `default` arm below proves the other side: a run that does not opt in escalates.
+  const optInCrew = Boolean(ctx.versions.crew && gte(ctx.versions.crew, OPENCODE_OPT_IN_CREW));
+  const mixed = await launchAndFollow(ctx, api, t, 'mixed', optInCrew ? { ...base, clisJson: JSON.stringify(seats) } : base);
   const tokenStillArmed = existsSync(failOnceToken);
   rmSync(failOnceToken, { force: true });
   if (!mixed) return;
@@ -557,6 +565,29 @@ export async function run(ctx, t) {
     }
   } else {
     t.info('judge distinctness', `not judged — core-ts ${ctx.versions.coreTs} < ${JUDGE_FAIL_CLOSED_CORE_TS} skips a judge with no distinct seat (the pre-wicked-core#774 UNGATED path)`);
+  }
+
+  // ── OPENCODE OPT-IN (crew >= 0.9.10): a run that does NOT opt opencode in never seats it ────────
+  // The same bug run with NO clisJson: the daemon's default roster leaves opencode out, so with
+  // claude (creator) and smoke-judge as parties and every other seat dead, the verify unit's judge
+  // has no seat — the run parks at a judge_unavailable gate (never a skipped judge, never a
+  // REJECT), deliver undispatched, and opencode is handed no turn.
+  if (optInCrew) {
+    const rosterNow = (await api.get('/roster')).json?.roster ?? [];
+    const ocSeat = rosterNow.find((s) => s.key === 'opencode') ?? null;
+    t.check('GET /roster marks opencode opt-in (optIn: true, "opt-in: known to stall") (crew >= 0.9.10)', ocSeat?.optIn === true && /known to stall/.test(String(ocSeat?.optInNote ?? '')), JSON.stringify({ optIn: ocSeat?.optIn ?? null, optInNote: ocSeat?.optInNote ?? null }));
+    const df = await launchAndFollow(ctx, api, t, 'default', base);
+    if (df) {
+      const dfGate = df.judgeUnavailableGate;
+      const dfDeliverOrd = df.units.find((u) => phaseOf(u) === 'deliver')?.ord ?? null;
+      const dfDeliverDispatched = df.events.filter((e) => e.type === 'toolExecutorDispatched' && e.ord === dfDeliverOrd).length;
+      const ocUnits = df.units.filter((u) => u.assigned_cli === 'opencode').map((u) => u.ord);
+      const evDf = t.evidence('default-roster-no-opencode', { clis: df.view?.session?.clis ?? null, gate: dfGate, opencodeUnits: ocUnits, deliverDispatched: dfDeliverDispatched, status: df.view?.session?.status ?? null });
+      t.check('a run that does not opt opencode in: opencode is not in its roster and is seated on no unit', !(df.view?.session?.clis ?? []).includes('opencode') && ocUnits.length === 0, `clis ${JSON.stringify(df.view?.session?.clis ?? null)}; opencode units ${ocUnits.join(',') || 'none'}`, { evidence: evDf });
+      t.check('…and with no distinct judge left it parks at a judge_unavailable gate, deliver undispatched (no silent pass, no REJECT)', dfGate !== null && dfDeliverDispatched === 0 && df.view?.session?.status !== 'completed', dfGate ? `${dfGate.phase} on ${dfGate.assignedCli}: ${dfGate.condition}` : `no judge_unavailable gate; status ${df.view?.session?.status}`, { evidence: evDf });
+    }
+  } else {
+    t.info('opencode opt-in', `not judged — crew ${ctx.versions.crew} < ${OPENCODE_OPT_IN_CREW} has opencode in its default roster`);
   }
 
   const ledgerErr = ctx.daemon.grepLog(/wicked-ledger\] SQLite write failed/, 0, 3);
