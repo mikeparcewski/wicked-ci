@@ -355,8 +355,11 @@ export async function run(ctx, t) {
     t.check('no unit routed to a launcher-benched seat (codex signed out, pi not installed)', routedTo.every((c) => !LAUNCHER_BENCHED.includes(c)), `routed: ${routedTo.join(',')}`, { evidence: evSeats });
     // copilot reads signed in, so nothing benches it before its first unit. Its first refusal must
     // bench it for the run, by name, on the wire (replaces "copilot benched and NAMED (ballot ledger)").
+    // Its first refusal is a WORKER turn when distribution seated it on a unit (the def-era plan), or a
+    // JUDGE turn when no unit went to it and it was first met rotating a unit's judge (the preset-era
+    // plan, wicked-core#864: the units went to the other live seats). Either benches it for the run.
     const copilotBench = seatBenched.find((b) => b.cli === 'copilot');
-    t.check('copilot (signed in, out of quota) benched in the run on its own refusal and NAMED on the wire (seatBenched, F-SMOKE-004)', copilotBench !== undefined && copilotBench.source === 'worker' && /quota/i.test(String(copilotBench.reason)), `seatBenched: ${JSON.stringify(seatBenched)}`, { finding: 'F-SMOKE-004', evidence: evSeats });
+    t.check('copilot (signed in, out of quota) benched in the run on its own refusal and NAMED on the wire (seatBenched, F-SMOKE-004)', copilotBench !== undefined && ['worker', 'judge'].includes(copilotBench.source) && /quota/i.test(String(copilotBench.reason)), `seatBenched: ${JSON.stringify(seatBenched)}`, { finding: 'F-SMOKE-004', evidence: evSeats });
     // …and from then on it is handed nothing: exactly one copilot turn (the one that found it dead),
     // and every later unit planned on it re-seated (replaces "no unit routed to a dead seat").
     // Every OTHER unit planned on copilot (all but the one whose refusal benched it) must be moved
