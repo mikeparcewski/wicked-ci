@@ -546,7 +546,7 @@ export async function run(ctx, t) {
   // so the run must park with deliver undispatched. Older engines skipped the judge (UNGATED pass).
   if (ctx.versions.coreTs && gte(ctx.versions.coreTs, JUDGE_FAIL_CLOSED_CORE_TS)) {
     const rosterNow = (await api.get('/roster')).json?.roster ?? seats;
-    const noJudgePool = rosterNow.filter((s) => s.key !== JUDGE_SEAT_KEY && s.key !== 'acp-smoke');
+    const noJudgePool = rosterNow.filter((s) => s.key !== JUDGE_SEAT_KEY && s.key !== 'acp-smoke' && s.key !== 'chat-smoke');
     t.info('judge distinctness', `launching the bug run on ${noJudgePool.map((s) => s.key).join(', ')} (no ${JUDGE_SEAT_KEY}): the verify unit has no identity-distinct live judge`);
     const nj = await launchAndFollow(ctx, api, t, 'nojudge', { ...base, clisJson: JSON.stringify(noJudgePool) });
     if (nj) {

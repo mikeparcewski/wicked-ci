@@ -61,7 +61,8 @@
 // Labels (`lib/expect.mjs`) carry the checks the PUBLISHED set is known to fail; everything else must
 // pass today. Real crew, real core-ts napi, real garden snapshot (S02) — only the agent is a shim.
 import { gte } from '../semver.mjs';
-import { ACP_SEAT_KEY, writeCouncilOverlay } from '../shims.mjs';
+import { isC5Crew } from '../env.mjs';
+import { chatSeatKey, writeCouncilOverlay } from '../shims.mjs';
 import { openFrames } from '../ws.mjs';
 
 export const id = 'S08';
@@ -84,12 +85,21 @@ const PATH_TURN_MS = 120_000;
 export async function run(ctx, t) {
   await ctx.ensureDaemon();
   const askWire = Boolean(ctx.versions.crew && gte(ctx.versions.crew, ASK_PATH_CREW));
+  // C5 (crew >= 0.13.0): ACP is gone from the seats — the chat seat is the HEADLESS `chat-smoke`
+  // (shims/chat-agent.mjs behind a launcher named `claude`, the one carrier the interim host floor
+  // runs a governed unit on besides a bounded codex), and the ACP evidence (handshake,
+  // `session/prompt`, `acpSessionStarted`) is replaced by the headless carrier's: the shim's own
+  // worker invocation in the claude stream-json mode, the gate hook armed for the unit
+  // (`governanceContextArmed`), its deltas (`unitOutputDelta`) and usage (`cliUsage`).
+  const c5 = isC5Crew(ctx.versions);
+  const SEAT = chatSeatKey({ c5 });
+  const SEAT_SHIM = c5 ? 'chat-agent' : 'acp-agent';
   if (askWire) {
     // The admission rule of the path wire refuses a council-disabled seat, so the seat this step
     // speaks to is re-written council-enabled before the restart below (S04's roster is untouched:
     // S08 is the last step that convenes a seat).
-    const overlay = writeCouncilOverlay(ctx.L, { acpSeatForCouncil: true });
-    t.info('overlay', `crew ${ctx.versions.crew} ≥ ${ASK_PATH_CREW} (an ask is a team path): council overlay re-written with ${ACP_SEAT_KEY} enabled_for_council = true (${overlay})`);
+    const overlay = writeCouncilOverlay(ctx.L, { acpSeatForCouncil: true, c5 });
+    t.info('overlay', `crew ${ctx.versions.crew} ≥ ${ASK_PATH_CREW} (an ask is a team path): council overlay re-written with ${SEAT} enabled_for_council = true (${overlay})`);
   }
   // Pool wire: the budget is read from the daemon's environment at turn time — a boot with the knob
   // set is the only way to make a 5 s budget observable; the same daemon then serves every case
@@ -115,26 +125,28 @@ export async function run(ctx, t) {
       if (open.status >= 200 && open.status < 300) await api.del(`/chats/${enc(chatId)}`);
     }
 
-    // ── 2. Open on the ACP seat ──
+    // ── 2. Open on the chat seat (the ACP seat before C5, the headless chat seat on C5) ──
     const chatId = `smoke-chat-${Date.now().toString(36)}`;
     const logBefore = ctx.daemon.logOffset();
-    const acpCalls = () => ctx.shimCalls().filter((c) => c.shim === 'acp-agent');
+    // Every record the seat's shim wrote (the ACP shim: one per JSON-RPC method; the headless shim:
+    // one per invocation + `chat: answered`), minus the roster's `--version` probes.
+    const acpCalls = () => ctx.shimCalls().filter((c) => c.shim === SEAT_SHIM && !(Array.isArray(c.argv) && c.argv.length === 1 && /^(-v|--version|-V|version)$/.test(c.argv[0])));
     const acpCallsBeforeOpen = acpCalls().length;
     const t0 = Date.now();
-    const open = await api.post('/chats', { chatId, clis: [ACP_SEAT_KEY] });
+    const open = await api.post('/chats', { chatId, clis: [SEAT] });
     const openMs = Date.now() - t0;
     const seats = Array.isArray(open.json?.seats) ? open.json.seats : [];
     const evOpen = t.evidence('chat-open-acp', { status: open.status, ms: openMs, body: open.json ?? open.text?.slice(0, 800) });
-    t.check(`POST /chats {clis:[${ACP_SEAT_KEY}]} → 201`, open.status === 201, `status ${open.status} in ${openMs} ms: ${JSON.stringify(open.json ?? open.text).slice(0, 300)}`, { evidence: evOpen });
-    const warm = seats.find((s) => s.cliKey === ACP_SEAT_KEY);
-    t.check(`${ACP_SEAT_KEY} ${askWire ? 'admitted' : 'warmed over ACP'} (seats[].ok == true, refused: [])`, warm?.ok === true && (open.json?.refused ?? []).length === 0, `seats ${JSON.stringify(seats).slice(0, 300)}; refused ${JSON.stringify(open.json?.refused ?? null).slice(0, 300)}`, { evidence: evOpen });
+    t.check(`POST /chats {clis:[${SEAT}]} → 201`, open.status === 201, `status ${open.status} in ${openMs} ms: ${JSON.stringify(open.json ?? open.text).slice(0, 300)}`, { evidence: evOpen });
+    const warm = seats.find((s) => s.cliKey === SEAT);
+    t.check(`${SEAT} ${askWire ? 'admitted' : 'warmed over ACP'} (seats[].ok == true, refused: [])`, warm?.ok === true && (open.json?.refused ?? []).length === 0, `seats ${JSON.stringify(seats).slice(0, 300)}; refused ${JSON.stringify(open.json?.refused ?? null).slice(0, 300)}`, { evidence: evOpen });
     if (askWire) {
       // Nothing warms at open on the path wire: the seat is spoken to by the run the first message
       // launches. Asserted here so a daemon that silently went back to warming pools is caught.
       // `path` is ABSENT until the first message launches the run (`ChatDetailResponse.path?`).
       const detail0 = await api.get(`/chats/${enc(chatId)}`);
-      t.check('path wire: the open warmed nothing (no ACP call since the open; GET /chats/:id carries no path yet)', acpCalls().length === acpCallsBeforeOpen && detail0.status === 200 && (detail0.json?.path === undefined || detail0.json?.path === null), `${acpCalls().length - acpCallsBeforeOpen} ACP call(s) since the open; path ${JSON.stringify(detail0.json?.path ?? null)}`, { evidence: evOpen });
-      t.check('path wire: a one-seat chat is disclosed (singleSeat.degraded == true, warmed == the seat)', open.json?.singleSeat?.degraded === true && open.json?.singleSeat?.warmed === ACP_SEAT_KEY, `singleSeat ${JSON.stringify(open.json?.singleSeat ?? null).slice(0, 300)}`, { evidence: evOpen });
+      t.check(`path wire: the open warmed nothing (no ${c5 ? 'seat invocation' : 'ACP call'} since the open; GET /chats/:id carries no path yet)`, acpCalls().length === acpCallsBeforeOpen && detail0.status === 200 && (detail0.json?.path === undefined || detail0.json?.path === null), `${acpCalls().length - acpCallsBeforeOpen} ${c5 ? 'seat invocation' : 'ACP call'}(s) since the open; path ${JSON.stringify(detail0.json?.path ?? null)}`, { evidence: evOpen });
+      t.check('path wire: a one-seat chat is disclosed (singleSeat.degraded == true, warmed == the seat)', open.json?.singleSeat?.degraded === true && open.json?.singleSeat?.warmed === SEAT, `singleSeat ${JSON.stringify(open.json?.singleSeat ?? null).slice(0, 300)}`, { evidence: evOpen });
     } else {
       const handshake = acpCalls().filter((c) => c.acp === 'initialize' || c.acp === 'session/new');
       t.check('the shim saw the ACP handshake (initialize + session/new recorded in shim-calls.ndjson)', handshake.some((c) => c.acp === 'initialize') && handshake.some((c) => c.acp === 'session/new'), `${handshake.length} handshake record(s): ${handshake.map((c) => c.acp).join(', ') || 'none'}`);
@@ -144,36 +156,47 @@ export async function run(ctx, t) {
       t.check(`daemon log: chat seat handed the published skills snapshot ("handed skills gen", F-RC1-113)`, handed.length >= 1, handed[0] ?? 'no "handed skills gen" line since the open', { finding: 'F-RC1-113', evidence: evOpen });
     }
     if (open.status !== 201 || warm?.ok !== true) {
-      t.info('skipped', `the turn / ${askWire ? 'in-flight / follow-up / end' : 'budget / re-seat / close'} cases need an admitted ACP seat — see the open above`);
+      t.info('skipped', `the turn / ${askWire ? 'in-flight / follow-up / end' : 'budget / re-seat / close'} cases need an admitted ${c5 ? 'chat' : 'ACP'} seat — see the open above`);
       return;
     }
 
     // ── 3. One turn: 202, deltas, an ok reply; the transcript on GET ──
-    const isReply = (f) => f?.type === 'chatReply' && f.chat === chatId && f.cliKey === ACP_SEAT_KEY;
-    const isDelta = (f) => f?.type === 'chatDelta' && f.chat === chatId && f.cliKey === ACP_SEAT_KEY;
+    const isReply = (f) => f?.type === 'chatReply' && f.chat === chatId && f.cliKey === SEAT;
+    const isDelta = (f) => f?.type === 'chatDelta' && f.chat === chatId && f.cliKey === SEAT;
     let runId = null;
     {
       const sent = Date.now();
       const send = await api.post(`/chats/${enc(chatId)}/messages`, { text: 'wicked-smoke: say hello (turn 1)' });
-      t.check('POST /chats/:id/messages → 202 with seats naming the seat', send.status === 202 && Array.isArray(send.json?.seats) && send.json.seats.includes(ACP_SEAT_KEY), `status ${send.status}: ${JSON.stringify(send.json ?? send.text).slice(0, 200)}`);
+      t.check('POST /chats/:id/messages → 202 with seats naming the seat', send.status === 202 && Array.isArray(send.json?.seats) && send.json.seats.includes(SEAT), `status ${send.status}: ${JSON.stringify(send.json ?? send.text).slice(0, 200)}`);
       if (askWire) {
         runId = typeof send.json?.runId === 'string' ? send.json.runId : null;
         t.check('path wire: the first message launched the path — 202 carries {turnId, runId, stepId: "answer-1"}', typeof send.json?.turnId === 'string' && runId !== null && send.json?.stepId === 'answer-1', JSON.stringify({ turnId: send.json?.turnId, runId, stepId: send.json?.stepId }), { evidence: t.evidence('chat-turn-1-send', send.json ?? send.text) });
         const path = (await api.get(`/chats/${enc(chatId)}`)).json?.path;
-        t.check(`path wire: GET /chats/:id.path names the run with pa == ${ACP_SEAT_KEY}`, path?.runId === runId && path?.pa === ACP_SEAT_KEY && path?.stepId === 'answer-1', `path ${JSON.stringify(path ?? null).slice(0, 300)}`);
+        t.check(`path wire: GET /chats/:id.path names the run with pa == ${SEAT}`, path?.runId === runId && path?.pa === SEAT && path?.stepId === 'answer-1', `path ${JSON.stringify(path ?? null).slice(0, 300)}`);
       }
       const reply = await ws.waitFor(isReply, { ms: askWire ? PATH_TURN_MS : 60_000, signal: ctx.signal });
       const replyMs = Date.now() - sent;
       const deltas = ws.frames.filter(isDelta);
-      const prompts = acpCalls().filter((c) => c.acp === 'session/prompt');
+      // The turn's arrival at the shim: ACP `session/prompt`; on C5 the headless shim's answered turn.
+      const prompts = acpCalls().filter((c) => (c5 ? c.chat === 'answered' : c.acp === 'session/prompt'));
       const ev = t.evidence('chat-turn-1', { send: send.json ?? send.text, replyMs, reply, deltaCount: deltas.length, shimPrompts: prompts });
       t.check('a chatReply for the seat arrived on /ws', reply !== null, reply ? `in ${replyMs} ms` : `no chatReply within ${(askWire ? PATH_TURN_MS : 60_000) / 1000} s (${ws.frames.length} frames seen)`, { evidence: ev });
       t.check('chatReply.ok == true with a non-empty text', reply?.ok === true && typeof reply?.text === 'string' && reply.text.trim().length > 0, `ok ${reply?.ok}; text ${JSON.stringify(reply?.text ?? null).slice(0, 200)}`, { evidence: ev });
       t.check('at least one chatDelta streamed before the reply', deltas.length >= 1, `${deltas.length} delta frame(s)`, { evidence: ev });
-      t.check('the turn reached the shim over ACP (session/prompt recorded)', prompts.length >= 1, `${prompts.length} session/prompt record(s)`, { evidence: ev });
+      t.check(c5 ? 'the turn reached the shim headlessly (a chat-agent worker turn answered)' : 'the turn reached the shim over ACP (session/prompt recorded)', prompts.length >= 1, `${prompts.length} ${c5 ? 'answered-turn' : 'session/prompt'} record(s)`, { evidence: ev });
       if (askWire) {
-        const handshake = acpCalls().filter((c) => c.acp === 'initialize' || c.acp === 'session/new');
-        t.check('path wire: the run opened the ACP session (initialize + session/new recorded after the first message)', handshake.some((c) => c.acp === 'initialize') && handshake.some((c) => c.acp === 'session/new'), `${handshake.length} handshake record(s): ${handshake.map((c) => c.acp).join(', ') || 'none'}`, { evidence: ev });
+        if (c5) {
+          // The headless claude carrier: the prompt rode `-p`, the output mode was claude's
+          // stream-json (what the engine's claude adapter reads deltas and usage from), and the gate
+          // hook's `--settings` was handed (the per-call check the host floor requires).
+          const turns = acpCalls().filter((c) => c.kind === 'worker' && Array.isArray(c.argv));
+          const carrier = turns.find((c) => c.argv.includes('-p') && c.argv.includes('--settings')) ?? null;
+          const answered = prompts.find((c) => c.streamJson === true) ?? null;
+          t.check('C5 path wire: the step ran the seat headlessly on the claude carrier (-p + the gate hook\'s --settings, stream-json output)', carrier !== null && answered !== null, `${turns.length} worker invocation(s); argv ${JSON.stringify(carrier?.argv?.filter((a) => a.startsWith('-')) ?? null)}; streamJson ${answered !== null}`, { evidence: ev });
+        } else {
+          const handshake = acpCalls().filter((c) => c.acp === 'initialize' || c.acp === 'session/new');
+          t.check('path wire: the run opened the ACP session (initialize + session/new recorded after the first message)', handshake.some((c) => c.acp === 'initialize') && handshake.some((c) => c.acp === 'session/new'), `${handshake.length} handshake record(s): ${handshake.map((c) => c.acp).join(', ') || 'none'}`, { evidence: ev });
+        }
         t.check('path wire: the reply is stamped with the run and the turn (run_id == runId, ord is a number, turn_id == turnId)', reply?.run_id === runId && Number.isInteger(reply?.ord) && reply?.turn_id === send.json?.turnId, JSON.stringify({ run_id: reply?.run_id, ord: reply?.ord, turn_id: reply?.turn_id }), { evidence: ev });
         t.check('path wire: the reply is the shim\'s answer, not an engine refusal (no "[wicked-core]" prefix)', typeof reply?.text === 'string' && !/^\[wicked-core\]/.test(reply.text.trim()), JSON.stringify(reply?.text ?? null).slice(0, 200), { evidence: ev });
         t.check('path wire: exactly ONE chatReply for the turn (one voice)', ws.frames.filter(isReply).length === 1, `${ws.frames.filter(isReply).length} chatReply frame(s)`, { evidence: ev });
@@ -186,8 +209,17 @@ export async function run(ctx, t) {
         const events = (await api.get(`/runs/${enc(runId)}/events`)).json?.events;
         const list = Array.isArray(events) ? events : [];
         const evRun = t.evidence('run-events-after-turn-1', { count: list.length, types: list.map((e) => e?.type) });
-        t.check(`path wire: the run's events show the step on the ACP carrier for ${ACP_SEAT_KEY} (acpSessionStarted{cliKey}) and its answer captured (unitOutputCaptured)`, list.some((e) => e?.type === 'acpSessionStarted' && e.cliKey === ACP_SEAT_KEY) && list.some((e) => e?.type === 'unitOutputCaptured'), `${list.length} event(s): ${[...new Set(list.map((e) => e?.type))].join(', ')}`, { evidence: evRun });
-        t.info('skills', `skillsSnapshotHanded × ${list.filter((e) => e?.type === 'skillsSnapshotHanded').length} for the ${ACP_SEAT_KEY} unit — the engine hands a snapshot per seat lever and knows none for a synthetic seat (SkillsDelivery::None → no event); not a F-RC1-113 verdict on the path wire`);
+        if (c5) {
+          // C5: no ACP session — the step is distributed to the seat, governed on the wrapped carrier
+          // (`governanceContextArmed`, `unitOutputCaptured{governed: true, stepStatus: ok}`), its
+          // output streamed (`unitOutputDelta`) and metered (`cliUsage`).
+          const ok = list.some((e) => e?.type === 'unitDistributed' && e.cli === SEAT)
+            && list.some((e) => e?.type === 'governanceContextArmed')
+            && list.some((e) => e?.type === 'unitOutputDelta')
+            && list.some((e) => e?.type === 'unitOutputCaptured' && e.governed === true && e.stepStatus === 'ok');
+          t.check(`C5 path wire: the run's events show the step distributed to ${SEAT}, governed on the headless carrier (governanceContextArmed, unitOutputCaptured{governed, ok}) and streamed (unitOutputDelta)`, ok, `${list.length} event(s): ${[...new Set(list.map((e) => e?.type))].join(', ')}`, { evidence: evRun });
+        } else t.check(`path wire: the run's events show the step on the ACP carrier for ${SEAT} (acpSessionStarted{cliKey}) and its answer captured (unitOutputCaptured)`, list.some((e) => e?.type === 'acpSessionStarted' && e.cliKey === SEAT) && list.some((e) => e?.type === 'unitOutputCaptured'), `${list.length} event(s): ${[...new Set(list.map((e) => e?.type))].join(', ')}`, { evidence: evRun });
+        t.info('skills', `skillsSnapshotHanded × ${list.filter((e) => e?.type === 'skillsSnapshotHanded').length} for the ${SEAT} unit — the engine hands a snapshot per seat lever${c5 ? ' (on C5 the chat seat rides the claude carrier, whose lever hands one)' : ' and knows none for a synthetic seat (SkillsDelivery::None → no event)'}; not a F-RC1-113 verdict on the path wire`);
       }
       // DES-L5 §4: `chatReply.usage: {inputTokens, outputTokens, …} | null` — the shim reports usage
       // on the prompt result, so a wired daemon carries numbers here (pool wire: fixed on crew 0.7.35;
@@ -197,7 +229,7 @@ export async function run(ctx, t) {
       const detail = await api.get(`/chats/${enc(chatId)}`);
       const messages = detail.json?.messages;
       const ev2 = t.evidence('chat-detail-after-turn-1', { status: detail.status, body: detail.json ?? detail.text?.slice(0, 800) });
-      t.check(`GET /chats/:id → 200 with the seat ${askWire ? 'eligible' : 'warm'}`, detail.status === 200 && Array.isArray(detail.json?.seats) && detail.json.seats.includes(ACP_SEAT_KEY), `status ${detail.status}; seats ${JSON.stringify(detail.json?.seats ?? null)}`, { evidence: ev2 });
+      t.check(`GET /chats/:id → 200 with the seat ${askWire ? 'eligible' : 'warm'}`, detail.status === 200 && Array.isArray(detail.json?.seats) && detail.json.seats.includes(SEAT), `status ${detail.status}; seats ${JSON.stringify(detail.json?.seats ?? null)}`, { evidence: ev2 });
       // The turn's own records are exactly ONE `user` and ONE `seat` reply. A daemon may append DERIVED
       // records beside them, each folded onto the turn by a reader (crew-api-types
       // `ChatTranscriptRecord`): `citations`, `system`, and — from crew 0.7.48, decision capture's
@@ -205,7 +237,7 @@ export async function run(ctx, t) {
       // record, fails: the transcript must not grow records nobody can name.
       const kinds = Array.isArray(messages) ? messages.map((m) => m?.kind) : [];
       const users = kinds.filter((k) => k === 'user').length;
-      const seatReplies = Array.isArray(messages) ? messages.filter((m) => m?.kind === 'seat' && m.cliKey === ACP_SEAT_KEY).length : 0;
+      const seatReplies = Array.isArray(messages) ? messages.filter((m) => m?.kind === 'seat' && m.cliKey === SEAT).length : 0;
       const unknownKinds = kinds.filter((k) => !TRANSCRIPT_KINDS.has(k));
       t.check('GET /chats/:id.messages holds the user message + the seat reply (one each; only derived records beside them, F-RC1-112)', Array.isArray(messages) && users === 1 && seatReplies === 1 && kinds.filter((k) => k === 'seat').length === 1 && unknownKinds.length === 0, Array.isArray(messages) ? `${messages.length} record(s): ${kinds.join(', ')}${unknownKinds.length > 0 ? ` — unknown kind(s): ${unknownKinds.join(', ')}` : ''}` : `messages ${JSON.stringify(messages ?? null)} (absent on a daemon without the transcript)`, { finding: 'F-RC1-112', evidence: ev2 });
     }
@@ -226,7 +258,7 @@ export async function run(ctx, t) {
         t.check('slow turn: POST /chats/:id/messages → 202 {stepId: "answer-2"}', send.status === 202 && send.json?.stepId === 'answer-2', `status ${send.status}: ${JSON.stringify(send.json ?? send.text).slice(0, 200)}`);
         const during = await api.post(`/chats/${enc(chatId)}/messages`, { text: 'wicked-smoke: are you there? (sent during turn 2)' });
         const evDuring = t.evidence('chat-send-during-turn', { status: during.status, body: during.json ?? during.text?.slice(0, 600) });
-        t.check(`a send DURING the turn is refused: 409 turn_in_flight naming ${ACP_SEAT_KEY} and the turn (F-RECON-017)`, during.status === 409 && during.json?.code === 'turn_in_flight' && typeof during.json?.error === 'string' && during.json.error.includes(ACP_SEAT_KEY) && during.json?.turn?.turnId === send.json?.turnId, `status ${during.status}: ${JSON.stringify(during.json ?? during.text).slice(0, 240)}`, { evidence: evDuring });
+        t.check(`a send DURING the turn is refused: 409 turn_in_flight naming ${SEAT} and the turn (F-RECON-017)`, during.status === 409 && during.json?.code === 'turn_in_flight' && typeof during.json?.error === 'string' && during.json.error.includes(SEAT) && during.json?.turn?.turnId === send.json?.turnId, `status ${during.status}: ${JSON.stringify(during.json ?? during.text).slice(0, 240)}`, { evidence: evDuring });
         const reply = await nthReply(before, SLOW_TURN_SLEEP_MS + PATH_TURN_MS);
         const replyMs = Date.now() - sent;
         const ev = t.evidence('chat-turn-slow', { poolBudgetSecs: CHAT_TURN_SECS, shimSleepMs: SLOW_TURN_SLEEP_MS, send: send.json ?? send.text, replyMs, reply });
@@ -236,7 +268,7 @@ export async function run(ctx, t) {
         t.check('the slow reply is stamped with its turn (turn_id == the 202\'s turnId) and ord 2', reply?.turn_id === send.json?.turnId && reply?.ord === 2, JSON.stringify({ turn_id: reply?.turn_id, turnId: send.json?.turnId, ord: reply?.ord }), { evidence: ev });
         t.info('budget', `path wire: a ${SLOW_TURN_SLEEP_MS / 1000} s step answered uncut in ${replyMs} ms — a path step's budget is crew's ASK_TURN_BUDGET_SECS (600 s), not WICKED_CHAT_TURN_SECS; a step over it is re-picked or the path ends, which this harness does not wait for`);
         const detail = await api.get(`/chats/${enc(chatId)}`);
-        t.check('the seat stays eligible after the slow step (GET /chats/:id.seats still lists it)', detail.status === 200 && Array.isArray(detail.json?.seats) && detail.json.seats.includes(ACP_SEAT_KEY), `status ${detail.status}; seats ${JSON.stringify(detail.json?.seats ?? null)}`, { evidence: ev });
+        t.check('the seat stays eligible after the slow step (GET /chats/:id.seats still lists it)', detail.status === 200 && Array.isArray(detail.json?.seats) && detail.json.seats.includes(SEAT), `status ${detail.status}; seats ${JSON.stringify(detail.json?.seats ?? null)}`, { evidence: ev });
         // The refused send must not have become a step: the transcript has two user records, no third.
         const kinds = Array.isArray(detail.json?.messages) ? detail.json.messages.map((m) => m?.kind) : [];
         t.check('the refused send left no record (two user messages, two seat replies)', kinds.filter((k) => k === 'user').length === 2 && kinds.filter((k) => k === 'seat').length === 2, `${kinds.length} record(s): ${kinds.join(', ')}`, { evidence: ev });
@@ -291,27 +323,27 @@ export async function run(ctx, t) {
         const ev = t.evidence('chat-turn-budget', { budgetSecs: CHAT_TURN_SECS, shimSleepMs: SLOW_TURN_SLEEP_MS, send: send.json ?? send.text, replyMs, reply });
         t.check(`the ${CHAT_TURN_SECS} s turn budget cut the slow turn: chatReply {ok:false} before the shim's ${SLOW_TURN_SLEEP_MS / 1000} s answer`, reply !== null && reply.ok === false && replyMs < SLOW_TURN_SLEEP_MS, reply ? `ok ${reply.ok} in ${replyMs} ms` : `no chatReply within ${(SLOW_TURN_SLEEP_MS + 30_000) / 1000} s`, { evidence: ev });
         t.check(`the cut arrived within budget + grace (≤ ${(CHAT_TURN_SECS * 1000 + BUDGET_GRACE_MS) / 1000} s)`, reply !== null && replyMs <= CHAT_TURN_SECS * 1000 + BUDGET_GRACE_MS, `${replyMs} ms`, { evidence: ev });
-        t.check('the failure names the seat', typeof reply?.text === 'string' && reply.text.includes(ACP_SEAT_KEY), JSON.stringify(reply?.text ?? null).slice(0, 300), { evidence: ev });
+        t.check('the failure names the seat', typeof reply?.text === 'string' && reply.text.includes(SEAT), JSON.stringify(reply?.text ?? null).slice(0, 300), { evidence: ev });
         // DES-L5 §4: "seat '<cli>' exceeded the <N> s turn budget (WICKED_CHAT_TURN_SECS) and was
         // released — target it on your next message to re-seat it. …" (today: "turn ended TimedOut").
         t.check('the failure names the budget (WICKED_CHAT_TURN_SECS) and the re-seat remedy (F-RC1-110)', typeof reply?.text === 'string' && /turn budget \(WICKED_CHAT_TURN_SECS\)/.test(reply.text) && /re-seat/i.test(reply.text), JSON.stringify(reply?.text ?? null).slice(0, 300), { finding: 'F-RC1-110', evidence: ev });
         const detail = await api.get(`/chats/${enc(chatId)}`);
-        t.check('the cut seat was released: GET /chats/:id.seats no longer lists it', detail.status === 200 && Array.isArray(detail.json?.seats) && !detail.json.seats.includes(ACP_SEAT_KEY), `status ${detail.status}; seats ${JSON.stringify(detail.json?.seats ?? null)}`, { evidence: ev });
+        t.check('the cut seat was released: GET /chats/:id.seats no longer lists it', detail.status === 200 && Array.isArray(detail.json?.seats) && !detail.json.seats.includes(SEAT), `status ${detail.status}; seats ${JSON.stringify(detail.json?.seats ?? null)}`, { evidence: ev });
       }
 
       // ── 5 (pool). Re-seat by targeting the released seat on the next send ──
       {
         const before = ws.frames.filter(isReply).length;
         const sent = Date.now();
-        const send = await api.post(`/chats/${enc(chatId)}/messages`, { text: 'wicked-smoke: hello again (turn 3, re-seat)', targets: [ACP_SEAT_KEY] });
+        const send = await api.post(`/chats/${enc(chatId)}/messages`, { text: 'wicked-smoke: hello again (turn 3, re-seat)', targets: [SEAT] });
         const ev0 = t.evidence('chat-turn-reseat-send', { status: send.status, body: send.json ?? send.text?.slice(0, 500) });
-        t.check('re-seat: POST /chats/:id/messages {targets:[seat]} → 202 with seats including the released seat', send.status === 202 && Array.isArray(send.json?.seats) && send.json.seats.includes(ACP_SEAT_KEY), `status ${send.status}: ${JSON.stringify(send.json ?? send.text).slice(0, 200)}`, { evidence: ev0 });
+        t.check('re-seat: POST /chats/:id/messages {targets:[seat]} → 202 with seats including the released seat', send.status === 202 && Array.isArray(send.json?.seats) && send.json.seats.includes(SEAT), `status ${send.status}: ${JSON.stringify(send.json ?? send.text).slice(0, 200)}`, { evidence: ev0 });
         const reply = await ws.waitFor((f) => isReply(f) && ws.frames.filter(isReply).length > before, { ms: 60_000, signal: ctx.signal });
         const replyMs = Date.now() - sent;
         const ev = t.evidence('chat-turn-reseat', { replyMs, reply });
         t.check('re-seat: an ok chatReply follows (the seat re-warmed on the next ensure)', reply?.ok === true, reply ? `ok ${reply.ok} in ${replyMs} ms: ${JSON.stringify(reply.text).slice(0, 160)}` : 'no chatReply within 60 s', { evidence: ev });
         const detail = await api.get(`/chats/${enc(chatId)}`);
-        t.check('re-seat: GET /chats/:id.seats lists the seat again', detail.status === 200 && Array.isArray(detail.json?.seats) && detail.json.seats.includes(ACP_SEAT_KEY), `seats ${JSON.stringify(detail.json?.seats ?? null)}`, { evidence: ev });
+        t.check('re-seat: GET /chats/:id.seats lists the seat again', detail.status === 200 && Array.isArray(detail.json?.seats) && detail.json.seats.includes(SEAT), `seats ${JSON.stringify(detail.json?.seats ?? null)}`, { evidence: ev });
       }
 
       // ── 6 (pool). Close: chatClosed on /ws, seats and transcript gone ──

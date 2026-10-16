@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ALL_STEPS, HELP, parseArgs } from '../lib/args.mjs';
-import { ensureLayout, hermeticEnv, layout } from '../lib/env.mjs';
+import { ensureLayout, hermeticEnv, isC5Crew, layout, seatFloorEnv } from '../lib/env.mjs';
 import { engineSemverFor, installGarden, installNpm, installedTree, installedVersions } from '../lib/install.mjs';
 import { writeCouncilOverlay, writePassthroughs, writeSeatCredentials, writeShims } from '../lib/shims.mjs';
 import { Daemon } from '../lib/daemon.mjs';
@@ -82,7 +82,7 @@ async function main() {
   log(`wicked-smoke: engine crate semver for the wicked-core shim: ${engineSemver.semver} (${engineSemver.source})`);
   const creds = writeSeatCredentials(L);
   const pass = writePassthroughs(L);
-  const overlay = writeCouncilOverlay(L);
+  const overlay = writeCouncilOverlay(L, { c5: isC5Crew(versions) });
   log(`wicked-smoke: shims on PATH: ${shims.join(', ')}; absent by design: pi (${creds.piCredential ? 'credential present — the engine must learn not_installed from the ballot' : 'no credential — benched by the launcher as signed out'}), agy; council overlay ${overlay.replace(root, '<root>')}`);
   log(`wicked-smoke: host passthroughs: ${pass.found.join(', ') || 'none'}${pass.missing.length ? ` (missing on host: ${pass.missing.join(', ')})` : ''}`);
   if (pass.missing.includes('uv')) log('wicked-smoke: WARNING — `uv` is not on the host PATH; crew BLOCKS the skills publish without it (S02 will say so). Install uv (https://docs.astral.sh/uv/).');
@@ -93,7 +93,9 @@ async function main() {
   versions.platform = process.platform;
   const policy = new ExpectPolicy(versions, { extra: opts.expectFail, disabled: opts.noExpectFail });
   log(`wicked-smoke: expected-fail policy active: ${Object.keys(policy.active()).join(', ') || 'none'}`);
-  const daemon = new Daemon(L, tree.crewBin, log, { bootTimeoutMs: Math.max(STEP_CEILINGS.S01, opts.stepTimeout) * 1000 });
+  const floorEnv = seatFloorEnv(versions);
+  log(`wicked-smoke: seat floor: ${floorEnv.WICKED_SEAT_FLOOR ? `WICKED_SEAT_FLOOR=${floorEnv.WICKED_SEAT_FLOOR} on every daemon start (crew ${versions.crew} is C5 — container seats by default, refused without a container runtime; the host floor runs each CLI's headless mode)` : `none set (crew ${versions.crew} predates C5)`}`);
+  const daemon = new Daemon(L, tree.crewBin, log, { bootTimeoutMs: Math.max(STEP_CEILINGS.S01, opts.stepTimeout) * 1000, baseEnv: floorEnv });
   const ctx = {
     L, env, opts, log, tree, versions, daemon, policy, state: { piCredential: creds.piCredential }, signal: null,
     api: () => apiClient(daemon.origin, { log, verbose: opts.verbose }),

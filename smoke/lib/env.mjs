@@ -4,6 +4,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, delimiter } from 'node:path';
 import { homedir } from 'node:os';
+import { gte } from './semver.mjs';
 
 export const IS_WIN = process.platform === 'win32';
 
@@ -140,4 +141,25 @@ export function hermeticEnv(L, port) {
   }
   // Runners need the toolchain proxies (rustup) only for cargo corpora — not ours; nothing else leaks.
   return env;
+}
+
+/**
+ * C5 (crew 0.13.0 + core-ts 0.12.0, wicked-crew#1018 / wicked-core#950): governed seats run in a
+ * hardened seat CONTAINER by default (the daemon sets `WICKED_SEAT_FLOOR=container` unless the
+ * operator chose a floor), ACP is gone from the seats, and a governed run on a host with no container
+ * runtime is REFUSED (`no_container_runtime`) — a hosted macOS runner has none, and the hermetic PATH
+ * hides a workstation's. On a C5 crew the harness boots every daemon on the labelled host floor
+ * (`WICKED_SEAT_FLOOR=host`): every unit runs its CLI's headless mode on the wrapped carrier, the
+ * operator's real daemon runs the same floor, and the seats stay shims. An older crew reads no floor
+ * variable, so nothing is set there.
+ */
+export const C5_CREW = '0.13.0';
+
+export function isC5Crew(versions) {
+  return Boolean(versions?.crew && gte(versions.crew, C5_CREW));
+}
+
+/** The env every daemon start carries for the installed crew (the seat floor on a C5 crew). */
+export function seatFloorEnv(versions) {
+  return isC5Crew(versions) ? { WICKED_SEAT_FLOOR: 'host' } : {};
 }
