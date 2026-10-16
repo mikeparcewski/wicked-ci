@@ -5,6 +5,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { ALL_STEPS, parseSteps } from './args.mjs';
 import { compare, satisfies } from './semver.mjs';
 import { ExpectPolicy } from './expect.mjs';
+import { seatFloorEnv } from './env.mjs';
+import { chatSeatKey } from './shims.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const stepFiles = readdirSync(join(here, 'steps')).filter((f) => f.endsWith('.mjs')).sort();
@@ -34,4 +36,7 @@ for (const [f, before, fixed] of edges) {
   if (!new ExpectPolicy(before).reasonFor(f)) throw new Error(`${f}: no reason on ${JSON.stringify(before)}`);
   if (new ExpectPolicy(fixed).reasonFor(f) !== null) throw new Error(`${f}: still expected on ${JSON.stringify(fixed)}`);
 }
+// C5 (crew 0.13.0): the host seat floor and the headless chat seat start exactly there.
+if (seatFloorEnv({ crew: '0.12.4' }).WICKED_SEAT_FLOOR !== undefined || seatFloorEnv({ crew: '0.13.0' }).WICKED_SEAT_FLOOR !== 'host') throw new Error('seatFloorEnv C5 edge');
+if (chatSeatKey({ c5: false }) !== 'acp-smoke' || chatSeatKey({ c5: true }) !== 'chat-smoke') throw new Error('chatSeatKey');
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);

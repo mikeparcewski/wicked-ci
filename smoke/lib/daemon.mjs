@@ -21,10 +21,10 @@ export function freePort() {
 export class Daemon {
   /** `bootTimeoutMs`: how long a start (and a re-check) may wait for /health — the CLI passes the
    *  step budget (`--step-timeout`, ≥ 300 s), because a COLD first boot publishes the garden bundle
-   *  (`uv sync` of its pyproject) and took 11 minutes on a loaded workstation where a runner takes 5 s. */
-  /** `baseEnv`: variables laid over the hermetic env on EVERY start, whatever a step passes as
-   *  `extraEnv` (the seat floor the harness chose for the installed crew — see C5_CREW in
-   *  bin/wicked-smoke.mjs). */
+   *  (`uv sync` of its pyproject) and took 11 minutes on a loaded workstation where a runner takes 5 s.
+   *  `baseEnv`: variables laid over the hermetic env on EVERY start, whatever a step passes as
+   *  `extraEnv` — the seat floor the harness chose for the installed crew (`seatFloorEnv` in
+   *  lib/env.mjs). */
   constructor(L, crewBin, log, { bootTimeoutMs = 300_000, baseEnv = {} } = {}) {
     this.L = L;
     this.baseEnv = baseEnv;
