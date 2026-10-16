@@ -54,7 +54,31 @@ import { ISSUE_TEXT, branches } from '../corpus.mjs';
 import { gitTry } from '../proc.mjs';
 import { eventsOfType, phaseOf, runEvents, unitDigest, waitTerminal } from '../runs.mjs';
 import { gte } from '../semver.mjs';
+import { isC5Crew } from '../env.mjs';
 import { JUDGE_SEAT_KEY } from '../shims.mjs';
+
+/**
+ * C5 HOST FLOOR (crew >= 0.13.1 on core-ts >= 0.12.1, wicked-core#976 / crew#1051): with the labelled
+ * `WICKED_SEAT_FLOOR=host` opt-out, only claude-stem seats and a bounded codex may take a governed
+ * unit, and the engine BENCHES every other seat for governed work UP FRONT (`BenchedSeat.governed_only`,
+ * reason "runs only on the container floor … (needs_container_floor)", source `launcher`) — those seats
+ * still judge, triage and vote. So copilot is never spawned for governed work: the pre-C5 contract
+ * (copilot handed ONE unit, benched by its own quota refusal, `seatBenched`, F-SMOKE-004/005) cannot
+ * happen and is replaced by the up-front bench. The live seats change roles: the judge seat rides the
+ * claude carrier (shims.mjs JUDGE_SEAT_DIR) and is the distinct EVALUATOR; opencode is the distinct
+ * JUDGE. Without a second governed seat the engine refuses the plan at the scope step
+ * (NoEligibleSeat, wicked-core#747 — crew 0.13.1 smoke run 38861691576 before this harness change).
+ */
+const HOST_FLOOR_BENCH_CORE_TS = '0.12.1';
+/**
+ * One seat's entry in a `degradedReason` list carrying the engine's host-floor bench (wicked-core
+ * src/distribute.rs HOST_FLOOR_BENCH, source `launcher`): `<seat> (runs only on the container floor: …
+ * refused (needs_container_floor) — set WICKED_SEAT_FLOOR=container or remove the seat — launcher)`.
+ * The reason has no em dash before `(needs_container_floor)`, so the match stays inside the entry.
+ */
+const hostFloorEntryRe = (seat) => new RegExp(`(?:^|[:,] )${seat} \\(runs only on the container floor[^—]*?\\(needs_container_floor\\) — [^—]*— launcher\\)`);
+/** The seats a C5 host floor may hand a governed unit in this roster (claude + the claude-carried judge seat). */
+const HOST_FLOOR_GOVERNED = ['claude', JUDGE_SEAT_KEY];
 
 export const id = 'S04';
 /** crew release whose default launch roster leaves opencode out (operator ruling 2026-10-11). */
@@ -232,6 +256,8 @@ export async function run(ctx, t) {
   const corpus = ctx.state.corpus;
   const origin = ctx.state.origin;
   const shimOffset = ctx.shimCalls().length;
+  // C5 host floor with the up-front governed-work bench (see HOST_FLOOR_BENCH_CORE_TS).
+  const hostFloorBench = isC5Crew(ctx.versions) && Boolean(ctx.versions.coreTs && gte(ctx.versions.coreTs, HOST_FLOOR_BENCH_CORE_TS));
 
   const roster = await api.get('/roster');
   t.evidence('roster-before-launch', roster.json);
@@ -342,7 +368,7 @@ export async function run(ctx, t) {
   const evSeats = t.evidence('seat-routing', { era: teamed ? 'teamed' : 'ballot', distributed: dist.map((d) => ({ ord: d.ord, cli: d.cli, routingMethod: d.routingMethod, degradedReason: d.degradedReason })), councilSeatFailed: seatFailed, seatBenched, unitReassigned: reassigned, deadSeatEscalations: mixed.deadSeatEscalations, denials: mixed.denials });
   const joined = reasons.join('\n');
   const routedTo = dist.filter((d) => d.routingMethod !== 'tool').map((d) => d.cli);
-  t.info('routing era', teamed ? `teamed (core-ts ${ctx.versions.coreTs}; wicked-core#590 S5 — no ballots)` : `ballot (core-ts ${ctx.versions.coreTs})`);
+  t.info('routing era', teamed ? `teamed (core-ts ${ctx.versions.coreTs}; wicked-core#590 S5 — no ballots)${hostFloorBench ? '; C5 host floor: copilot / opencode benched for governed work up front (wicked-core#976)' : ''}` : `ballot (core-ts ${ctx.versions.coreTs})`);
   if (!teamed) {
     for (const seat of BENCHED) {
       const named = new RegExp(`\\b${seat}\\b`, 'i').test(joined);
@@ -361,6 +387,26 @@ export async function run(ctx, t) {
       t.check(`${seat} benched by the launcher and NAMED in degradedReason (teamed routing)`, named, `named=${named}; reasons: ${joined.slice(0, 200)}`, { evidence: evSeats });
     }
     t.check('no unit routed to a launcher-benched seat (codex signed out, pi not installed)', routedTo.every((c) => !LAUNCHER_BENCHED.includes(c)), `routed: ${routedTo.join(',')}`, { evidence: evSeats });
+  }
+  if (teamed && hostFloorBench) {
+    // C5 host floor (core-ts >= 0.12.1): copilot and opencode are benched for governed work UP FRONT,
+    // by the launcher, with the host-floor reason — named on the wire before any unit runs.
+    for (const seat of ['copilot', 'opencode']) {
+      const entry = joined.match(hostFloorEntryRe(seat))?.[0] ?? '';
+      const named = entry !== '';
+      t.check(`${seat} benched UP FRONT by the host floor and NAMED in degradedReason with the host-floor reason (needs_container_floor — launcher; wicked-core#976)`, named, `entry: ${entry.slice(0, 260) || 'not named'}`, { evidence: evSeats });
+    }
+    // …so no governed unit is ever seated (routed or re-seated) on a seat the host floor refuses, and
+    // copilot never takes a worker turn. It may still be asked to JUDGE (ungoverned), where its quota
+    // refusal benches it for every call — recorded, not required.
+    const governedSeats = [...routedTo, ...reassigned.map((r) => r.newCli)];
+    t.check(`every governed unit was seated on a host-floor seat (${HOST_FLOOR_GOVERNED.join(', ')}); none routed or re-seated onto copilot / opencode`, governedSeats.length > 0 && governedSeats.every((c) => HOST_FLOOR_GOVERNED.includes(c)), `routed: ${routedTo.join(',')}; re-seated to: ${reassigned.map((r) => r.newCli).join(',') || 'none'}`, { evidence: evSeats });
+    const ofRun = (c) => typeof c.cwd !== 'string' || !c.cwd.includes('/wicked-worktrees/') || c.cwd.includes(`/wicked-worktrees/${mixed.runId}`);
+    const workerTurnsOn = (seat) => calls.filter((c) => c.shim === seat && (c.kind === 'worker' || c.kind === 'verdict') && ofRun(c)).length;
+    t.check('copilot and opencode were never spawned for governed work (0 worker turns); codex was benched by the launcher and never spawned', workerTurnsOn('copilot') === 0 && workerTurnsOn('opencode') === 0 && !calls.some((c) => c.shim === 'codex' && c.kind !== 'noprompt'), `worker turns: copilot ${workerTurnsOn('copilot')}, opencode ${workerTurnsOn('opencode')}; shims called: ${[...new Set(calls.filter((c) => c.kind !== 'noprompt').map((c) => `${c.shim}/${c.kind}`))].join(',')}`, { evidence: evSeats });
+    const copilotJudged = calls.filter((c) => c.shim === 'copilot' && c.kind === 'judge').length;
+    t.info('copilot on the host floor', `judge turns ${copilotJudged}; seatBenched ${JSON.stringify(seatBenched.filter((b) => b.cli === 'copilot'))} (a judge-turn quota refusal benches it for every call; not required)`);
+  } else if (teamed) {
     // copilot reads signed in, so nothing benches it before its first unit. Its first refusal must
     // bench it for the run, by name, on the wire (replaces "copilot benched and NAMED (ballot ledger)").
     // Its first refusal is a WORKER turn when distribution seated it on a unit (the def-era plan), or a
@@ -383,7 +429,8 @@ export async function run(ctx, t) {
   }
   if (!teamed) {
     t.check('codex + copilot ballots were actually spawned (the engine had to learn, not the probe)', calls.some((c) => c.shim === 'codex') && calls.some((c) => c.shim === 'copilot'), `shims called: ${[...new Set(calls.map((c) => c.shim))].join(',')}`);
-  } else {
+  } else if (!hostFloorBench) {
+    // (On the C5 host floor the spawn contract is asserted with the up-front bench above.)
     // Replaces the ballot-spawn check: the probe-visible dead seat (codex) is never spawned; the
     // probe-INVISIBLE one (copilot) is, because only its own refusal can tell.
     t.check('copilot was actually spawned (the engine learned from its own refusal, not the probe); codex was benched by the probe and never spawned', calls.some((c) => c.shim === 'copilot' && c.kind !== 'noprompt') && !calls.some((c) => c.shim === 'codex' && c.kind !== 'noprompt'), `shims called: ${[...new Set(calls.filter((c) => c.kind !== 'noprompt').map((c) => c.shim))].join(',')}`, { evidence: evSeats });
@@ -399,7 +446,12 @@ export async function run(ctx, t) {
     const after = await api.get('/roster');
     const copilotAfter = (after.json?.roster ?? []).find((s) => s.key === 'copilot') ?? null;
     const evAfter = t.evidence('roster-after-mixed-run', { status: after.status, copilot: copilotAfter });
-    t.check('after the run GET /roster reads copilot council_eligible: false, naming the engine\'s cause (the bench is carried to the next launch) (F-SMOKE-005)', copilotAfter?.council_eligible === false && /quota/i.test(String(copilotAfter?.council_ineligible_reason ?? '')), `copilot: ${JSON.stringify({ auth: copilotAfter?.auth, council_eligible: copilotAfter?.council_eligible, reason: copilotAfter?.council_ineligible_reason ?? null })}`, { finding: 'F-SMOKE-005', evidence: evAfter });
+    // On the C5 host floor copilot takes no governed unit, so only a JUDGE-turn quota refusal can
+    // bench it in the run; when that happened the bench must be carried all the same, otherwise there
+    // is nothing for the roster to carry (its up-front host-floor bench is per launch, not a cause).
+    const copilotLearned = eventsOfType(mixed.events, 'seatBenched').some((e) => e.cli === 'copilot' && /quota/i.test(String(e.reason)));
+    if (hostFloorBench && !copilotLearned) t.info('copilot after the run (F-SMOKE-005)', `not judged — on the C5 host floor copilot was never asked to work and never refused in this run; roster: ${JSON.stringify({ council_eligible: copilotAfter?.council_eligible, reason: copilotAfter?.council_ineligible_reason ?? null })}`);
+    else t.check('after the run GET /roster reads copilot council_eligible: false, naming the engine\'s cause (the bench is carried to the next launch) (F-SMOKE-005)', copilotAfter?.council_eligible === false && /quota/i.test(String(copilotAfter?.council_ineligible_reason ?? '')), `copilot: ${JSON.stringify({ auth: copilotAfter?.auth, council_eligible: copilotAfter?.council_eligible, reason: copilotAfter?.council_ineligible_reason ?? null })}`, { finding: 'F-SMOKE-005', evidence: evAfter });
   }
   const escalationIsDeadSeat = mixed.escalation !== null && mixed.deadSeatDenial;
   t.check('no other failure escalation in the mixed run (a seam the shims could not carry)', mixed.escalation === null, mixed.escalation ?? '', escalationIsDeadSeat ? { finding: 'F-7R3-001', evidence: evSeats } : mixed.floorEscalation ? { finding: 'F-SMOKE-001', evidence: evSeats } : {});
@@ -546,8 +598,12 @@ export async function run(ctx, t) {
   // so the run must park with deliver undispatched. Older engines skipped the judge (UNGATED pass).
   if (ctx.versions.coreTs && gte(ctx.versions.coreTs, JUDGE_FAIL_CLOSED_CORE_TS)) {
     const rosterNow = (await api.get('/roster')).json?.roster ?? seats;
-    const noJudgePool = rosterNow.filter((s) => s.key !== JUDGE_SEAT_KEY && s.key !== 'acp-smoke' && s.key !== 'chat-smoke');
-    t.info('judge distinctness', `launching the bug run on ${noJudgePool.map((s) => s.key).join(', ')} (no ${JUDGE_SEAT_KEY}): the verify unit has no identity-distinct live judge`);
+    // Before C5 the live parties are claude (creator) + opencode (evaluator) and the dropped seat is
+    // the judge seat. On the C5 host floor the judge seat IS the evaluator (it rides the claude
+    // carrier) and opencode — benched for governed work only — is the judge, so opencode is dropped.
+    const judgeOnly = hostFloorBench ? 'opencode' : JUDGE_SEAT_KEY;
+    const noJudgePool = rosterNow.filter((s) => s.key !== judgeOnly && s.key !== 'acp-smoke' && s.key !== 'chat-smoke');
+    t.info('judge distinctness', `launching the bug run on ${noJudgePool.map((s) => s.key).join(', ')} (no ${judgeOnly}): the verify unit has no identity-distinct live judge`);
     const nj = await launchAndFollow(ctx, api, t, 'nojudge', { ...base, clisJson: JSON.stringify(noJudgePool) });
     if (nj) {
       const njFrames = nj.events.filter(isJudgeUnavailableGate);

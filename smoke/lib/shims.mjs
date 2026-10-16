@@ -66,9 +66,11 @@ export function writeShims(L) {
   // engine runs a governed unit only on a binary whose file stem is `claude` (its gate hook) or a
   // bounded codex, whatever the seat key (wicked-core `host_floor_keeps_a_check`). A subdirectory so
   // the bare `claude` on PATH stays the claude seat's own shim. See shims/chat-agent.mjs.
-  {
-    const script = join(SHIMS_DIR, 'chat-agent.mjs');
-    const dir = join(L.bin, CHAT_SEAT_DIR);
+  // The judge seat gets the same claude-stem launcher (`<bin>/judge-seat/claude`): on the host floor
+  // it is the second seat that may take a governed unit, so the evaluator differs from the creator.
+  for (const [shimName, dirName] of [['chat-agent', CHAT_SEAT_DIR], ['smoke-judge', JUDGE_SEAT_DIR]]) {
+    const script = join(SHIMS_DIR, `${shimName}.mjs`);
+    const dir = join(L.bin, dirName);
     mkdirSync(dir, { recursive: true });
     const unixPath = join(dir, 'claude');
     writeFileSync(unixPath, wrapperUnix(process.execPath, script));
@@ -112,6 +114,23 @@ export const ACP_SEAT_KEY = 'acp-smoke';
 export const CHAT_SEAT_KEY = 'chat-smoke';
 /** Its launcher's directory under the run's bin dir: `<bin>/chat-seat/claude` execs shims/chat-agent.mjs. */
 export const CHAT_SEAT_DIR = 'chat-seat';
+/**
+ * C5 (crew >= 0.13.0): the judge seat's launcher directory — `<bin>/judge-seat/claude` execs
+ * shims/smoke-judge.mjs. On the host floor only a claude-stem binary or a bounded codex may take a
+ * governed unit (wicked-core `host_floor_keeps_a_check`); from core-ts 0.12.1 (wicked-core#976) every
+ * other seat is benched for governed work up front. With codex benched for worktree-bound runs and
+ * opencode / copilot host-floor benched, claude would be the ONLY governed seat and a bug run's
+ * review units could never have an evaluator distinct from the creator: the engine refuses the plan
+ * at the scope step (NoEligibleSeat, wicked-core#747). So on C5 the third live seat rides the claude
+ * carrier: it is the distinct EVALUATOR, and opencode (benched for governed work only, still allowed
+ * to judge) is the distinct JUDGE.
+ */
+export const JUDGE_SEAT_DIR = 'judge-seat';
+
+/** The overlay's launcher for the judge seat: the claude-stem wrapper on C5, the plain shim before. */
+export function judgeSeatBin({ c5 = false } = {}) {
+  return c5 ? `${JUDGE_SEAT_DIR}/claude` : 'smoke-judge';
+}
 
 /** The seat S08 speaks to on the installed crew: the headless chat seat on C5, the ACP seat before. */
 export function chatSeatKey({ c5 = false } = {}) {
@@ -140,8 +159,9 @@ export function writeCouncilOverlay(L, { acpSeatForCouncil = false, c5 = false }
       ? { key: CHAT_SEAT_KEY, display: 'Chat seat (smoke shim, headless claude carrier)', bin: bin(`${CHAT_SEAT_DIR}/claude`), inv: `${bin(`${CHAT_SEAT_DIR}/claude`)} -p "{PROMPT}"`, council: acpSeatForCouncil }
       : { key: ACP_SEAT_KEY, display: 'ACP seat (smoke shim, stdio)', bin: bin('acp-agent'), inv: `${bin('acp-agent')} -p "{PROMPT}"`, council: acpSeatForCouncil, acp: bin('acp-agent') },
     // LAST, so the engine's seat order (and the S04 routing it asserts) is what it was; the judge
-    // rotation reaches it after the dead seats.
-    { key: JUDGE_SEAT_KEY, display: 'Judge seat (smoke shim, third live seat)', bin: bin('smoke-judge'), inv: `${bin('smoke-judge')} -p "{PROMPT}"` },
+    // rotation reaches it after the dead seats. On C5 it launches through the claude-stem wrapper
+    // (see JUDGE_SEAT_DIR), so the host floor lets it carry governed units.
+    { key: JUDGE_SEAT_KEY, display: 'Judge seat (smoke shim, third live seat)', bin: bin(judgeSeatBin({ c5 })), inv: `${bin(judgeSeatBin({ c5 }))} -p "{PROMPT}"` },
   ];
   const toml = seats.map((s) => [
     '[[cli]]',
