@@ -6,7 +6,7 @@
 // forever, while /diagnostics.recentErrors stays []. This step reproduces the trigger sequence
 // (launches → activity read → external emit, interleaved) and asserts BOTH halves: no malformed loop,
 // and — when the bus does error — the error is visible in recentErrors.
-import { existsSync, statSync, truncateSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { cloneCorpus } from '../corpus.mjs';
 import { run as runProc, sleep } from '../proc.mjs';
@@ -85,24 +85,16 @@ export async function run(ctx, t) {
     t.check('/diagnostics.recentErrors carries the bus error (F-E2E-021 visibility)', recent.some((e) => MALFORMED.test(String(e.line ?? e.message ?? ''))), `${recent.length} recent error(s)`, { finding: 'F-E2E-021', evidence: evD });
   } else {
     t.check('/diagnostics.recentErrors empty after a clean loop', recent.length === 0, JSON.stringify(recent).slice(0, 300), { evidence: evD });
-    // WB-014 fault injection: replace the WAL sidecar under the live subscribers (what the wild
-    // sequence did) and emit — the pollers must error, and the error must reach /diagnostics.
-    const injOffset = ctx.daemon.logOffset();
-    let injected = false;
-    if (existsSync(`${busDb}-wal`)) {
-      try { truncateSync(`${busDb}-wal`, 0); injected = true; } catch { /* windows may hold the file */ }
-    }
-    externalEmit(999);
-    await sleep(3500);
-    const errs = ctx.daemon.grepLog(/"level":(40|50)/, injOffset, 5);
-    const diag2 = await api.get('/diagnostics');
-    const recent2 = Array.isArray(diag2.json?.recentErrors) ? diag2.json.recentErrors : [];
-    const evI = t.evidence('wb014-injection', { injected, daemonErrorLines: errs, recentErrors: recent2 });
-    if (injected && errs.length > 0) {
-      t.check('injected bus fault is visible in /diagnostics.recentErrors (F-E2E-021 visibility)', recent2.length > 0, `${errs.length} daemon error line(s), ${recent2.length} in recentErrors`, { finding: 'F-E2E-021', evidence: evI });
-    } else {
-      t.info('wb014 injection', injected ? 'the daemon logged no error after the WAL truncation (SQLite recovered) — visibility half not exercised' : 'WAL sidecar not present/truncatable — visibility half not exercised');
-    }
+    // No WAL fault is injected here (wicked-crew#1050). This step used to truncate `bus.db-wal` to
+    // 0 bytes under the live daemon. That does not reproduce F-E2E-021, where the wild sequence
+    // checkpointed the WAL and then unlinked it, so no committed frame was lost. Truncating destroys
+    // every frame not yet checkpointed. If a connection still has those pages cached, it can keep
+    // appending at its remembered offsets, past a zero-filled hole. The next checkpoint can then
+    // copy those zeros into bus.db, because a checkpoint reads frames through the WAL index and
+    // does not re-verify checksums. A daemon that reads past the truncated end gets
+    // SQLITE_IOERR_SHORT_READ (522) instead. On ubuntu, crew 0.11.0-0.12.4 logged 522 and S10
+    // passed; crew 0.13.0 and 0.13.1 logged nothing and S10 failed. Without this injection, crew
+    // 0.13.1 passes S10 on ubuntu. The selfcheck refuses direct fs writes to a bus sidecar.
   }
   ctx.state.busProjectId = projectId;
 }
