@@ -41,4 +41,47 @@ if (seatFloorEnv({ crew: '0.12.4' }).WICKED_SEAT_FLOOR !== undefined || seatFloo
 if (chatSeatKey({ c5: false }) !== 'acp-smoke' || chatSeatKey({ c5: true }) !== 'chat-smoke') throw new Error('chatSeatKey');
 // C5: the judge seat rides a claude-stem launcher (the host floor's second governed seat for S04).
 if (judgeSeatBin({ c5: false }) !== 'smoke-judge' || judgeSeatBin({ c5: true }) !== 'judge-seat/claude') throw new Error('judgeSeatBin');
+// wicked-crew#1050: no harness module may write the bus's WAL/SHM sidecars through the filesystem.
+// S05 used to truncate `bus.db-wal` under the live daemon. That loses every frame not yet
+// checkpointed, and S10 then reported the corruption the harness had caused as a product failure.
+const { readFileSync } = await import('node:fs');
+const SIDECAR_WRITE = /\b(truncate|truncateSync|unlink|unlinkSync|rm|rmSync|writeFile|writeFileSync|appendFile|appendFileSync|open|openSync|rename|renameSync|copyFile|copyFileSync)\s*\([^;]*?-(wal|shm)\b/;
+const harnessFiles = [
+  ...readdirSync(here).filter((f) => f.endsWith('.mjs') && f !== 'selfcheck.mjs').map((f) => join(here, f)),
+  ...stepFiles.map((f) => join(here, 'steps', f)),
+];
+for (const file of harnessFiles) {
+  const m = SIDECAR_WRITE.exec(readFileSync(file, 'utf8'));
+  if (m) throw new Error(`${file}: writes a SQLite WAL/SHM sidecar through the filesystem (${m[0].slice(0, 80)}) — this corrupts the live bus (wicked-crew#1050)`);
+}
+// Why the guard exists: truncating a live WAL corrupts the database, and the writer is not told.
+// This holds on macOS and Linux. Two connections, one library, one process (no lock-loss seam).
+let sqlite = null;
+try { sqlite = await import('node:sqlite'); } catch { /* Node < 22.13 without --experimental-sqlite */ }
+if (sqlite) {
+  const { mkdtempSync, truncateSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const walTruncate = (truncate) => {
+    const dir = mkdtempSync(join(tmpdir(), 'smoke-wal-'));
+    const file = join(dir, 'bus.db');
+    const open = () => { const d = new sqlite.DatabaseSync(file); d.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=2000; CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY, payload TEXT)'); return d; };
+    const daemon = open();
+    const external = open();
+    const put = (d, n) => { for (let i = 0; i < n; i++) d.prepare('INSERT INTO events(payload) VALUES(?)').run('y'.repeat(300)); };
+    put(daemon, 200); daemon.exec('PRAGMA wal_checkpoint(PASSIVE)'); put(external, 50); put(daemon, 50);
+    if (truncate) truncateSync(`${file}-wal`, 0);
+    put(daemon, 50); // the long-lived writer keeps going; no error reaches it
+    external.close(); daemon.close(); // the last close checkpoints the WAL into bus.db
+    let verdict;
+    try { const c = new sqlite.DatabaseSync(file, { readOnly: true }); verdict = c.prepare('PRAGMA integrity_check').all().map((r) => r.integrity_check).join(' | '); c.close(); } catch (err) { verdict = err.message; }
+    rmSync(dir, { recursive: true, force: true });
+    return verdict;
+  };
+  const clean = walTruncate(false);
+  const truncated = walTruncate(true);
+  if (clean !== 'ok') throw new Error(`wal control: integrity_check ${clean}`);
+  if (truncated === 'ok') throw new Error('wal truncation no longer corrupts: revisit the S05 guard (wicked-crew#1050)');
+} else {
+  console.log('selfcheck: node:sqlite unavailable — WAL-truncation demonstration skipped');
+}
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);

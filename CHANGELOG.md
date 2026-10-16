@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### smoke — S05 no longer truncates the live bus WAL (wicked-crew#1050)
+
+The crew 0.13.0 and 0.13.1 release smokes (runs 38856860493 and 38886447659) failed S10 on ubuntu:
+`bus.db` failed `PRAGMA integrity_check` (`btreeInitPage() returns error code 11`). The damage was
+done by the harness. After a clean S05 loop, the WB-014 "visibility" probe ran
+`truncateSync('bus.db-wal', 0)` under the live daemon. Truncating a WAL destroys every frame not yet
+checkpointed. The daemon's connection still holds those pages in its cache, so it keeps appending
+past the hole, and its last close checkpoints the zero-filled frames into `bus.db`. On ubuntu, crew
+0.11.0 through 0.12.4 hit `SQLITE_IOERR_SHORT_READ` (522) after the truncation and wrote nothing,
+and S10 passed. Crew 0.13.0 and 0.13.1 kept writing silently, and S10 failed. The macOS legs logged
+522 and passed. The probe never exercised visibility on any of those legs, since
+`daemonErrorLines` was empty every time.
+
+- **S05 injects no WAL fault.** The F-E2E-021 loop and the `recentErrors` checks are unchanged.
+- **Selfcheck guard:** `npm run check` fails if any harness module writes, truncates, unlinks or
+  renames a `-wal`/`-shm` sidecar. Where `node:sqlite` is available, it also shows that truncating
+  a live WAL corrupts the database on the host while the writer gets no error (a control run with
+  no truncation must read `ok`).
+
 ### smoke — C5 crews (>= 0.13.0): the host seat floor and a headless chat seat (crew 0.13.0 release smoke)
 
 crew 0.13.0 (wicked-crew#1018, core-ts 0.12.0 / wicked-core#950) runs governed seats in containers by
