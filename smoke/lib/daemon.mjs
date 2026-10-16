@@ -21,9 +21,13 @@ export function freePort() {
 export class Daemon {
   /** `bootTimeoutMs`: how long a start (and a re-check) may wait for /health — the CLI passes the
    *  step budget (`--step-timeout`, ≥ 300 s), because a COLD first boot publishes the garden bundle
-   *  (`uv sync` of its pyproject) and took 11 minutes on a loaded workstation where a runner takes 5 s. */
-  constructor(L, crewBin, log, { bootTimeoutMs = 300_000 } = {}) {
+   *  (`uv sync` of its pyproject) and took 11 minutes on a loaded workstation where a runner takes 5 s.
+   *  `baseEnv`: variables laid over the hermetic env on EVERY start, whatever a step passes as
+   *  `extraEnv` — the seat floor the harness chose for the installed crew (`seatFloorEnv` in
+   *  lib/env.mjs). */
+  constructor(L, crewBin, log, { bootTimeoutMs = 300_000, baseEnv = {} } = {}) {
     this.L = L;
+    this.baseEnv = baseEnv;
     this.crewBin = crewBin;
     this.log = log;
     this.bootTimeoutMs = bootTimeoutMs;
@@ -63,11 +67,11 @@ export class Daemon {
     if (this.child) throw new Error('daemon already running');
     this.port = this.port ?? (await freePort());
     if (extraEnv !== undefined) this.extraEnv = extraEnv;
-    this.env = { ...hermeticEnv(this.L, this.port), ...(this.extraEnv ?? {}) };
+    this.env = { ...hermeticEnv(this.L, this.port), ...this.baseEnv, ...(this.extraEnv ?? {}) };
     this.starts += 1;
     this.healthy = false;
     const fd = openSync(this.L.daemonLog, 'a');
-    const extra = Object.entries(this.extraEnv ?? {}).map(([k, v]) => `${k}=${v}`).join(' ');
+    const extra = Object.entries({ ...this.baseEnv, ...(this.extraEnv ?? {}) }).map(([k, v]) => `${k}=${v}`).join(' ');
     appendFileSync(this.L.daemonLog, `\n===== wicked-smoke daemon start #${this.starts} port=${this.port} ${new Date().toISOString()}${extra ? ` ${extra}` : ''} =====\n`);
     const argv = [process.execPath, this.crewBin, 'serve', '--port', String(this.port), '--db', `${this.L.state}/core.db`];
     this.log(`daemon: start #${this.starts} on :${this.port}${extra ? ` (${extra})` : ''}`);

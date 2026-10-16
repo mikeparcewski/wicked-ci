@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+### smoke — C5 crews (>= 0.13.0): the host seat floor and a headless chat seat (crew 0.13.0 release smoke)
+
+crew 0.13.0 (wicked-crew#1018, core-ts 0.12.0 / wicked-core#950) runs governed seats in containers by
+default, removes ACP from the seats, and refuses a governed run on a host with no container runtime.
+The release smoke (crew run 38856860493) read that as S04 and S08 failures on macOS (no container
+runtime: every unit refused `no_container_runtime`) and on ubuntu (Docker present: seats refused
+`agent_signed_out` / "container seats require an isolated config home"). The old wire is kept for
+older crews; the previous-set leg (crew 0.7.32) is unchanged.
+
+- **Every daemon start on a C5 crew sets `WICKED_SEAT_FLOOR=host`** (`lib/env.mjs` `seatFloorEnv`,
+  `Daemon` `baseEnv`): the labelled interim host floor the operator's own daemon runs, where each
+  unit runs its CLI's headless mode on the wrapped carrier. Older crews get no floor variable.
+- **S08 on a C5 crew speaks to a headless chat seat, `chat-smoke`** (`shims/chat-agent.mjs`). On the
+  host floor the engine runs a governed unit only on a launch that keeps a per-call check (a binary
+  whose file stem is `claude`, or a bounded codex; wicked-core `host_floor_keeps_a_check`), so the
+  seat's launcher is `<root>/bin/chat-seat/claude`: the claude carrier arms the gate hook through the
+  `wicked-core` shim and reads the shim's stream-json output (deltas and `usage`). The ACP
+  assertions (handshake, `session/prompt`, `acpSessionStarted`) run only for crews < 0.13.0; on C5
+  the step asserts the shim's headless worker turn (`-p` + the gate hook's `--settings`, stream-json),
+  and the run's `unitDistributed` to the seat, `governanceContextArmed`, `unitOutputDelta` and
+  `unitOutputCaptured{governed: true, stepStatus: ok}`. The overlay writes `chat-smoke` instead of
+  `acp-smoke` on a C5 crew, council-disabled until S08 like before.
+- **S04 on the C5 host floor (crew >= 0.13.1, core-ts >= 0.12.1).** core-ts 0.12.1 (wicked-core#976)
+  benches every seat the host floor refuses for governed work UP FRONT (`governed_only`, reason
+  `needs_container_floor`, source `launcher`); those seats still judge, triage and vote. In the
+  smoke's roster that left claude as the only governed seat (codex is benched for worktree-bound
+  runs), so the bug run's review units had no evaluator distinct from the creator and the engine
+  refused the plan at the scope step, by design and named on the wire (NoEligibleSeat,
+  wicked-core#747; crew 0.13.1 run 38861691576: all three S04 launches `failed` after `pa-scope`).
+  Harness lag, fixed: on a C5 crew `smoke-judge` launches through `<root>/bin/judge-seat/claude`, so
+  it is the second governed seat (the distinct evaluator) and opencode is the distinct judge. The
+  pre-C5 copilot contract (one unit turn, benched on its own quota refusal, `seatBenched`, carried
+  to the roster: F-SMOKE-004/005) cannot happen there; it is replaced by: copilot and opencode named
+  in `degradedReason` with the host-floor reason, every governed unit seated on claude or
+  `smoke-judge`, no worker turn on copilot / opencode, codex never spawned. F-SMOKE-005 is judged
+  only when a judge-turn quota refusal benched copilot in the run. The no-judge launch drops opencode
+  (the judge) instead of `smoke-judge` (now the evaluator). crew 0.13.0 (core-ts 0.12.0, no up-front
+  bench) keeps the old assertions.
+
 ### smoke — S04 gets a distinct judge seat and asserts the fail-closed judge gate · F-A6-USAGE retired · F-E2E-002 re-bound (crew 0.8.5 release smoke)
 
 crew 0.8.5's release smoke (run 37762305091) was red on both legs for three harness reasons; the
