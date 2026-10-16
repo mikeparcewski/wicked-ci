@@ -88,12 +88,13 @@ export async function run(ctx, t) {
     // No WAL fault is injected here (wicked-crew#1050). This step used to truncate `bus.db-wal` to
     // 0 bytes under the live daemon. That does not reproduce F-E2E-021, where the wild sequence
     // checkpointed the WAL and then unlinked it, so no committed frame was lost. Truncating destroys
-    // every frame not yet checkpointed. A connection whose page cache still holds those pages keeps
-    // appending past the hole, and the next checkpoint copies the zero-filled frames into
-    // bus.db. Whether the daemon logs a short read (SQLITE_IOERR_SHORT_READ, 522) or keeps writing
-    // depends on timing. Crew 0.11.0-0.12.4 logged the short read on ubuntu; crew 0.13.0 and 0.13.1
-    // kept writing, so S10 found the bus corrupted by the harness itself. The selfcheck refuses any
-    // step that writes a bus sidecar through the filesystem.
+    // every frame not yet checkpointed. If a connection still has those pages cached, it can keep
+    // appending at its remembered offsets, past a zero-filled hole. The next checkpoint can then
+    // copy those zeros into bus.db, because a checkpoint reads frames through the WAL index and
+    // does not re-verify checksums. A daemon that reads past the truncated end gets
+    // SQLITE_IOERR_SHORT_READ (522) instead. On ubuntu, crew 0.11.0-0.12.4 logged 522 and S10
+    // passed; crew 0.13.0 and 0.13.1 logged nothing and S10 failed. Without this injection, crew
+    // 0.13.1 passes S10 on ubuntu. The selfcheck refuses direct fs writes to a bus sidecar.
   }
   ctx.state.busProjectId = projectId;
 }

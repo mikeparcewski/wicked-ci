@@ -5,21 +5,31 @@
 ### smoke — S05 no longer truncates the live bus WAL (wicked-crew#1050)
 
 The crew 0.13.0 and 0.13.1 release smokes (runs 38856860493 and 38886447659) failed S10 on ubuntu:
-`bus.db` failed `PRAGMA integrity_check` (`btreeInitPage() returns error code 11`). The damage was
-done by the harness. After a clean S05 loop, the WB-014 "visibility" probe ran
-`truncateSync('bus.db-wal', 0)` under the live daemon. Truncating a WAL destroys every frame not yet
-checkpointed. The daemon's connection still holds those pages in its cache, so it keeps appending
-past the hole, and its last close checkpoints the zero-filled frames into `bus.db`. On ubuntu, crew
-0.11.0 through 0.12.4 hit `SQLITE_IOERR_SHORT_READ` (522) after the truncation and wrote nothing,
-and S10 passed. Crew 0.13.0 and 0.13.1 kept writing silently, and S10 failed. The macOS legs logged
-522 and passed. The probe never exercised visibility on any of those legs, since
-`daemonErrorLines` was empty every time.
+`bus.db` failed `PRAGMA integrity_check` (`btreeInitPage() returns error code 11`). The cause was the
+harness. After a clean S05 loop, the WB-014 "visibility" probe ran `truncateSync('bus.db-wal', 0)`
+under the live daemon, which destroys every frame not yet checkpointed. A connection that still has
+those pages cached can keep appending past the zero-filled hole. Its last close can then checkpoint
+the zeros into `bus.db`, because a checkpoint reads frames through the WAL index and does not
+re-verify checksums. The results by leg:
 
-- **S05 injects no WAL fault.** The F-E2E-021 loop and the `recentErrors` checks are unchanged.
-- **Selfcheck guard:** `npm run check` fails if any harness module writes, truncates, unlinks or
-  renames a `-wal`/`-shm` sidecar. Where `node:sqlite` is available, it also shows that truncating
-  a live WAL corrupts the database on the host while the writer gets no error (a control run with
-  no truncation must read `ok`).
+- On ubuntu, crew 0.11.0 through 0.12.4 logged `SQLITE_IOERR_SHORT_READ` (522) after the truncation,
+  and S10 passed.
+- On ubuntu, crew 0.13.0 and 0.13.1 logged nothing, and S10 failed.
+- The macOS legs logged 522 and passed.
+- Every leg recorded `daemonErrorLines: []`, so the probe never exercised visibility.
+- With the probe removed, crew 0.13.1 passes S10 on ubuntu (this PR's smoke-selftest).
+
+The changes:
+
+- **S05 injects no WAL fault.** The after-loop `recentErrors` checks and the F-E2E-021 loop are
+  unchanged. The injection-specific visibility check is gone.
+- **The selfcheck runs in the reusable smoke workflow before the smoke**, and it carries a guard.
+  The guard fails on a direct fs mutation call (truncate, unlink, rm, write, append, rename, copy,
+  `createWriteStream`) whose arguments name a `-wal`/`-shm` path, in any smoke module, with comments
+  stripped. It is a textual heuristic: an alias or a precomputed path variable gets past it.
+- **The selfcheck also demonstrates the failure** where `node:sqlite` is available. It truncates a
+  live WAL under a writer with warm pages, then requires either a refused write or a corrupt
+  `integrity_check`, never a silent `ok`. A control run with no truncation must read `ok`.
 
 ### smoke — C5 crews (>= 0.13.0): the host seat floor and a headless chat seat (crew 0.13.0 release smoke)
 

@@ -178,6 +178,11 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ inputs.node_version || 'lts/*' }}
+      # Offline harness selfcheck (no daemon, no network): step registry, version edges, and the
+      # wicked-crew#1050 guard against the harness writing the bus's WAL/SHM sidecars.
+      - name: wicked-smoke selfcheck
+        shell: bash
+        run: node .wicked-ci-smoke/smoke/lib/selfcheck.mjs
       # `uv` is a PRODUCT requirement: crew's skills seed runs `uv sync` for the garden bundle and
       # BLOCKS the publish without it. The harness exposes the host uv through a passthrough wrapper.
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
