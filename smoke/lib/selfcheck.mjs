@@ -6,7 +6,7 @@ import { ALL_STEPS, parseSteps } from './args.mjs';
 import { compare, satisfies } from './semver.mjs';
 import { ExpectPolicy } from './expect.mjs';
 import { seatFloorEnv } from './env.mjs';
-import { chatSeatKey, judgeSeatBin } from './shims.mjs';
+import { chatSeatKey, judgeSeatBin, writeCouncilOverlay } from './shims.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const stepFiles = readdirSync(join(here, 'steps')).filter((f) => f.endsWith('.mjs')).sort();
@@ -41,6 +41,26 @@ if (seatFloorEnv({ crew: '0.12.4' }).WICKED_SEAT_FLOOR !== undefined || seatFloo
 if (chatSeatKey({ c5: false }) !== 'acp-smoke' || chatSeatKey({ c5: true }) !== 'chat-smoke') throw new Error('chatSeatKey');
 // C5: the judge seat rides a claude-stem launcher (the host floor's second governed seat for S04).
 if (judgeSeatBin({ c5: false }) !== 'smoke-judge' || judgeSeatBin({ c5: true }) !== 'judge-seat/claude') throw new Error('judgeSeatBin');
+// crew 0.15.2 (crew#916): an omitted `seat_eligible_for_work` means true, so the chat seat must say
+// false beside `enabled_for_council = false` (S01-S07), and true beside true (S08's re-write).
+{
+  const { mkdtempSync, readFileSync: readOverlay, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const root = mkdtempSync(join(tmpdir(), 'smoke-selfcheck-overlay-'));
+  try {
+    for (const c5 of [false, true]) {
+      for (const on of [false, true]) {
+        const toml = readOverlay(writeCouncilOverlay({ bin: join(root, 'bin'), home: root }, { c5, acpSeatForCouncil: on }), 'utf8');
+        const records = toml.split('[[cli]]').slice(1);
+        const chat = records.find((r) => r.includes(`key = "${chatSeatKey({ c5 })}"`)) ?? '';
+        if (!chat.includes(`enabled_for_council = ${on}`) || !chat.includes(`seat_eligible_for_work = ${on}`)) throw new Error(`overlay: chat seat roles (c5 ${c5}, council ${on})`);
+        if (records.filter((r) => r.includes('seat_eligible_for_work')).length !== 1) throw new Error('overlay: only the chat seat declares its work role');
+      }
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
 // wicked-crew#1050: the harness must not write the bus's WAL/SHM sidecars through the filesystem.
 // S05 used to truncate `bus.db-wal` under the live daemon. That loses every frame not yet
 // checkpointed, and S10 then reported the corruption the harness had caused as a product failure.

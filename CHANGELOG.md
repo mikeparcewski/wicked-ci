@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### smoke — the chat seat declares `seat_eligible_for_work` (crew 0.15.2)
+
+The crew 0.15.2 release smoke (run 39233376132) failed S04 on ubuntu and macOS. crew#916 made crew
+read a seat's two roles separately: `enabled_for_council` (may vote) and `seat_eligible_for_work` (may
+be seated for work, default true). The overlay wrote the chat seat `chat-smoke` with
+`enabled_for_council = false` and no work flag, so on 0.15.2 it became work-eligible. The engine
+then re-seated reproduce / verify / review / security_review onto it as the distinct evaluator. Its
+shim prints no `VERDICT:` line, so verify rejected and the run was cancelled.
+
+- The chat seat (`chat-smoke` on C5, `acp-smoke` before) is written `seat_eligible_for_work = false`
+  beside `enabled_for_council = false`, so through S01–S07 it neither votes nor takes a unit.
+- S08's re-write sets both flags `true`: a chat's `answer-N` step is a unit, and a council-enabled
+  seat with work off is reviewer-only.
+- No other record changes. Engines before the split ignore the key (optional, default true).
+
 ### smoke — S05 no longer truncates the live bus WAL (wicked-crew#1050)
 
 The crew 0.13.0 and 0.13.1 release smokes (runs 38856860493 and 38886447659) failed S10 on ubuntu:
