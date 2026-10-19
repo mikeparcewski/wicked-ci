@@ -20,13 +20,17 @@ export const SEATS = [
   { key: 'opencode', shim: 'opencode', present: true, behaviour: 'answers (free tier, no credential)' },
   { key: 'pi', shim: null, present: false, behaviour: 'not installed (no binary on PATH; no credential either unless WICKED_SMOKE_PI_CREDENTIAL=1)' },
   // v2 (DES-L5 S-CHAT-01): the ONE seat that speaks ACP over stdio — what a chat turn runs on. Its
-  // overlay record carries `[cli.acp]` (shims/acp-agent.mjs) and `enabled_for_council = false`, so
-  // the S04 council roster above is exactly what it was; S08 names it with `clis: ['acp-smoke']`.
-  { key: 'acp-smoke', shim: 'acp-agent', present: true, behaviour: 'answers every chat turn over ACP (initialize / session/new / session/prompt); sleeps WICKED_SMOKE_ACP_SLEEP_MS or a per-prompt smoke-acp-sleep-ms=<n> token first; council-disabled' },
+  // overlay record carries `[cli.acp]` (shims/acp-agent.mjs), `enabled_for_council = false` and
+  // `seat_eligible_for_work = false`, so the S04 roster above is exactly what it was (it is never
+  // seated for a unit); S08 names it with `clis: ['acp-smoke']`.
+  { key: 'acp-smoke', shim: 'acp-agent', present: true, behaviour: 'answers every chat turn over ACP (initialize / session/new / session/prompt); sleeps WICKED_SMOKE_ACP_SLEEP_MS or a per-prompt smoke-acp-sleep-ms=<n> token first; council-disabled and work-ineligible until S08' },
   // C5 (crew >= 0.13.0): ACP is removed from the seats, so the chat seat is a HEADLESS shim on the
   // wrapped carrier (shims/chat-agent.mjs); the overlay writes it INSTEAD of acp-smoke on a C5 crew,
-  // with the same council-disabled posture (S08 re-enables it before its own restart).
-  { key: 'chat-smoke', shim: 'chat-agent', present: true, behaviour: 'C5 crews: answers every chat step headlessly (`chat-agent -p "<prompt>"`); sleeps WICKED_SMOKE_ACP_SLEEP_MS or a per-prompt smoke-acp-sleep-ms=<n> token first; council-disabled' },
+  // with the same posture: council-disabled AND work-ineligible (S08 re-enables both before its own
+  // restart). The work flag is explicit: from crew 0.15.2 (crew#916) the two roles are separate and
+  // an omitted `seat_eligible_for_work` defaults to TRUE, so a council-off seat would otherwise be
+  // re-seated onto S04's review units as the distinct evaluator — and this shim prints no VERDICT.
+  { key: 'chat-smoke', shim: 'chat-agent', present: true, behaviour: 'C5 crews: answers every chat step headlessly (`chat-agent -p "<prompt>"`); sleeps WICKED_SMOKE_ACP_SLEEP_MS or a per-prompt smoke-acp-sleep-ms=<n> token first; council-disabled and work-ineligible until S08' },
   // The THIRD live seat (core-ts >= 0.7.40, wicked-core#774): a judge must be identity-distinct from
   // the unit's seat AND its creator, and when every such seat is benched the gate fails closed
   // (`judge_unavailable`) instead of skipping the judge. With only claude + opencode live, the
@@ -100,8 +104,15 @@ export function writeShims(L) {
  *
  * The SIXTH record is the v2 exception: `acp-smoke` is a NEW key (the merged registry appends a user
  * record whose key matches no built-in), its `[cli.acp]` names the ACP-speaking shim
- * (shims/acp-agent.mjs, stdio transport), and it is `enabled_for_council = false` so the mixed-auth
- * council roster S04 asserts is untouched. It is the seat S08 opens a chat on — the ONLY place the
+ * (shims/acp-agent.mjs, stdio transport), and it is `enabled_for_council = false` AND
+ * `seat_eligible_for_work = false` so the mixed-auth roster S04 asserts is untouched: it neither votes
+ * nor is seated for a unit. The work flag is written explicitly because from crew 0.15.2 (crew#916,
+ * wicked-core#572) the two roles are read separately and an omitted `seat_eligible_for_work` means
+ * TRUE — the engine then re-seated S04's reproduce / verify / review units onto the chat seat as the
+ * distinct evaluator, its shim printed no `VERDICT:` line, and the run was cancelled (crew 0.15.2
+ * release smoke, run 39233376132). Engines before the split ignore the key (it is optional, default
+ * true), so it is safe on every crew the harness installs; the C5 chat seat `chat-smoke` takes the
+ * same posture. Before C5, `acp-smoke` is the seat S08 opens a chat on — the ONLY place the
  * daemon's ACP path (`chat_ensure` → spawn → initialize → session/new → session/prompt) runs in the
  * smoke; before it, "a chat turn completes" was unprovable here (F-RC1-110/111/112 landed live).
  *
@@ -138,7 +149,9 @@ export function chatSeatKey({ c5 = false } = {}) {
 }
 
 /**
- * `acpSeatForCouncil` (S08, crew ≥ 0.8.2): the ACP seat is written `enabled_for_council = true`. From
+ * `acpSeatForCouncil` (S08, crew ≥ 0.8.2): the ACP seat is written `enabled_for_council = true` and
+ * `seat_eligible_for_work = true` — the chat's `answer-N` step is a unit, and a council-enabled seat
+ * with work off is reviewer-only (never given a unit). From
  * crew 0.8.2 an ask is a team PATH (DES-ASK-TEAM-CHAT-001 Amendment 6): `POST /chats` admits the
  * DEFAULT roster and seats NAMED in `clis` by ONE rule (`chatSeatAdmission`), and that rule refuses
  * a council-disabled seat ("disabled for the council, so it takes no turn") — the engine's roster
@@ -154,10 +167,11 @@ export function writeCouncilOverlay(L, { acpSeatForCouncil = false, c5 = false }
     { key: 'copilot', display: 'Copilot (smoke shim, quota)', bin: bin('copilot'), inv: `${bin('copilot')} -p "{PROMPT}"` },
     { key: 'opencode', display: 'OpenCode (smoke shim, free tier)', bin: bin('opencode'), inv: `${bin('opencode')} run "{PROMPT}"` },
     // C5 (crew >= 0.13.0): no seat speaks ACP — the chat seat is the headless `chat-smoke` record
-    // (no `[cli.acp]`); before C5 it is the ACP stdio seat. Either way council-disabled until S08.
+    // (no `[cli.acp]`); before C5 it is the ACP stdio seat. Either way council-disabled AND
+    // work-ineligible until S08 (both flags explicit — see the overlay doc above).
     c5
-      ? { key: CHAT_SEAT_KEY, display: 'Chat seat (smoke shim, headless claude carrier)', bin: bin(`${CHAT_SEAT_DIR}/claude`), inv: `${bin(`${CHAT_SEAT_DIR}/claude`)} -p "{PROMPT}"`, council: acpSeatForCouncil }
-      : { key: ACP_SEAT_KEY, display: 'ACP seat (smoke shim, stdio)', bin: bin('acp-agent'), inv: `${bin('acp-agent')} -p "{PROMPT}"`, council: acpSeatForCouncil, acp: bin('acp-agent') },
+      ? { key: CHAT_SEAT_KEY, display: 'Chat seat (smoke shim, headless claude carrier)', bin: bin(`${CHAT_SEAT_DIR}/claude`), inv: `${bin(`${CHAT_SEAT_DIR}/claude`)} -p "{PROMPT}"`, council: acpSeatForCouncil, work: acpSeatForCouncil }
+      : { key: ACP_SEAT_KEY, display: 'ACP seat (smoke shim, stdio)', bin: bin('acp-agent'), inv: `${bin('acp-agent')} -p "{PROMPT}"`, council: acpSeatForCouncil, work: acpSeatForCouncil, acp: bin('acp-agent') },
     // LAST, so the engine's seat order (and the S04 routing it asserts) is what it was; the judge
     // rotation reaches it after the dead seats. On C5 it launches through the claude-stem wrapper
     // (see JUDGE_SEAT_DIR), so the host floor lets it carry governed units.
@@ -170,6 +184,8 @@ export function writeCouncilOverlay(L, { acpSeatForCouncil = false, c5 = false }
     `binary = "${s.bin}"`,
     `headless_invocation = '${s.inv}'`,
     `enabled_for_council = ${s.council === false ? 'false' : 'true'}`,
+    // Only the chat seat declares its work role; every other record keeps the engine default (true).
+    ...(typeof s.work === 'boolean' ? [`seat_eligible_for_work = ${s.work}`] : []),
     // `[cli.acp]` binds to the `[[cli]]` record above it (TOML sub-table of the last array element).
     // `acp_input_governance = true`: the engine dispatches a path's `answer-N` step (executes_code:
     // false) to a seat only when its ACP adapter is admitted to input governance; without it the

@@ -138,8 +138,8 @@ Shimmed (`smoke/shims/*.mjs`, launched through `sh`/`.cmd` wrappers that carry t
 | `codex` | credential file present, every turn exits 1 "Not logged in … 401" | the engine must learn `not_logged_in` from the ballot, not the probe |
 | `copilot` | credential present, every turn exits 1 "exceeded your monthly quota" | the engine must bench `quota_exhausted` |
 | `pi` | NOT on PATH | `not_installed` from the spawn error |
-| `acp-agent` (seat key `acp-smoke`) | speaks ACP over stdio: `initialize` → `session/new` → `session/prompt` answered with two `agent_message_chunk` deltas and a result carrying `usage`; sleeps `WICKED_SMOKE_ACP_SLEEP_MS` (env) or a per-prompt `smoke-acp-sleep-ms=<n>` token first; every JSON-RPC method recorded | the chat carrier (S08): a chat warms its seats over ACP, and until a seat spoke it a turn could not complete in the smoke — the F-RC1-110/111/112 class landed live. Council-disabled in the overlay so S04's roster is unchanged |
-| `chat-agent` (seat key `chat-smoke`, crew ≥ 0.13.0) | headless: a worker turn sleeps for a `smoke-acp-sleep-ms=<n>` token, then answers in claude's stream-json (`assistant` text + a `result` with `usage`) when `--output-format stream-json` is in argv, plain text otherwise; launched through `<root>/bin/chat-seat/claude`; council-disabled until S08 | the chat carrier on a C5 crew: ACP is gone from the seats, and on the host floor the engine runs a governed unit only on a binary whose file stem is `claude` (its gate hook) or a bounded codex — any other seat is refused `needs_container_floor` |
+| `acp-agent` (seat key `acp-smoke`) | speaks ACP over stdio: `initialize` → `session/new` → `session/prompt` answered with two `agent_message_chunk` deltas and a result carrying `usage`; sleeps `WICKED_SMOKE_ACP_SLEEP_MS` (env) or a per-prompt `smoke-acp-sleep-ms=<n>` token first; every JSON-RPC method recorded | the chat carrier (S08): a chat warms its seats over ACP, and until a seat spoke it a turn could not complete in the smoke — the F-RC1-110/111/112 class landed live. Council-disabled and work-ineligible in the overlay (`seat_eligible_for_work = false`, explicit) so S04's roster is unchanged |
+| `chat-agent` (seat key `chat-smoke`, crew ≥ 0.13.0) | headless: a worker turn sleeps for a `smoke-acp-sleep-ms=<n>` token, then answers in claude's stream-json (`assistant` text + a `result` with `usage`) when `--output-format stream-json` is in argv, plain text otherwise; launched through `<root>/bin/chat-seat/claude`; council-disabled and work-ineligible (both flags explicit) until S08 | the chat carrier on a C5 crew: ACP is gone from the seats, and on the host floor the engine runs a governed unit only on a binary whose file stem is `claude` (its gate hook) or a bounded codex — any other seat is refused `needs_container_floor` |
 | `smoke-judge` | a custom registry key crew has no credential rule for (`auth: unknown`, council-eligible); answers like claude; written LAST in the overlay so routing is unchanged | from core-ts 0.7.40 a unit's judge must differ from the unit's seat AND its creator, and a benched-out judge pool fails closed (`judge_unavailable`) — with two live seats the verify unit had no judge (crew 0.8.5 release smoke, run 37762305091). On a C5 crew it launches through `<root>/bin/judge-seat/claude` (a claude-stem binary keeps the host floor's per-call check), so it carries governed units as the evaluator distinct from claude, and opencode judges. |
 | `gh` | `pr create` prints a URL on a reserved host; `api user` prints an identity | the deliver phase opens its "PR" without GitHub |
 | `wicked-estate` | records argv, exits 0 | onboarding's two tool phases run without an estate binary |
@@ -162,9 +162,13 @@ unit turn runs on the wrapped one-shot carrier; the sixth record, `acp-smoke`, i
 (the merged registry appends it) whose `[cli.acp]` names the ACP-speaking shim with
 `acp_input_governance = true` (the engine dispatches a path's `answer-N` step — `executes_code: false` — to
 a seat only when its ACP adapter is admitted to input governance; without it the unit is REFUSED) and
-which is `enabled_for_council = false` so S04's mixed roster stays mixed — S08 re-writes it
-`enabled_for_council = true` before its own restart on crew ≥ 0.8.2, where a chat admits only
-council-enabled seats (S08 is the last step that convenes a seat). Two live observations on crew 0.7.32
+which is `enabled_for_council = false` and `seat_eligible_for_work = false` so S04's mixed roster
+stays mixed: the chat seat neither votes nor is seated for a unit (the C5 `chat-smoke` record carries
+the same two flags). The work flag is explicit because from crew 0.15.2 (crew#916) the two roles are
+read separately and an omitted `seat_eligible_for_work` means true: the engine re-seated S04's review
+units onto the chat seat, whose shim prints no `VERDICT:` line. S08 re-writes both flags `true`
+before its own restart on crew ≥ 0.8.2, where a chat admits only council-enabled seats and its
+`answer-N` step is a unit (S08 is the last step that convenes a seat). Two live observations on crew 0.7.32
 make the overlay necessary rather than cosmetic —
 the daemon prepends its bundled ACP bridges' `node_modules/.bin` to PATH, and that directory carries a
 REAL `codex` (`@openai/codex`, a dependency of `codex-acp`) that would win over any shim and call

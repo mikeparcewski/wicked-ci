@@ -96,10 +96,11 @@ export async function run(ctx, t) {
   const SEAT_SHIM = c5 ? 'chat-agent' : 'acp-agent';
   if (askWire) {
     // The admission rule of the path wire refuses a council-disabled seat, so the seat this step
-    // speaks to is re-written council-enabled before the restart below (S04's roster is untouched:
-    // S08 is the last step that convenes a seat).
+    // speaks to is re-written council-enabled — and work-eligible, since its `answer-N` step is a
+    // unit — before the restart below (S04's roster is untouched: S08 is the last step that
+    // convenes a seat).
     const overlay = writeCouncilOverlay(ctx.L, { acpSeatForCouncil: true, c5 });
-    t.info('overlay', `crew ${ctx.versions.crew} ≥ ${ASK_PATH_CREW} (an ask is a team path): council overlay re-written with ${SEAT} enabled_for_council = true (${overlay})`);
+    t.info('overlay', `crew ${ctx.versions.crew} ≥ ${ASK_PATH_CREW} (an ask is a team path): council overlay re-written with ${SEAT} enabled_for_council = true, seat_eligible_for_work = true (${overlay})`);
   }
   // Pool wire: the budget is read from the daemon's environment at turn time — a boot with the knob
   // set is the only way to make a 5 s budget observable; the same daemon then serves every case
