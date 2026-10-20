@@ -483,6 +483,32 @@ class ResolveEdges(unittest.TestCase):
         out = self.r("test crew except tag:runs plugins")
         self.assertEqual(out["selection"], "area:crew-api,plugins-and-installs !tag:runs", "only the next term is excluded")
 
+    def test_round13_every_exclusion_word_excludes(self):
+        from e2ecat.select import select
+        ids = lambda e: {c["id"] for c in select(self.caps, e)}
+        out = self.r("run cheap tests without plugins")
+        self.assertEqual(out["status"], "no-match", "a bound plus an exclusion with no scope selects nothing")
+        out = self.r("run daily without studio")
+        daily = {c["id"] for c in select(self.caps, self.profiles["daily"]["select"])}
+        self.assertEqual(ids(out["selection"]), daily - ids("area:studio-ui"))
+        out = self.r("run release except governed runs")
+        rel = {c["id"] for c in select(self.caps, self.profiles["release"]["select"])}
+        self.assertEqual(ids(out["selection"]), rel & ids("cost<=M"))
+        self.assertEqual(self.r("test crew except manual")["selection"], "area:crew-api !oracle=manual")
+        self.assertEqual(self.r("run all except area:studio-ui")["selection"], "!area:studio-ui")
+        self.assertEqual(self.r("test crew without zorblax")["status"], "no-match")
+        for text in ("test studio on devbox:7701", "cheap studio checks on myhost:7721"):
+            self.assertEqual(self.r(text)["status"], "refused", text)
+        self.assertEqual(self.r("cheap studio checks on myhost:7801")["target"], "live")
+        tmp = self.run_dir({"target": "live", "studio": "http://127.0.0.1:7801"}, {"crew-api.runs.cancel": "fail"})
+        self.assertEqual(self.r("summarise the live run", run_dir=tmp)["status"], "resolved")
+        self.assertEqual(self.r("list the live capabilities")["target"], "fixture")
+        self.assertEqual(self.r("test cli dry-run")["action"], "run")
+        out = self.r("run interactive dry-run")
+        self.assertEqual(out["action"], "run")
+        self.assertIn("*.dry-run", out["selection"], "dry-run stays a catalog word here")
+        self.assertEqual(self.r("do a dry run of the smoke")["action"], "plan")
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")

@@ -64,7 +64,7 @@ TERM = re.compile(r"^!?(area:|tag:|id:|surface=|cost<=|oracle=)\S+$")
 URL = re.compile(r"https?://[^\s'\"<>]+", re.I)
 PORT_ONLY = re.compile(r"(?<![\w.:/]):(\d{2,5})\b")
 # host:port with no scheme (localhost:7801, 127.0.0.1:7801, a dotted host) and "port 7801".
-HOST_PORT = re.compile(r"(?<![\w/.:-])((?:localhost|\d{1,3}(?:\.\d{1,3}){3}|[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)):(\d{2,5})\b")
+HOST_PORT = re.compile(r"(?<![\w/.:-])((?:localhost|\d{1,3}(?:\.\d{1,3}){3}|[A-Za-z][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)*)):(\d{2,5})\b")
 PORT_WORD = re.compile(r"\bport\s+(\d{2,5})\b", re.I)
 URL_PORT = re.compile(r"^[^/?#]*:(\d+)(?:[/?#]|$)")
 
@@ -87,10 +87,12 @@ INTENTS = [
                           r"\bhow did .* go\b")),
 ]
 # Prose only: never inside an id or a literal term (`interactive.cli.dry-run`, `id:...dry-run`).
-EXCEPT_WORDS = ("except", "excluding", "besides")
+EXCLUDE_WORDS = ("no", "without", "skip", "exclude", "excluding", "except", "besides")
 # How-to and explanation requests ask for information, never a run.
 HOW_TO = re.compile(r"\b(how (do|can|should|would) (i|we|you)|how to|tell me|explain|describe|what does it take to)\b")
-DRY_RUN = re.compile(r"(?<![\w.:*-])dry[- ]?runs?(?![\w.*-])", re.I)
+# Prose only, and only as the request's action ("dry run X", "do a dry run of X"); elsewhere `dry-run` is a
+# catalog word (`interactive.cli.dry-run`, "test cli dry-run").
+DRY_RUN = re.compile(r"(^\s*(please\s+)?(do\s+)?(a\s+)?|\b(a|as a|do a)\s+)dry[- ]?runs?(?![\w.*-])", re.I)
 NEG_EXEC = re.compile(r"\b(do not|don'?t|never|no need to|not to)\s+(\w+\s+)?(re-?)?(run|test|certify|check|verify|execute)\w*\b")
 LOOKUP_START = re.compile(r"^\s*(please\s+)?(list|show|find|count|which|what|how many|look up|search)\b")
 EXEC_VERB = re.compile(r"\b(test\w*|certif\w*|run|running|check\w*|verif\w*|execut\w*|exercis\w*|e2e)\b")
@@ -220,12 +222,14 @@ def _intent_text(text, vocab):
     words = []
     t = re.sub(r"'s\b", "", URL.sub(" ", text.replace("\u2019", "'")), flags=re.I)
     raw = t.split()
+    first = next((k for k, x in enumerate(raw) if x.lower() != "please"), 0)
     multi = set()  # word positions inside a spaced multi-word tag or id group ("plan preview", "coverage domain")
     for n in (3, 2):
         for i in range(len(raw) - n + 1):
             key = _norm("".join(x.strip(".,?!:;()'\"") for x in raw[i:i + n]))
-            if key and (key in vocab.tag_norm or key in vocab.seg_norm):
-                multi.update(range(i, i + n))
+            lead = i == first and EXEC_VERB.fullmatch(raw[i].lower().strip(".,?!:;()'\""))
+            if key and (key in vocab.tag_norm or key in vocab.seg_norm) and not lead:
+                multi.update(range(i, i + n))  # never swallow the request's leading verb ("run interactive ...")
     for pos, w in enumerate(raw):
         if pos in multi:
             continue
@@ -272,34 +276,35 @@ def resolve(request, caps, profiles, run_dir=None):
                             "as": "a request not to run: listing only"})
         action = "select"
     url, port, live = _live(text)
+    if action not in ("run", "plan", "rerun") and port not in OPERATOR_PORTS:
+        url, port, live = None, None, False  # reports, evidence, lookups and validation take no target
     toks = _tokens(text)
     terms, explain, ignored, shadowed = {}, list(explain_pre), [], []
-    neg_next = False
+    neg_next, failed_excl = False, []
     literal, cost, negate = [], None, []
     profile, pword, whole = None, None, False
     i = 0
     while i < len(toks):
         # "without manual", "no governed runs": exclusions are read before the vocabulary, which also
         # holds `manual` and `governed` as id segments.
-        if toks[i] in ("no", "without", "skip", "exclude", "excluding") and i + 1 < len(toks):
-            nxt = toks[i + 1]
+        pre = 2 if (toks[i] in ("but", "other", "apart") and i + 1 < len(toks)
+                    and toks[i + 1] in ("not", "than", "from")) else (1 if toks[i] in EXCLUDE_WORDS else 0)
+        if pre and i + pre < len(toks):
+            nxt = toks[i + pre]
             if nxt == "manual":
                 negate.append("!oracle=manual")
-                explain.append({"words": "%s manual" % toks[i], "as": "!oracle=manual"})
-                i += 2
+                explain.append({"words": " ".join(toks[i:i + pre + 1]), "as": "!oracle=manual"})
+                i += pre + 1
                 continue
             if nxt == "governed":
                 cost = cost or "M"
-                n = 3 if i + 2 < len(toks) and toks[i + 2] in ("run", "runs") else 2
+                n = pre + 2 if i + pre + 1 < len(toks) and toks[i + pre + 1] in ("run", "runs") else pre + 1
                 explain.append({"words": " ".join(toks[i:i + n]), "as": "cost<=M"})
                 i += n
                 continue
-        if toks[i] in EXCEPT_WORDS or (toks[i] in ("but", "other", "apart") and i + 1 < len(toks)
-                                       and toks[i + 1] in ("not", "than", "from")):
-            # "except studio", "but not plugins": the next catalog term is excluded, never selected.
-            skip = 2 if toks[i] in ("but", "other", "apart") else 1
+            # "without plugins", "except studio", "but not tag:x": the next catalog term is excluded.
             neg_next = True
-            i += skip
+            i += pre
             continue
         hit = None
         for segments in (False, True):
@@ -347,7 +352,10 @@ def resolve(request, caps, profiles, run_dir=None):
                 profile, pword = PROFILE_WORDS.get(w, "full"), w
         elif w not in STOP and w not in FILLER and w not in ("no", "without", "skip", "exclude", "governed", "manual"):
             ignored.append(w)
-        elif i > 0 and w not in ("live", "daemon") and _norm(w) in vocab.tag_norm:
+            if neg_next:  # "without zorblax": an exclusion that names nothing must not leave the rest wider
+                failed_excl.append(w)
+                neg_next = False
+        elif i > 0 and not (live and w in ("live", "daemon")) and _norm(w) in vocab.tag_norm:
             # A filler word that is also a catalog tag or id group: say so, so a widened selection is caught.
             shadowed.append(w)
         i += 1
@@ -365,7 +373,8 @@ def resolve(request, caps, profiles, run_dir=None):
     # A shadowed word that is not just a verb ("testing" in "run all testing") was meant as a topic: it
     # must not let a profile or a re-run widen past it.
     topical_shadow = [w for w in shadowed if w not in ("run", "runs", "test", "tests", "check", "checks", "verify",
-                                                       "plan", "evidence", "video", "report", "live", "daemon")]
+                                                       "plan", "evidence", "video", "report")
+                      and not (live and w in ("live", "daemon"))]
     if profile and topic:
         if profile == "smoke" and "tag" not in terms and not any(t.startswith("tag:") for t in lit_topic):
             terms["tag"] = ["smoke"]
@@ -531,6 +540,10 @@ def resolve(request, caps, profiles, run_dir=None):
         if out["target"] == "live":
             out["ask_reasons"].append("the live target %s (direct GETs; journeys only with --live-journeys)" % (out["studio"] or "?"))
         out["ask_before_running"] = bool(out["ask_reasons"])
+    if failed_excl or neg_next:
+        _status(out, "no-match")
+        out["needs"].append("an exclusion names nothing in the catalog (%s): nothing is selected rather than "
+                            "everything else" % (", ".join(failed_excl) or "nothing follows it"))
     # Commands only for a request that resolved (or only lacks an input); never for a refusal or no match.
     out["commands"] = _commands(out, run_dir) if out["status"] in ("resolved", "needs-input") else []
     return out
