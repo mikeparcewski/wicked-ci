@@ -549,6 +549,11 @@ class ResolveEdges(unittest.TestCase):
         for text in ("test without testing in studio", "test without cheap checks in studio"):
             self.assertEqual(self.r(text)["status"], "no-match", text)
 
+    def test_round17_malformed_literals_fail_instead_of_vanishing(self):
+        for text in ("run area:crew-api cost<=", "run area:crew-api tag:", "run area:crew-api !id:"):
+            out = self.r(text)
+            self.assertEqual((out["status"], out["commands"]), ("no-match", []), text)
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")

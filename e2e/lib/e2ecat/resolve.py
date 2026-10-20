@@ -61,6 +61,9 @@ FULL_WORDS = {"everything", "all", "full"}
 # What a live URL may look like: scheme, host, optional port and a plain path. Anything else (spaces,
 # quotes, `$`, `;`, `#`, backticks) is refused, so a request can never smuggle arguments into a command.
 SAFE_URL = re.compile(r"^https?://[A-Za-z0-9.\-]+(:\d{1,5})?(/[A-Za-z0-9._~\-/]*)?$")
+# A selection-language prefix, with or without a value: a malformed term (`cost<=`, `tag:`) is kept as written
+# so the selection parser refuses it, never dropped as prose.
+TERM_PREFIX = re.compile(r"^!?(area:|tag:|id:|surface=|cost<=|oracle=)")
 TERM = re.compile(r"^!?(area:|tag:|id:|surface=|cost<=|oracle=)\S+$")
 URL = re.compile(r"https?://[^\s'\"<>]+", re.I)
 PORT_ONLY = re.compile(r"(?<![\w.:/]):(\d{2,5})\b")
@@ -131,6 +134,9 @@ def _tokens(text):
     t = PORT_WORD.sub(" ", PORT_ONLY.sub(" ", HOST_PORT.sub(" ", URL.sub(" ", t))))
     out = []
     for tok in re.findall(r"!?[A-Za-z0-9][A-Za-z0-9.\-_*:<=,?!\[\]]*", t):
+        if TERM_PREFIX.match(tok) and not TERM.match(tok.rstrip(".,!?:")):
+            out.append(tok)  # a prefix with no usable value: kept, so it fails to parse
+            continue
         if re.match(r"^!?id:", tok):
             tok = tok.rstrip(".,!:")  # `?` is a glob character in an id term (`!id:crew-api.runs.cance?`)
         else:
@@ -166,7 +172,7 @@ def _match_span(vocab, span, segments=False):
     """(key, values, label) for a span of tokens, or None. Id segments are tried only in the second pass
     (`segments=True`), so an area or a tag inside a phrase wins over a longer id segment."""
     raw = " ".join(span)
-    if len(span) == 1 and TERM.match(span[0]):
+    if len(span) == 1 and (TERM.match(span[0]) or TERM_PREFIX.match(span[0])):
         return ("literal", [span[0]], "selection term")
     if len(span) == 1 and "." in span[0]:
         tok = span[0]
