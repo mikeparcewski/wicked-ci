@@ -30,13 +30,21 @@ SAFE_ARGS = {"--version", "-v", "-V", "--help", "-h", "help", "version"}
 LIVE_PREFIXES = ("/api/v1/",)
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """A redirect is answered as what it is (3xx), never followed: a followed redirect could leave the
+    allowed paths or the target (an operator port) and be recorded under the permitted path."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 class LiveClient:
-    """Read-only HTTP against the live target: GET only, /api/v1/ (and the root page) only."""
+    """Read-only HTTP against the live target: GET only, /api/v1/ (and the root page) only, no redirects."""
 
     def __init__(self, base, timeout=20, opener=None):
         self.base = base.rstrip("/")
         self.timeout = timeout
-        self.open = opener or urllib.request.urlopen
+        self.open = opener or urllib.request.build_opener(_NoRedirect).open
         self.calls = []
 
     def get(self, path):

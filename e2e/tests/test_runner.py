@@ -584,6 +584,107 @@ class AdapterParsing(unittest.TestCase):
         self.assertIsNone(live.run_safe("wicked-crew status --json"))
 
 
+class ReviewFindings(unittest.TestCase):
+    """The cross-review's reproductions (wicked-ci#54): each one must stay closed."""
+
+    def test_complete_stream_with_an_unbound_placeholder_is_a_wildcard(self):
+        o = ob.Observations()
+        o.stream("network", True)
+        o.add_event("network", "POST /api/v1/runs/other-run/cancel", {"body": {}})
+        ch = {"kind": "event", "source": "network", "type": "POST /api/v1/runs/{runId}/cancel", "count": {"min": 1}}
+        r = ob.evaluate(ch, o, {}, "c#0")
+        self.assertTrue(r["ok"] and r.get("wildcard"))
+        c = cap("studio-ui.x.y", surface="ui", oracle=dict(ch, complete=True), required_evidence=["video"])
+        self.assertEqual(vd.derive(c, "passed", [dict(r)], "e2e-live", True)[0], "partial")
+        never = dict(ch, count=0)
+        self.assertIsNone(ob.evaluate(never, o, {}, "c#0")["ok"], "a loose forbidden-request hit is not decided")
+        self.assertIs(ob.evaluate(never, o, {"runId": "mine"}, "c#0")["ok"], True)
+
+    def test_the_request_body_must_match(self):
+        o = ob.Observations()
+        o.add_http("POST", "/api/v1/runs", 201, {"workflow": "feature", "problem": "x"}, {"runId": "r"})
+        ch = {"kind": "api", "method": "POST", "path": "/api/v1/runs", "expect": {"status": 201}, "body": {"workflow": "bug"}}
+        self.assertIsNone(ob.evaluate(ch, o, {}, "c#0")["ok"])
+        self.assertIs(ob.evaluate(dict(ch, body={"workflow": "feature"}), o, {}, "c#0")["ok"], True)
+        r = ob.evaluate(dict(ch, body={"workflow": "{wf}"}), o, {}, "c#0")
+        self.assertTrue(r["ok"] and r.get("wildcard"), "an unbound body placeholder ties the hold to nothing")
+        self.assertIs(ob.evaluate(dict(ch, body="{request_body}"), o, {}, "c#0")["ok"], True)
+
+    def test_a_result_cannot_upgrade_its_scenario(self):
+        c = cap("crew-api.a.b", scenarios=[{"ref": "wicked-crew:packages/crew/tests/x.test.ts", "fidelity": "integration"},
+                                         {"ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs", "fidelity": "e2e-hermetic"}])
+        res = {"verdict": "pass", "observed": [{"value": 200, "ok": True}],
+               "scenario": {"ref": "wicked-crew:packages/crew/tests/x.test.ts", "name": None, "fidelity": "e2e-live",
+                            "status": "passed"}}
+        self.assertTrue(any("not the catalog's" in p for p in vd.problems(c, res)))
+        res["scenario"] = dict(res["scenario"], name="nonexistent test", fidelity="integration")
+        self.assertTrue(any("not one of this capability's scenarios" in p for p in vd.problems(c, res)))
+        res["scenario"] = {"ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs", "fidelity": "e2e-hermetic", "status": "passed"}
+        self.assertEqual(vd.problems(c, res), [])
+
+    def test_the_live_client_never_follows_a_redirect(self):
+        import http.server
+        import threading
+        from e2ecat.adapters.direct import LiveClient
+
+        class H(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == "/api/v1/health":
+                    self.send_response(302)
+                    self.send_header("Location", "/outside-api")
+                    self.end_headers()
+                else:
+                    body = b'{"ok": true}'
+                    self.send_response(200)
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+
+            def log_message(self, *a):
+                pass
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+        t = threading.Thread(target=srv.serve_forever, daemon=True)
+        t.start()
+        try:
+            lc = LiveClient("http://127.0.0.1:%d" % srv.server_address[1])
+            r = lc.get("/api/v1/health")
+            self.assertEqual(r["status"], 302)
+            self.assertEqual([c["url"] for c in lc.calls], ["/api/v1/health"])
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
+    @unittest.skipIf(os.name == "nt", "process groups: POSIX (Windows uses taskkill /T)")
+    def test_a_timeout_ends_the_whole_process_tree(self):
+        from e2ecat.adapters import run_logged
+        d = tempfile.mkdtemp()
+        try:
+            pidf = os.path.join(d, "grandchild.pid")
+            code = ("import subprocess, sys, time\n"
+                    "g = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+                    "open(%r, 'w').write(str(g.pid))\n"
+                    "time.sleep(60)\n" % pidf)
+            rc, _ = run_logged([sys.executable, "-c", code], d, dict(os.environ), os.path.join(d, "log"), 3)
+            self.assertIsNone(rc)
+            with open(pidf) as fh:
+                gpid = int(fh.read())
+            import time
+            for _ in range(50):
+                try:
+                    os.kill(gpid, 0)
+                except ProcessLookupError:
+                    break
+                try:
+                    os.waitpid(gpid, os.WNOHANG)
+                except ChildProcessError:
+                    pass
+                time.sleep(0.1)
+            else:
+                self.fail("the grandchild survived the unit timeout")
+        finally:
+            shutil.rmtree(d)
+
+
 class StudioClaims(unittest.TestCase):
     def setUp(self):
         self.d = tempfile.mkdtemp()

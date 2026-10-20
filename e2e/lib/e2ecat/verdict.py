@@ -99,14 +99,22 @@ def problems(cap, res):
             out.append("`pass` needs a scenario that passed (scenario.status is %r)" % scen.get("status"))
         if scen.get("fidelity") not in CERTIFYING:
             out.append("`pass` needs e2e-live or e2e-hermetic fidelity, got %r" % scen.get("fidelity"))
-        refs = {s["ref"] for s in cap.get("scenarios", []) if isinstance(s, dict)}
         if scen.get("ref") == "direct":
             if not read_only(cap):
                 out.append("`pass` from direct reads only: this capability's path must be driven by a scenario")
             if scen.get("fidelity") != "e2e-live":
                 out.append("a direct read certifies only a live target")
-        elif scen.get("ref") not in refs:
-            out.append("the proving scenario %r is not one of this capability's scenarios" % scen.get("ref"))
+        else:
+            # The full identity: the catalog scenario with this ref AND name, and ITS fidelity (a result
+            # cannot upgrade an integration test to e2e-live by saying so).
+            mine = [s for s in cap.get("scenarios", []) if isinstance(s, dict) and s["ref"] == scen.get("ref")
+                    and (s.get("name") or None) == (scen.get("name") or None)]
+            if not mine:
+                out.append("the proving scenario %r%s is not one of this capability's scenarios" % (
+                    scen.get("ref"), " (name %r)" % scen["name"] if scen.get("name") else ""))
+            elif scen.get("fidelity") not in {s.get("fidelity") for s in mine}:
+                out.append("scenario fidelity %r is not the catalog's %s for %s" % (
+                    scen.get("fidelity"), sorted({s.get("fidelity") for s in mine}), scen.get("ref")))
     if v in ("skipped", "error") and not (res.get("skip") or res.get("reason")):
         out.append("`%s` must say why (skip.dep or reason)" % v)
     if v == "skipped":

@@ -265,6 +265,39 @@ def _status_ok(want, got):
     return got in want if isinstance(want, list) else got == want
 
 
+def _subset(want, got, bindings):
+    """(holds, unbound?): every field the check's body names is in the recorded request body, equal."""
+    if isinstance(want, str):
+        w = bind(want, bindings)
+        if unbound(w):
+            return True, True  # a placeholder the run never bound: matches anything, tied to nothing
+        return w == got or str(got) == w, False
+    if isinstance(want, dict):
+        if not isinstance(got, dict):
+            return False, False
+        loose = False
+        for k, v in want.items():
+            if k not in got:
+                return False, False
+            ok, u = _subset(v, got[k], bindings)
+            if not ok:
+                return False, False
+            loose = loose or u
+        return True, loose
+    if isinstance(want, list):
+        return want == got, False
+    return want == got, False
+
+
+def body_matches(ch, h, bindings):
+    """(holds, wildcard) for the check's request `body` against the recorded request.
+    `{request_body}` is the user path's own body, which the scenario (the user path) sent: it holds."""
+    body = ch.get("body")
+    if body is None or body == "{request_body}":
+        return True, False
+    return _subset(body, h.get("req"), bindings)
+
+
 def _api_holds(ch, h):
     exp = ch.get("expect") or {}
     if not _status_ok(exp.get("status"), h["status"]):
@@ -293,7 +326,17 @@ def eval_api(ch, obs, bindings, direct=None, direct_definitive=False):
         cand = [h for h in obs.http if h["method"] == "JSONRPC" and h["url"] == tmpl]
     else:
         cand = [h for h in obs.http if h["method"] == method and request_matches(tmpl, h["url"])]
-    literal = not unbound(tmpl)
+    loose_body = False
+    if cand and ch.get("body") is not None:
+        # The request must be the one the check names: its body too, not only its method and URL.
+        kept = []
+        for h in cand:
+            ok, loose = body_matches(ch, h, bindings)
+            if ok:
+                kept.append(h)
+                loose_body = loose_body or loose
+        cand = kept
+    literal = not unbound(tmpl) and not loose_body
     if cand:
         last = None
         for h in cand:
@@ -360,6 +403,9 @@ def eval_event(ch, obs, bindings):
     complete = all(obs.streams[s]["complete"] for s in recorded)
     typ = bind(ch.get("type", ""), bindings)
     where = {k: (bind(v, bindings) if isinstance(v, str) else v) for k, v in (ch.get("where") or {}).items()}
+    # An unbound {placeholder} in the type or a filter matches ANY resource: the stream may be complete, but
+    # nothing ties a hit to this path's resource.
+    loose = bool(unbound(typ)) or any(isinstance(v, str) and unbound(v) for v in where.values())
     hits = []
     for e in obs.events:
         if e["source"] not in sources:
@@ -371,11 +417,16 @@ def eval_event(ch, obs, bindings):
                 continue
         elif e["type"] != typ:
             continue
-        if all(dig(e["data"], k) == v for k, v in where.items()):
+        if all((isinstance(v, str) and unbound(v)) or dig(e["data"], k) == v for k, v in where.items()):
             hits.append(e)
     ok, txt = _count_ok(ch.get("count"), len(hits), complete)
+    if ok is False and loose:
+        ok, txt = None, txt + " (matched through an unbound placeholder: not decided)"
+    # "never sent to ANY resource" is also "never sent to this one": a loose zero-count hold stays tied.
+    zero = isinstance(ch.get("count"), int) and ch.get("count") == 0
     return _res(ok, {"count": len(hits), "detail": txt, "stream": "complete" if complete else "partial"},
-                "event stream" if complete else "event stream (partial window)", wildcard=not complete)
+                "event stream" if complete else "event stream (partial window)",
+                wildcard=not complete or (loose and not (zero and not hits)))
 
 
 def eval_dom(ch, obs, check_id):

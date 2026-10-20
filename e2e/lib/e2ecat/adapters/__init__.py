@@ -89,19 +89,57 @@ def run_logged(argv, cwd, env, log_path, timeout):
     with open(log_path, "w", encoding="utf-8", errors="replace") as fh:
         fh.write("$ %s\n" % " ".join(argv))
         fh.flush()
+        # Its own process group (a new session on POSIX): a timeout ends the WHOLE tree (run_journeys and
+        # its journey, the smoke harness and its daemon, cargo and rustc), never just the direct child.
+        group = {"start_new_session": True} if os.name != "nt" else {
+            "creationflags": getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)}
         try:
-            p = subprocess.Popen(argv, cwd=cwd, env=env, stdout=fh, stderr=subprocess.STDOUT)
+            p = subprocess.Popen(argv, cwd=cwd, env=env, stdout=fh, stderr=subprocess.STDOUT, **group)
         except OSError as e:
             fh.write("\n[could not start: %s]\n" % e)
             return -1, time.monotonic() - t0
         try:
             rc = p.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            p.kill()
-            p.wait()
-            fh.write("\n[killed after %ss]\n" % timeout)
+            kill_tree(p)
+            fh.write("\n[killed (the whole process tree) after %ss]\n" % timeout)
             rc = None
+        else:
+            kill_tree(p, only_stragglers=True)
     return rc, time.monotonic() - t0
+
+
+def kill_tree(p, only_stragglers=False):
+    """End `p`'s process group (POSIX) or tree (Windows) and wait for it. `only_stragglers`: `p` exited;
+    end anything it left behind in its group (a daemon a harness forgot)."""
+    if os.name == "nt":
+        if not only_stragglers:
+            subprocess.run(["taskkill", "/T", "/F", "/PID", str(p.pid)], capture_output=True)
+        try:
+            p.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pass
+        return
+    import signal
+    for sig, grace in ((signal.SIGTERM, 10), (signal.SIGKILL, 10)):
+        try:
+            os.killpg(p.pid, sig)
+        except (ProcessLookupError, PermissionError):
+            break
+        deadline = time.monotonic() + grace
+        while time.monotonic() < deadline:
+            try:
+                os.killpg(p.pid, 0)
+            except (ProcessLookupError, PermissionError):
+                break
+            time.sleep(0.2)
+        else:
+            continue
+        break
+    try:
+        p.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        pass
 
 
 def read_jsonl(path):
