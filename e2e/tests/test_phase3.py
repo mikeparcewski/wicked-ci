@@ -234,6 +234,51 @@ class ResolveEdges(unittest.TestCase):
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_a_request_cannot_smuggle_arguments_into_a_command(self):
+        import shlex
+        evil = "test studio http://127.0.0.1:7801/${IFS}--out${IFS}X${IFS}--live-journeys;#"
+        out = self.r(evil)
+        self.assertEqual(out["status"], "refused")
+        self.assertEqual(out["commands"], [])
+        self.assertIsNone(out["studio"])
+        out = self.r("test the run page against http://127.0.0.1:7801/studio")
+        argv = shlex.split(out["commands"][0])
+        self.assertEqual(argv[-1], "--plan-only")
+        self.assertEqual(argv[argv.index("--studio") + 1], "http://127.0.0.1:7801/studio")
+        self.assertNotIn("--live-journeys", argv)
+        tmp = tempfile.mkdtemp(prefix="e2e resolve; rm -rf x #")
+        try:
+            write_json(os.path.join(tmp, "run.json"), {"target": "fixture", "capabilities": ["crew-api.runs.cancel"]})
+            write_json(os.path.join(tmp, "crew-api.runs.cancel", "result.json"), {"verdict": "fail"})
+            for c in self.r("summarise the last run", run_dir=tmp)["commands"]:
+                self.assertIn(tmp, shlex.split(c), "the run dir stays one argument")
+            write_json(os.path.join(tmp, "run.json"), {"target": "live", "studio": "http://h:1/$(id)",
+                                                       "capabilities": ["crew-api.runs.cancel"]})
+            out = self.r("re-run what failed", run_dir=tmp)
+            self.assertEqual(out["status"], "refused")
+            self.assertEqual(out["commands"], [])
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_words_inside_an_id_never_pick_the_action(self):
+        for cid in ("studio-ui.launch.plan-preview", "studio-ui.projects.coverage-domain", "crew-api.chats.transcript"):
+            out = self.r("test %s" % cid)
+            self.assertEqual((out["action"], out["status"], out["selection"]), ("run", "resolved", "id:%s" % cid))
+
+    def test_a_rerun_sizes_and_asks_for_the_failed_ids_not_the_request_words(self):
+        tmp = tempfile.mkdtemp(prefix="e2e-resolve-")
+        try:
+            write_json(os.path.join(tmp, "run.json"), {"target": "fixture", "capabilities": ["crew-api.runs.boot-resume"]})
+            write_json(os.path.join(tmp, "crew-api.runs.boot-resume", "result.json"), {"verdict": "error"})
+            out = self.r("re-run what failed in smoke", run_dir=tmp)
+            self.assertEqual(out["selection"], "id:crew-api.runs.boot-resume")
+            self.assertIsNone(out["profile"])
+            self.assertEqual((out["count"], out["cost"]), (1, {"L": 1}))
+            self.assertTrue(out["ask_before_running"])
+            self.assertIn("L x1", out["ask_reasons"][0])
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])

@@ -20,6 +20,7 @@ nothing (it never falls back to "everything").
 import json
 import os
 import re
+import shlex
 
 from .select import SelectError, select
 
@@ -54,6 +55,9 @@ live daemon re-run rerun retry again failed fail failing failures errors error b
 PROFILE_WORDS = {"smoke": "smoke", "daily": "daily", "release": "release", "full": "full"}
 FULL_WORDS = {"everything", "all", "full"}
 
+# What a live URL may look like: scheme, host, optional port and a plain path. Anything else (spaces,
+# quotes, `$`, `;`, `#`, backticks) is refused, so a request can never smuggle arguments into a command.
+SAFE_URL = re.compile(r"^https?://[A-Za-z0-9.\-]+(:\d{1,5})?(/[A-Za-z0-9._~\-/]*)?$")
 TERM = re.compile(r"^!?(area:|tag:|id:|surface=|cost<=|oracle=)\S+$")
 URL = re.compile(r"https?://[^\s'\"<>]+", re.I)
 PORT_ONLY = re.compile(r"(?<![\w.:/]):(\d{2,5})\b")
@@ -162,15 +166,24 @@ def _read_run(run_dir):
     return run, results
 
 
-def _q(expr):
-    return "'%s'" % expr.replace("'", "'\\''")
+def _intent_text(text, vocab):
+    """The request without what names a selection (URLs, ids, id prefixes and globs, literal terms), so a
+    word inside a capability id (`studio-ui.launch.plan-preview`) never picks the action."""
+    words = []
+    for w in URL.sub(" ", text).split():
+        bare = w.strip(".,?!:;()'\"")
+        if TERM.match(bare) or ("." in bare and (bare in vocab.ids or any(ch in bare for ch in "*?[")
+                                                  or any(i.startswith(bare + ".") for i in vocab.ids))):
+            continue
+        words.append(w)
+    return " ".join(words).lower().replace("\u2019", "'")
 
 
 def resolve(request, caps, profiles, run_dir=None):
     vocab = Vocab(caps, profiles)
     text = request.strip()
-    low = text.lower().replace("’", "'")
-    action = next((name for name, rx in INTENTS if rx.search(low)), "run")
+    low = text.lower().replace("\u2019", "'")
+    action = next((name for name, rx in INTENTS if rx.search(_intent_text(text, vocab))), "run")
     url, port, live = _live(text)
     toks = _tokens(text)
     terms, explain, ignored = {}, [], []
@@ -240,7 +253,11 @@ def resolve(request, caps, profiles, run_dir=None):
            "selection": expr or None, "profile": profile, "target": "live" if live else "fixture",
            "studio": url, "needs": [], "ask_before_running": False, "ask_reasons": [], "count": None,
            "cost": {}, "areas": {}, "commands": []}
-    if live and port in OPERATOR_PORTS:
+    if live and url and not SAFE_URL.match(url):
+        out["status"] = "refused"
+        out["needs"].append("the live URL %r is not a plain http(s)://host[:port][/path] URL" % url)
+        out["studio"] = None
+    elif live and port in OPERATOR_PORTS:
         out["status"] = "refused"
         out["needs"].append("a throwaway daemon: %s is an operator daemon port (%d); the runner refuses it "
                             "without --allow-daemon-port. Start `wicked-crew serve --port <free>` with its own "
@@ -262,10 +279,15 @@ def resolve(request, caps, profiles, run_dir=None):
             out["status"] = "no-match"
             out["needs"].append("nothing to re-run: no capability in that run is fail or error")
         expr = "id:" + ",".join(bad) if bad else ""
+        profile = None  # the re-run is exactly the failed ids, whatever topic or profile words the request had
         out["selection"], out["profile"] = expr or None, None
-        out["target"] = run.get("target") or out["target"]
+        out["target"] = run.get("target") if run.get("target") in ("fixture", "live") else out["target"]
         out["studio"] = run.get("studio") or out["studio"]
-        if out["target"] == "live" and out["studio"]:
+        if out["studio"] and not SAFE_URL.match(str(out["studio"])):
+            out["status"] = "refused"
+            out["needs"].append("the earlier run's studio URL is not a plain http(s) URL")
+            out["studio"] = None
+        elif out["target"] == "live" and out["studio"]:
             p = re.search(r":(\d+)(/|$)", out["studio"].split("//", 1)[-1])
             if p and int(p.group(1)) in OPERATOR_PORTS:
                 out["status"] = "refused"
@@ -308,31 +330,34 @@ def resolve(request, caps, profiles, run_dir=None):
 
 def _sel_args(out):
     if out["profile"]:
-        return "--profile %s" % out["profile"]
-    return "--select %s" % _q(out["selection"]) if out["selection"] else None
+        return ["--profile", out["profile"]]
+    return ["--select", out["selection"]] if out["selection"] else None
 
 
 def _commands(out, run_dir):
+    """Each command is an argv list joined with shell quoting, so no part of the request, a run directory
+    or an earlier run's URL can add, drop or reorder an argument."""
     a, cmds = out["action"], []
     rd = run_dir or "RUN_DIR"
-    tgt = "--target %s%s" % (out["target"], " --studio %s" % out["studio"] if out["target"] == "live" and out["studio"] else "")
+    tgt = ["--target", out["target"]] + (["--studio", out["studio"]] if out["target"] == "live" and out["studio"] else [])
     sel = _sel_args(out)
+    base = ["--baseline", "e2e/coverage-baseline.json"]
     if a in ("run", "plan", "rerun") and sel:
-        cmds.append("e2e run %s %s --out PLAN_DIR --plan-only" % (sel, tgt))
+        cmds.append(["e2e", "run"] + sel + tgt + ["--out", "PLAN_DIR", "--plan-only"])
         if a != "plan":
-            cmds.append("e2e run %s %s --out NEW_RUN_DIR --src CHECKOUTS_DIR" % (sel, tgt))
-            cmds.append("e2e validate --report NEW_RUN_DIR --baseline e2e/coverage-baseline.json")
+            cmds.append(["e2e", "run"] + sel + tgt + ["--out", "NEW_RUN_DIR", "--src", "CHECKOUTS_DIR"])
+            cmds.append(["e2e", "validate", "--report", "NEW_RUN_DIR"] + base)
     elif a == "validate-coverage":
-        cmds.append("e2e validate --baseline e2e/coverage-baseline.json --out COVERAGE_DIR")
+        cmds.append(["e2e", "validate"] + base + ["--out", "COVERAGE_DIR"])
     elif a == "validate-report":
-        cmds.append("e2e validate --report %s --baseline e2e/coverage-baseline.json" % rd)
+        cmds.append(["e2e", "validate", "--report", rd] + base)
     elif a == "report":
-        cmds += ["e2e report %s" % rd, "e2e validate --report %s --baseline e2e/coverage-baseline.json" % rd]
+        cmds += [["e2e", "report", rd], ["e2e", "validate", "--report", rd] + base]
     elif a == "evidence":
         ids = [x for x in (out["selection"] or "").split() if x.startswith("id:")]
-        cid = ids[0][3:].split(",")[0] if ids and "*" not in ids[0] else "CAP_ID"
-        cmds.append("e2e evidence %s %s" % (rd, cid))
-    return cmds
+        cid = ids[0][3:].split(",")[0] if ids and not any(ch in ids[0] for ch in "*?[") else "CAP_ID"
+        cmds.append(["e2e", "evidence", rd, cid])
+    return [shlex.join(c) for c in cmds]
 
 
 def render(out):

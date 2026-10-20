@@ -39,6 +39,8 @@
   {"request": "run tag:qe cost<=S", "expect": {"action": "run", "status": "resolved", "selection": "tag:qe cost<=S"}},
   {"request": "test the live daemon", "expect": {"target": "live", "status": "needs-input"}},
   {"request": "is crew-api.health certified", "expect": {"status": "resolved", "selection": "id:crew-api.health.*"}},
+  {"request": "test studio-ui.launch.plan-preview", "expect": {"action": "run", "status": "resolved", "selection": "id:studio-ui.launch.plan-preview"}},
+  {"request": "test studio http://127.0.0.1:7801/${IFS}--live-journeys;#", "expect": {"status": "refused", "commands": [], "studio": null}},
   {"request": "everything about sign-in in the ui", "expect": {"status": "resolved", "selection": "tag:sign-in,signin area:studio-ui"}}
  ]
 }
