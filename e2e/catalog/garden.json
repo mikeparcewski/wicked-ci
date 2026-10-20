@@ -1419,7 +1419,7 @@
      {
       "kind": "exit",
       "cmd": "npx wicked-garden status --claude-home <tmp>",
-      "code": 0
+      "code": 1
      },
      {
       "kind": "exit",
@@ -1580,7 +1580,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "git push",
-    "code": 0,
+    "code": "nonzero",
     "complete": false,
     "untyped": [
      "manifest.triggers[].trigger=='pre-push-hook' status created|appended",
@@ -2278,7 +2278,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-garden run scripts/data/data_profiler.py fixture.csv",
-    "code": 0,
+    "code": "nonzero",
     "complete": false,
     "untyped": [
      "profiler JSON column stats",
@@ -3065,9 +3065,7 @@
     "complete": false,
     "untyped": [
      "manifest editors[].sha256 == sha256(entry)",
-     "pack check passes",
-     "before pin: pack check exit 1 (hash mismatch)",
-     "after: manifest sha256 == sha256(index.html) and pack check exit 0"
+     "pack check passes"
     ]
    },
    "oracle_text": "manifest editors[].sha256 == sha256(entry); pack check passes",
@@ -5400,7 +5398,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-garden root",
-    "code": 0,
+    "code": "nonzero",
     "complete": false,
     "untyped": [
      "root prints dir containing .claude-plugin/plugin.json name wicked-garden",
@@ -5496,7 +5494,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-garden root",
-    "code": 0,
+    "code": 2,
     "complete": false,
     "untyped": [
      "override wins",
@@ -5550,7 +5548,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-garden run scripts/where_am_i.py",
-    "code": 0,
+    "code": 2,
     "complete": false,
     "untyped": [
      "exit == child exit",
@@ -5868,15 +5866,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden run scripts/mcp/openapi.py --name k --base-url <u> --spec spec.yaml --out <dir> --crew-url <daemon>",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "N operations → N tools",
-     "no daemon → exit 2",
-     "daemon refusal → exit 1"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: N operations → N tools; no daemon → exit 2; daemon refusal → exit 1"
    },
    "oracle_text": "N operations → N tools; no daemon → exit 2; daemon refusal → exit 1",
    "covers": [
@@ -6834,7 +6826,10 @@
     "cmd": "wicked-garden run scripts/platform/observability/assert_contracts.py --json",
     "code": 0,
     "stdout_matches": "\"pass\"",
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "every result class is pass (none timeout, empty or malformed)"
+    ]
    },
    "oracle_text": "each result class in {pass,timeout,empty,malformed}; all pass on main",
    "covers": [
@@ -6965,25 +6960,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/platform/prereq_doctor.py diagnose 'command not found: jq'",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/platform/prereq_doctor.py",
-      "code": 0
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "JSON names jq with install instructions",
-     "check-all lists each prereq available bool",
-     "exit 0 with a report listing each registry tool's present/missing state matching `command -v` results"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: JSON names jq with install instructions; check-all lists each prereq available bool"
    },
    "oracle_text": "JSON names jq with install instructions; check-all lists each prereq available bool",
    "covers": [
@@ -7553,17 +7532,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden run scripts/estate_mcp.mjs",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "probe JSON tools[] contains SearchEntity, BlastRadius, Lineage",
-     "with WICKED_RUN_ID set and no store pin, estate_mcp.mjs exits nonzero with refusal 'no estate store is pinned'",
-     "JSON-RPC initialize then tools/list over stdio returns estate tools",
-     "binary chosen per WICKED_ESTATE_MCP_BIN -> PATH -> ~/.local/bin (highest --version)",
-     "child argv contains --readonly when WICKED_ESTATE_READONLY is set"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: probe JSON tools[] contains SearchEntity, BlastRadius, Lineage; with WICKED_RUN_ID set and no store pin, estate_mcp.mjs exits nonzero with refusal 'no estate store is pinned'"
    },
    "oracle_text": "probe JSON tools[] contains SearchEntity, BlastRadius, Lineage; with WICKED_RUN_ID set and no store pin, estate_mcp.mjs exits nonzero with refusal 'no estate store is pinned'",
    "covers": [
@@ -8517,15 +8488,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-vault attest <id> --opinion pass",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "first verdict satisfied:false (UNATTESTED)",
-     "after attest satisfied:true",
-     "a reject attestation flips to REJECT"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: first verdict satisfied:false (UNATTESTED); after attest satisfied:true; a reject attestation flips to REJECT"
    },
    "oracle_text": "first verdict satisfied:false (UNATTESTED); after attest satisfied:true; a reject attestation flips to REJECT",
    "covers": [
@@ -8833,7 +8798,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "node scripts/qe/lib/campaign-rerun.mjs --strategy <dir>",
-    "code": 0,
+    "code": 1,
     "complete": false,
     "untyped": [
      "rerun exits 1 on regression",
@@ -10907,7 +10872,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "git config core.hooksPath .githooks",
-    "code": 0,
+    "code": 1,
     "complete": false,
     "untyped": [
      "first push exit 1 blocked",

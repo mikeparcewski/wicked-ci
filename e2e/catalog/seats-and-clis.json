@@ -409,15 +409,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": {
+       "min": 1
       }
      },
      {

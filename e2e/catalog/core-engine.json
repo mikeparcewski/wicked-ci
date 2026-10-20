@@ -586,15 +586,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core domain-graph [--coverage F] [--out F]",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit code",
-     "output validates against domain model schema",
-     "recompute beats a supplied coverage file"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit code; output validates against domain model schema; recompute beats a supplied coverage file"
    },
    "oracle_text": "exit code; output validates against domain model schema; recompute beats a supplied coverage file",
    "covers": [
@@ -895,7 +889,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-core output-gate-hook --scope S --phase P",
-    "code": 0,
+    "code": 2,
     "complete": false,
     "untyped": [
      "exit 2 when WICKED_DECISIONS_PATH unset (fail closed)",
@@ -1145,17 +1139,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core rules recall [--type security] [--severity ...] [--project P] [--json]",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "JSON order critical→info then weight desc then id",
-     "--project scopes project rules",
-     "malformed --project refused",
-     "retired rows only under --include-retired",
-     "empty is a diagnostic not an error"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: JSON order critical→info then weight desc then id; --project scopes project rules; malformed --project refused; retired rows only under --include-retired; empty is a diagnostic not an error"
    },
    "oracle_text": "JSON order critical→info then weight desc then id; --project scopes project rules; malformed --project refused; retired rows only under --include-retired; empty is a diagnostic not an error",
    "covers": [
@@ -1239,13 +1225,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core rules scoreboard",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "retired id absent from `rules recall --json`, present in `rules list --include-retired --json` with retired flag"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: retired id absent from `rules recall --json`, present in `rules list --include-retired --json` with retired flag"
    },
    "oracle_text": "retired id absent from `rules recall --json`, present in `rules list --include-retired --json` with retired flag",
    "covers": [
@@ -1393,7 +1375,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-core seat-image status",
-    "code": 0,
+    "code": 2,
     "complete": false,
     "untyped": [
      "stdout lines per CLI with present/missing",
@@ -1437,16 +1419,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core seat-login argv <claude|codex|pi|opencode|copilot>",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "stdout parses as JSON string array",
-     "unsupported cli or bad verb exits 2 without echoing args",
-     "missing gateway dir exits 1 naming WICKED_SEAT_GATEWAY_DIR",
-     "host-login CLI absent on PATH exits 1 'is not installed on this host'"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: stdout parses as JSON string array; unsupported cli or bad verb exits 2 without echoing args; missing gateway dir exits 1 naming WICKED_SEAT_GATEWAY_DIR; host-login CLI absent on PATH exits 1 'is not installed on this host'"
    },
    "oracle_text": "stdout parses as JSON string array; unsupported cli or bad verb exits 2 without echoing args; missing gateway dir exits 1 naming WICKED_SEAT_GATEWAY_DIR; host-login CLI absent on PATH exits 1 'is not installed on this host'",
    "covers": [
@@ -1788,7 +1763,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-core provision-validator --criterion \"...\"",
-    "code": 0,
+    "code": "nonzero",
     "complete": false,
     "untyped": [
      "missing --criterion / --pin exits non-zero with usage",
@@ -1991,15 +1966,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "claude setup-token",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "seat reaches model",
-     "gateway config has no claude provider key",
-     "refresh for claude reports nothing to renew"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: seat reaches model; gateway config has no claude provider key; refresh for claude reports nothing to renew"
    },
    "oracle_text": "seat reaches model; gateway config has no claude provider key; refresh for claude reports nothing to renew",
    "covers": [],

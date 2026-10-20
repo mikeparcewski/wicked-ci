@@ -15,12 +15,16 @@ on:
     branches: [main]
     paths:
       - 'e2e/**'
-      - '.github/workflows/e2e-catalog.yml'
+      - 'smoke/**'          # the catalog cites smoke steps as scenarios; a renamed step must fail here
+      - '.github/workflows/**'
+      - 'docs-lint/tests/**'
   push:
     branches: [main]
     paths:
       - 'e2e/**'
-      - '.github/workflows/e2e-catalog.yml'
+      - 'smoke/**'          # the catalog cites smoke steps as scenarios; a renamed step must fail here
+      - '.github/workflows/**'
+      - 'docs-lint/tests/**'
   schedule:
     - cron: '17 6 * * *'
   workflow_dispatch:

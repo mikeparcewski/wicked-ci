@@ -574,14 +574,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus status",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "non-zero exit with message 'Invalid config: dedup_ttl_hours (168) must be <= ttl_hours (72)'",
-     "policy error names allowed values"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: non-zero exit with message 'Invalid config: dedup_ttl_hours (168) must be <= ttl_hours (72)'; policy error names allowed values"
    },
    "oracle_text": "non-zero exit with message 'Invalid config: dedup_ttl_hours (168) must be <= ttl_hours (72)'; policy error names allowed values",
    "covers": [
@@ -701,16 +696,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus replay --cursor-id C --from-event-id K",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "cursor last_event_id == K-1 after replay",
-     "next subscribe yields first id K",
-     "unknown cursor exit 6 stderr WB-006",
-     "K < MIN(event_id) exit 3 stderr WB-003"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: cursor last_event_id == K-1 after replay; next subscribe yields first id K; unknown cursor exit 6 stderr WB-006; K < MIN(event_id) exit 3 stderr WB-003"
    },
    "oracle_text": "cursor last_event_id == K-1 after replay; next subscribe yields first id K; unknown cursor exit 6 stderr WB-006; K < MIN(event_id) exit 3 stderr WB-003",
    "covers": [
@@ -747,16 +735,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus daemon start --detached",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "start JSON has pid",
-     "status JSON shows socket path (<dataDir> socket from socketPath()) existing and pid alive",
-     "second start reports prior_pid lock conflict",
-     "after stop, pid not alive and status reports not running"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: start JSON has pid; status JSON shows socket path (<dataDir> socket from socketPath()) existing and pid alive; second start reports prior_pid lock conflict; after stop, pid not alive and status reports not running"
    },
    "oracle_text": "start JSON has pid; status JSON shows socket path (<dataDir> socket from socketPath()) existing and pid alive; second start reports prior_pid lock conflict; after stop, pid not alive and status reports not running",
    "covers": [
@@ -903,16 +884,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus dlq drop --dl-id D",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "stdout {dropped:true,dl_id:D}",
-     "dead_letters row gone",
-     "second drop exits 6 WB-006",
-     "missing --dl-id exits 1 WB-001"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: stdout {dropped:true,dl_id:D}; dead_letters row gone; second drop exits 6 WB-006; missing --dl-id exits 1 WB-001"
    },
    "oracle_text": "stdout {dropped:true,dl_id:D}; dead_letters row gone; second drop exits 6 WB-006; missing --dl-id exits 1 WB-001",
    "covers": [
@@ -996,7 +970,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-bus dlq replay --dl-id D --dry-run",
-    "code": 0,
+    "code": 6,
     "complete": false,
     "untyped": [
      "dry-run JSON .dry_run==true and .would_replay.dl_id==D with dead_letters unchanged",
@@ -1258,7 +1232,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-bus emit --domain e2e --payload '{}'",
-    "code": 0,
+    "code": 1,
     "complete": false,
     "untyped": [
      "exit 1",
@@ -1464,7 +1438,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-bus register --plugin prov --role provider",
-    "code": 0,
+    "code": 1,
     "complete": false,
     "untyped": [
      "list JSON contains prov before deregister, absent after",
@@ -1525,7 +1499,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-bus cleanup --unacked-policy archive",
-    "code": 0,
+    "code": "nonzero",
     "complete": false,
     "untyped": [
      "archive: owed expired row moved to events_archive (count +1) and gone from events",
@@ -1626,15 +1600,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus dlq list --plugin p4",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "delivery_attempts row persists across restart (attempts counter continues, not reset)",
-     "after exhaustion dead_letters row with attempts==3, last_error=='boom', cursor acked past the event",
-     "`dlq list` JSON has that event_id"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: delivery_attempts row persists across restart (attempts counter continues, not reset); after exhaustion dead_letters row with attempts==3, last_error=='boom', cursor acked past the event; `dlq list` JSON has that event_id"
    },
    "oracle_text": "delivery_attempts row persists across restart (attempts counter continues, not reset); after exhaustion dead_letters row with attempts==3, last_error=='boom', cursor acked past the event; `dlq list` JSON has that event_id",
    "covers": [
@@ -1947,19 +1915,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus ui --port 0",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "/healthz 200 {ok:true}",
-     "/api/info 401 without token, 200 with",
-     "POST -> 405",
-     "foreign Origin refused",
-     "ui-token file mode 0600",
-     "--rotate-token changes token bytes",
-     "wrong-UID token -> WB-011"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: /healthz 200 {ok:true}; /api/info 401 without token, 200 with; POST -> 405; foreign Origin refused; ui-token file mode 0600; --rotate-token changes token bytes; wrong-UID token -> WB-011"
    },
    "oracle_text": "/healthz 200 {ok:true}; /api/info 401 without token, 200 with; POST -> 405; foreign Origin refused; ui-token file mode 0600; --rotate-token changes token bytes; wrong-UID token -> WB-011",
    "covers": [
@@ -3391,7 +3349,7 @@
      {
       "kind": "exit",
       "cmd": "wicked-garden run scripts/compiler/compile.py <repo> --trigger hook,ci",
-      "code": 0
+      "code": "nonzero"
      },
      {
       "kind": "file",
@@ -3488,28 +3446,9 @@
     "vault-entry"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/qe/prove.py tests-pass --by \"node -e 'process.exit(0)'\"",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/qe/prove.py tests-pass --by \"pytest -q\"",
-      "code": 0
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "pass: exit 0 and vault cross-check overall PASS for the claim",
-     "fail: exit 1 REJECT",
-     "unresolvable: exit 3 JSON gate 'unavailable' (fail-closed)",
-     "passing cmd → exit 0, JSON satisfied:true re_derived:true",
-     "failing cmd → exit 1 satisfied:false",
-     "vault entry in .wicked-vault/entries"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: pass: exit 0 and vault cross-check overall PASS for the claim; fail: exit 1 REJECT; unresolvable: exit 3 JSON gate 'unavailable' (fail-closed)"
    },
    "oracle_text": "pass: exit 0 and vault cross-check overall PASS for the claim; fail: exit 1 REJECT; unresolvable: exit 3 JSON gate 'unavailable' (fail-closed)",
    "covers": [
@@ -4607,16 +4546,9 @@
     "vault-entry"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-vault list --scope s",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "no vault: list -> [] exit 0",
-     "verify -> exit 1 code 'VAULT_NOT_FOUND'",
-     "cross-check -> overall 'FAIL' code VAULT_NOT_FOUND exit 1",
-     "in vault list filters by scope/phase"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: no vault: list -> [] exit 0; verify -> exit 1 code 'VAULT_NOT_FOUND'; cross-check -> overall 'FAIL' code VAULT_NOT_FOUND exit 1; in vault list filters by scope/phase"
    },
    "oracle_text": "no vault: list -> [] exit 0; verify -> exit 1 code 'VAULT_NOT_FOUND'; cross-check -> overall 'FAIL' code VAULT_NOT_FOUND exit 1; in vault list filters by scope/phase",
    "covers": [
@@ -4981,15 +4913,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "sh -c 'exit 1'",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "verify JSON status=='fail' detail 'exit_code=1 != 0', exit 1",
-     "passing command -> status 'pass', exit 0",
-     "an --artifact capture -> 'payload carries no exit_code'"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: verify JSON status=='fail' detail 'exit_code=1 != 0', exit 1; passing command -> status 'pass', exit 0; an --artifact capture -> 'payload carries no exit_code'"
    },
    "oracle_text": "verify JSON status=='fail' detail 'exit_code=1 != 0', exit 1; passing command -> status 'pass', exit 0; an --artifact capture -> 'payload carries no exit_code'",
    "covers": [],
@@ -5056,14 +4982,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "echo 'ok 5 passed'",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "regex present -> pass/exit0, absent -> fail/exit1",
-     "not_contains clean -> pass, dirty -> fail detail 'forbidden /ERROR/ is present'"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: regex present -> pass/exit0, absent -> fail/exit1; not_contains clean -> pass, dirty -> fail detail 'forbidden /ERROR/ is present'"
    },
    "oracle_text": "regex present -> pass/exit0, absent -> fail/exit1; not_contains clean -> pass, dirty -> fail detail 'forbidden /ERROR/ is present'",
    "covers": [],

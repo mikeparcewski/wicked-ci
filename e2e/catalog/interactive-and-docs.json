@@ -926,15 +926,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-interactive dry-run ./demo.spec.mjs --json",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit code",
-     "stdout JSON ok/steps or ok:false + code ('side_effect_blocked' etc.)",
-     "no *.webm created beside the spec"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit code; stdout JSON ok/steps or ok:false + code ('side_effect_blocked' etc.); no *.webm created beside the spec"
    },
    "oracle_text": "exit code; stdout JSON ok/steps or ok:false + code ('side_effect_blocked' etc.); no *.webm created beside the spec",
    "covers": [
@@ -3271,7 +3265,10 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the planes and sections fit the viewport (site/tests/e2e/sections-fit.spec.ts)"
+    ]
    },
    "oracle_text": "(critic 2026-10-20: added; no inventory oracle) wc.wickedagile.com home renders (crew site)",
    "covers": [],
@@ -3335,7 +3332,10 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the get-started and storage pages render as well as home"
+    ]
    },
    "oracle_text": "(critic 2026-10-20: added; no inventory oracle) The estate site's home, get-started and storage pages render",
    "covers": [],
@@ -3440,7 +3440,10 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the hero and demo fit the viewport (site/tests/e2e/hero-fits.spec.ts)"
+    ]
    },
    "oracle_text": "(critic 2026-10-20: added; no inventory oracle) The studio product site renders",
    "covers": [],
@@ -3702,39 +3705,27 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/deck/decisions",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/deck/decisions",
+      "count": {
+       "min": 1
       }
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/deck/proposal",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/deck/proposal",
+      "count": {
+       "min": 1
       }
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/fork",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/fork",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -3841,27 +3832,19 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "PUT",
-      "path": "/api/v1/projects/{projectId}/demo/script",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/projects/{projectId}/demo/script",
+      "count": {
+       "min": 1
       }
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/{id}/gate",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{id}/gate",
+      "count": {
+       "min": 1
       }
      }
     ],

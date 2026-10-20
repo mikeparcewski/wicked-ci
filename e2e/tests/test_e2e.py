@@ -116,7 +116,10 @@ class CatalogChecks(unittest.TestCase):
         fails, _ = self.run_check(cap(scenarios=[{"ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs", "fidelity": "e2e-hermetic"}]))
         self.assertEqual(fails, [])
         fails, _ = self.run_check(cap(scenarios=[{"ref": "wicked-ci:smoke/lib/steps/S99.mjs", "fidelity": "e2e-hermetic"}]))
-        self.assertTrue(any("does not exist in this checkout" in f for f in fails), fails)
+        self.assertTrue(any("is not a test file in this checkout" in f for f in fails), fails)
+        for not_a_test in ("wicked-ci:README.md", "wicked-ci:smoke/fixtures/corpus/src/add.js", "wicked-ci:e2e/profiles.json"):
+            fails, _ = self.run_check(cap(scenarios=[{"ref": not_a_test, "fidelity": "e2e-live"}]))
+            self.assertTrue(any("is not a test file in this checkout" in f for f in fails), (not_a_test, fails))
 
     def test_value_asserts_need_values(self):
         fails, _ = self.run_check(cap(oracle={"kind": "dom", "selector": "x", "assert": "count", "complete": True}))

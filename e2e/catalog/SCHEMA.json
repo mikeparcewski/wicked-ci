@@ -211,7 +211,7 @@
     "kind",
     "type"
    ],
-   "description": "An engine CoreEvent, bus row, ws frame or log line observed during the path.",
+   "description": "An engine CoreEvent, bus row, ws frame, log line or (source network) a request the UI sent, read from the browser's network transcript: type is 'METHOD /path', where matches request-body fields (body.x), count 0 asserts the request was never sent.",
    "properties": {
     "kind": {
      "const": "event"
@@ -223,7 +223,8 @@
       "ws",
       "interactive",
       "hook-log",
-      "transcript"
+      "transcript",
+      "network"
      ]
     },
     "type": {

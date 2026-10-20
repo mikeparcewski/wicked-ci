@@ -34,8 +34,10 @@ against a product. The runner, the evidence capture and the skills are phases 2 
   - every surface element covered (unmapped elements fail by repo, with a ratchet baseline that
     only shrinks);
   - every scenario reference a real test file at the pin;
+  - oracle semantics: comparisons carry values, nothing is vacuous, every typed oracle states
+    `complete`, and a UI oracle with no dom check is never complete;
   - `--report <run-dir>`, which checks a phase 2 run for verdicts, observed values and non-empty
-    evidence (UI needs a `.webm`).
+    evidence (UI needs a `.webm`; symlinks may not leave the run dir).
 - **`e2e select`**: the selection language (`area:`, `tag:`, `id:` glob, `surface=`, `cost<=`,
   `oracle=`, `!`), and `e2e/profiles.json` (`smoke`, `daily`, `release`, `full`).
 - **`.github/workflows/e2e-catalog.yml`**:

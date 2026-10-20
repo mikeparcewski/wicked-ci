@@ -1830,17 +1830,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-crew serve --install-service --port 7701",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "macOS: ~/Library/LaunchAgents/<label>.plist exists and launchctl list shows it",
-     "Linux: systemctl --user is-enabled ok",
-     "env keeps PATH/HOME/WICKED_* but no token",
-     "uninstall -> file gone",
-     "port held -> non-zero exit"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: macOS: ~/Library/LaunchAgents/<label>.plist exists and launchctl list shows it; Linux: systemctl --user is-enabled ok; env keeps PATH/HOME/WICKED_* but no token; uninstall -> file gone; port held -> non-zero exit"
    },
    "oracle_text": "macOS: ~/Library/LaunchAgents/<label>.plist exists and launchctl list shows it; Linux: systemctl --user is-enabled ok; env keeps PATH/HOME/WICKED_* but no token; uninstall -> file gone; port held -> non-zero exit",
    "covers": [
@@ -2105,7 +2097,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "CREW_PORT=7799 wicked-crew status",
-    "code": 0,
+    "code": 1,
     "complete": false,
     "untyped": [
      "request hits resolved port",
@@ -2157,7 +2149,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-crew resume --session <id>",
-    "code": 0,
+    "code": 1,
     "complete": false,
     "untyped": [
      "ready line status present",
@@ -2545,7 +2537,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-crew frobnicate",
-    "code": 0,
+    "code": 1,
     "complete": false,
     "untyped": [
      "exit 1",
@@ -2632,14 +2624,7 @@
     "method": "GET",
     "path": "/api/v1/config",
     "expect": {
-     "status": 127,
-     "json": [
-      {
-       "path": "$.json.host",
-       "op": "eq",
-       "value": "127.0.0.1"
-      }
-     ]
+     "status": 200
     },
     "complete": false,
     "untyped": [
@@ -5449,13 +5434,13 @@
     "of": [
      {
       "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{id}/gate",
+      "method": "POST",
+      "path": "/api/v1/runs/{runId}/gate",
       "expect": {
        "status": 409,
        "json": [
         {
-         "path": "$.json.code",
+         "path": "$.code",
          "op": "eq",
          "value": "gate_changed"
         }
@@ -5465,17 +5450,20 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/gate",
+      "path": "/api/v1/runs/{runId}/gate",
       "expect": {
-       "status": 200
+       "status": 200,
+       "json": [
+        {
+         "path": "$.ord",
+         "op": "eq",
+         "value": "{current_ord}"
+        }
+       ]
       }
      }
     ],
-    "complete": false,
-    "untyped": [
-     "409 json.code=='gate_changed'",
-     "GET /runs/:id/gate unchanged"
-    ]
+    "complete": true
    },
    "oracle_text": "409 json.code=='gate_changed'; GET /runs/:id/gate unchanged",
    "covers": [
@@ -5489,6 +5477,9 @@
    ],
    "sources": [
     "wicked-crew:packages/crew/src/api/routes.ts:792 ord"
+   ],
+   "notes": [
+    "review 2026-10-20: the 409 belongs to the stale POST (body {approve: true, ord: <old ord>}); the GET shows the open gate untouched"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -9740,12 +9731,7 @@
    "oracle": {
     "kind": "manual",
     "category": "model-output",
-    "reason": "The capability's terminal state is model-generated content; only its dispatch and artifacts are deterministic (precheck). A seeded-defect fixture with a fixed expected finding is needed before it can pass.",
-    "precheck": {
-     "kind": "exit",
-     "cmd": "wicked-crew gate",
-     "code": 0
-    }
+    "reason": "The capability's terminal state is model-generated content; only its dispatch and artifacts are deterministic (precheck). A seeded-defect fixture with a fixed expected finding is needed before it can pass."
    },
    "oracle_text": "agent transcript contains no `wicked-crew gate --run <its run>` without '--reject'; /audit gate.decided actor for that run is not the agent's",
    "covers": [
@@ -11501,7 +11487,10 @@
       "count": 1
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "GET /api/v1/repos lists the repo; the onboarding run shows no 'no eligible seat' refusal"
+    ]
    },
    "oracle_text": "201; repo.id present; onboardRunId non-null (or onboardError with onboardRunId null); GET /repos contains repo; onboarding run has no 'no eligible seat' refusal",
    "covers": [

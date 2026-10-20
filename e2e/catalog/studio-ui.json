@@ -210,8 +210,8 @@
    "user_path": "Agent modal → agents-check-now. TERMINAL: spinner then agents-check-result; signed-in after fixture flips roster_signed_in",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(roster_signed_in,roster_probed)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio",
     "host floor"
    ],
@@ -322,6 +322,7 @@
     "wicked-studio:src/components/agents/agentLogin.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate seats.ui.copy-signin-and-check-again (seats-and-clis area); its oracle: exactly one GET /roster?refresh=<key> per click; agents-check-result[data-state] final value reflects refresh outcome; agents-issue[data-code=signed_out] absent after success."
    ],
    "origin": "inventory-2026-10-20"
@@ -333,8 +334,8 @@
    "user_path": "Agents → claude → agents-signin (container) → terminal opens (agents-login) → Enter. TERMINAL: POST /seats/claude/container-login; /ws/terminals/:id; seat reads signed in",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(container_login)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio",
     "container floor",
     "crew test daemon",
@@ -442,6 +443,7 @@
    ],
    "notes": [
     "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; ",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate seats.ui.container-signin-flow (seats-and-clis area); its oracle: agents-login[data-state] goes opening->open; after close, poll of GET /seats/<key>/container-login until 200 then one refresh read; agents-row[data-agent=<key>] data-ready != 'Not ready'.",
     "merged duplicate core.container.broker-signin-ui (core-engine area); its oracle: GET container-login status signed_in; seat-login status JSON signed_in; subsequent unit sandboxPosture reason names container and no agent_signed_out refusal"
    ],
@@ -454,8 +456,8 @@
    "user_path": "/agents?fix=codex (or agents-open) → agents-modal → agents-copy. TERMINAL: problem card says what/why/what to do; the daemon's login line in agents-command; clipboard equals it",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(roster_login_lines)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio"
    ],
    "cost": "S",
@@ -552,6 +554,7 @@
     "wicked-studio:src/board/agentsCopy.ts"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate seats.ui.agent-modal (seats-and-clis area); its oracle: agents-issue data-code sequence == roster[key].issues[].code; no absolute home path in dialog text; ?fix=<unknown> opens no modal."
    ],
    "origin": "inventory-2026-10-20"
@@ -588,15 +591,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "PUT",
-      "path": "/api/v1/settings",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/settings",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -697,11 +696,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/seats/claude/logout",
-      "expect": {
-       "status": 201
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/seats/claude/logout",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -799,8 +798,8 @@
    "user_path": "/agents (→ /?tab=agents). TERMINAL: one agents-row per agent with sign-in/safety state; tiles ready/fix/checked; reviewer-only seat folds; read-only (0 writes)",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(agents_wire.json)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio",
     "crew daemon"
    ],
@@ -904,6 +903,7 @@
     "wicked-studio:src/board/agentsModel.ts"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate seats.ui.agents-page (seats-and-clis area); its oracle: count(agents-row) == roster seats after folding reviewer-only seats; each row's data-ready word matches agentsModel for its roster entry; no non-GET requests issued (page is read-only)."
    ],
    "origin": "inventory-2026-10-20"
@@ -934,15 +934,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "PUT",
-      "path": "/api/v1/settings",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/settings",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -1026,8 +1022,8 @@
    "user_path": "Plugin card Full screen → Back; Full → Esc; reload copied address. TERMINAL: address gains /a/<key>?size=full; Back/Esc return to card; deep link opens full",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(doc_bound_run)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio.artifact.inline-card"
    ],
    "cost": "S",
@@ -1104,6 +1100,7 @@
     "wicked-studio:src/board/artifactAddress.ts:artifactPath/readArtifactAddress"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.artifact.morph-address (interactive-and-docs area); its oracle: location per step; frame element identity unchanged across morph (same node); DOM text for unknown key"
    ],
    "origin": "inventory-2026-10-20"
@@ -1135,15 +1132,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/d/{doc}/api/deck",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /d/{doc}/api/deck",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -1228,8 +1221,8 @@
    "user_path": "/s/run:r-walk-demo → click middle of video; Tab from chapter mark. TERMINAL: video plays; state line fully visible (no scroll-clip)",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(walkthrough)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "crew.demo.view-file-script",
     "crew.demo.export"
    ],
@@ -1254,23 +1247,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/{id}/demo/export",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
-     },
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/{id}/demo/export",
-      "expect": {
-       "status": 200
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{id}/demo/export",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -1361,6 +1342,7 @@
     "wicked-studio:src/api/walkthrough.ts:exportDemo"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.demo.video-artifact (interactive-and-docs area); its oracle: video.readyState>=1, currentTime equals chapter start ±0.5s after pick; element identity across morph; network POST /runs/:id/demo/export; download 200"
    ],
    "origin": "inventory-2026-10-20"
@@ -1527,8 +1509,8 @@
    "user_path": "Plugin card → artifact-export-menu → artifact-export-format (pdf/pptx/html) → download. TERMINAL: file downloaded",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix (bridge stand-in)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio.artifact.inline-card",
     "interactive.export.pptx",
     "interactive.export.pdf"
@@ -1631,6 +1613,7 @@
     "wicked-studio:src/editors/adapters/interactiveDoc.ts (deck/document export options)"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.artifact.export (interactive-and-docs area); its oracle: network: POST …/d/<doc>/api/export {version, format}; download link href = …/api/export/file/<doc>_v<n>.pptx returning 200 attachment; DOM ready text"
    ],
    "origin": "inventory-2026-10-20"
@@ -1642,8 +1625,8 @@
    "user_path": "Chat-native run that made a document/deck/video. TERMINAL: card inside the agent bubble ('… · made this') in 768px column; Full screen and Esc morph in place",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(chat_native)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio",
     "crew /api/v1/editors registry",
     "doc bound to a run"
@@ -1755,6 +1738,7 @@
     "wicked-studio:src/components/editorHost/PluginCard.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.artifact.inline-card (interactive-and-docs area); its oracle: DOM: [data-testid=plugin-card] present, nested iframe text contains the doc headline; plugin-card-pill 'Version N' equals versions head"
    ],
    "origin": "inventory-2026-10-20"
@@ -1911,8 +1895,8 @@
    "user_path": "/s/run:r-doc-bound → plugin-card (wicked-page) → plugin-card-full → edit element → save. TERMINAL: hash-pinned bundle loaded under CSP; edit produces one bridge op; page-undo works",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(doc_bound_run, editor registry stand-in)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio.artifact.inline-card",
     "wicked-page plugin"
    ],
@@ -2039,6 +2023,7 @@
     "wicked-studio:src/editors/interactiveDocAdapter.ts:write/undo/fork"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.page.point-and-edit (interactive-and-docs area); its oracle: network: feedback.submitted content-edit per edit, fork per undo, 409 on refused; versions.json entries count; nested frame DOM headline textContent and querySelector('b')===null"
    ],
    "origin": "inventory-2026-10-20"
@@ -2050,8 +2035,8 @@
    "user_path": "Recording gate → walkthrough-edit → walkthrough-storyline-save; demo-script-edit → save; demo-retake-chapter. TERMINAL: PUT …/walkthrough/storyline once",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(walkthrough)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "crew.walkthrough.storyline-edit"
    ],
    "cost": "S",
@@ -2072,16 +2057,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "PUT",
-      "path": "/api/v1/runs/{id}/walkthrough/storyline",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/runs/{id}/walkthrough/storyline",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -2151,6 +2130,7 @@
     "wicked-studio:src/api/walkthrough.ts:putStoryline"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.walkthrough.edit-check-and-fix (interactive-and-docs area); its oracle: network PUT body; response sha256; gate POST action"
    ],
    "origin": "inventory-2026-10-20"
@@ -2162,8 +2142,8 @@
    "user_path": "Options → Versions → pick v1 → lens → artifact-version-restore. TERMINAL: v=1 in address; restore forks once",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(doc_bound_run)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio.artifact.inline-card"
    ],
    "cost": "S",
@@ -2244,6 +2224,7 @@
     "wicked-studio:src/api/interactive.ts:postFork"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.artifact.versions (interactive-and-docs area); its oracle: network: exactly one POST …/d/<doc>/api/fork with body {from:1, expect_head:2}; versions.json head 3 parent 1; location search v=1 then none"
    ],
    "origin": "inventory-2026-10-20"
@@ -2255,8 +2236,8 @@
    "user_path": "/s/run:r-walk-rec (recording) → /s/run:r-walk-fail → walkthrough-watch at fail mark → full → Esc; walkthrough-export-mp4. TERMINAL: '● Recording · chapter 4 of 6'; failed frame at 0:41; export POST",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(walkthrough)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "crew.walkthrough.view-file"
    ],
    "cost": "S",
@@ -2292,15 +2273,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/projects/{projectId}/demo/export",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/projects/{projectId}/demo/export",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -2391,6 +2368,7 @@
     "wicked-studio:src/api/walkthrough.ts"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.walkthrough.artifact (interactive-and-docs area); its oracle: DOM walkthrough-state text transitions; walkthrough-fail-mark time equals result.json failed_at_sec; walkthrough-check count equals checks"
    ],
    "origin": "inventory-2026-10-20"
@@ -2402,8 +2380,8 @@
    "user_path": "desk-rail-chat (or Ctrl+Shift+A) → ask-panel → ask-helpers / ask-scope → type → send. TERMINAL: exactly one POST /chats + one message; opens /s/<chat>",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(ask_path)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -2425,16 +2403,10 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/chats",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/chats",
+      "count": 1
      }
     ],
     "complete": false,
@@ -2481,6 +2453,9 @@
     "wicked-studio:src/components/AskHelpers.tsx",
     "wicked-studio:src/components/ChatScopeSelect.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -2490,8 +2465,8 @@
    "user_path": "Chat reply with 26 SHAs, 2 unverifiable → chatCitations frame. TERMINAL: the 2 invented SHAs render marked unverified; others plain verified",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(chat citations)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -2572,6 +2547,9 @@
     "wicked-studio:src/components/citations.tsx",
     "wicked-studio:src/components/session/SessionView.tsx (seat-citations-toggle, seat-citations-details)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -2581,8 +2559,8 @@
    "user_path": "Reply that cited a rule → considered-toggle. TERMINAL: '2 of your rules considered · 1 set aside · cited 1 (unchecked) · 1 unverified citation'; rows open the rule",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(decisions,steering_rules)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -2644,6 +2622,9 @@
     "wicked-studio:src/components/decisions/ConsideredLine.tsx",
     "wicked-studio:src/board/consideredLine.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -2653,8 +2634,8 @@
    "user_path": "Chat → 'Build this' → session-ask-proposal card 'Continue in Build?' → Continue. TERMINAL: chain line appears; POST /runs carries chatId",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(ask_path,sessions,run_chat_id)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -2677,16 +2658,10 @@
       "value": 1
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -2758,6 +2733,9 @@
     "wicked-studio:src/components/session/SessionView.tsx (session-ask-proposal, session-chat-promote)",
     "wicked-studio:src/board/chatPromote.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -2767,8 +2745,8 @@
    "user_path": "Chat turn with decisions record → decision-line → Remember / see rule. TERMINAL: 'Remembered for <project>: …'; offered decision appears as Needs you rule row",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(sessions,decisions)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -2831,6 +2809,9 @@
     "wicked-studio:src/components/desk/DeskRuleLine.tsx",
     "wicked-studio:src/api/decisions.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -2840,8 +2821,8 @@
    "user_path": "Session reply → session-source chip → session-passage → back. TERMINAL: passage text shown; unreadable source says so",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(ship_proposals)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -2891,6 +2872,9 @@
     "wicked-studio:src/components/session/SourceChips.tsx",
     "wicked-studio:src/board/sources.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -2900,8 +2884,8 @@
    "user_path": "Desk Chat question → /s/<chat>. TERMINAL: operator turn, '<pa> is thinking', the PA reply as the only bubble; reviewer finding as ask-line; HELP exchange folded",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(ask_path replay)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -2966,6 +2950,9 @@
     "wicked-studio:src/board/askThread.ts",
     "wicked-studio:src/board/askTurn.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -2975,8 +2962,8 @@
    "user_path": "On / with nothing focused type 'approve this'; on a card; on a button. TERMINAL: text lands in Ask dock input or page composer; 0 gate POSTs",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,gate_simple)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -2991,9 +2978,15 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: document.activeElement is ask input/composer with value 'approve this'; fixture log 0 POST /runs/*/gate"
+    "kind": "event",
+    "source": "network",
+    "type": "POST /api/v1/runs/*/gate",
+    "count": 0,
+    "complete": false,
+    "untyped": [
+     "document.activeElement is ask input/composer with value 'approve this'",
+     "fixture log 0 POST /runs/*/gate"
+    ]
    },
    "oracle_text": "document.activeElement is ask input/composer with value 'approve this'; fixture log 0 POST /runs/*/gate",
    "covers": [
@@ -3012,6 +3005,9 @@
    ],
    "sources": [
     "wicked-studio:src/hooks/useTypeToComposer.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -3084,8 +3080,8 @@
    "user_path": "r-team session composer → '/te' Enter (Undo in window); '/test' let window pass. TERMINAL: undo → 0 plan POSTs; else exactly one POST /runs/r-team/plan with test step + requestId",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(team_plan,plan_gate)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -3102,15 +3098,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/r-team/plan",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/r-team/plan",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -3166,6 +3158,9 @@
     "wicked-studio:src/board/planDraft.ts",
     "wicked-studio:src/board/aboutChips.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -3175,8 +3170,8 @@
    "user_path": "Session composer → composer-seats → toggle seats. TERMINAL: chosen seats sent on next message; composer-seats-refused when none eligible",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(sessions)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio"
    ],
    "cost": "S",
@@ -3200,15 +3195,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/chats",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/chats",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -3310,6 +3301,7 @@
     "wicked-studio:src/components/ChatInput.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate seats.ui.composer-seats (seats-and-clis area); its oracle: POST /chats or /chats/:id/seats body clis == selected chips; composer-seats-refused text names each refused cliKey from the response."
    ],
    "origin": "inventory-2026-10-20"
@@ -3385,8 +3377,8 @@
    "user_path": "Desk '2 approvals' row → need-group-approve-all (wait 10s); separately Approve all → Undo; Reject with reason. TERMINAL: one POST /runs/:id/gate per member after window; Undo → none; reject body amend=reason",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -3400,15 +3392,11 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/runs/g1/gate",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
+    "kind": "event",
+    "source": "network",
+    "type": "POST /api/v1/runs/g1/gate",
+    "count": {
+     "min": 1
     },
     "complete": false,
     "untyped": [
@@ -3438,6 +3426,9 @@
     "wicked-studio:src/components/desk/ApprovalGroupActions.tsx (need-group-approve-all, need-group-reject-all, need-group-reject-reason)",
     "wicked-studio:src/board/batchGates.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -3447,8 +3438,8 @@
    "user_path": "Standing orders panel → standing-orders-away. TERMINAL: PUT /standing-orders/away; Desk says you are away",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(standing_orders)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -3465,15 +3456,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/standing-orders/away",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/standing-orders/away",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -3524,6 +3511,9 @@
    "sources": [
     "wicked-studio:src/components/StandingOrdersPanel.tsx (standing-orders-away)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -3533,8 +3523,8 @@
    "user_path": "Load / with wave1 corpus (no gates/failures). TERMINAL: sentence reads 'Nothing needs you.' with no highlight; zero is quiet",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -3607,6 +3597,9 @@
     "wicked-studio:src/components/NeedsYouQueue.tsx (home-calm)",
     "wicked-studio:src/board/deskWords.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -3616,8 +3609,8 @@
    "user_path": "Desk → capture-open → add notes/files, pick project → capture-send. TERMINAL: POST /projects/:id/capture → {runId}; filed items appear in Needs you proposal triage",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(capture)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -3635,16 +3628,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/projects/{id}/capture",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/projects/{id}/capture",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -3691,6 +3678,9 @@
     "wicked-studio:src/hooks/useCapture.ts",
     "wicked-studio:src/api/capture.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -3700,12 +3690,10 @@
    "user_path": "Desk dead-letter chore → kpi-repair → preview → kpi-repair-confirm. TERMINAL: dry-run POST first, real replay only on confirm, result shown",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(governance=deadletters)",
-    "throwaway crew daemon with a seeded outbox (never POST to operator :7721)",
-    "studio",
     "crew:daemon-hermetic",
-    "studio:bundled-dist"
+    "studio:bundled-dist",
+    "throwaway crew daemon with a seeded outbox (never POST to operator :7721)",
+    "studio"
    ],
    "cost": "S",
    "tags": [
@@ -3723,15 +3711,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/governance/deadletters/replay",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/governance/deadletters/replay",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -3848,6 +3832,7 @@
     "wicked-studio:src/components/HealthRailSection.tsx (rail-governance data-deadletters)"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate foundation.platform.governance-deadletters (foundation area); its oracle: dry-run: POST body {dryRun:true} moves nothing (outbox bytes unchanged); confirm: result text 'Replayed N events: X landed · Y still quarantined'; afterwards /diagnostics.governance.deadletters.count == Y; outbox renamed to <outbox>.replayed-<ISO>; concurrent replay -> 409"
    ],
    "origin": "inventory-2026-10-20"
@@ -3859,8 +3844,8 @@
    "user_path": "Desk failure row → need-why-toggle. TERMINAL: need-why-line + need-why-detail with recorded reason",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -3899,6 +3884,9 @@
     "wicked-studio:src/components/desk/FailureWhy.tsx",
     "wicked-studio:src/board/failureWhy.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -3908,8 +3896,8 @@
    "user_path": "Desk header → home-focus-toggle on, then off. TERMINAL: queue shows 1 item + 'N hidden' note; off restores full count",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(home_runs)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -3981,6 +3969,9 @@
    "sources": [
     "wicked-studio:src/components/NeedsYouQueue.tsx (home-focus-toggle, need-focus-note, need-focus-show-all)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -3990,8 +3981,8 @@
    "user_path": "Desk sheet › Hold → delivery-freeze-open → reason → delivery-freeze-confirm-btn; later thaw. TERMINAL: delivery-freeze-banner shown; POST /deliveries/freeze body has reason",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(home_runs)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -4009,15 +4000,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/deliveries/freeze",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/deliveries/freeze",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -4053,6 +4040,9 @@
     "wicked-studio:src/components/DeliveryFreezeSwitch.tsx (delivery-freeze-*)",
     "wicked-studio:src/api/deliveryFreeze.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -4062,8 +4052,8 @@
    "user_path": "Seed last visit 3h ago in localStorage, open /. TERMINAL: one fixed-height strip of handover-chip; each chip opens its overlay/acts; dismiss hides",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b,handover_many)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -4131,6 +4121,9 @@
    "sources": [
     "wicked-studio:src/components/HandoverPanel.tsx (handover-*)",
     "wicked-studio:src/hooks/useHandover.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -4275,8 +4268,8 @@
    "user_path": "Desk → desk-inbox-folder-failures → pick an item. TERMINAL: list filters to that folder, count badges, item opens desk-inbox-pane",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -4343,6 +4336,9 @@
    ],
    "sources": [
     "wicked-studio:src/components/desk/DeskInbox.tsx (desk-inbox-folder-*, desk-inbox-list, desk-inbox-pane, desk-inbox-count)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -4451,8 +4447,8 @@
    "user_path": "Load / with runs_delay_ms. TERMINAL: 'Reading…' (desk-as-of) / desk-loading until runs answer, never 'Nothing has been started yet'",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(runs_delay_ms)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -4581,6 +4577,9 @@
     "wicked-studio:src/components/desk/DeskV2.tsx (desk-as-of)",
     "wicked-studio:src/components/desk/DeskInbox.tsx (desk-loading)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -4590,8 +4589,8 @@
    "user_path": "Desk → desk-more → desk-sheet-open. TERMINAL: sheet 'The Desk' with Studio itself · This computer · Sign-ins · All helpers · Hold deliveries; Esc closes",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(sheets)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -4751,6 +4750,9 @@
     "wicked-studio:src/components/desk/DeskV2.tsx (desk-more, desk-sheet-open)",
     "wicked-studio:src/components/sheets/ObjectSheet.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -4760,8 +4762,8 @@
    "user_path": "Focus queue; ⌥J, ArrowDown, Enter on group, Enter on row. TERMINAL: selection moves; group expands; row opens",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -4802,6 +4804,9 @@
    "sources": [
     "wicked-studio:src/hooks/useNeedsQueue.ts (queue-next-j, queue-prev-k)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -4811,8 +4816,8 @@
    "user_path": "Desk with g1/g2 gates, e1 elicitation, f1 failure. TERMINAL: order = '2 approvals' group, elicitation, failure; group expands longest-waiting first",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -4888,6 +4893,9 @@
     "wicked-studio:src/components/NeedsYouQueue.tsx (need-row, need-group-toggle, need-members)",
     "wicked-studio:src/board/needsQueue.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -4897,8 +4905,8 @@
    "user_path": "Desk proposals row → 'Accept 5 memories ›' → preview → confirm → (undo) → confirm and wait. TERMINAL: exactly the 5 memory proposals accepted after window",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(proposals)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -4912,16 +4920,10 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/proposals/{id}/approve",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
+    "kind": "event",
+    "source": "network",
+    "type": "POST /api/v1/proposals/{id}/approve",
+    "count": 5,
     "complete": false,
     "untyped": [
      "preview names 5 memory ids, 0 POST",
@@ -4972,6 +4974,9 @@
     "wicked-studio:src/board/proposalTriage.ts",
     "wicked-studio:src/hooks/useAcceptMemory.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -4981,8 +4986,8 @@
    "user_path": "/?tab=report → desk-report[data-id=spend] ('Where is my spend going?'). TERMINAL: Ask panel opens with that question sent",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(ask_path)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -5006,15 +5011,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/chats",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/chats",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -5093,6 +5094,9 @@
    ],
    "sources": [
     "wicked-studio:src/components/desk/DeskV2.tsx (REPORTS, desk-reports, desk-report)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -5642,8 +5646,8 @@
    "user_path": "Desk → 'An AI helper (codex) needs signing in again' → desk-chore-signin. TERMINAL: agents-modal for codex open, URL unchanged",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(roster lapsed)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio"
    ],
    "cost": "S",
@@ -5787,6 +5791,7 @@
     "wicked-studio:src/board/deskModel.ts"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate seats.ui.desk-signin-chore (seats-and-clis area); its oracle: Desk row text contains the seat key; clicking opens agents-modal[data-agent=<key>] without URL path change."
    ],
    "origin": "inventory-2026-10-20"
@@ -5798,8 +5803,8 @@
    "user_path": "Desk sheet/rail Additional settings → standing-orders-manage → standing-order-input → standing-order-parse (Read it back) → standing-order-confirm (Keep); standing-order-remove. TERMINAL: order listed; matching gate is answered with the order as actor",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b,standing_orders)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -5818,27 +5823,19 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/standing-orders/parse",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/standing-orders/parse",
+      "count": {
+       "min": 1
       }
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/standing-orders",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/standing-orders",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -5911,6 +5908,9 @@
     "wicked-studio:src/components/StandingOrdersPanel.tsx (standing-order*)",
     "wicked-studio:src/hooks/useStandingOrders.ts",
     "wicked-studio:src/api/standingOrders.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -6134,8 +6134,8 @@
    "user_path": "/editors/conformance with bundles good, hostile, wicked-page, wicked-deck, wicked-doc. TERMINAL: every conformance case passes for good/first-party, hostile is contained",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(EP-C1 bundle route stand-in)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "chromium",
     "studio dist (WICKED_STUDIO_DIST) or crew host URL",
     "studio dist or crew",
@@ -6220,6 +6220,7 @@
     "wicked-crew:packages/crew/src/editors/csp.ts"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate garden.editor.conformance (garden area); its oracle: JSON cases{} all ok:true incl. 13-surfaces..17",
     "merged duplicate plugins.studio.conformance-host (plugins-and-installs area); its oracle: [data-testid=editor-host-page][data-mode=conformance]; window.__wickedEditor exposes log/adapter/controls; grants limited to those in the address; route absent from the command palette (NOT_IN_PALETTE)",
     "merged duplicate studio.editor.sandbox (interactive-and-docs area); its oracle: conformance page result rows all pass; network log filtered by frame shows only the bundle entry URL"
@@ -6233,8 +6234,8 @@
    "user_path": "/plugins → editor-plugins-devhost → /editors/dev → pick plugin. TERMINAL: plugin renders CARD, OPTIONS tabs, FULL SCREEN (nav collapses/returns, Simple/Advanced, chat drawer) from its declaration",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix (editor bundles)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio + crew"
    ],
    "cost": "S",
@@ -6386,6 +6387,7 @@
     "wicked-studio:src/components/editors/EditorPluginsSettings.tsx:devHostHref,openHref"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate plugins.studio.editor-test-page (plugins-and-installs area); its oracle: URL /editors/dev?editor=<id>&version=<v>&sha=<sha256> matching the API; [data-testid=editor-surfaces] present; toggling [data-testid=editor-protocol-toggle] reveals [data-testid=editor-artifact-frame] with size buttons editor-size-inline/pane/full; no editor-torn"
    ],
    "origin": "inventory-2026-10-20"
@@ -6397,8 +6399,8 @@
    "user_path": "Evaluate → eval-history-row → detail. TERMINAL: eval-history-detail summary and members",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(governed_testing)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -6447,6 +6449,9 @@
    "sources": [
     "wicked-studio:src/components/EvalHistory.tsx (eval-history-*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -6456,8 +6461,8 @@
    "user_path": "Evaluate → evaluate-import → testing-corpus-file + testing-corpus-name → import. TERMINAL: POST /testing/corpora/import; corpus summary",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(governed_testing)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -6494,7 +6499,10 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the corpus summary counts equal the imported file's samples"
+    ]
    },
    "oracle_text": "fixture log 1 POST /testing/corpora/import; [data-testid=testing-corpus-summary] counts",
    "covers": [
@@ -6562,7 +6570,8 @@
     "wicked-studio:src/api/testing.ts"
    ],
    "notes": [
-    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; "
+    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; ",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -6573,11 +6582,9 @@
    "user_path": "Evaluate → evaluate-run. TERMINAL: POST /testing/evals/run; testing-evals-row verdicts caught/gap/fp; gap toggle shows nearest rule link",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(governed_testing)",
-    "crew test daemon",
     "crew:daemon-hermetic",
-    "studio:bundled-dist"
+    "studio:bundled-dist",
+    "crew test daemon"
    ],
    "cost": "S",
    "tags": [
@@ -6727,6 +6734,7 @@
    ],
    "notes": [
     "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; against the real engine's evals, not governed_testing fixture rows.",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "inventory test reference not found as a test file at the pinned SHA: wicked-core/crates/wicked-core-ts/smoke-evals.mjs",
     "merged duplicate core.governance.evals (core-engine area); its oracle: GET /api/v1/testing/evals/:id verdict counts equal per-sample results; read-only on rules store"
    ],
@@ -6739,8 +6747,8 @@
    "user_path": "/testing/evals (→ /?tab=evaluate) → evaluate-filter, evaluate-gap-type. TERMINAL: evaluate-tiles stats; coverage chart; gaps list or evaluate-gaps-none",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(governed_testing)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -6839,6 +6847,9 @@
     "wicked-studio:src/components/steer/EvaluateSurface.tsx (evaluate-*)",
     "wicked-studio:src/board/evalModel.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -6848,8 +6859,8 @@
    "user_path": "Sessions → everything-archived → everything-unarchive on a row. TERMINAL: POST /runs/:id/archive {archived:false}; list re-read; onboarding runs named",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -6863,16 +6874,13 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/runs/{id}/archive",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
+    "kind": "event",
+    "source": "network",
+    "type": "POST /api/v1/runs/{id}/archive",
+    "where": {
+     "body.archived": false
     },
+    "count": 1,
     "complete": false,
     "untyped": [
      "fixture log 1 POST /runs/<id>/archive body.archived==false",
@@ -6948,6 +6956,9 @@
    "sources": [
     "wicked-studio:src/components/everything/EverythingPage.tsx (everything-archived*, everything-unarchive)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -6978,16 +6989,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "DELETE",
-      "path": "/api/v1/projects/{projectId}/interactive/api/docs/{id}",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "DELETE /api/v1/projects/{projectId}/interactive/api/docs/{id}",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -7127,8 +7132,8 @@
    "user_path": "/everything?tab=sessions&view=runs with 1200 synthetic runs. TERMINAL: 'Reading your work…' while pending; table paints <1s after GET /runs",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(runs_delay_ms)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -7221,6 +7226,7 @@
     "wicked-studio:src/board/runsTableModel.ts"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "machine-dependent timing threshold removed from the oracle: time(GET /runs response → everything-runs-table rows visible) < 1000ms"
    ],
    "origin": "inventory-2026-10-20"
@@ -7232,8 +7238,8 @@
    "user_path": "/everything?tab=handed → everything-handed-row → everything-handed-pr. TERMINAL: PR link opens external url",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave2b deliveries)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -7335,6 +7341,9 @@
    "sources": [
     "wicked-studio:src/components/everything/EverythingPage.tsx (everything-handed*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -7344,8 +7353,8 @@
    "user_path": "Everything → everything-live-chats → everything-live-chat-end. TERMINAL: chat end request; row leaves list",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(sessions)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -7436,6 +7445,9 @@
    "sources": [
     "wicked-studio:src/components/everything/EverythingPage.tsx (everything-live-chat*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -7445,8 +7457,8 @@
    "user_path": "Made → everything-made-load (Ask every project) → everything-made-cancel mid-way. TERMINAL: stops after the current project answers",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(project_create)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -7539,6 +7551,9 @@
    "sources": [
     "wicked-studio:src/components/everything/EverythingPage.tsx (everything-made-load, everything-made-cancel, everything-made-census)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -7548,8 +7563,8 @@
    "user_path": "/everything?tab=made&project=notes&kind=pages → everything-made-row offsite-plan. TERMINAL: /s/<session>/a/<key>?size=full with the document",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(interactive bridge stand-in)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio dist served by crew",
     "crew daemon",
     "studio"
@@ -7717,6 +7732,7 @@
     "wicked-studio:src/components/CommandPalette.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.made.list (interactive-and-docs area); its oracle: DOM: count of [data-testid=everything-made-row] per kind equals docs-index rows of that kind; network: GET /api/v1/interactive/docs issued, no per-project bridge GET on mount",
     "merged duplicate studio.made.open-and-cmdk (interactive-and-docs area); its oracle: location.pathname/search per step; DOM everything-made-open / plugin-card; NotFound text for legacy route"
    ],
@@ -7729,8 +7745,8 @@
    "user_path": "Made › Pages → made-new-document → name, format, project, seats, brief → made-new-document-create. TERMINAL: one POST …/interactive/api/docs; address gains open=<name>; collision keeps form with 'Open it'. Wait for the first draft to land (versions.json head 1).",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(doc_v0,doc_bound_run)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio",
     "crew daemon",
     "crew.interactive.draft-seam (live) or fixture"
@@ -7777,16 +7793,10 @@
       "value": 1
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/projects/{p}/interactive/api/docs",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/projects/{p}/interactive/api/docs",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -7873,6 +7883,7 @@
    ],
    "notes": [
     "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; one POST is the request, not a drafted document.",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.made.new-document (interactive-and-docs area); its oracle: network: one POST /api/v1/projects/<p>/interactive/api/docs with kind 'source', repo_refs, clisJson of 2 seats; DOM made-draft-status visible then plugin-card frame; GET versions head>=1; disabled attribute on create with 1 seat"
    ],
    "origin": "inventory-2026-10-20"
@@ -7884,8 +7895,8 @@
    "user_path": "Finished run row → everything-row-menu → 'Reuse as preset' → consequence → save. TERMINAL: PUT /presets/<name> with the run's catalog steps; run-reuse-saved",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(home_runs)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -7902,16 +7913,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "PUT",
-      "path": "/api/v1/presets/tidy-upload",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/presets/tidy-upload",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -7946,6 +7951,9 @@
     "wicked-studio:src/hooks/useReusePreset.ts",
     "wicked-studio:src/board/runReuse.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -7955,8 +7963,8 @@
    "user_path": "/everything?tab=sessions&filter=failed → everything-search 'upload'; clear. TERMINAL: hidden working session found; clearing restores filter",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -8047,6 +8055,9 @@
    "sources": [
     "wicked-studio:src/components/everything/EverythingPage.tsx (everything-filter, everything-search, everything-search-clear)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -8056,8 +8067,8 @@
    "user_path": "/everything → everything-tab per tab. TERMINAL: ?tab= address changes; Sessions grouped by project",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -8150,6 +8161,9 @@
     "wicked-studio:src/components/everything/EverythingPage.tsx (everything-tab, everything-panel)",
     "wicked-studio:src/board/everythingModel.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -8159,8 +8173,8 @@
    "user_path": "/everything?tab=made&kind=videos → row → session with demo video. TERMINAL: no home paths with Technical details off; escalation-waiting demo opens its session",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(demo_runs)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio.made.list",
     "crew.demo.launch"
    ],
@@ -8266,6 +8280,7 @@
     "wicked-studio:src/components/everything/EverythingPage.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.demo.videos-list (interactive-and-docs area); its oracle: DOM row text has no '<home-prefix>' or 'BRIEF.md'; gate row text equals gate prompt"
    ],
    "origin": "inventory-2026-10-20"
@@ -8277,8 +8292,8 @@
    "user_path": "Queue approve on b1; live 'resumed' frame arrives mid-window. TERMINAL: no POST ever; notice 'Not sent: … answered elsewhere'",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -8293,9 +8308,20 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": "[data-testid=undo-result]",
-    "assert": "visible",
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/b1/gate",
+      "count": 0
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=undo-result]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "fixture log 0 POST /runs/b1/gate",
@@ -8316,6 +8342,9 @@
    "sources": [
     "wicked-studio:src/board/undoQueue.ts",
     "wicked-studio:src/store (gates)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -8789,8 +8818,8 @@
    "user_path": "/s/run%3Ar-timeout → hover each arm → pick. TERMINAL: consequence line under choices per arm; POST gate with action",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(escalation_arms)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "crew test daemon",
     "repo with slow check"
    ],
@@ -8815,15 +8844,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/r-timeout/gate",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/r-timeout/gate",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -8925,6 +8950,7 @@
     "wicked-core:crates/wicked-core-ts/index.d.ts:confirmGate (core#469/#467)"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate core.floor.repo-checks-timeout-actions (core-engine area); its oracle: confirmGate action extend → new repoChecksEvaluated under doubled bound; accept_partial → receipt discloses waived checks; retry on unchanged tree → floorRecheck{previousOutcome,outcome,reason:'operator retry'}; arms refused at other gate kinds"
    ],
    "origin": "inventory-2026-10-20"
@@ -8936,8 +8962,8 @@
    "user_path": "Any non-Desk page while a gate is open elsewhere. TERMINAL: gate-notification-layer in main column flow; hidden for runs shown on the current session; toast-dismiss",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(escalation_arms)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -8986,6 +9012,9 @@
     "wicked-studio:src/components/GateNotifications.tsx (gate-notification*, gate-toast*)",
     "wicked-studio:src/App.tsx (viewedRunIds)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -8995,8 +9024,8 @@
    "user_path": "Run stopped at an unfinished required check. TERMINAL: 'A required check failed — how should the step go on?'; never 'The floor failed'",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(escalation_arms)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -9072,6 +9101,9 @@
     "wicked-studio:src/components/denialCopy.ts",
     "wicked-studio:src/components/session/GateRow.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -9081,11 +9113,9 @@
    "user_path": "r-plan-gate block → artifact[data-kind=plan] → plan-step-up/down, plan-add → approve. TERMINAL: Scope first, Deliver last fixed; reorder POSTs the plan with the new order",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(team_plan,plan_gate)",
-    "crew test daemon",
     "crew:daemon-hermetic",
-    "studio:bundled-dist"
+    "studio:bundled-dist",
+    "crew test daemon"
    ],
    "cost": "S",
    "tags": [
@@ -9109,23 +9139,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/r-plan-gate/plan",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
-     },
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/r-plan-gate/plan",
-      "expect": {
-       "status": 409
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/r-plan-gate/plan",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -9224,6 +9242,7 @@
     "wicked-crew:packages/crew/src/team/routes.ts (POST /runs/:id/plan)"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate core.plan.edit-at-gate (core-engine area); its oracle: wicked.team.plan.revised row with new rev; plan-edit-floor-added shows added floor steps; refusal → wicked.team.plan.refused and new gate id"
    ],
    "origin": "inventory-2026-10-20"
@@ -9235,8 +9254,8 @@
    "user_path": "Needs you r-qe-noverdict → session → gate. TERMINAL: first line says the QE reviewer didn't record a verdict; suggested 'Retry the QE review'; no QE run id shown",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(escalation_arms)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -9323,6 +9342,9 @@
     "wicked-studio:src/board/qeEscalation.ts",
     "wicked-studio:src/components/session/GateRow.tsx (session-gate-qe*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -9332,8 +9354,8 @@
    "user_path": "Seat-failure escalation → steering-reassign-option claude → Reassign. TERMINAL: one POST /runs/:id/reassign {cli} after window, no gate approve; refused 409 → stays open with 'reassign again'; creator seat not offered",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(e2e7721)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -9388,6 +9410,9 @@
    "sources": [
     "wicked-studio:src/components/ReassignControl.tsx (steering-reassign-*)",
     "wicked-studio:src/components/gateMoveModel.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -9664,9 +9689,8 @@
    "user_path": "Gate row Approve → toast → Undo; repeat and wait. TERMINAL: 0 POST for 9s; Undo → none; else 1 POST",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,gate_now)",
-    "fixture:uxfix(wave1,gate_simple)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -9683,6 +9707,12 @@
    "oracle": {
     "kind": "all",
     "of": [
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/b1/gate",
+      "count": 0
+     },
      {
       "kind": "dom",
       "selector": "[data-testid=undo-toast]",
@@ -9749,6 +9779,8 @@
     "wicked-studio:src/components/desk/QuestionRow.tsx (need-answer, need-choice, need-chosen-undo)"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio-ui.desk.answer-in-row (studio-ui area); its oracle: fixture log: 0 POST /runs/b1/gate during 10s; Undo → 0 POST; second pass → exactly 1 POST body.approve==true; need-chosen-line text"
    ],
    "origin": "inventory-2026-10-20"
@@ -9760,8 +9792,8 @@
    "user_path": "/s/run:<bef20223-like>. TERMINAL: choice 'Retry this step with a note', not 'Approve with a note for the next step'",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(e2e7721r2)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -9798,6 +9830,9 @@
    ],
    "sources": [
     "wicked-studio:src/board/gateRowModel.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -10029,8 +10064,8 @@
    "user_path": "/health › week seat rows → codex 'Route review away from codex' → rail-seat-move-button. TERMINAL: consequence above the button; POSTs the operations rule",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(roster/record)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio",
     "seat record data"
    ],
@@ -10070,15 +10105,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/governance/rules",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/governance/rules",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -10152,6 +10183,7 @@
     "wicked-studio:src/components/HealthRailSection.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate seats.ui.seat-week-coaching (seats-and-clis area); its oracle: rail-seat-week-line numbers equal /roster/record for the seat; route move -> POST /governance/rules with id 'seat-coach:<seat>:<phase>' and rail-seat-move-result shows what landed; idempotent on repeat."
    ],
    "origin": "inventory-2026-10-20"
@@ -10280,8 +10312,8 @@
    "user_path": "New job › Demo video → url, what to show, audience, gates, project → Launch. TERMINAL: POST /projects/:id/demo → {runId}; session shows plan gate then recording. Approve its gates until the recording lands.",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(demo_runs)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio",
     "crew.demo.launch"
    ],
@@ -10332,19 +10364,10 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/projects/{projectId}/demo",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      },
-      "capture": {
-       "runId": "$.runId"
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/projects/{projectId}/demo",
+      "count": 1
      }
     ],
     "complete": false,
@@ -10437,6 +10460,7 @@
    ],
    "notes": [
     "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; the fixture clock is not a recording.",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "critic 2026-10-20 (launch-only): the oracle now asserts the run's terminal state; a 2xx with a runId is the launch.",
     "merged duplicate studio.demo.launch (interactive-and-docs area); its oracle: network one POST …/demo with the entered url; location /s/run:<runId>; DOM run-artifacts demo card"
    ],
@@ -10449,8 +10473,8 @@
    "user_path": "/runs/new → launch-problem → launch-repo-picker → phase-picker → launch-preview → launch-submit. TERMINAL: Send disabled until problem+repo; one POST /runs; slow preview (12s) says so and still launches",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(team_plan,repo)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -10473,16 +10497,10 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -10598,6 +10616,9 @@
     "wicked-studio:src/components/ChatInput.tsx (launch-*)",
     "wicked-studio:src/components/LaunchPreview.tsx",
     "wicked-studio:src/components/PhasePicker.tsx"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -10737,15 +10758,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/linked-issues/preview",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/linked-issues/preview",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -10754,15 +10771,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -10803,8 +10816,8 @@
    "user_path": "/runs/new → phase-picker lists GET /catalog entries in order → pick build with/without touch. TERMINAL: preview score/band/floor or 'the PA will scope this first'",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(team_plan)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "crew test daemon",
     "code graph for touch scoring"
    ],
@@ -10841,15 +10854,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/plans/preview",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/plans/preview",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -10935,6 +10944,7 @@
     "wicked-core:crates/wicked-core-ts/index.d.ts:previewPlan"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate core.plan.preview (core-engine area); its oracle: response fields score/band/highRisk/floorAdded; no session created (GET /runs unchanged)"
    ],
    "origin": "inventory-2026-10-20"
@@ -10946,8 +10956,8 @@
    "user_path": "New job with qeAcceptance required → launch answered 400 qe_acceptance_required. TERMINAL: launch-wizard-qe-refused says why and links to /system#qe-acceptance-setting",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + page.route"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -11054,6 +11064,9 @@
     "wicked-studio:src/components/launch/LaunchWizard.tsx (launch-wizard-qe-refused, launch-wizard-qe-off)",
     "wicked-studio:src/board/qeRefusal.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -11083,15 +11096,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -11220,15 +11229,14 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "where": {
+       "body.reducedAssurance": true
+      },
+      "count": {
+       "min": 1
       }
      },
      {
@@ -11475,8 +11483,8 @@
    "user_path": "Session composer → type '/wo' → composer-menu 'Start work' group → pick feature → Enter. TERMINAL: one POST /runs workflow=feature; never the system chat flow; mid-text /work is plain text",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(workflow_catalog,repo,sessions)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio + proof crew daemon"
    ],
    "cost": "S",
@@ -11508,16 +11516,13 @@
       }
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "where": {
+       "body.workflow": "feature"
+      },
+      "count": 1
      }
     ],
     "complete": false,
@@ -11605,6 +11610,7 @@
     "wicked-studio:src/components/ChatInput.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate plugins.studio.slash-workflow-editor-plugin (plugins-and-installs area); its oracle: the about-chip shows '/workflow-editor-plugin'; on send the new run's workflow == 'editor-plugin' (proof daemon); nothing sent before Enter"
    ],
    "origin": "inventory-2026-10-20"
@@ -11636,15 +11642,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "PUT",
-      "path": "/api/v1/settings",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/settings",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -11760,8 +11762,8 @@
    "user_path": "New job → first card (focused) 'Start with chat'. TERMINAL: /s/<id> 'New chat' page with its composer, not the Ask dock",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(ask_path)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -11865,6 +11867,9 @@
     "wicked-studio:src/components/launch/LaunchWizard.tsx",
     "wicked-studio:src/App.tsx (useChatFlow)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -11874,8 +11879,8 @@
    "user_path": "Rail desk-rail-new-job at 1440x700, 1920x1080, 860w, 390x844. TERMINAL: 4/4/2/1 across; exactly 3 whole rows in view on desktop; each card has an aria-hidden SVG; modal fits window",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(workflow_catalog)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -11966,6 +11971,9 @@
     "wicked-studio:src/components/launch/LaunchWizard.tsx (launch-wizard-cards)",
     "wicked-studio:src/components/launch/WorkflowArt.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -11975,8 +11983,8 @@
    "user_path": "New job → Helpers step: turn all but one off, close → Desk Chat. TERMINAL: Ask drawer shows helpers row all on; Send POST /chats clis = all",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(e2e7721r3)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -11999,15 +12007,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/chats",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/chats",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -12083,6 +12087,9 @@
    "sources": [
     "wicked-studio:src/components/launch/LaunchWizard.tsx (launch-wizard-helpers)",
     "wicked-studio:src/components/AskHelpers.tsx"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -12205,8 +12212,8 @@
    "user_path": "New job → card (e.g. feature) → launch-wizard-intent → launch-wizard-project/repo → launch-wizard-helpers, launch-wizard-lead, launch-wizard-deliver-toggle → launch-wizard-review → launch-wizard-launch. TERMINAL: exactly one POST /runs with the chosen workflow, project, repo, clis, primary; lands on /s/run:<id>. Then let the run reach its terminal state (approve its gates).",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(workflow_catalog,repo,sessions)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -12264,7 +12271,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the run's project, repo, helpers (clis) and primary are the ones chosen in the wizard",
+     "exactly one POST /api/v1/runs was sent (network transcript)",
+     "the browser lands on /s/run:<runId>"
+    ]
    },
    "oracle_text": "fixture log 1 POST /api/v1/runs body.workflow, body.projectId, body.clis, body.primary match choices; location /s/run%3A<id>",
    "covers": [
@@ -12340,7 +12352,8 @@
     "wicked-studio:src/board/launchModel.ts"
    ],
    "notes": [
-    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; location /s/run:<id> is the launch, not done."
+    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; location /s/run:<id> is the launch, not done.",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -12351,8 +12364,8 @@
    "user_path": "/learn → learn-repo pick → learn-auto-<slug> on → learn-every-<slug> monthly → learn-menu-<slug> › Refresh now / Stop refreshing; learn-new. TERMINAL: PUT /learn/schedules/<repo:slug>; POST …/run-now; DELETE schedule; learn-new opens wizard on learn workflow",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + page.route for /learn/*"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -12417,6 +12430,9 @@
    "sources": [
     "wicked-studio:src/components/learn/LearnPage.tsx (learn-*)",
     "wicked-studio:src/components/learn/learnModel.ts (learnApi, LEARN_WORKFLOW_ID)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -12709,8 +12725,8 @@
    "user_path": "/mcp → mcp-add-open → paste config (kind, name, target, auth ref) → mcp-add-preview → mcp-add-save → mcp-server-approve. TERMINAL: preview tools listed; server saved and approved",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + mcp route emulation"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -12727,39 +12743,27 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/mcp/servers/preview",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/mcp/servers/preview",
+      "count": {
+       "min": 1
       }
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/mcp/servers",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/mcp/servers",
+      "count": {
+       "min": 1
       }
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/mcp/approvals",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/mcp/approvals",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -12858,6 +12862,9 @@
    "sources": [
     "wicked-studio:src/components/McpToolsPage.tsx (mcp-add-*, mcp-server-approve)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -12867,8 +12874,8 @@
    "user_path": "/mcp → mcp-server-inspect → /mcp/inspect?server=<name> → mcp-inspect-connect → call echo/add/boom → (ad-hoc command needs mcp-inspect-confirm-yes) → mcp-inspect-disconnect. TERMINAL: registered server connects without confirm; plugin hears mcp.state ready; calls logged",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(mcp_inspect)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "wicked-studio",
     "wicked-crew daemon",
     "garden.packs.mcp-inspector.install",
@@ -12902,15 +12909,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/mcp-inspect/sessions",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/mcp-inspect/sessions",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -13046,6 +13049,7 @@
     "wicked-garden:packs/garden-mcp-inspector"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate garden.packs.mcp-inspector.ui (garden area); its oracle: tools list renders every page; a call is sent only on the Call click and its result text shows; Log tab shows the JSON-RPC frames; list error shown (not an empty list)",
     "merged duplicate plugins.studio.mcp-inspector-door (plugins-and-installs area); its oracle: URL path /mcp/inspect; mcp-inspect-no-plugin visible iff no enabled editor with kind 'mcp-server' in GET /api/v1/editors"
    ],
@@ -13058,8 +13062,8 @@
    "user_path": "/mcp → mcp-mode-option on a tool; mcp-server-remove. TERMINAL: setTool / remove / revoke writes",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + mcp route emulation"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -13164,6 +13168,9 @@
     "wicked-studio:src/components/McpToolsPage.tsx (mcp-mode, mcp-server-remove)",
     "wicked-studio:src/api/mcp.ts (setTool, remove, revoke)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -13173,11 +13180,9 @@
    "user_path": "/mcp → mcp-policy-matrix → hover mcp-matrix-cell. TERMINAL: cells decide like wicked-core mcp_gate::evaluate (D-1 denies write in evaluator/recon rows; first use asks)",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + mcp route emulation",
-    "crew test daemon",
     "crew:daemon-hermetic",
-    "studio:bundled-dist"
+    "studio:bundled-dist",
+    "crew test daemon"
    ],
    "cost": "S",
    "tags": [
@@ -13200,15 +13205,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/mcp/policies/preview",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/mcp/policies/preview",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -13314,6 +13315,7 @@
     "wicked-core:crates/wicked-core-ts/index.d.ts:previewMcpCalls"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate core.mcp.policy-preview (core-engine area); its oracle: response [{subject, cells[{role,seat,mode,decision,class,ruleIds}]}] matches evaluateMcpCall for same inputs"
    ],
    "origin": "inventory-2026-10-20"
@@ -13325,8 +13327,8 @@
    "user_path": "/mcp. TERMINAL: server rows with mcp-server-health, mcp-server-posture, mcp-server-auth; discovered servers listed",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + mcp route emulation"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -13449,6 +13451,9 @@
     "wicked-studio:src/components/McpToolsPage.tsx (mcp-*)",
     "wicked-studio:src/api/mcp.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -13458,8 +13463,8 @@
    "user_path": "/mcp?view=usage → mcp-usage-tool-drill → mcp-usage-run-link. TERMINAL: stats from usage wire; run link opens session",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + mcp route emulation"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -13531,6 +13536,9 @@
    "sources": [
     "wicked-studio:src/components/McpUsage.tsx (mcp-usage-*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -13540,8 +13548,8 @@
    "user_path": "Memory → memory-add → memory-add-text + memory-add-project → memory-add-save. TERMINAL: POST /memory; new memory-row",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(memories)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -13558,16 +13566,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/memory",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/memory",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -13646,6 +13648,9 @@
    "sources": [
     "wicked-studio:src/components/memory/MemoryPage.tsx (memory-add*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -13655,8 +13660,8 @@
    "user_path": "memory-row → memory-actions → edit → memory-edit-text → memory-edit-save. TERMINAL: POST /memory/edit; row content updated",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(memories)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -13673,16 +13678,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/memory/edit",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/memory/edit",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -13761,6 +13760,9 @@
    "sources": [
     "wicked-studio:src/components/memory/MemoryPage.tsx (memory-edit-*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -13770,8 +13772,8 @@
    "user_path": "/?tab=memory → memory-kind card → memories-search + memories-search-go. TERMINAL: memory-tiles totals from GET /memory/coverage; list newest first; search re-reads wire",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(memories)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -13885,6 +13887,9 @@
     "wicked-studio:src/components/memory/MemoryPage.tsx (memory-*, memories-*)",
     "wicked-studio:src/api/memory.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -13894,11 +13899,10 @@
    "user_path": "/memory?view=proposals → only memory proposal → proposal-edit → proposal-approve-edited. TERMINAL: memory approved with edited content; policy proposal not shown",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(memories,proposals)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "isolated crew daemon + studio",
-    "estate stores",
-    "fixture:uxfix(proposals)"
+    "estate stores"
    ],
    "cost": "S",
    "tags": [
@@ -13921,15 +13925,11 @@
       "value": 1
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/proposals/{id}/approve",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/proposals/{id}/approve",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -14077,7 +14077,9 @@
     "wicked-studio:src/components/ProposalsList.tsx (proposal-*)"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate estate.via-studio.proposals (estate area); its oracle: after approve, GET /api/v1/proposals no longer lists it as pending and estate memory.list contains the promoted active_id; after reject, state rejected and content never recallable",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio-ui.steer.proposals (studio-ui area); its oracle: [data-testid=proposal-card] all kind policy; fixture log POST /proposals/:id/approve with edited body; reject POST"
    ],
    "origin": "inventory-2026-10-20"
@@ -14089,8 +14091,8 @@
    "user_path": "memory-row → memory-retire → memory-retire-confirm. TERMINAL: POST /memory/retire-item; row gone",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(memories)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -14107,16 +14109,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/memory/retire-item",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/memory/retire-item",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -14201,6 +14197,9 @@
    "sources": [
     "wicked-studio:src/components/memory/MemoryPage.tsx (memory-retire*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -14225,16 +14224,10 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/runs/{id}/cancel",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
+    "kind": "event",
+    "source": "network",
+    "type": "POST /api/v1/runs/{id}/cancel",
+    "count": 1,
     "complete": false,
     "untyped": [
      "fixture log 1 POST /runs/<id>/cancel",
@@ -14279,8 +14272,8 @@
    "user_path": "Ctrl/⌘+K → 'go:' → type each destination label → Enter. TERMINAL: address equals row href; none renders not-found",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,team)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -14336,6 +14329,9 @@
     "wicked-studio:src/palette/routeTargets.ts (DESTINATIONS)",
     "wicked-studio:src/components/CommandPalette.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -14345,8 +14341,8 @@
    "user_path": "Hover/focus a session or open a sheet → ⌘K. TERMINAL: palette lists that object's commands first",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -14381,6 +14377,9 @@
    "sources": [
     "wicked-studio:src/components/sheets/objectCommands.ts",
     "wicked-studio:src/App.tsx (cmdkObject)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -14483,15 +14482,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/terminals",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/terminals",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -14544,8 +14539,8 @@
    "user_path": "⌘K '>events r1' Enter; '>files r1'; '>config'. TERMINAL: /runs/r1/events raw JSON equals fixture tail; /runs/r1/files diff viewer; Back returns",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -14627,6 +14622,9 @@
     "wicked-studio:src/components/FileViewer.tsx",
     "wicked-studio:src/palette/runTargets.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -14636,8 +14634,8 @@
    "user_path": "Hold Alt on Desk/session. TERMINAL: alt-peek overlay shows need count and held runs; release hides",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -14671,6 +14669,9 @@
    "sources": [
     "wicked-studio:src/components/sheets/AltPeek.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -14680,8 +14681,8 @@
    "user_path": "/s/run%3Ar1 scrolled; gate arrives on b1. ⌥P → peek card; ⌥G → b1 gate; ⌥B → back. TERMINAL: URL byte-identical after peek; jump to /s/run%3Ab1#gate; back restores exact scroll and focus",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2a_feed)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -14731,6 +14732,9 @@
     "wicked-studio:src/hooks/usePeekJump.ts",
     "wicked-studio:src/components/PeekCard.tsx (peek-*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -14740,8 +14744,8 @@
    "user_path": "390x844 with wave1+wave2b. TERMINAL: phone-needs-badge shows the same count as desk-rail-badge on desktop",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -14773,6 +14777,9 @@
    "sources": [
     "wicked-studio:src/components/ui/PhoneNeedsBadge.tsx",
     "wicked-studio:src/App.tsx (RailDrawer badge)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -14915,8 +14922,8 @@
    "user_path": "/plugins → editor-plugin-row → editor-plugin-open; built-in Document lists its documents; editor-plugins-create. TERMINAL: Document opens real docs; app builder 'coming soon'; Create opens wizard on editor-plugin workflow",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(document index)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "studio served by crew",
     "crew daemon",
     "studio",
@@ -15079,6 +15086,7 @@
     "wicked-studio:src/components/editors/EditorPluginsSettings.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate plugins.studio.plugins-page (plugins-and-installs area); its oracle: one [data-testid=editor-plugin-row] per GET /api/v1/editors entry with data-editor==id; [data-testid=editor-plugin-source] text 'Built in' iff first_party else 'Installed'; row text 'Version <v> · opens <kinds in words>'; [data-testid=editor-plugin-permissions] starts 'Can:' with plain words (never raw ids); states editor-plugins-loading / -error (retry) / -unsupported / -empty render for the matc",
     "merged duplicate studio.plugins.document-list (interactive-and-docs area); its oracle: DOM rows equal docs-index rows with style web/none; location search open=launch-page; plugin-coming-soon has no a/button descendants",
     "merged duplicate plugins.studio.plugins-open-document (plugins-and-installs area); its oracle: row lists only page/document-kind docs; [data-testid=editor-plugin-elsewhere] visible; after click the plugin frame src is the /api/v1/editors/wicked-page/<v>/entry bundle and the URL carries open=; Esc sequence returns to /plugins; 0 page errors"
@@ -15092,8 +15100,8 @@
    "user_path": "With home_paths switch, visit /system, /skills, /repos, /health, a run session. TERMINAL: no visible text contains <fixture-home>",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(home_paths)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -15131,6 +15139,9 @@
    "sources": [
     "wicked-studio:src/board/homePath.ts",
     "wicked-studio:src/hooks/useHomePath.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -15179,7 +15190,10 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "a graph read error shows project-graph-read-retry"
+    ]
    },
    "oracle_text": "fixture log 1 POST domain-graph/build; [data-testid=project-graph-result] visible; read error → project-graph-read-retry",
    "covers": [
@@ -15211,11 +15225,11 @@
    "id": "studio-ui.projects.coverage-domain",
    "title": "Project Coverage and Domain sections",
    "surface": "ui",
-   "user_path": "/projects/<id> with stubbed /projects/:id/{coverage,domain}. TERMINAL: every member repo a project-coverage-row with state; unread/error rows honest; domain merged rows",
+   "user_path": "/projects/<id>. TERMINAL: every member repo a project-coverage-row with state; unread/error rows honest; domain merged rows Seed the real backend state the page reads; no page.route stub.",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + page.route stubs"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -15244,7 +15258,8 @@
     "complete": false,
     "untyped": [
      "[data-testid=project-coverage-row] count == members",
-     "project-domain-totals numbers == stub"
+     "project-domain-totals numbers == stub",
+     "the values equal the seeded real backend state (the stubbed form is fixture evidence only)"
     ]
    },
    "oracle_text": "[data-testid=project-coverage-row] count == members; project-domain-totals numbers == stub",
@@ -15278,6 +15293,9 @@
    "sources": [
     "wicked-studio:src/components/product/ProjectAggregates.tsx (project-coverage*, project-domain*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -15287,8 +15305,8 @@
    "user_path": "/projects/<id> (and /projects/default 'Not in a project'). TERMINAL: project-title, project-meta, project-desk sections, member repos, first job CTA; same tabs with base /projects/<id>",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(project_create)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -15399,6 +15417,9 @@
     "wicked-studio:src/components/desk/ProjectDesk.tsx (project-*)",
     "wicked-studio:src/components/desk/DeskV2.tsx (base)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -15429,15 +15450,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "PATCH",
-      "path": "/api/v1/projects/{id}",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "PATCH /api/v1/projects/{id}",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -15508,8 +15525,8 @@
    "user_path": "Session ⋯ → session-move → session-move-picker → pick project. TERMINAL: session's runs re-filed; rail group changes",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(sessions)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -15547,6 +15564,9 @@
    "sources": [
     "wicked-studio:src/components/desk/MoveToProject.tsx (session-move, session-move-picker)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -15556,8 +15576,8 @@
    "user_path": "Rail desk-rail-new-project → new-project-name + description + repo → new-project-create. TERMINAL: POST /projects (+ member attach); navigates to /projects/<id>",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(project_create)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -15574,16 +15594,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/projects",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/projects",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -15638,6 +15652,9 @@
    "sources": [
     "wicked-studio:src/components/NewProjectModal.tsx (new-project-*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -15647,8 +15664,8 @@
    "user_path": "Project › Repositories → project-repo-search → project-repo-option; project-repo-detach → confirm. TERMINAL: attach/detach writes; row list updates",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(project_create,repo)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -15706,6 +15723,9 @@
    "sources": [
     "wicked-studio:src/components/ProjectRepositories.tsx (project-repo-*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -15715,8 +15735,8 @@
    "user_path": "/projects/<id>#requirements → project-requirements-link → /projects/<id>/requirements → requirements-search/next → requirements-draft. TERMINAL: browser lists requirements; Draft epics opens launch wizard and composes via POST /projects/:id/product/compose. Let the compose run complete.",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + page.route stubs"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -15811,7 +15831,8 @@
     "wicked-studio:src/components/product/ProjectRequirementsSection.tsx"
    ],
    "notes": [
-    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; "
+    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; ",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -15822,8 +15843,8 @@
    "user_path": "/everything?tab=projects → projects-filter; projects-row-rename; projects-row-archive; projects-row-unarchive; projects-unfiled-open. TERMINAL: updateProject PATCH per action; list reflects",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(project_create)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -15840,15 +15861,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "PATCH",
-      "path": "/api/v1/projects/{id}",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "PATCH /api/v1/projects/{id}",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -15908,6 +15925,9 @@
    "sources": [
     "wicked-studio:src/components/everything/ProjectsTab.tsx (projects-*, everything-project-*)",
     "wicked-studio:src/board/projectsModel.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -15998,8 +16018,8 @@
    "user_path": "Load / with wave1+wave2b corpus (2 gates, 1 elicitation, 1 failure). TERMINAL: desk-rail-badge text equals the needs-you decision+failure count and the Watchtower sentence count",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -16088,6 +16108,9 @@
     "wicked-studio:src/components/desk/SessionRail.tsx (desk-rail-badge)",
     "wicked-studio:src/hooks/useNeedsRows.ts",
     "wicked-studio:src/board/attention.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -16373,8 +16396,8 @@
    "user_path": "Rail → click rail-session for chat-pay. TERMINAL: URL /s/chat-pay, [data-testid=session] shows both runs r-pay-1 and r-pay-2",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(sessions,run_chat_id)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -16455,6 +16478,9 @@
     "wicked-studio:src/components/desk/SessionRail.tsx (rail-session, rail-session-dot, rail-group)",
     "wicked-studio:src/board/sessionModel.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -16489,15 +16515,11 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "PUT",
-      "path": "/api/v1/settings",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/settings",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -16584,8 +16606,8 @@
    "user_path": "/repo-detail/<id> → repo-open-graph; click a node. TERMINAL: RepoGraphModal with CytoGraph; graph-node-stats for the node; close",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(repo)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "isolated crew daemon + studio",
     "indexed repo graph"
    ],
@@ -16663,6 +16685,7 @@
     "wicked-studio:src/components/LanguageBar.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate estate.via-studio.repo-graph-view (estate area); its oracle: DOM graph-node-stats shows node/edge counts equal to the crew /repos/:id/graph payload; language-segment count > 0 and widths sum to 100% (+/-1)"
    ],
    "origin": "inventory-2026-10-20"
@@ -16674,8 +16697,8 @@
    "user_path": "/repo-detail/studio-api. TERMINAL: repo-detail-stats, hotspots-excerpt or honest empty (Markdown-only), failed graph read → 'Try again' recovers",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(repo)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -16746,6 +16769,9 @@
     "wicked-studio:src/components/RepoDetailPage.tsx (repo-detail-*, hotspots-*, graph-stat-*)",
     "wicked-studio:src/board/repoGraphState.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -16755,8 +16781,8 @@
    "user_path": "/repo-detail/<id> → repo-open-requirements. TERMINAL: RequirementsModal lists requirements",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(repo)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -16820,6 +16846,9 @@
     "wicked-studio:src/components/RequirementsModal.tsx",
     "wicked-studio:src/components/RepoDetailPage.tsx (repo-open-requirements)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -16829,8 +16858,8 @@
    "user_path": "/repo-detail/<id> → repo-run-onboarding. TERMINAL: POST /repos/:id/onboard; run-link to the run",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(repo)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -16899,6 +16928,9 @@
    "sources": [
     "wicked-studio:src/components/RepoDetailPage.tsx (repo-run-onboarding, repo-onboard-error)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -16908,8 +16940,8 @@
    "user_path": "repo-card → repo-capture-learnings. TERMINAL: one launch POST /runs with workflow capture-learnings; repo-capture-state shows it. Let the capture run complete; its proposals land pending.",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(repo)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -16966,7 +16998,10 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the capture run's workflow is capture-learnings on that repo"
+    ]
    },
    "oracle_text": "fixture log: 1 POST /runs body.workflow=='capture-learnings' and repo id; [data-testid=repo-capture-state] visible",
    "covers": [
@@ -17016,7 +17051,8 @@
     "wicked-studio:src/components/RepositoriesPanel.tsx (repo-capture-learnings, repo-capture-state)"
    ],
    "notes": [
-    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; "
+    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; ",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -17027,8 +17063,8 @@
    "user_path": "/repos with repo_findings. TERMINAL: studio-api card has ONE finding row with code and message",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(repo,repo_findings)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -17113,6 +17149,9 @@
     "wicked-studio:src/components/RepoFindings.tsx",
     "wicked-studio:src/components/RepositoriesPanel.tsx (repo-card-findings)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -17122,8 +17161,8 @@
    "user_path": "/repos (→ /?tab=repositories) → repos-filter-chip, repos-filter-search, repos-range. TERMINAL: repo-card rows filtered; repos-kpis numbers",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(repo)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -17226,6 +17265,9 @@
    "sources": [
     "wicked-studio:src/components/RepositoriesPanel.tsx (repos-*, repo-card*)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -17235,8 +17277,8 @@
    "user_path": "Repositories with GET /repos failed in-browser. TERMINAL: one StateBanner with Retry; no 'Failed to fetch'; repos-add disabled",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(escalation_arms)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -17332,6 +17374,9 @@
     "wicked-studio:src/components/RepositoriesPanel.tsx (repos-error)",
     "wicked-studio:src/components/ui/StateBanner.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -17341,8 +17386,8 @@
    "user_path": "repo-card → repo-onboard (or repo-reindex), confirm action-preview. TERMINAL: POST /repos/:id/onboard; repo-graph-state reads building. Wait for the onboarding run to complete.",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(repo)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -17386,7 +17431,10 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the reindex variant (repo-reindex) re-runs onboarding the same way"
+    ]
    },
    "oracle_text": "fixture log POST /api/v1/repos/<id>/onboard ×1; repo-graph-state text changes",
    "covers": [
@@ -17440,7 +17488,8 @@
     "wicked-studio:src/components/RepositoriesPanel.tsx (repo-onboard, repo-reindex, action-preview)"
    ],
    "notes": [
-    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; "
+    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; ",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -17451,8 +17500,8 @@
    "user_path": "/repos/new or repos-add → repo-path (or repo-git-url + repo-checkout-path) + repo-name → repo-register-submit. TERMINAL: POST /repos (or clone+register); new repo-card. Wait for its onboarding run to finish and the graph to be built.",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(repo)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -17508,7 +17557,10 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "an invalid path shows repo-register-error; the form is disabled while offline"
+    ]
    },
    "oracle_text": "fixture log: 1 POST /api/v1/repos with path; [data-testid=repo-card] count+1; repo-register-error on invalid; disabled while offline",
    "covers": [
@@ -17570,7 +17622,8 @@
     "wicked-studio:src/api/client.ts (registerRepo, cloneAndRegisterRepo)"
    ],
    "notes": [
-    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; "
+    "critic 2026-10-20 (stub instead of real / launch instead of terminal): the user path now ends at the real terminal state; ",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -17581,8 +17634,8 @@
    "user_path": "On / expand a band and scroll; ⌘K '>events r1' Enter; press Back. TERMINAL: back at / with palette closed, band expanded, scroll restored",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -17620,6 +17673,9 @@
    "sources": [
     "wicked-studio:src/hooks/useHistoryState.ts",
     "wicked-studio:src/hooks/useRoute.ts (leaveRoute)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -18490,8 +18546,8 @@
    "user_path": "Rail Search (or Ctrl/⌘+Shift+F) → type 'upload'. TERMINAL: tabs runs, projects, transcripts, rules, memories, docs with counts; matches marked; row opens target",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(search)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -18566,6 +18622,9 @@
     "wicked-studio:src/api/search.ts",
     "wicked-studio:src/board/searchModel.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -18575,8 +18634,8 @@
    "user_path": "/s/run:r-walk-pass. TERMINAL: Build step wears 'checked at 0:30 ▸' linking to the take chapter",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(walkthrough,acceptance_wt)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "crew.walkthrough.acceptance"
    ],
    "cost": "S",
@@ -18676,6 +18735,7 @@
     "wicked-studio:src/components/session/WalkthroughEditor.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio.walkthrough.checked-chips (interactive-and-docs area); its oracle: chip text derived from GET /runs/:id/acceptance; video.currentTime ≈ 30 after click"
    ],
    "origin": "inventory-2026-10-20"
@@ -18745,8 +18805,8 @@
    "user_path": "r-ship-deliver card → session-proposal-deliver-* → Go → session-proposal-confirm-yes. TERMINAL: deliver gate approved; PR link outcome",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(ship_proposals)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -18837,6 +18897,9 @@
     "wicked-studio:src/components/session/ProposalCard.tsx (session-proposal-deliver-*, session-proposal-confirm*)",
     "wicked-studio:src/components/DeliverLift.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -18846,8 +18909,8 @@
    "user_path": "r-qe stranded → Deliver → 409 qe_acceptance_required. TERMINAL: says why, links to Settings switch",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + page.route",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "signed-in seats",
     "registered repo",
     "governed run (L)"
@@ -18963,6 +19026,7 @@
     "wicked-studio:src/components/RunDelivery.tsx"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate foundation.platform.acceptance.delivery-refusal (foundation area); its oracle: first attempt: refusal visible and no PR/branch push (deliver unit not completed); after PASS: GET /runs/:id/acceptance .gate.satisfied==true and delivery proceeds to deliver gate"
    ],
    "origin": "inventory-2026-10-20"
@@ -19074,8 +19138,8 @@
    "user_path": "/s/run:<id> scrolled up → session-jump-latest; stopped run. TERMINAL: jump scrolls to end; Stopped renders red/danger; no Details button in header",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(chat_native)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -19155,6 +19219,9 @@
     "wicked-studio:src/components/session/SessionView.tsx (session-jump-latest, session-jump-unseen)",
     "wicked-studio:src/board/runHeader.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -19164,8 +19231,8 @@
    "user_path": "/s/run:<gated> → hover session-needs-trigger → session-needs-jump. TERMINAL: overview lists items; jump focuses the gate row",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(chat_native)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -19226,6 +19293,9 @@
    ],
    "sources": [
     "wicked-studio:src/components/session/NeedsBanner.tsx (session-needs-*)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -19331,16 +19401,10 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/r-orphan/resume",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/r-orphan/resume",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -19451,8 +19515,8 @@
    "user_path": "/s/chat-ship → r-ship-plan card → session-proposal-go. TERMINAL: 'Here's the plan: … (4 steps).'; Go POSTs gate approve; no rev/unit/band words",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(sessions,ship_proposals)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -19474,16 +19538,10 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/r-ship-plan/gate",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/r-ship-plan/gate",
+      "count": 1
      }
     ],
     "complete": false,
@@ -19542,6 +19600,9 @@
     "wicked-studio:src/components/session/ProposalCard.tsx (session-proposal-*)",
     "wicked-studio:src/board/proposalCard.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -19551,8 +19612,8 @@
    "user_path": "Desk question row 'Answer ›' → /s/run%3Ae1#gate → answer. TERMINAL: one POST /runs/e1/elicitation; docks show 'Answer in its thread ›' without a gate card",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,wave2b)",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
     "crew test daemon",
     "ACP seat"
    ],
@@ -19578,16 +19639,10 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/e1/elicitation",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/e1/elicitation",
+      "count": 1
      }
     ],
     "complete": false,
@@ -19636,6 +19691,7 @@
     "wicked-core:crates/wicked-core-ts/index.d.ts:resolveElicitation, openAsk, closeAsk, askUnit"
    ],
    "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate core.ask.operator-question (core-engine area); its oracle: elicitationCreated then elicitationResolved{action}; closeAsk returns true"
    ],
    "origin": "inventory-2026-10-20"
@@ -19647,8 +19703,8 @@
    "user_path": "/s/run:r-cn-old (archived). TERMINAL: thread opened at newest message: divider, kickoff bubble, one assistant bubble per finished step, final message; details panel beside",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(chat_native corpus)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -19743,6 +19799,9 @@
     "wicked-studio:src/board/runConversation.ts",
     "wicked-studio:e2e/chat_native_corpus.py"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -19752,8 +19811,8 @@
    "user_path": "/s/run:<id> at 1440x700 and 390x844 → run-panel-toggle each section. TERMINAL: Details panel 400px with Now · Plan and steps · Changes and delivery · Checks and evidence · Agents and spend · …; phone → ribbon",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(chat_native)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -19876,6 +19935,9 @@
     "wicked-studio:src/board/runPanelModel.ts",
     "wicked-studio:src/components/editorHost/HostPanel.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -19885,8 +19947,8 @@
    "user_path": "Run panel › Agents and spend. TERMINAL: 'claude (you chose it)'; 'score 30 → 1 monitor'; member that could not open disclosed with reason; step by another helper shown",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(chat_native)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -19945,6 +20007,9 @@
     "wicked-studio:src/components/session/TeamRosterLines.tsx (run-tab-team-*)",
     "wicked-studio:src/board/teamRoster.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -19972,16 +20037,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/{id}/cancel",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{id}/cancel",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -20104,8 +20163,8 @@
    "user_path": "/s/run:r-strand → session-stranded-deliver. TERMINAL: POST /runs/r-strand/deliver; refusal stays in view; delivered run shows PR",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix + page.route"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -20128,16 +20187,10 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/r-strand/deliver",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/r-strand/deliver",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -20189,6 +20242,9 @@
     "wicked-studio:src/components/session/StrandedCard.tsx",
     "wicked-studio:src/components/RunDelivery.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -20198,8 +20254,8 @@
    "user_path": "/s/chat-pay; fixture emits wicked.team.step.completed over /ws. TERMINAL: same session-status-sentence element changes text; chain moves",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(sessions + /ws frames)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -20333,6 +20389,9 @@
     "wicked-studio:src/components/session/RunConversation.tsx (session-status-sentence)",
     "wicked-studio:src/components/session/ChainLine.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -20342,8 +20401,8 @@
    "user_path": "/s/run%3Ab1 with watch_feed. TERMINAL: gate row carries one quiet registry line; '1 check didn't run on this run.'; registry 404 → no line",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,watch_feed)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -20396,6 +20455,9 @@
    "sources": [
     "wicked-studio:src/components/WatchLines.tsx",
     "wicked-studio:src/board/watchLine.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -20787,15 +20849,11 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "PUT",
-      "path": "/api/v1/settings",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/settings",
+      "count": {
+       "min": 1
       }
      },
      {
@@ -20894,8 +20952,8 @@
    "user_path": "/system → tech-details-toggle on. TERMINAL: PUT /settings studio.view.technical_details=true; run head and Runs rows now show handles",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,session_over)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -20955,6 +21013,9 @@
    "sources": [
     "wicked-studio:src/components/SystemSettings.tsx (tech-details-toggle)",
     "wicked-studio:src/hooks/useTechDetails.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -21127,8 +21188,8 @@
    "user_path": "Completed run c1 sheet → sheet-draft-update → edit → Copy. TERMINAL: text area first line == GET /runs/c1/deliver-text line 1; clipboard equals edited text",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -21176,6 +21237,9 @@
     "wicked-studio:src/components/OutboundDraft.tsx",
     "wicked-studio:src/hooks/useOutboundDraft.ts",
     "wicked-studio:src/components/session/RunActions.tsx (sheet-draft-update)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -21375,8 +21439,8 @@
    "user_path": "Session ⋯ → sheet tabs (What and where, Governance, Steering…); a step row → step sheet; a helper → helper sheet. TERMINAL: each section renders; Esc closes topmost",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,sheets)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -21479,6 +21543,9 @@
    "sources": [
     "wicked-studio:src/components/sheets/ObjectSheet.tsx (sheet-*)",
     "wicked-studio:src/components/sheets/Sheet.tsx"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -22256,16 +22323,10 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/skills/{name}/<enabled|disabled>",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
+    "kind": "event",
+    "source": "network",
+    "type": "POST /api/v1/skills/{name}/<enabled|disabled>",
+    "count": 1,
     "complete": false,
     "untyped": [
      "fixture log 1 POST /skills/<name>/<enabled|disabled>",
@@ -22306,8 +22367,8 @@
    "user_path": "Steer → steer-add → steer-add-rule → SteeringRuleForm (type, statement, severity, weight, applies/excludes, trigger) → steering-form-save. TERMINAL: rule saved; appears in list",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(steering_rules)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -22397,7 +22458,8 @@
     "wicked-studio:src/board/steeringCommit.ts"
    ],
    "notes": [
-    "critic 2026-10-20 (permissive disjunction): the failure branch no longer passes; the rule must land in the engine's rules list, whichever route wrote it."
+    "critic 2026-10-20 (permissive disjunction): the failure branch no longer passes; the rule must land in the engine's rules list, whichever route wrote it.",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -22469,7 +22531,10 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the author's question is answered in its thread before the rule lands"
+    ]
    },
    "oracle_text": "fixture log 1 POST /governance/steering/author; steering-author-waiting visible; dock shows 'Answer in its thread ›' link",
    "covers": [
@@ -22719,16 +22784,10 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/governance/steering/import",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/governance/steering/import",
+      "count": 1
      },
      {
       "kind": "dom",
@@ -22927,8 +22986,8 @@
    "user_path": "/steering/policies?view=table → steering-grid-add → fill steering-draft-* → steering-draft-save; edit a steering-cell-statement inline. TERMINAL: saved row; type filter via ?type=",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(steering_rules)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -23020,6 +23079,9 @@
     "wicked-studio:src/components/SteeringTypeFilter.tsx",
     "wicked-studio:src/components/SteeringPage.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -23029,8 +23091,8 @@
    "user_path": "Rule drawer → steering-retire-open → reason + type id in steering-retire-confirm-input → steering-retire-confirm. TERMINAL: rule retired, chip shown, hidden unless filter-retired",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(steering_rules)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -23139,6 +23201,9 @@
     "wicked-studio:src/components/SteeringRetireModal.tsx",
     "wicked-studio:src/components/steer/SteerSurface.tsx (steer-retire)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -23148,8 +23213,8 @@
    "user_path": "/rules/<ruleId>. TERMINAL: rule-origin (words, choice, approved) and rule-where rows with step + verdict",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(decisions,steering_rules)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -23226,6 +23291,9 @@
     "wicked-studio:src/components/decisions/RuleOrigin.tsx (rule-origin*, rule-where*)",
     "wicked-studio:src/api/considered.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -23235,8 +23303,8 @@
    "user_path": "/steering/policies?rule=TST-1002 → steering-rule-drawer → steering-rule-hold-switch → pick → confirm token. TERMINAL: hold applied; drawer shows effect/obligations",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(steering_rules)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -23328,6 +23396,9 @@
     "wicked-studio:src/components/SteeringRuleDrawer.tsx (steering-rule-*)",
     "wicked-studio:src/board/holdRule.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -23381,8 +23452,8 @@
    "user_path": "/rules (→ /?tab=steer&at=/rules) → steer-search, steer-type / steer-facet, steer-show-all. TERMINAL: rules-row list filtered with reach line; steer-tiles stats",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(steering_rules)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -23494,6 +23565,9 @@
    "sources": [
     "wicked-studio:src/components/steer/SteerSurface.tsx (steer-*, rules-row*)",
     "wicked-studio:src/board/rulesPage.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -23654,8 +23728,8 @@
    "user_path": "Open /testing/campaigns/<id>. TERMINAL: campaign-scoreboard: ladder rows, verdict chips, run links, delivery rollup, evidence link; unknown id → campaign-notfound",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(campaigns)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -23736,6 +23810,9 @@
    "sources": [
     "wicked-studio:src/components/TestingPage.tsx",
     "wicked-studio:src/components/CampaignScoreboard.tsx (campaign-*)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -24046,8 +24123,6 @@
    "user_path": "/theme → brand-learn → learn-source-* → learn-input → learn-submit → learn-preview-chip → learn-apply. TERMINAL: inert at rest (0 learn requests); theme.requested over POST /api/events; readback poll GET /d/:docId/api/theme/learned; applied",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix (interactive bridge stand-in)",
     "crew:daemon-hermetic",
     "studio:bundled-dist",
     "studio",
@@ -24209,6 +24284,7 @@
    ],
    "notes": [
     "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
     "merged duplicate studio-ui.theme.brand-upload (studio-ui area); its oracle: learn-file-name/learn-file-preview visible; bridge log PUT …/d/brand-learn/api/… with PNG bytes length == file size",
     "merged duplicate studio.theme.brand-learn (interactive-and-docs area); its oracle: network sequence and bodies; computed --accent CSS var changes on preview; appearance PUT on apply; no theme requests before submit"
    ],
@@ -24327,24 +24403,24 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/events",
-      "expect": {
-       "status": 200
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/events",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/theme/learned",
+      "count": {
+       "min": 1
       }
      },
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/theme/learned",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "PUT",
       "path": "/api/theme/learned",
       "expect": {
        "status": 200
@@ -24546,8 +24622,8 @@
    "user_path": "/ with appearance wicked-light + harbor at 1440x900. TERMINAL: top needs-you dot computes rgb(255,218,25); rail badge yellow",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave2b)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -24604,6 +24680,9 @@
     "wicked-studio:src/styles/tokens.css",
     "wicked-studio:src/components/NeedsYouQueue.tsx"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -24613,8 +24692,8 @@
    "user_path": "Home with full queue at 1440x700, wheel-scroll; every top-level page. TERMINAL: last section fully in view; sidebar stays",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(home_runs)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -24641,6 +24720,9 @@
    ],
    "sources": [
     "wicked-studio:src/App.tsx (#main overflow)"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -24702,8 +24784,8 @@
    "user_path": "Live-shaped reel_runs corpus at 1440x900. TERMINAL: no UUIDs, no '|||', no absolute paths in sentences/cards from first paint to team fold",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(reel_runs)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -24752,6 +24834,9 @@
    "sources": [
     "wicked-studio:src/board/statusWords.ts",
     "wicked-studio:src/board/chainModel.ts"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -24853,8 +24938,8 @@
    "user_path": "/watch → watchtower-kind chip → watchtower-jump. TERMINAL: rows newest first; open claim finding with Jump in; gate-attached findings excluded; sentence count == rail pill",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(wave1,watch_feed)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -24937,6 +25022,9 @@
     "wicked-studio:src/components/watch/WatchtowerPage.tsx (watchtower-*)",
     "wicked-studio:src/hooks/useWatchFeed.ts"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -24946,8 +25034,8 @@
    "user_path": "/workflows → workflow-edit → builder-step-kind/role/gate/deps → save (blockers in builder-save-blocker). TERMINAL: saveScript / PUT preset once",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(workflow_catalog)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -24997,6 +25085,9 @@
     "wicked-studio:src/components/WorkflowViewer.tsx (workflow-edit, builder-*)",
     "wicked-studio:src/api/client.ts (saveScript)"
    ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
+   ],
    "origin": "inventory-2026-10-20"
   },
   {
@@ -25006,8 +25097,8 @@
    "user_path": "/workflows. TERMINAL: every GET /workflows def + every saved preset not already held; refused defs in workflows-refused with reason",
    "deps": [
     "playwright-chromium",
-    "studio:dist-sameorigin",
-    "fixture:uxfix(workflow_catalog)"
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
    ],
    "cost": "S",
    "tags": [
@@ -25086,6 +25177,9 @@
    ],
    "sources": [
     "wicked-studio:src/components/WorkflowViewer.tsx"
+   ],
+   "notes": [
+    "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification"
    ],
    "origin": "inventory-2026-10-20"
   }

@@ -81,7 +81,7 @@ A capability's `oracle` is one typed check, an `all` of typed checks, or `manual
 |---|---|---|
 | `dom` | `selector`, `assert` (`visible`, `hidden`, `text-equals`, `text-matches`, `count`, `attr`), `value`, `attr`, `route` | the rendered page matches (Playwright locator semantics) |
 | `api` | `method` (`GET` to `DELETE`, or `JSONRPC` for an MCP tool), `path`, `body`, `expect` (`status`, `json[]`, `error_code`), `capture` | the answer matches. `capture` binds `{name}` placeholders for later checks |
-| `event` | `type`, `source` (`core-event`, `bus`, `ws`, `interactive`, `hook-log`, `transcript`), `where`, `count`, `within_s` | the event was observed on the path. `within_s` is a wait budget, not a performance assertion |
+| `event` | `type`, `source` (`core-event`, `bus`, `ws`, `interactive`, `hook-log`, `transcript`, `network`), `where`, `count`, `within_s` | the event was observed on the path. `within_s` is a wait budget, not a performance assertion |
 | `file` | `path`, `assert` (`exists`, `absent`, `sha256`, `json-path`, `matches`, `non-empty`), `json_path`, `value` | the file the path leaves behind matches |
 | `exit` | `cmd`, `code` (an integer or `nonzero`), `stdout_matches`, `stderr_matches` | the command exits as stated |
 | `npm` | `pkg`, `version`, `dist_tag` | the published version is the one stated |
@@ -90,6 +90,11 @@ A capability's `oracle` is one typed check, an `all` of typed checks, or `manual
 - **`expect.json`** and `gh.assert` use one comparison shape: `{path, op, value}`. `op` is one of
   `eq`, `ne`, `exists`, `absent`, `in`, `matches`, `gt`, `gte`, `lt`, `lte`, `length` or
   `contains`. Paths use a JSONPath subset: `$.a.b`, `$.a[0]` and the filter `$.a[?(@.k=='v')].f`.
+- **What the UI sent** is observed, not repeated. On a UI capability, a non-GET request is an
+  `event` with `source: network` and `type: "POST /api/v1/runs"`, read from the browser's network
+  transcript. `where` matches request-body fields (`body.workflow`), and `count: 0` asserts the
+  request was never sent. An `api` check is a request the runner itself makes. On a UI path that
+  is only ever a GET that reads the terminal state.
 - **Placeholders** in `{braces}` come from a `capture` or from the runner's own bindings
   (`{port}`, `{runId}`, `{projectId}`, `{tag}`).
 - **`complete`**: `true` means every clause of `oracle_text` is a typed check. `false` means the
@@ -173,8 +178,8 @@ evidence is complete. It does not judge the results.
 
 - **(a) Catalog.** Every area file is schema-valid, ids and aliases are unique, and `related`
   points at real ids. A UI capability requires video, screenshot and trace. Every `covers` key is
-  a real surface element. Every scenario names a test file that exists at the pin (wicked-ci
-  references are checked in this checkout).
+  a real surface element. Every scenario names a test file that exists at the pin. wicked-ci
+  references are checked against this checkout, by the same executable-test rule.
   - Oracle semantics, including inside a manual `precheck`, cover what the schema subset cannot
     say: every comparison other than `exists`/`absent` carries a `value`; an `api` check expects
     something; an event `count` is not vacuous; `attr` names its attribute.
@@ -220,8 +225,8 @@ e2e select --profile release
 | profile | selection | count (2026-10-20 pins) |
 |---|---|---:|
 | `smoke` | `tag:smoke cost<=M !oracle=manual` | 34 |
-| `daily` | `cost<=M !oracle=manual` | 941 |
-| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 400 |
+| `daily` | `cost<=M !oracle=manual` | 916 |
+| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 391 |
 | `full` | everything (manual capabilities report `manual`) | 1410 |
 
 ## How the catalog was built
@@ -279,9 +284,15 @@ From now on the catalog files are the source.
   - A clause counts as typed only when it has one of the simple shapes a check captures whole: a
     bare status, `exit 0`, a testid that must be visible, or a request and its status. Every other
     clause (comparisons, counts, negations, request-body fields, prose) stays in `untyped`, even
-    when it also produced a check. A negated clause yields no check. A non-zero exit binds only to
-    a command named in its own clause.
-  - 32 oracles are complete, 1044 partial, 224 untyped and 110 manual.
+    when it also produced a check. A negated clause yields no check, except a negated UI request,
+    which becomes a `count: 0` network event.
+  - **Exits**: a clause's exit code binds to a command named in that clause. The path's own
+    command binds only to an unconditional `exit 0`.
+  - **Fallback**: when no clause yields a check, the capability's own request, tool, command or
+    terminal control is the necessary check. A command expects the text's single exit code, or 0
+    on a path that is not a rejection.
+  - Hand-written oracles that omit a clause of their user path list it in `untyped` too.
+  - 20 oracles are complete, 1031 partial, 249 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.
@@ -309,7 +320,7 @@ python3 -m unittest discover -s e2e/tests -v
 
 `.github/workflows/e2e-catalog.yml` runs two kinds of job.
 
-- **On PRs and pushes to main that touch `e2e/`**:
+- **On PRs and pushes to main that touch `e2e/`, `smoke/` (smoke steps are scenarios) or a workflow**:
   - the unit tests on ubuntu, macOS and Windows;
   - a check that the manifests reproduce from their pinned SHAs;
   - `e2e validate --baseline`;

@@ -67,6 +67,17 @@ def _checks(oracle):
     return [oracle]
 
 
+def local_test_index(repo_root):
+    """This checkout's test files, by the same rule the surface manifests use for every other repo."""
+    from .surfaces import test_index
+    files = []
+    for dp, dn, fn in os.walk(repo_root):
+        dn[:] = [d for d in dn if d not in (".git", "node_modules", "__pycache__")]
+        for f in fn:
+            files.append(os.path.relpath(os.path.join(dp, f), repo_root).replace(os.sep, "/"))
+    return test_index(repo_root, sorted(files))
+
+
 def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
     """(a): returns a list of failure strings."""
     fails = []
@@ -96,6 +107,7 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
             aliases[a] = c["id"]
     elements = {e["key"] for m in surfaces.values() for e in m["elements"]}
     tests = {m["repo"]: set(m["tests"]) for m in surfaces.values()}
+    tests["wicked-ci"] = set(local_test_index(repo_root))
     for c in caps:
         cid = c["id"]
         for r in c.get("related", []):
@@ -124,8 +136,8 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
                 continue
             repo, _, path = s["ref"].partition(":")
             if repo == "wicked-ci":
-                if not os.path.isfile(os.path.join(repo_root, path)):
-                    fails.append("%s: scenario %s does not exist in this checkout" % (cid, s["ref"]))
+                if path not in tests["wicked-ci"]:
+                    fails.append("%s: scenario %s is not a test file in this checkout" % (cid, s["ref"]))
             elif repo not in tests:
                 fails.append("%s: scenario %s names a repo with no surface manifest" % (cid, s["ref"]))
             elif path not in tests[repo]:
