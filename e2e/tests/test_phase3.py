@@ -354,6 +354,38 @@ class ResolveEdges(unittest.TestCase):
         self.assertEqual(out["selection"], "area:crew-api !oracle=manual")
         self.assertTrue(all(c["oracle"]["kind"] != "manual" for c in select(self.caps, out["selection"])))
 
+    def run_dir(self, run, verdicts):
+        tmp = tempfile.mkdtemp(prefix="e2e-resolve-")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        write_json(os.path.join(tmp, "run.json"), dict(run, capabilities=list(verdicts)))
+        for cid, verdict in verdicts.items():
+            write_json(os.path.join(tmp, cid, "result.json"), {"verdict": verdict})
+        return tmp
+
+    def test_round3_a_modifier_left_after_a_dropped_profile_selects_nothing(self):
+        out = self.r("cheap everything about zorblax")
+        self.assertEqual((out["status"], out["selection"], out["profile"], out["commands"]), ("no-match", None, None, []))
+
+    def test_round3_an_unmatched_rerun_topic_reruns_nothing(self):
+        tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail"})
+        out = self.r("re-run zorblax failures", run_dir=tmp)
+        self.assertEqual((out["status"], out["selection"], out["commands"]), ("no-match", None, []))
+        self.assertEqual(self.r("re-run what failed", run_dir=tmp)["selection"], "id:crew-api.runs.cancel")
+
+    def test_round3_an_explicit_fixture_rerun_does_not_inherit_the_live_target(self):
+        tmp = self.run_dir({"target": "live", "studio": "http://127.0.0.1:7801"}, {"crew-api.runs.cancel": "fail"})
+        out = self.r("re-run what failed on fixture", run_dir=tmp)
+        self.assertEqual((out["target"], out["studio"]), ("fixture", None))
+        self.assertNotIn("--studio", " ".join(out["commands"]))
+        out = self.r("re-run what failed", run_dir=tmp)
+        self.assertEqual((out["target"], out["studio"]), ("live", "http://127.0.0.1:7801"))
+
+    def test_round3_evidence_by_alias_opens_the_canonical_id(self):
+        tmp = self.run_dir({"target": "fixture"}, {"studio-ui.agents.check-now": "partial"})
+        out = self.r("show evidence for seats.ui.copy-signin-and-check-again", run_dir=tmp)
+        self.assertEqual(out["status"], "resolved")
+        self.assertTrue(out["commands"][0].endswith(" studio-ui.agents.check-now"), out["commands"])
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])

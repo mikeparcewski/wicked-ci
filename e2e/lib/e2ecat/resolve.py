@@ -103,6 +103,7 @@ class Vocab:
         self.caps = caps
         self.profiles = profiles
         self.ids = {c["id"] for c in caps} | {a for c in caps for a in c.get("aliases", [])}
+        self.canonical = {a: c["id"] for c in caps for a in c.get("aliases", [])}
         self.areas = sorted({c["_area"] for c in caps})
         self.area_norm = {_norm(a): a for a in self.areas}
         for k, a in AREA_ALIASES.items():
@@ -281,16 +282,16 @@ def resolve(request, caps, profiles, run_dir=None):
         # "everything about signon": the topic word matched nothing, so the profile word must not widen to it.
         explain.append({"words": pword, "as": "profile word ignored: the request's other words matched nothing"})
         profile = None
-    elif not profile and not topic and (cost or negate):
-        # A modifier narrows a topic; alone it would select across every area.
-        explain.append({"words": "cost/manual modifier", "as": "ignored: no word names a topic to narrow"})
-        cost, negate = None, []
     elif profile:
         if cost or negate:
             explain.append({"words": "cost/manual modifier", "as": "ignored with a profile (use --select to narrow)"})
             cost, negate = None, []
         explain.append({"words": pword,
                         "as": "profile %s (%s)" % (profile, profiles.get(profile, {}).get("select", "?") or "*")})
+    if not profile and not topic and (cost or negate):
+        # A modifier narrows a topic or a profile; alone it would select across every area.
+        explain.append({"words": "cost/manual modifier", "as": "ignored: no word names a topic to narrow"})
+        cost, negate = None, []
     parts = ["%s:%s" % (k, ",".join(v)) for k, v in terms.items() if k in ("area", "tag", "id")]
     parts += literal + (["cost<=%s" % cost] if cost else []) + negate
     expr = " ".join(parts)
@@ -327,6 +328,11 @@ def resolve(request, caps, profiles, run_dir=None):
         explain.append({"words": "what failed", "as": "%d of %d capabilities in %s with verdict fail or error" % (
             len(bad), len(run.get("capabilities", [])), os.path.basename(os.path.normpath(run_dir)))})
         topic_expr = profiles[profile]["select"] if profile else expr
+        if ignored and not topic_expr:
+            # "re-run zorblax failures": a topic was given and matched nothing, so nothing is re-run.
+            _status(out, "no-match")
+            out["needs"].append("the topic words (%s) match nothing in the catalog" % ", ".join(ignored))
+            bad = []
         if bad and topic_expr:
             keep = {c["id"] for c in select(caps, topic_expr)}
             explain.append({"words": "topic", "as": "only the failed ones that %s also selects (%d of %d)" % (
@@ -339,7 +345,7 @@ def resolve(request, caps, profiles, run_dir=None):
         expr = "id:" + ",".join(bad) if bad else ""
         profile = None  # the re-run is exactly these ids
         out["selection"], out["profile"] = expr or None, None
-        if not live:  # a target the request names wins; otherwise the earlier run's
+        if not live and not re.search(r"\bfixture\b", low):  # a target the request names wins; else the earlier run's
             out["target"] = run.get("target") if run.get("target") in ("fixture", "live") else out["target"]
             out["studio"] = run.get("studio") if out["target"] == "live" else None
             if out["studio"] and not SAFE_URL.match(str(out["studio"])):
@@ -352,6 +358,10 @@ def resolve(request, caps, profiles, run_dir=None):
     if action == "evidence" and run_dir:
         ids = [x for x in (expr or "").split() if x.startswith("id:")]
         one = ids[0][3:] if len(ids) == 1 else ""
+        if one in vocab.canonical:  # a run records the canonical id, never an alias
+            explain.append({"words": one, "as": "alias of %s" % vocab.canonical[one]})
+            one = vocab.canonical[one]
+            out["selection"] = "id:" + one
         if not one or "," in one or any(ch in one for ch in "*?[") or one not in vocab.ids:
             _status(out, "needs-input" if not ignored else "no-match")
             out["needs"].append("one capability id: `e2e evidence` opens one capability's evidence (an area or "
