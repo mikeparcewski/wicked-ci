@@ -346,6 +346,14 @@ class ResolveEdges(unittest.TestCase):
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_manual_exclusion_is_read_before_the_vocabulary(self):
+        from e2ecat.select import select
+        out = self.r("run full without manual")
+        self.assertEqual((out["profile"], out["selection"]), ("full", None), "a modifier is ignored with a profile")
+        out = self.r("test crew without manual")
+        self.assertEqual(out["selection"], "area:crew-api !oracle=manual")
+        self.assertTrue(all(c["oracle"]["kind"] != "manual" for c in select(self.caps, out["selection"])))
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])

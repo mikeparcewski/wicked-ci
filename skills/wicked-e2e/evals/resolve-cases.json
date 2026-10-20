@@ -41,6 +41,10 @@
   {"request": "is crew-api.health certified", "expect": {"status": "resolved", "selection": "id:crew-api.health.*"}},
   {"request": "test studio-ui.launch.plan-preview", "expect": {"action": "run", "status": "resolved", "selection": "id:studio-ui.launch.plan-preview"}},
   {"request": "test studio http://127.0.0.1:7801/${IFS}--live-journeys;#", "expect": {"status": "refused", "commands": [], "studio": null}},
+  {"request": "cheap checks for the zorblax", "expect": {"status": "no-match", "selection": null, "commands": []}},
+  {"request": "test crew without manual", "expect": {"status": "resolved", "selection": "area:crew-api !oracle=manual"}},
+  {"request": "validate the catalog", "expect": {"action": "validate-coverage", "status": "resolved", "commands": ["e2e validate --baseline e2e/coverage-baseline.json --out COVERAGE_DIR"]}},
+  {"request": "studio checks with no governed runs", "expect": {"status": "resolved", "selection": "area:studio-ui cost<=M"}},
   {"request": "everything about sign-in in the ui", "expect": {"status": "resolved", "selection": "tag:sign-in,signin area:studio-ui"}}
  ]
 }

@@ -68,7 +68,8 @@ URL_PORT = re.compile(r"^[^/?#]*:(\d+)(?:[/?#]|$)")
 
 INTENTS = [
     ("rerun", re.compile(r"\b(re-?run|retry|run again)\b.*\b(fail\w*|error\w*|broke\w*|red)\b|\bfailed (ones )?again\b")),
-    ("validate-coverage", re.compile(r"\bnot covered\b|\buncovered\b|\bcoverage\b|\bunmapped\b|\bgaps?\b|"
+    ("validate-coverage", re.compile(r"\bvalidate\b.*\b(catalog|surfaces?|scenarios?)\b|\bcatalog\b.*\bvalid\w*\b|"
+                                     r"\bnot covered\b|\buncovered\b|\bcoverage\b|\bunmapped\b|\bgaps?\b|"
                                      r"\bwhat'?s missing\b|\bnot mapped\b|\bno scenario\b")),
     ("evidence", re.compile(r"\bevidence\b|\bvideos?\b|\bscreenshots?\b|\btraces?\b|\btamper\w*\b|\bhash(es)?\b|"
                             r"\btranscripts?\b")),
@@ -211,6 +212,21 @@ def resolve(request, caps, profiles, run_dir=None):
     profile, pword = None, None
     i = 0
     while i < len(toks):
+        # "without manual", "no governed runs": exclusions are read before the vocabulary, which also
+        # holds `manual` and `governed` as id segments.
+        if toks[i] in ("no", "without", "skip", "exclude", "excluding") and i + 1 < len(toks):
+            nxt = toks[i + 1]
+            if nxt == "manual":
+                negate.append("!oracle=manual")
+                explain.append({"words": "%s manual" % toks[i], "as": "!oracle=manual"})
+                i += 2
+                continue
+            if nxt == "governed":
+                cost = cost or "M"
+                n = 3 if i + 2 < len(toks) and toks[i + 2] in ("run", "runs") else 2
+                explain.append({"words": " ".join(toks[i:i + n]), "as": "cost<=M"})
+                i += n
+                continue
         hit = None
         for segments in (False, True):
             for n in (4, 3, 2, 1):
@@ -237,12 +253,6 @@ def resolve(request, caps, profiles, run_dir=None):
         if w in ("cheap", "quick", "fast", "hermetic", "seconds"):
             cost = "S"
             explain.append({"words": w, "as": "cost<=S"})
-        elif w == "governed" and re.search(r"\b(no|without|skip)\s+governed\b", low):
-            cost = cost or "M"
-            explain.append({"words": "no governed runs", "as": "cost<=M"})
-        elif w == "manual" and re.search(r"\b(no|without|skip|exclude)\s+manual\b", low):
-            negate.append("!oracle=manual")
-            explain.append({"words": "no manual", "as": "!oracle=manual"})
         elif w in PROFILE_WORDS or w in FULL_WORDS:
             if not profile:
                 profile, pword = PROFILE_WORDS.get(w, "full"), w
@@ -263,6 +273,10 @@ def resolve(request, caps, profiles, run_dir=None):
         else:
             explain.append({"words": pword, "as": "profile word ignored: the request names a topic"})
         profile = None
+    elif not profile and not topic and (cost or negate):
+        # A modifier narrows a topic; alone it would select across every area.
+        explain.append({"words": "cost/manual modifier", "as": "ignored: no word names a topic to narrow"})
+        cost, negate = None, []
     elif profile:
         if cost or negate:
             explain.append({"words": "cost/manual modifier", "as": "ignored with a profile (use --select to narrow)"})
