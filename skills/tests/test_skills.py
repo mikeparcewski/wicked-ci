@@ -116,7 +116,18 @@ def code_segments(text):
         segs += [ln.strip() for ln in block.splitlines() if ln.strip()]
     rest = re.sub(r"```[^\n]*\n.*?```", "", text, flags=re.S)
     segs += re.findall(r"`([^`\n]+)`", rest)
-    return segs
+    return [normalize_cmd(x) for x in segs]
+
+
+def normalize_cmd(seg):
+    """`python3 <wicked-ci>/e2e/bin/e2e run ...`, `e2e/bin/e2e run ...` and `"$E2E" run ...` all mean `e2e run ...`,
+    so no spelling of the command escapes the subcommand, flag and honesty checks."""
+    toks = seg.split()
+    if toks and toks[0] in ("python3", "python", "py"):
+        toks = toks[1:]
+    if toks and (toks[0].strip("\"'").endswith("e2e/bin/e2e") or toks[0].strip("\"'") in ("$E2E", "${E2E}")):
+        toks = ["e2e"] + toks[1:]
+    return " ".join(toks) if toks else seg
 
 
 def paragraphs(text):
@@ -167,7 +178,7 @@ class CliReferences(unittest.TestCase):
         bad = []
         for seg in code_segments(text):
             toks = seg.split()
-            if len(toks) >= 2 and toks[0] == "e2e" and not toks[1].startswith("<"):
+            if len(toks) >= 2 and toks[0] == "e2e" and not toks[1].startswith("<") and toks[1] not in ("...", "\u2026"):
                 if toks[1] not in cli:
                     bad.append("unknown subcommand in `%s`" % seg)
                     continue
@@ -188,6 +199,8 @@ class CliReferences(unittest.TestCase):
         self.assertTrue(self.problems("```bash\ne2e run --profile smoke --yes-really\n```"))
         self.assertTrue(self.problems("pass `--force-pass` to it"))
         self.assertEqual(self.problems("`e2e run --plan-only` and `--live-journeys`"), [])
+        self.assertTrue(self.problems("`python3 <wicked-ci>/e2e/bin/e2e run --yes-really`"))
+        self.assertTrue(self.problems('```bash\n"$E2E" certify\n```'))
 
     def test_every_named_skill_exists(self):
         names = set(skill_dirs())

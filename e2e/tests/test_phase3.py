@@ -509,6 +509,18 @@ class ResolveEdges(unittest.TestCase):
         self.assertIn("*.dry-run", out["selection"], "dry-run stays a catalog word here")
         self.assertEqual(self.r("do a dry run of the smoke")["action"], "plan")
 
+    def test_round14_negations_fillers_stop_words_live_journeys(self):
+        for text in ("test studio, do not run page", "do not exercise crew-api.standing-orders.read"):
+            self.assertEqual(self.r(text)["action"], "select", text)
+        self.assertEqual(self.r("execute the smoke profile")["profile"], "smoke")
+        self.assertEqual(self.r("run all without the governed runs")["selection"], "cost<=M")
+        self.assertEqual(self.r("test crew except for manual")["selection"], "area:crew-api !oracle=manual")
+        out = self.r("test crew-api.standing-orders.read --live-journeys")
+        self.assertEqual((out["target"], out["status"]), ("live", "needs-input"))
+        self.assertEqual(self.r("test crew without")["status"], "no-match")
+        tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail"})
+        self.assertEqual(self.r("re-run what broke", run_dir=tmp)["selection"], "id:crew-api.runs.cancel")
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")

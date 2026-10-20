@@ -50,7 +50,8 @@ plan planned estimate dry long how take takes need needs needed prerequisite pre
 report reports result results summary summarise summarize verdict verdicts last latest previous went go
 evidence video videos screenshot screenshots trace traces transcript transcripts hash hashes tamper tampered open proof
 validate valid complete intact coverage covered uncovered missing gap gaps mapped unmapped not scenario scenarios
-surface surfaces catalog pass passed passing passes green block blocks blocker blockers blocking why
+surface surfaces catalog execute executes executing executed exercise exercises exercising exercised
+journey journeys live-journeys broke ones pass passed passing passes green block blocks blocker blockers blocking why
 live daemon re-run rerun retry again failed fail failing failures errors error broken red""".split())
 # Words that are fillers alone but name a group as a phrase ("run page", "testing page", "everything page"),
 # and "runs", which is a tag (the runs list) and never a filler.
@@ -93,7 +94,7 @@ HOW_TO = re.compile(r"\b(how (do|can|should|would) (i|we|you)|how to|tell me|exp
 # Prose only, and only as the request's action ("dry run X", "do a dry run of X"); elsewhere `dry-run` is a
 # catalog word (`interactive.cli.dry-run`, "test cli dry-run").
 DRY_RUN = re.compile(r"(^\s*(please\s+)?(do\s+)?(a\s+)?|\b(a|as a|do a)\s+)dry[- ]?runs?(?![\w.*-])", re.I)
-NEG_EXEC = re.compile(r"\b(do not|don'?t|never|no need to|not to)\s+(\w+\s+)?(re-?)?(run|test|certify|check|verify|execute)\w*\b")
+NEG_EXEC = re.compile(r"\b(do not|don'?t|never|no need to|not to)\s+(\w+\s+)?(re-?)?(run|test|certify|check|verify|execut|exercis|e2e)\w*\b")
 LOOKUP_START = re.compile(r"^\s*(please\s+)?(list|show|find|count|which|what|how many|look up|search)\b")
 EXEC_VERB = re.compile(r"\b(test\w*|certif\w*|run|running|check\w*|verif\w*|execut\w*|exercis\w*|e2e)\b")
 
@@ -197,6 +198,8 @@ def _live(text):
         p = int(m.group(1))
         return "http://127.0.0.1:%d" % p, p, True
     low = text.lower()
+    if re.search(r"(?<![\w])(--)?live[- ]journeys?\b", low):
+        return None, None, True  # "--live-journeys", "live journeys": the live target, which needs a URL
     for ph in PHRASES:  # "live checks" is a topic, not the live target
         low = low.replace(ph, " ")
     low = " ".join(b for b in (w.strip(".,?!:;()'\"") for w in low.split())
@@ -216,7 +219,7 @@ def _read_run(run_dir):
     return run, results
 
 
-def _intent_text(text, vocab):
+def _intent_text(text, vocab, phrases=True):
     """The request without what names a selection (URLs, ids, id prefixes and globs, literal terms), so a
     word inside a capability id (`studio-ui.launch.plan-preview`) never picks the action."""
     words = []
@@ -228,7 +231,7 @@ def _intent_text(text, vocab):
         for i in range(len(raw) - n + 1):
             key = _norm("".join(x.strip(".,?!:;()'\"") for x in raw[i:i + n]))
             lead = i == first and EXEC_VERB.fullmatch(raw[i].lower().strip(".,?!:;()'\""))
-            if key and (key in vocab.tag_norm or key in vocab.seg_norm) and not lead:
+            if phrases and key and (key in vocab.tag_norm or key in vocab.seg_norm) and not lead:
                 multi.update(range(i, i + n))  # never swallow the request's leading verb ("run interactive ...")
     for pos, w in enumerate(raw):
         if pos in multi:
@@ -270,9 +273,10 @@ def resolve(request, caps, profiles, run_dir=None):
             else:
                 # No execution verb ("everything about sign-in"): list what it selects; running is asked for.
                 action = "select"
-    if action in ("run", "rerun") and NEG_EXEC.search(_intent_text(text, vocab)):
+    neg = NEG_EXEC.search(_intent_text(text, vocab, phrases=False))  # phrases kept: "do not run page"
+    if action in ("run", "rerun") and neg:
         # "do not run X": never a run. List what it names; the operator can ask to run it.
-        explain_pre.append({"words": NEG_EXEC.search(_intent_text(text, vocab)).group(0),
+        explain_pre.append({"words": neg.group(0),
                             "as": "a request not to run: listing only"})
         action = "select"
     url, port, live = _live(text)
@@ -289,22 +293,30 @@ def resolve(request, caps, profiles, run_dir=None):
         # holds `manual` and `governed` as id segments.
         pre = 2 if (toks[i] in ("but", "other", "apart") and i + 1 < len(toks)
                     and toks[i + 1] in ("not", "than", "from")) else (1 if toks[i] in EXCLUDE_WORDS else 0)
-        if pre and i + pre < len(toks):
-            nxt = toks[i + pre]
+        if pre:
+            j = i + pre
+            while j < len(toks) and (toks[j] in STOP or toks[j] == "for"):  # "without the governed runs", "except for"
+                j += 1
+            nxt = toks[j] if j < len(toks) else None
             if nxt == "manual":
                 negate.append("!oracle=manual")
-                explain.append({"words": " ".join(toks[i:i + pre + 1]), "as": "!oracle=manual"})
-                i += pre + 1
+                k = j + 2 if j + 1 < len(toks) and toks[j + 1] in FILLER else j + 1
+                explain.append({"words": " ".join(toks[i:k]), "as": "!oracle=manual"})
+                i = k
                 continue
             if nxt == "governed":
                 cost = cost or "M"
-                n = pre + 2 if i + pre + 1 < len(toks) and toks[i + pre + 1] in ("run", "runs") else pre + 1
-                explain.append({"words": " ".join(toks[i:i + n]), "as": "cost<=M"})
-                i += n
+                k = j + 2 if j + 1 < len(toks) and toks[j + 1] in ("run", "runs") else j + 1
+                explain.append({"words": " ".join(toks[i:k]), "as": "cost<=M"})
+                i = k
+                continue
+            if nxt is None:  # "test crew without": an exclusion of nothing
+                neg_next = True
+                i = j
                 continue
             # "without plugins", "except studio", "but not tag:x": the next catalog term is excluded.
             neg_next = True
-            i += pre
+            i = j
             continue
         hit = None
         for segments in (False, True):
