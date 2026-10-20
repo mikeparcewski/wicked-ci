@@ -4,7 +4,9 @@
 # - On PRs and pushes to main that touch e2e/: the unit tests on ubuntu/macos/windows; the committed
 #   surface manifests must reproduce byte-for-byte from their PINNED SHAs (e2e/surfaces/pins.json);
 #   `e2e validate` must pass against the coverage baseline (the ratchet: no new unmapped surface
-#   element, no stale baseline entry).
+#   element, no stale baseline entry); the wicked-e2e skills (skills/) pass their lint (frontmatter,
+#   real `e2e` subcommands and flags, portability, honesty guards) and router evals, and their
+#   per-area refs match the catalog (skills/tools/gen_refs.py --check).
 # - On the schedule (and by hand): re-extract the surfaces from every repo's CURRENT main and the
 #   latest published wicked-crew, and report the drift against the pins. Report only: this job never
 #   fails, and it opens nothing (no issue, no PR, no comment).
@@ -15,6 +17,7 @@ on:
     branches: [main]
     paths:
       - 'e2e/**'
+      - 'skills/**'         # the wicked-e2e skills: lint, router evals, generated area refs
       - 'smoke/**'          # the catalog cites smoke steps as scenarios; a renamed step must fail here
       - '.github/workflows/**'
       - 'docs-lint/tests/**'
@@ -22,6 +25,7 @@ on:
     branches: [main]
     paths:
       - 'e2e/**'
+      - 'skills/**'         # the wicked-e2e skills: lint, router evals, generated area refs
       - 'smoke/**'          # the catalog cites smoke steps as scenarios; a renamed step must fail here
       - '.github/workflows/**'
       - 'docs-lint/tests/**'
@@ -48,6 +52,12 @@ jobs:
           PY=python3
           command -v python3 >/dev/null 2>&1 || PY=python
           "$PY" -W error::ResourceWarning -m unittest discover -s e2e/tests -v
+      - name: skill lint and router evals (frontmatter, e2e subcommands/flags from --help, portability, resolve cases)
+        shell: bash
+        run: |
+          PY=python3
+          command -v python3 >/dev/null 2>&1 || PY=python
+          "$PY" -W error::ResourceWarning -m unittest discover -s skills/tests -v
 
   validate:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
@@ -76,6 +86,8 @@ jobs:
           exit $rc
       - name: e2e validate (catalog, coverage against the baseline, scenarios at the pins)
         run: python3 e2e/bin/e2e validate --baseline e2e/coverage-baseline.json --out e2e-out
+      - name: skill refs list every catalog area and tag (generated blocks match the catalog)
+        run: python3 skills/tools/gen_refs.py --check
       - name: e2e run --plan-only (every profile plans; nothing runs, no checkouts, no product)
         run: |
           for p in smoke daily release full; do

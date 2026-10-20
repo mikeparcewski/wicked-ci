@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 
 from . import deps as depsmod
 from . import evidence as evm
+from . import plansum
 from . import report as reportmod
 from . import verdict as vd
 from .adapters import Unit, all_adapters, rmtree, scenario_key, write_json
@@ -372,7 +373,8 @@ def execute(a, e2e_dir, caps, profiles, select_expr, profile_name, adapters=None
            "plan": [{"unit": u.key, "adapter": u.adapter.name, "scenarios": sorted(u.scenarios), "capabilities": u.caps}
                     for u in units],
            "host": {"platform": sys.platform, "python": sys.version.split()[0]}}
-    write_json(os.path.join(run_dir, "plan.json"), {"run": run, "assignments": {
+    summary = plansum.summarize(sel, units, assign, ctx, catalog_ids)
+    write_json(os.path.join(run_dir, "plan.json"), {"run": run, "summary": summary, "assignments": {
         k: ({"skip": v["skip"]} if "skip" in v else {"unit": v["unit"], "scenario": v["scenario"]}) for k, v in assign.items()}})
     nskip = sum(1 for v in assign.values() if "skip" in v)
     ctx.log("plan: %d units for %d capabilities; %d skipped before running" % (len(units), len(sel) - nskip, nskip))
@@ -380,6 +382,7 @@ def execute(a, e2e_dir, caps, profiles, select_expr, profile_name, adapters=None
         ctx.log("  unit %s (%s): %d scenario(s), %d capabilities" % (u.key, u.adapter.name, len(u.scenarios), len(u.caps)))
     write_json(os.path.join(run_dir, "run.json"), run)  # rewritten when the run is sealed
     if a.plan_only:
+        sys.stdout.write(plansum.render(summary, a.target))
         return run_dir, 0
     for cap in sel:
         if "skip" in assign[cap["id"]]:

@@ -10,7 +10,8 @@ import html
 import json
 import os
 
-from .validate import AREAS
+from .validate import AREAS, oracle_complete
+from . import verdict as vd
 
 ORDER = ["fail", "error", "partial", "skipped", "manual", "pass"]
 COLORS = {"pass": "#1a7f37", "fail": "#cf222e", "error": "#9a6700", "partial": "#bc4c00", "skipped": "#6e7781",
@@ -65,6 +66,18 @@ def build(run_dir, caps_by_id, validation=None):
             "evidence": red(res.get("evidence") or {}), "evidence_substitutes": res.get("evidence_substitutes") or {},
             "result": "%s/result.json" % cid,
         })
+    blockers = {}
+    for x in rows:
+        res = {}
+        rp = os.path.join(run_dir, x["id"], "result.json")
+        if os.path.isfile(rp):
+            with open(rp, encoding="utf-8") as fh:
+                res = json.load(fh)
+        for b in blocks(caps_by_id.get(x["id"], {}), res):
+            g = blockers.setdefault(b, {"count": 0, "capabilities": []})
+            g["count"] += 1
+            if len(g["capabilities"]) < 10:
+                g["capabilities"].append(x["id"])
     rank = {v: i for i, v in enumerate(ORDER)}
     rows.sort(key=lambda r: (rank.get(r["verdict"], -1), r["area"], r["id"]))
     return {"version": 1,
@@ -73,7 +86,61 @@ def build(run_dir, caps_by_id, validation=None):
             "vault": red(run.get("vault")), "total": len(rows), "counts": counts,
             "matrix": {a: matrix[a] for a in AREAS if a in matrix} | {a: m for a, m in matrix.items() if a not in AREAS},
             "plan": red(run.get("plan") or []), "capabilities": rows,
+            "blockers": dict(sorted(blockers.items(), key=lambda kv: (-kv[1]["count"], kv[0]))),
             "validation": red(validation) if validation is not None else None}
+
+
+def blocks(cap, res):
+    """What keeps one capability from `pass`, read from its result and its catalog record (never from the
+    reason text). A pass has no blocker; every other verdict has at least one."""
+    v = res.get("verdict") or "missing"
+    if v == "pass":
+        return []
+    if v == "missing":
+        return ["no result.json (the run did not record it)"]
+    if v == "fail":
+        return ["fail: the scenario failed or a check was contradicted (read its reason)"]
+    if v == "manual":
+        return ["manual oracle (never a pass)"]
+    if v == "error":
+        have = res.get("evidence") or {}
+        if (res.get("scenario") or {}).get("status") == "passed" and any(
+                k not in have for k in cap.get("required_evidence", [])):  # ran, but a required kind is absent
+            return ["error: required evidence not captured by the adapter"]
+        return ["error: the scenario could not run"]
+    if v == "skipped":
+        dep = str((res.get("skip") or {}).get("dep") or "?")
+        if dep == "scenario:planned":
+            return ["skipped: no scenario exists yet (planned)"]
+        if dep == "adapter:none":
+            return ["skipped: no adapter runs the scenario (adapter:none)"]
+        if dep.startswith("adapter:"):
+            # An adapter exists; a prerequisite or an explicit opt-in (live journeys) is missing.
+            return ["skipped: the adapter needs %s" % dep[len("adapter:"):]]
+        if dep.startswith("checkout:"):
+            return ["skipped: missing checkout (%s; pass --src or --checkout)" % dep[len("checkout:"):]]
+        if dep.startswith("evidence:"):
+            return ["skipped: the adapter cannot capture %s" % dep[len("evidence:"):]]
+        if dep.startswith("target:"):
+            return ["skipped: wrong target (run %s)" % dep]
+        cls = (res.get("skip") or {}).get("class")
+        return ["skipped: unmet dependency %s" % (cls or dep)]
+    out = []
+    o = cap.get("oracle") or {}
+    if o and o.get("kind") != "manual" and not oracle_complete(o):
+        out.append("partial: incomplete oracle (untyped clauses)")
+    obs = res.get("observed") or []
+    if any(ob.get("ok") is None for ob in obs):
+        out.append("partial: a check was not observed")
+    if any(ob.get("ok") is True and ob.get("wildcard") for ob in obs):
+        out.append("partial: a check held only on something not tied to this path (wildcard)")
+    sc = res.get("scenario") or {}
+    if sc.get("adapter") == "direct":
+        if not (cap and vd.read_only(cap)):  # a read-only path is certified by the runner's own read
+            out.append("partial: only the runner's direct reads (no scenario drove the path)")
+    elif sc.get("fidelity") not in ("e2e-live", "e2e-hermetic"):
+        out.append("partial: scenario fidelity %s is not certification" % sc.get("fidelity"))
+    return out or ["%s: see the result's reason" % v]
 
 
 def _verdicts(doc):
@@ -97,6 +164,11 @@ def render_md(doc):
     for a, m in doc["matrix"].items():
         L.append("| %s | %s | %d |" % (a, " | ".join(str(m.get(v, 0)) for v in vs), sum(m.values())))
     L += [""]
+    if doc.get("blockers"):
+        L += ["## What blocks a pass", "", "| blocker | capabilities | e.g. |", "|---|---:|---|"]
+        L += ["| %s | %d | %s |" % (b, g["count"], ", ".join("`%s`" % c for c in g["capabilities"][:3]))
+              for b, g in doc["blockers"].items()]
+        L += [""]
     vault = doc.get("vault") or {}
     L += ["Evidence: %s." % ("hashed and recorded in wicked-vault scope `%s`" % vault["scope"] if vault.get("scope")
                              else "NOT recorded in a vault (%s)" % vault.get("disabled")), ""]
@@ -162,6 +234,11 @@ def render_html(doc):
         H.append("<tr><td>%s</td>%s<td class='n'>%d</td></tr>" % (
             e(a), "".join("<td class='n'>%s</td>" % (m.get(v, 0) or "") for v in vs), sum(m.values())))
     H.append("</table>")
+    if doc.get("blockers"):
+        H.append("<h2>What blocks a pass</h2><table><tr><th>blocker</th><th>capabilities</th><th>e.g.</th></tr>")
+        H += ["<tr><td>%s</td><td class='n'>%d</td><td>%s</td></tr>" % (
+            e(b), g["count"], e(", ".join(g["capabilities"][:3]))) for b, g in doc["blockers"].items()]
+        H.append("</table>")
     vault = doc.get("vault") or {}
     H.append("<p class='meta'>Evidence %s</p>" % (
         "hashed and recorded in wicked-vault scope <code>%s</code>" % e(vault["scope"]) if vault.get("scope")

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### e2e — phase 3: the wicked-e2e skills, `e2e resolve`, `e2e evidence`, plan summaries and pass blockers
+
+- **`skills/`**: six portable skills over the `e2e` CLI: `wicked-e2e` (router), `wicked-e2e-plan`,
+  `wicked-e2e-run`, `wicked-e2e-validate`, `wicked-e2e-report` and `wicked-e2e-evidence`, plus
+  `wicked-e2e/refs/<area>.md` per catalog area (hand-written setup quirks and a block generated
+  from the catalog by `skills/tools/gen_refs.py`). `skills/install.sh DEST` (or `--codex`) installs
+  them by symlink or `--copy`.
+- **`e2e resolve "<request>"`**: a deterministic request-to-selection reader for the router (areas
+  and aliases, tags, ids, id segments, profiles, literal terms; refuses 7701/7721; flags cost M/L
+  and live selections as ask-first; "re-run what failed" from a run directory).
+- **`e2e run --plan-only`** prints and writes a plan summary: needs, skips by dependency, the best
+  verdict each capability can reach, a time estimate with its basis, `ask_before_running`.
+- **`e2e report`** gains "What blocks a pass". **`e2e evidence <run-dir> <cap-id>`** lists one
+  capability's evidence with per-file integrity against the vault.
+- CI: skill lint (frontmatter, real subcommands and flags from `e2e --help`, portability, honesty
+  guards), the install script and 54 router evals on ubuntu, macOS and Windows; the refs check.
+
 ### e2e — phase 1 of the platform certification suite: catalog, typed oracles, surface manifests, coverage validator
 
 The certification rule is "the user's exact path to its terminal state". A launch is not done,

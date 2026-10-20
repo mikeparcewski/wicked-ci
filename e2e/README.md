@@ -3,7 +3,7 @@
 The platform's end-to-end certification suite: what has to be certified (the catalog), how each
 item is checked (typed oracles), a validator that proves the list is complete (phase 1), and a
 runner that executes the existing tests behind each capability, records evidence, seals it in
-wicked-vault and writes a report (phase 2). The skills that drive it are phase 3.
+wicked-vault and writes a report (phase 2), and agent skills that drive it (phase 3, `skills/`).
 
 The rule it encodes: **certify the user's exact path to its terminal state.** A launch is not done.
 Creating something through the API is not creating it in the UI. A stub is not the real thing. A
@@ -389,7 +389,7 @@ python3 e2e/bin/e2e run --profile smoke --target fixture --out runs/smoke-1 --sr
 python3 e2e/bin/e2e run --select 'area:studio-ui tag:run-page cost<=S' --target fixture --out runs/ui-1 --src DIR
 python3 e2e/bin/e2e run --select 'surface=api cost<=S' --target live --studio http://127.0.0.1:7801 --out runs/live-1
 python3 e2e/bin/e2e run ... --plan-only            # write plan.json, run nothing
-python3 e2e/bin/e2e validate --report runs/smoke-1
+python3 e2e/bin/e2e validate --report runs/smoke-1 --baseline e2e/coverage-baseline.json
 python3 e2e/bin/e2e report runs/smoke-1            # regenerate report.md / .html / .json
 ```
 
@@ -514,28 +514,98 @@ manual, then pass) with its scenario, fidelity, checks held, the reason, and lin
 screenshots, trace, transcripts and `result.json`. Paths are run-relative and the home directory is
 redacted. `e2e report <run-dir>` regenerates them. `samples/` holds the report of a real smoke run.
 
+## Skills (phase 3)
+
+`skills/` holds six portable skills (garden's cross-CLI format: the closed frontmatter key set,
+Hand-off paragraphs, no Claude-only shapes). Each is thin: it says which `e2e` command to run and
+how to read its output, and decides nothing the CLI does not print.
+
+| skill | does | CLI |
+|---|---|---|
+| `wicked-e2e` | router: a plain request to an action and a selection; asks before anything at cost M/L or live | `e2e resolve`, `e2e run --plan-only` |
+| `wicked-e2e-plan` | what would run, what it needs, the estimate, the best possible verdicts | `e2e run --plan-only` |
+| `wicked-e2e-run` | runs a selection (fixture, or a live URL the operator gave), validates it, hands off | `e2e run`, `e2e validate --report` |
+| `wicked-e2e-validate` | coverage and run-report validation, failures in plain terms | `e2e validate` |
+| `wicked-e2e-report` | verdicts by area, failures first with evidence links, what blocks a pass | `e2e report`, `e2e validate --report` |
+| `wicked-e2e-evidence` | one capability's evidence files and their integrity; how tampering is caught | `e2e evidence` |
+
+`skills/wicked-e2e/refs/<area>.md` is one reference per catalog area: hand-written setup quirks
+plus a block generated from the catalog (counts, tags, id groups, dependency classes, who can run
+it). `python3 skills/tools/gen_refs.py` regenerates the blocks; `--check` (CI) fails when a ref is
+missing or stale, or a tag is listed in no ref.
+
+The CLI pieces the skills use:
+
+- **`e2e resolve "<request>" [--run-dir DIR] [--json]`** (or `--stdin`, or `--request-file FILE`,
+  which is how an agent passes free text: written with a file writer, so no shell ever parses it)
+  reads a request deterministically: a
+  literal selection term, a capability id, an area or its alias ("plugins", "studio"), a tag
+  (hyphen-insensitive: "sign in" is `sign-in` and `signin`), then an id segment, longest phrase
+  first. It prints how each word was read, the action (`run`, `plan`, `select`, `validate-coverage`,
+  `validate-report`, `report`, `evidence`, `rerun`; a request with no execution verb, or a lookup
+  such as "list ..." or "which tests cover ...", is `select`, which only lists), the selection or profile, its size by cost and
+  area, the target (a URL in the request means live; 7701/7721 are refused), and whether to ask
+  before running (any selected capability at cost M or L, or the live target). "Re-run what
+  failed" with `--run-dir` selects that run's `fail` and `error` capabilities. Unmatched words are
+  listed; a request that matches nothing selects nothing. Exit 0 only when it resolved.
+- **`e2e run --plan-only`** now prints a summary and writes it into `plan.json` (`summary`):
+  selected, will run and skipped counts, the units, what each will-run capability needs and how it
+  is met (provided by the scenario, met by a probe, a prerequisite), the skips grouped by
+  `skip.dep`, the best verdict each can reach (a partial oracle, a lower fidelity or direct reads
+  of a driven path cap it at `partial`; a manual oracle is `manual`), a low-to-high time estimate
+  per unit with its basis (measured on `e2e/samples` or assumed), and `ask_before_running`.
+- **`e2e report`** adds "What blocks a pass": every non-pass capability's blockers (an incomplete
+  oracle, a fidelity, a check not observed or held on a wildcard, only direct reads, a missing
+  adapter, checkout or dependency, a planned scenario, a manual oracle), read from the result's
+  structure, not its reason text.
+- **`e2e evidence <run-dir> <cap-id> [--json] [--no-vault-cli]`** lists one capability's evidence
+  files with their absolute paths and a status each against the vault's frozen manifest (`ok`,
+  `changed`, `gone`, `not-recorded`, `unverified`), runs `wicked-vault verify` on its entry, and
+  exits 0 only when everything is intact.
+
+**Install.** `skills/install.sh DEST` symlinks each `skills/wicked-e2e*` directory into `DEST`
+(a Claude Code workspace's `.claude/skills`, or any agent CLI's skills directory); `--codex`
+installs into `$CODEX_HOME/skills`; `--copy` copies instead and writes a `wicked-ci-root` file the
+skills use to find the CLI; `--dry-run` prints what it would do; an existing skill is replaced only
+with `--force`. It writes nowhere but `DEST`.
+
+`e2e validate --report` also validates the catalog and coverage, so without `--baseline` every
+known unmapped surface element fails it too. The skills always pass `--baseline
+e2e/coverage-baseline.json`, and treat any non-zero exit as "not certified" (`report:` lines are
+about the run, the others about the catalog it was judged by).
+
+**Tests.** `python3 -m unittest discover -s skills/tests -v`: the lint (frontmatter keys,
+descriptions of at most 1024 characters, every `e2e` subcommand and flag a skill names read back
+from `e2e --help`, portability, honesty guards), the install script, and the router evals in
+`skills/wicked-e2e/evals/resolve-cases.json` (each request through `e2e resolve`, no model).
+
 ## Commands
 
 ```bash
 python3 e2e/bin/e2e validate --baseline e2e/coverage-baseline.json --out e2e-out   # what CI runs
 python3 e2e/bin/e2e validate                                                        # strict: every unmapped element fails
 python3 e2e/bin/e2e run --profile smoke --target fixture --out RUN_DIR --src DIR      # run the selection
-python3 e2e/bin/e2e validate --report <run-dir>                                     # run completeness + integrity
+python3 e2e/bin/e2e validate --report <run-dir> --baseline e2e/coverage-baseline.json   # run completeness + integrity
 python3 e2e/bin/e2e report <run-dir>                                                # regenerate the reports
 python3 e2e/bin/e2e select --profile daily
 python3 e2e/bin/e2e surfaces --clone pinned --out /tmp/pinned-check                 # reproduce the manifests
 python3 e2e/bin/e2e surfaces --clone main --crew-npm latest --write-pins            # re-pin to current mains
 python3 e2e/bin/e2e drift --against /tmp/main-surfaces
 python3 e2e/bin/e2e baseline --write
+python3 e2e/bin/e2e resolve "test the run page"                                    # request -> selection
+python3 e2e/bin/e2e evidence <run-dir> <cap-id>                                     # one capability's evidence
 python3 -m unittest discover -s e2e/tests -v
+python3 -m unittest discover -s skills/tests -v
+python3 skills/tools/gen_refs.py --check
 ```
 
 ## CI
 
 `.github/workflows/e2e-catalog.yml` runs two kinds of job.
 
-- **On PRs and pushes to main that touch `e2e/`, `smoke/` (smoke steps are scenarios) or a workflow**:
-  - the unit tests on ubuntu, macOS and Windows;
+- **On PRs and pushes to main that touch `e2e/`, `skills/`, `smoke/` (smoke steps are scenarios) or a workflow**:
+  - the unit tests and the skill tests on ubuntu, macOS and Windows;
+  - the skill refs check (`skills/tools/gen_refs.py --check`);
   - a check that the manifests reproduce from their pinned SHAs;
   - `e2e validate --baseline`;
   - the coverage summary, written to the step summary and kept as an artifact.
@@ -545,7 +615,6 @@ python3 -m unittest discover -s e2e/tests -v
 
 ## Not in this phase
 
-- The skills that drive the runner (phase 3).
 - New scenarios: the runner maps to existing tests only. Capabilities with only `planned` (and
   those whose scenarios have no adapter yet: studio and garden unit tests, estate, interactive,
   bus, vault and installer suites) report `skipped`.

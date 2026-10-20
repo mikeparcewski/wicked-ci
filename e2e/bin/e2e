@@ -7,6 +7,10 @@
                  [--out DIR] [--write-pins]
     e2e drift --against DIR [--out DIR]
     e2e baseline [--write] [--path FILE]
+    e2e run (--select EXPR | --profile NAME) --out DIR [--target fixture|live] [--plan-only] ...
+    e2e report RUN_DIR
+    e2e resolve ("REQUEST" | --stdin | --request-file FILE) [--run-dir RUN_DIR] [--json]
+    e2e evidence RUN_DIR CAP_ID [--json] [--no-vault-cli]
 
 Windows: run it as `python e2e/bin/e2e ...`.
 """

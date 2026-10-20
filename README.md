@@ -33,7 +33,14 @@ Three workflows live here:
   (harness under `e2e/`, phase 1): every platform capability with a typed
   oracle and its evidence contract, per-repo surface manifests read from
   pinned SHAs, and `e2e validate`, which fails when a user-facing surface
-  element has no capability. See [`e2e/README.md`](e2e/README.md).
+  element has no capability; the runner (`e2e run`, phase 2) and the
+  agent skills that drive it (phase 3). See [`e2e/README.md`](e2e/README.md).
+- `skills/` — the **wicked-e2e skills** (phase 3): a router (`wicked-e2e`)
+  and plan / run / validate / report / evidence skills, thin wrappers over
+  the `e2e` CLI. Install them into an agent CLI's skills directory with
+  `skills/install.sh <skills-dir>` (for Claude Code, a workspace's
+  `.claude/skills`; `--codex` for `$CODEX_HOME/skills`; `--copy` to copy
+  instead of symlink). See [`e2e/README.md`](e2e/README.md#skills-phase-3).
 
 Consumers call them via `uses:`. Versions are pinned by tag — `@v1` for
 the latest non-breaking line.
