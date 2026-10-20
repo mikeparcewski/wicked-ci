@@ -323,6 +323,11 @@ def resolve(request, caps, profiles, run_dir=None):
                 explain.append({"words": " ".join(toks[i:k]), "as": "cost<=M"})
                 i = k
                 continue
+            if nxt == "smoke":  # a profile word and a tag: excluded, it is the tag
+                literal.append("!tag:smoke")
+                explain.append({"words": " ".join(toks[i:j + 1]), "as": "excluded: !tag:smoke"})
+                i = j + 1
+                continue
             if nxt is None:  # "test crew without": an exclusion of nothing
                 neg_next = True
                 i = j
@@ -367,6 +372,13 @@ def resolve(request, caps, profiles, run_dir=None):
             i += n
             continue
         w = toks[i]
+        if neg_next:
+            # The word after an exclusion is not a catalog term ("without cheap", "without testing"): the
+            # exclusion cannot be represented, so it fails closed instead of negating a later term.
+            failed_excl.append(w)
+            neg_next = False
+            i += 1
+            continue
         if w in ("cheap", "quick", "fast", "hermetic", "seconds"):
             cost = "S"
             explain.append({"words": w, "as": "cost<=S"})

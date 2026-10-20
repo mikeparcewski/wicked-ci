@@ -540,6 +540,15 @@ class ResolveEdges(unittest.TestCase):
                      "test studio on http://localhost:7801 --live-journeys"):
             self.assertTrue(self.r(text)["live_journeys"], text)
 
+    def test_round16_an_exclusion_never_leaks_onto_a_later_term(self):
+        out = self.r("run without smoke in crew")
+        self.assertNotIn("!area:crew-api", out["selection"] or "")
+        self.assertIn("!tag:smoke", out["selection"] or "")
+        self.assertEqual(self.r("test crew, without smoke, and plugins")["selection"],
+                         "area:crew-api,plugins-and-installs !tag:smoke")
+        for text in ("test without testing in studio", "test without cheap checks in studio"):
+            self.assertEqual(self.r(text)["status"], "no-match", text)
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")
