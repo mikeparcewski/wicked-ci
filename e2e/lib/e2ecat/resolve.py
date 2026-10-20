@@ -50,7 +50,7 @@ plan planned estimate dry long how take takes need needs needed prerequisite pre
 report reports result results summary summarise summarize verdict verdicts last latest previous went go
 evidence video videos screenshot screenshots trace traces transcript transcripts hash hashes tamper tampered open proof
 validate valid complete intact coverage covered uncovered missing gap gaps mapped unmapped not scenario scenarios
-surface surfaces catalog
+surface surfaces catalog pass passed passing passes green block blocks blocker blockers blocking why
 live daemon re-run rerun retry again failed fail failing failures errors error broken red""".split())
 # Words that are fillers alone but name a group as a phrase ("run page", "testing page", "everything page"),
 # and "runs", which is a tag (the runs list) and never a filler.
@@ -70,7 +70,7 @@ URL_PORT = re.compile(r"^[^/?#]*:(\d+)(?:[/?#]|$)")
 
 INTENTS = [
     ("rerun", re.compile(r"\b(re-?run|retry|run again)\b.*\b(fail\w*|error\w*|broke\w*|red)\b|\bfailed (ones )?again\b")),
-    ("validate-coverage", re.compile(r"\bvalidate\b.*\b(catalog|surfaces?|scenarios?)\b|\bcatalog\b.*\bvalid\w*\b|"
+    ("validate-coverage", re.compile(r"\bvalidate\b.*\b(catalog|surfaces?|scenarios?)\b|\bwhy\b.*\bvalidat\w*\b.*\bfail\w*\b|\bcatalog\b.*\bvalid\w*\b|"
                                      r"\bnot covered\b|\buncovered\b|\bcoverage\b|\bunmapped\b|\bgaps?\b|"
                                      r"\bwhat'?s? missing\b|\bnot mapped\b|\bno scenario\b")),
     ("evidence", re.compile(r"\bevidence\b|\bvideos?\b|\bscreenshots?\b|\btraces?\b|\btamper\w*\b|\bhash(es)?\b|"
@@ -82,7 +82,7 @@ INTENTS = [
                           r"\bhow many capabilit\w*\b|\bwhat is in\b")),
     ("plan", re.compile(r"\bplan\b|\bwhat would run\b|\bwhat will run\b|\bdry[- ]?run\b|\bhow long\b|\bestimate\b|"
                         r"\bwould it take\b|\bwhat does .* need\b|\bprerequisites?\b")),
-    ("report", re.compile(r"\bblocks? (a |the )?pass\w*\b|\bwhy\b.*\b(partial|fail\w*|skipped|error\w*|manual)\b|"
+    ("report", re.compile(r"\bblock\w*\b.*\bpass\w*\b|\bblockers?\b|\bwhy\b.*\b(partial|fail\w*|skipped|error\w*|manual)\b|"
                           r"\bis\b.*\bcertified\b|\bdid\b.*\b(pass|fail)\w*\b|\bsummar\w*\b|\breport\b|\bresults?\b|\bwhat (failed|passed)\b|\bverdicts?\b|"
                           r"\bhow did .* go\b")),
 ]
@@ -166,7 +166,7 @@ def _live(text):
     """(url, port, live) for a live target the request names: a URL, host:port, `:port` or `port N`."""
     m = URL.search(text)
     if m:
-        url = m.group(0).rstrip(".,)")
+        url = m.group(0).rstrip(".,;:!?)")
         return url, _url_port(url), True
     m = HOST_PORT.search(text)
     if m:
@@ -309,10 +309,18 @@ def resolve(request, caps, profiles, run_dir=None):
         # "run all cheap tests": the whole catalog narrowed by the modifier, as a selection.
         explain.append({"words": pword, "as": "every capability, narrowed by the modifier"})
         profile, whole = None, True
+    elif profile and (cost or negate):
+        # "the cheap daily tests": the profile narrowed. cost<= is monotone, so the lower bound is the
+        # intersection; the profile's other terms are kept as written.
+        ptoks = (profiles[profile]["select"] or "").split()
+        pcost = [t[len("cost<="):] for t in ptoks if t.startswith("cost<=")]
+        if cost and pcost:
+            cost = min([cost] + pcost, key=lambda c: "SML".index(c))
+        literal = [t for t in ptoks if not t.startswith("cost<=") and t not in negate]
+        topic = True
+        explain.append({"words": pword, "as": "profile %s narrowed by the modifier" % profile})
+        profile = None
     elif profile:
-        if cost or negate:
-            explain.append({"words": "cost/manual modifier", "as": "ignored with a profile (use --select to narrow)"})
-            cost, negate = None, []
         explain.append({"words": pword,
                         "as": "profile %s (%s)" % (profile, profiles.get(profile, {}).get("select", "?") or "*")})
     if not profile and not topic and (cost or negate) and action != "rerun" and not whole:
@@ -339,7 +347,7 @@ def resolve(request, caps, profiles, run_dir=None):
         out["needs"].append("a throwaway daemon: %s is an operator daemon port (%d); the runner refuses it "
                             "without --allow-daemon-port. Start `wicked-crew serve --port <free>` with its own "
                             "state home and pass that URL" % (url, port))
-    elif live and not url:
+    elif live and not url and not (action == "rerun" and run_dir):
         out["status"] = "needs-input"
         out["needs"].append("--studio URL: the live target needs the URL of the crew daemon to certify")
     # Run-dir actions.
@@ -355,7 +363,7 @@ def resolve(request, caps, profiles, run_dir=None):
         explain.append({"words": "what failed", "as": "%d of %d capabilities in %s with verdict fail or error" % (
             len(bad), len(run.get("capabilities", [])), os.path.basename(os.path.normpath(run_dir)))})
         topic_expr = profiles[profile]["select"] if profile else expr
-        if ignored and not topic_expr:
+        if ignored and not topic:
             # "re-run zorblax failures": a topic was given and matched nothing, so nothing is re-run.
             _status(out, "no-match")
             out["needs"].append("the topic words (%s) match nothing in the catalog" % ", ".join(ignored))
@@ -377,8 +385,10 @@ def resolve(request, caps, profiles, run_dir=None):
         expr = "id:" + ",".join(bad) if bad else ""
         profile = None  # the re-run is exactly these ids
         out["selection"], out["profile"] = expr or None, None
-        if not live and not re.search(r"\bfixture\b", low):  # a target the request names wins; else the earlier run's
+        if not url and not re.search(r"\bfixture\b", low):  # a target the request names wins; else the earlier run's
             out["target"] = run.get("target") if run.get("target") in ("fixture", "live") else out["target"]
+            if live and out["target"] != "live":  # "re-run ... on live" after a fixture run: which daemon?
+                out["target"] = "live"
             out["studio"] = run.get("studio") if out["target"] == "live" else None
             if out["studio"] and not SAFE_URL.match(str(out["studio"])):
                 _status(out, "refused")
@@ -454,7 +464,8 @@ def _commands(out, run_dir):
     sel = _sel_args(out)
     base = ["--baseline", "e2e/coverage-baseline.json"]
     if a in ("run", "plan", "rerun") and sel and not (out["target"] == "live" and not out["studio"]):
-        cmds.append(["e2e", "run"] + sel + tgt + ["--out", "PLAN_DIR", "--plan-only"])
+        src = ["--src", "CHECKOUTS_DIR"] if out["target"] == "fixture" else []
+        cmds.append(["e2e", "run"] + sel + tgt + ["--out", "PLAN_DIR", "--plan-only"] + src)
         if a != "plan":
             cmds.append(["e2e", "run"] + sel + tgt + ["--out", "NEW_RUN_DIR", "--src", "CHECKOUTS_DIR"])
             cmds.append(["e2e", "validate", "--report", "NEW_RUN_DIR"] + base)

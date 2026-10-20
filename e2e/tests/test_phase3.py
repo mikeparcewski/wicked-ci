@@ -433,6 +433,38 @@ class ResolveEdges(unittest.TestCase):
         self.assertIn("question", out["ask_reasons"][-1] if len(out["ask_reasons"]) == 1 else " ".join(out["ask_reasons"]))
         self.assertFalse(self.r("certify crew-api.standing-orders.read")["ask_before_running"])
 
+    def test_round6_profiles_narrowed_by_modifiers_and_blocker_questions(self):
+        from e2ecat.select import select
+        out = self.r("run the cheap daily tests")
+        self.assertEqual((out["profile"], out["selection"]), (None, "!oracle=manual cost<=S"))
+        self.assertTrue(all(c["cost"] == "S" and c["oracle"]["kind"] != "manual" for c in select(self.caps, out["selection"])))
+        self.assertEqual(self.r("run release without governed runs")["selection"].count("cost<=M"), 1)
+        tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail", "crew-api.runs.boot-resume": "error"})
+        out = self.r("re-run the cheap zorblax failures", run_dir=tmp)
+        self.assertEqual((out["status"], out["commands"]), ("no-match", []))
+        for text in ("what blocks a pass in studio", "did smoke pass", "what passed in smoke"):
+            out = self.r(text, run_dir=tmp)
+            self.assertEqual(out["action"], "report", text)
+            self.assertFalse(any(c.startswith("e2e run") for c in out["commands"]), text)
+        self.assertEqual(self.r("why does validate fail")["action"], "validate-coverage")
+
+    def test_round6_the_plan_command_carries_the_checkouts(self):
+        out = self.r("test the run page")
+        self.assertIn("--src CHECKOUTS_DIR", out["commands"][0])
+        self.assertIn("--plan-only", out["commands"][0])
+
+    def test_round6_live_reruns_inherit_the_recorded_url_and_its_refusal(self):
+        tmp = self.run_dir({"target": "live", "studio": "http://127.0.0.1:7801"}, {"crew-api.runs.cancel": "fail"})
+        out = self.r("re-run the live failures", run_dir=tmp)
+        self.assertEqual((out["status"], out["target"], out["studio"]), ("resolved", "live", "http://127.0.0.1:7801"))
+        tmp2 = self.run_dir({"target": "live", "studio": "http://127.0.0.1:7701"}, {"crew-api.runs.cancel": "fail"})
+        self.assertEqual(self.r("re-run what failed on the daemon", run_dir=tmp2)["status"], "refused")
+        tmp3 = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail"})
+        out = self.r("re-run what failed on live", run_dir=tmp3)
+        self.assertEqual((out["target"], out["status"]), ("live", "needs-input"))
+        out = self.r("Can you test the run page on http://127.0.0.1:7801?")
+        self.assertEqual((out["status"], out["studio"]), ("resolved", "http://127.0.0.1:7801"))
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])
