@@ -497,6 +497,17 @@ class ResolveEdges(unittest.TestCase):
         smoke = {c["id"] for c in select(self.caps, self.profiles["smoke"]["select"])}
         self.assertEqual({c["id"] for c in select(self.caps, out["selection"])}, smoke)
 
+    def test_round9_literal_scopes_keep_prose_limits_and_bad_bounds_fail(self):
+        from e2ecat.select import select
+        out = self.r("run surface=ui without governed runs")
+        self.assertEqual(out["selection"], "surface=ui cost<=M")
+        self.assertEqual(self.r("run surface=ui cheap")["selection"], "surface=ui cost<=S")
+        out = self.r("run surface=ui without manual cost<=S")
+        self.assertTrue(all(c["oracle"]["kind"] != "manual" and c["cost"] == "S" for c in select(self.caps, out["selection"])))
+        for text in ("run daily cost<=s", "run release cost<=XL", "test crew cost<=XL cheap"):
+            out = self.r(text)
+            self.assertEqual((out["status"], out["commands"]), ("no-match", []), text)
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])

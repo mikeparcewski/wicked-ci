@@ -298,6 +298,10 @@ def resolve(request, caps, profiles, run_dir=None):
     # any `!` term) only narrows, so with a profile it narrows the profile instead of replacing it.
     lit_topic = [t for t in literal if re.match(r"^(area:|tag:|id:)", t)]
     lit_mod = [t for t in literal if t not in lit_topic]
+    # A malformed literal is left for the selection parser to refuse: it is never merged away or dropped.
+    bad_literal = [t for t in literal if re.match(r"^!?cost<=", t) and t.split("<=", 1)[1] not in ("S", "M", "L")]
+    if bad_literal:
+        profile = None
     topic = bool(terms or lit_topic)
     # A shadowed word that is not just a verb ("testing" in "run all testing") was meant as a topic: it
     # must not let a profile or a re-run widen past it.
@@ -335,15 +339,15 @@ def resolve(request, caps, profiles, run_dir=None):
     elif profile:
         explain.append({"words": pword,
                         "as": "profile %s (%s)" % (profile, profiles.get(profile, {}).get("select", "?") or "*")})
-    if not profile and not topic and (cost or negate) and action != "rerun" and not whole:
+    if not profile and not topic and not lit_mod and (cost or negate) and action != "rerun" and not whole:
         # A modifier narrows a topic or a profile; alone it would select across every area.
         explain.append({"words": "cost/manual modifier", "as": "ignored: no word names a topic to narrow"})
         cost, negate = None, []
-    lit_costs = [t[len("cost<="):] for t in literal if t.startswith("cost<=")]
+    lit_costs = [t[len("cost<="):] for t in literal if t.startswith("cost<=") and t[len("cost<="):] in ("S", "M", "L")]
     if cost and lit_costs:
         # cost<= terms are OR'd, so a second one would widen: keep the lower bound only (the intersection).
-        cost = min([cost] + [c for c in lit_costs if c in "SML" and len(c) == 1] or [cost], key=lambda c: "SML".index(c))
-        literal = [t for t in literal if not t.startswith("cost<=")]
+        cost = min([cost] + lit_costs, key=lambda c: "SML".index(c))
+        literal = [t for t in literal if not (t.startswith("cost<=") and t[len("cost<="):] in ("S", "M", "L"))]
         explain.append({"words": "cost bounds", "as": "the lower one, cost<=%s (same-key terms would widen)" % cost})
     parts = ["%s:%s" % (k, ",".join(v)) for k, v in terms.items() if k in ("area", "tag", "id")]
     parts += literal + (["cost<=%s" % cost] if cost else []) + negate
