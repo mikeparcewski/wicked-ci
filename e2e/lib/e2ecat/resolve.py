@@ -294,7 +294,11 @@ def resolve(request, caps, profiles, run_dir=None):
             shadowed.append(w)
         i += 1
     # A profile word is a profile only when nothing else names the topic ("smoke" alone, "studio smoke" is a tag).
-    topic = bool(terms or literal)
+    # A literal area:/tag:/id: term names a topic; a literal bound or exclusion (cost<=, surface=, oracle=,
+    # any `!` term) only narrows, so with a profile it narrows the profile instead of replacing it.
+    lit_topic = [t for t in literal if re.match(r"^(area:|tag:|id:)", t)]
+    lit_mod = [t for t in literal if t not in lit_topic]
+    topic = bool(terms or lit_topic)
     # A shadowed word that is not just a verb ("testing" in "run all testing") was meant as a topic: it
     # must not let a profile or a re-run widen past it.
     topical_shadow = [w for w in shadowed if w not in ("run", "runs", "test", "tests", "check", "checks", "verify",
@@ -312,18 +316,19 @@ def resolve(request, caps, profiles, run_dir=None):
         # "everything about signon": the topic word matched nothing, so the profile word must not widen to it.
         explain.append({"words": pword, "as": "profile word ignored: the request's other words matched nothing"})
         profile = None
-    elif profile == "full" and (cost or negate):
+    elif profile == "full" and (cost or negate or lit_mod):
         # "run all cheap tests": the whole catalog narrowed by the modifier, as a selection.
         explain.append({"words": pword, "as": "every capability, narrowed by the modifier"})
         profile, whole = None, True
-    elif profile and (cost or negate):
-        # "the cheap daily tests": the profile narrowed. cost<= is monotone, so the lower bound is the
-        # intersection; the profile's other terms are kept as written.
+    elif profile and (cost or negate or lit_mod):
+        # "the cheap daily tests", "release cost<=S": the profile narrowed. cost<= is monotone, so the lowest
+        # bound is the intersection; the profile's other terms and every exclusion are kept.
         ptoks = (profiles[profile]["select"] or "").split()
-        pcost = [t[len("cost<="):] for t in ptoks if t.startswith("cost<=")]
+        pcost = [t[len("cost<="):] for t in ptoks + lit_mod if t.startswith("cost<=") and t[len("cost<="):] in ("S", "M", "L")]
         if pcost:  # the profile's own bound always holds; a modifier can only lower it
             cost = min(([cost] if cost else []) + pcost, key=lambda c: "SML".index(c))
         literal = [t for t in ptoks if not t.startswith("cost<=") and t not in negate]
+        literal += [t for t in lit_mod if not t.startswith("cost<=") and t not in literal and t not in negate]
         topic = True
         explain.append({"words": pword, "as": "profile %s narrowed by the modifier" % profile})
         profile = None

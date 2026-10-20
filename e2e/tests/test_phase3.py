@@ -484,6 +484,19 @@ class ResolveEdges(unittest.TestCase):
         out = self.r("check the bus against http://127.0.0.1:7801")
         self.assertFalse(any("--src" in c for c in out["commands"]), out["commands"])
 
+    def test_round8_literal_bounds_and_exclusions_narrow_a_profile(self):
+        from e2ecat.select import select
+        rel = {c["id"] for c in select(self.caps, self.profiles["release"]["select"])}
+        out = self.r("run release cost<=S")
+        got = {c["id"] for c in select(self.caps, out["selection"])}
+        self.assertEqual(got, {c for c in rel if next(x for x in self.caps if x["id"] == c)["cost"] == "S"})
+        daily = {c["id"] for c in select(self.caps, self.profiles["daily"]["select"])}
+        out = self.r("run daily !id:crew-api.runs.cancel")
+        self.assertEqual({c["id"] for c in select(self.caps, out["selection"])}, daily - {"crew-api.runs.cancel"})
+        out = self.r("run smoke !oracle=manual")
+        smoke = {c["id"] for c in select(self.caps, self.profiles["smoke"]["select"])}
+        self.assertEqual({c["id"] for c in select(self.caps, out["selection"])}, smoke)
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])
