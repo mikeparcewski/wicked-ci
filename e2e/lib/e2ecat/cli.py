@@ -181,10 +181,14 @@ def cmd_resolve(a):
     if a.run_dir and not os.path.isfile(os.path.join(a.run_dir, "run.json")):
         print("e2e resolve: %s has no run.json" % a.run_dir, file=sys.stderr)
         return 2
-    if a.stdin == bool(a.request):
-        print("e2e resolve: give the request as arguments or with --stdin, exactly one", file=sys.stderr)
+    if sum([bool(a.request), a.stdin, bool(a.request_file)]) != 1:
+        print("e2e resolve: give the request one way: arguments, --stdin or --request-file", file=sys.stderr)
         return 2
-    request = sys.stdin.read().strip() if a.stdin else " ".join(a.request)
+    if a.request_file:
+        with open(a.request_file, encoding="utf-8") as fh:
+            request = fh.read().strip()
+    else:
+        request = sys.stdin.read().strip() if a.stdin else " ".join(a.request)
     out = rs.resolve(request, caps, _profiles(a.e2e), run_dir=a.run_dir)
     sys.stdout.write(_dump(out) if a.json else rs.render(out))
     return 0 if out["status"] == "resolved" else 1
@@ -342,7 +346,9 @@ def build_parser():
     pq = sub.add_parser("resolve", help="read a plain request as an action and a selection (deterministic; runs nothing)")
     pq.add_argument("request", nargs="*", help='the request, e.g. "test the run page"')
     pq.add_argument("--stdin", action="store_true",
-                    help="read the request from standard input (an agent passes free text this way, never in argv)")
+                    help="read the request from standard input")
+    pq.add_argument("--request-file", help="read the request from this file (how an agent passes free text: the file "
+                                           "is written with a file writer, so no shell ever parses the request)")
     pq.add_argument("--run-dir", help="an earlier run directory (for re-run, report, evidence, validate --report)")
     pq.add_argument("--json", action="store_true", help="print the resolution as JSON")
     pf = sub.add_parser("surfaces", help="extract surface manifests")

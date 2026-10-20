@@ -31,7 +31,8 @@ as `python3 <wicked-ci>/e2e/bin/e2e` from `<wicked-ci>`. If it is missing, stop 
 
 A selection expression or a profile, a target (`fixture` by default, or `live` with the
 `--studio URL` the operator gave), and where the checkouts are, if any. With no selection yet,
-resolve the request first: `e2e resolve "<request>"`.
+resolve the request first, the way the `wicked-e2e` skill says: the request written to a scratch
+file with a file writer, then `e2e resolve --request-file <scratch-file>`.
 
 ## Steps
 

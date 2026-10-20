@@ -64,14 +64,12 @@ in them (`e2e/coverage-baseline.json`) resolve.
 
 ## Step 1: resolve the request
 
-Pass the request on standard input with a quoted heredoc, never inside the command line: the
-quoted `'REQ'` delimiter stops the shell from expanding anything in it (`$(...)`, backticks,
-quotes), so the request reaches the resolver as data and nothing in it runs.
+Never put the request into a shell command, not even quoted or in a heredoc: request text can
+close a quote or end a heredoc and run what follows. Write it verbatim to a new scratch file with
+your harness's file writer (not the shell), then pass the file:
 
 ```bash
-e2e resolve --stdin [--run-dir RUN_DIR] [--json] <<'REQ'
-<the request, verbatim>
-REQ
+e2e resolve --request-file <scratch-file> [--run-dir RUN_DIR] [--json]
 ```
 
 It prints the action, how each word was read (area, tag, id, profile or ignored), the selection,

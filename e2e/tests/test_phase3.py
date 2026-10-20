@@ -521,6 +521,13 @@ class ResolveEdges(unittest.TestCase):
         tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail"})
         self.assertEqual(self.r("re-run what broke", run_dir=tmp)["selection"], "id:crew-api.runs.cancel")
 
+    def test_round15_live_journeys_carry_into_plan_and_run(self):
+        out = self.r("run live journeys for studio-ui.live.seed-surfaces on http://127.0.0.1:7801")
+        self.assertEqual(out["status"], "resolved")
+        self.assertTrue(all("--live-journeys" in c and "--src CHECKOUTS_DIR" in c for c in out["commands"][:2]), out["commands"])
+        self.assertTrue(out["ask_before_running"])
+        self.assertFalse(any("--live-journeys" in c for c in self.r("test crew on http://127.0.0.1:7801")["commands"]))
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")

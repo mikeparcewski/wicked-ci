@@ -279,6 +279,7 @@ def resolve(request, caps, profiles, run_dir=None):
         explain_pre.append({"words": neg.group(0),
                             "as": "a request not to run: listing only"})
         action = "select"
+    journeys = bool(re.search(r"(?<![\w])(--)?live[- ]journeys?\b", text.lower()))
     url, port, live = _live(text)
     if action not in ("run", "plan", "rerun") and port not in OPERATOR_PORTS:
         url, port, live = None, None, False  # reports, evidence, lookups and validation take no target
@@ -445,7 +446,7 @@ def resolve(request, caps, profiles, run_dir=None):
            "shadowed": shadowed,
            "selection": expr or None, "profile": profile, "target": "live" if live else "fixture",
            "studio": url, "needs": [], "ask_before_running": False, "ask_reasons": [], "count": None,
-           "cost": {}, "areas": {}, "commands": []}
+           "cost": {}, "areas": {}, "commands": [], "live_journeys": journeys and live}
     if live and url and not SAFE_URL.match(url):
         out["status"] = "refused"
         out["needs"].append("the live URL %r is not a plain http(s)://host[:port][/path] URL" % url)
@@ -550,7 +551,9 @@ def resolve(request, caps, profiles, run_dir=None):
         if re.match(r"^\s*(what|which|how|is|are|does|do|did|can|could|has|have)\b", low) or low.rstrip().endswith("?"):
             out["ask_reasons"].append("the request is a question, read here as a run: confirm a run is wanted")
         if out["target"] == "live":
-            out["ask_reasons"].append("the live target %s (direct GETs; journeys only with --live-journeys)" % (out["studio"] or "?"))
+            out["ask_reasons"].append("the live target %s (%s)" % (out["studio"] or "?", "--live-journeys: the studio's live "
+                                      "journeys drive the daemon for real" if out.get("live_journeys") else
+                                      "direct GETs; journeys only with --live-journeys"))
         out["ask_before_running"] = bool(out["ask_reasons"])
     if failed_excl or neg_next:
         _status(out, "no-match")
@@ -573,10 +576,12 @@ def _commands(out, run_dir):
     a, cmds = out["action"], []
     rd = run_dir or "RUN_DIR"
     tgt = ["--target", out["target"]] + (["--studio", out["studio"]] if out["target"] == "live" and out["studio"] else [])
+    if out.get("live_journeys") and out["target"] == "live":
+        tgt += ["--live-journeys"]  # the plan and the run use the same mode the operator asked for
     sel = _sel_args(out)
     base = ["--baseline", "e2e/coverage-baseline.json"]
     if a in ("run", "plan", "rerun") and sel and not (out["target"] == "live" and not out["studio"]):
-        src = ["--src", "CHECKOUTS_DIR"] if out["target"] == "fixture" else []
+        src = ["--src", "CHECKOUTS_DIR"] if out["target"] == "fixture" or out.get("live_journeys") else []
         cmds.append(["e2e", "run"] + sel + tgt + ["--out", "PLAN_DIR", "--plan-only"] + src)
         if a != "plan":
             cmds.append(["e2e", "run"] + sel + tgt + ["--out", "NEW_RUN_DIR"] + src)

@@ -425,16 +425,26 @@ class RouterEvals(unittest.TestCase):
                 for k, want in case["expect"].items():
                     self.assertEqual(out[k], want, "%s: %s" % (k, json.dumps(out, indent=1)[:1500]))
 
-    @unittest.skipIf(sys.platform.startswith("win"), "the heredoc form is a POSIX shell instruction")
-    def test_the_router_heredoc_passes_shell_syntax_through_unexpanded(self):
-        evil = "test crew-api.standing-orders.read $(printf EXPANDED >&2) `printf TICK >&2`"
-        script = "%s %s resolve --stdin --json <<'REQ'\n%s\nREQ\n" % (shlex.quote(sys.executable), shlex.quote(E2E_BIN), evil)
-        r = subprocess.run([shutil.which("sh"), "-c", script], capture_output=True, text=True, timeout=60)
-        self.assertNotIn("EXPANDED", r.stderr)
-        self.assertNotIn("TICK", r.stderr)
-        self.assertEqual(json.loads(r.stdout)["request"], evil)
-        self.assertIn("--stdin", read(os.path.join(SKILLS, "wicked-e2e", "SKILL.md")))
-        self.assertIn("<<'REQ'", read(os.path.join(SKILLS, "wicked-e2e", "SKILL.md")))
+    def test_the_router_passes_the_request_as_a_file_that_no_shell_parses(self):
+        evil = ("test crew-api.standing-orders.read $(printf EXPANDED >&2) `printf TICK >&2` ' \" \n"
+                "REQ\nprintf HEREDOC_ESCAPED >&2\n#")
+        tmp = tempfile.mkdtemp(prefix="e2e-req-")
+        try:
+            p = os.path.join(tmp, "request.txt")
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write(evil)
+            r = subprocess.run([sys.executable, E2E_BIN, "resolve", "--request-file", p, "--json"],
+                               capture_output=True, text=True, timeout=60)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        for marker in ("EXPANDED", "TICK", "HEREDOC_ESCAPED"):
+            self.assertNotIn(marker, r.stderr)
+        self.assertEqual(json.loads(r.stdout)["request"], evil.strip())
+        body = read(os.path.join(SKILLS, "wicked-e2e", "SKILL.md"))
+        self.assertIn("--request-file", body)
+        self.assertNotIn("<<'REQ'", body)
+        for d in skill_dirs():  # no skill puts a request into a shell command line
+            self.assertNotRegex(read(os.path.join(SKILLS, d, "SKILL.md")), r"e2e resolve (\"|'|--stdin)", d)
 
     def test_the_cli_wires_the_resolver_and_its_exit_code(self):
         ok = subprocess.run([sys.executable, E2E_BIN, "resolve", "test the run page", "--json"], capture_output=True,

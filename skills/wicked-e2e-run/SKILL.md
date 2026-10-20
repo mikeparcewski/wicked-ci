@@ -55,7 +55,8 @@ e2e run --select '<expr>' --target live --studio <url-the-operator-gave> --out <
 ```
 
 - **Re-run what failed**: resolve it from the earlier run, then run its selection into a NEW
-  directory: `e2e resolve --stdin --run-dir <earlier-run-dir>` with "re-run what failed" on standard input prints an `id:` list
+  directory: `e2e resolve --request-file <scratch-file> --run-dir <earlier-run-dir>` (the
+  file holds "re-run what failed", written with a file writer) prints an `id:` list
   of the fail and error capabilities and the earlier run's target.
 - **Long runs**: the plan's estimate can exceed one shell call. Follow your harness's rules for
   long commands, check progress in `<new-run-dir>/runner.log` in short calls, and do not report
