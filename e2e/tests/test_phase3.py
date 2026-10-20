@@ -554,6 +554,21 @@ class ResolveEdges(unittest.TestCase):
             out = self.r(text)
             self.assertEqual((out["status"], out["commands"]), ("no-match", []), text)
 
+    def test_round17_profiles_reruns_and_negations(self):
+        self.assertEqual(self.r("run all smoke tests")["profile"], "smoke")
+        out = self.r("run all cheap smoke tests")
+        self.assertIn("tag:smoke", out["selection"])
+        self.assertIn("cost<=S", out["selection"])
+        self.assertEqual(self.r("run smoke and daily")["status"], "no-match")
+        self.assertEqual(self.r("no need to run crew-api.standing-orders.read")["status"], "resolved")
+        self.assertEqual(self.r("test studio without the everything page")["selection"], "area:studio-ui !tag:everything")
+        tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail"})
+        out = self.r("re-run the fixture failures on live", run_dir=tmp)
+        self.assertEqual((out["target"], out["status"]), ("live", "needs-input"))
+        tmp2 = self.run_dir({"target": "live", "studio": "http://127.0.0.1:7801"}, {"crew-api.runs.cancel": "fail"})
+        out = self.r("re-run what failed in id:crew-api.runs.*", run_dir=tmp2)
+        self.assertEqual(out["target"], "live")
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")

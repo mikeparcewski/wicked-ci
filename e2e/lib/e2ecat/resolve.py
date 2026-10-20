@@ -297,6 +297,8 @@ def resolve(request, caps, profiles, run_dir=None):
         explain_pre.append({"words": neg.group(0),
                             "as": "a request not to run: listing only"})
         action = "select"
+        # The negation is consumed here, so its "no" never reads as an exclusion later.
+        text = re.sub(r"\b(do not|don'?t|never|no need to|not to)\b", " ", text, flags=re.I)
     journeys = _journeys_requested(_intent_text(text, vocab, phrases=False))
     url, port, live = _live(text)
     if action not in ("run", "plan", "rerun") and port not in OPERATOR_PORTS:
@@ -314,7 +316,7 @@ def resolve(request, caps, profiles, run_dir=None):
                     and toks[i + 1] in ("not", "than", "from")) else (1 if toks[i] in EXCLUDE_WORDS else 0)
         if pre:
             j = i + pre
-            while j < len(toks) and (toks[j] in STOP or toks[j] == "for"):  # "without the governed runs", "except for"
+            while j < len(toks) and toks[j] in ("a", "an", "the", "any", "some", "for", "of"):  # "without the ..."
                 j += 1
             nxt = toks[j] if j < len(toks) else None
             if nxt == "manual":
@@ -391,13 +393,13 @@ def resolve(request, caps, profiles, run_dir=None):
         elif w in FULL_WORDS and action == "rerun":
             pass  # "re-run all failures": the re-run is the failed ids; "all" is not the full profile
         elif w in PROFILE_WORDS or w in FULL_WORDS:
-            if not profile:
-                profile, pword = PROFILE_WORDS.get(w, "full"), w
+            cand = PROFILE_WORDS.get(w, "full")
+            if not profile or (profile == "full" and pword in FULL_WORDS and pword != "full" and cand != "full"):
+                profile, pword = cand, w  # "all smoke tests": the named profile wins over the quantifier
+            elif cand != "full" and cand != profile:
+                ignored.append(w)  # two different profiles: the request is ambiguous, nothing widens
         elif w not in STOP and w not in FILLER and w not in ("no", "without", "skip", "exclude", "governed", "manual"):
             ignored.append(w)
-            if neg_next:  # "without zorblax": an exclusion that names nothing must not leave the rest wider
-                failed_excl.append(w)
-                neg_next = False
         elif i > 0 and not (live and w in ("live", "daemon")) and _norm(w) in vocab.tag_norm:
             # A filler word that is also a catalog tag or id group: say so, so a widened selection is caught.
             shadowed.append(w)
@@ -524,21 +526,25 @@ def resolve(request, caps, profiles, run_dir=None):
         expr = "id:" + ",".join(bad) if bad else ""
         profile = None  # the re-run is exactly these ids
         out["selection"], out["profile"] = expr or None, None
-        if not url and not re.search(r"\bfixture\b", low):  # a target the request names wins; else the earlier run's
+        prose = {w.strip(".,?!:;()'\"") for w in low.split() if not any(ch in w for ch in ".:-=")}
+        said_fixture = "fixture" in prose and not live
+        if not url and not said_fixture:  # a target the request names wins; else the earlier run's
             out["target"] = run.get("target") if run.get("target") in ("fixture", "live") else out["target"]
             if live and out["target"] != "live":  # "re-run ... on live" after a fixture run: which daemon?
                 out["target"] = "live"
             out["studio"] = run.get("studio") if out["target"] == "live" else None
-            if out["studio"] and not SAFE_URL.match(str(out["studio"])):
-                _status(out, "refused")
-                out["needs"].append("the earlier run's studio URL is not a plain http(s) URL")
-                out["studio"] = None
-            elif out["studio"] and _url_port(str(out["studio"])) in OPERATOR_PORTS:
-                _status(out, "refused")
-                out["needs"].append("the earlier run targeted an operator daemon port; certify a throwaway daemon")
-            elif out["target"] == "live" and not out["studio"]:
-                _status(out, "needs-input")
-                out["needs"].append("--studio URL: the earlier run was live but records no daemon URL")
+        elif said_fixture:
+            out["target"], out["studio"] = "fixture", None
+        if out["studio"] and not SAFE_URL.match(str(out["studio"])):
+            _status(out, "refused")
+            out["needs"].append("the earlier run's studio URL is not a plain http(s) URL")
+            out["studio"] = None
+        elif out["studio"] and _url_port(str(out["studio"])) in OPERATOR_PORTS:
+            _status(out, "refused")
+            out["needs"].append("the earlier run targeted an operator daemon port; certify a throwaway daemon")
+        elif out["target"] == "live" and not out["studio"]:
+            _status(out, "needs-input")
+            out["needs"].append("--studio URL: the live target needs the URL of the crew daemon to certify")
     if action == "evidence":
         ids = [x for x in (expr or "").split() if x.startswith("id:")]
         one = ids[0][3:] if len(ids) == 1 else ""
