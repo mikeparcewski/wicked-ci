@@ -473,6 +473,17 @@ class ResolveEdges(unittest.TestCase):
         from e2ecat.select import select
         self.assertNotIn("crew-api.runs.cancel", [c["id"] for c in select(self.caps, out["selection"])])
 
+    def test_round7_profile_bounds_survive_and_shadowed_topics_block_widening(self):
+        for text, bound in (("run release without manual", "cost<=L"), ("run daily without manual", "cost<=M"),
+                            ("run smoke without manual", "cost<=M")):
+            self.assertIn(bound, self.r(text)["selection"], text)
+        out = self.r("run all the cheap testing checks")
+        self.assertEqual((out["status"], out["commands"]), ("no-match", []))
+        tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail"})
+        self.assertEqual(self.r("re-run the testing failures", run_dir=tmp)["status"], "no-match")
+        out = self.r("check the bus against http://127.0.0.1:7801")
+        self.assertFalse(any("--src" in c for c in out["commands"]), out["commands"])
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])

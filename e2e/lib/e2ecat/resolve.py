@@ -295,6 +295,10 @@ def resolve(request, caps, profiles, run_dir=None):
         i += 1
     # A profile word is a profile only when nothing else names the topic ("smoke" alone, "studio smoke" is a tag).
     topic = bool(terms or literal)
+    # A shadowed word that is not just a verb ("testing" in "run all testing") was meant as a topic: it
+    # must not let a profile or a re-run widen past it.
+    topical_shadow = [w for w in shadowed if w not in ("run", "runs", "test", "tests", "check", "checks", "verify",
+                                                       "plan", "evidence", "video", "report", "live", "daemon")]
     if profile and topic:
         if profile == "smoke" and "tag" not in terms:
             terms["tag"] = ["smoke"]
@@ -304,7 +308,7 @@ def resolve(request, caps, profiles, run_dir=None):
         else:
             explain.append({"words": pword, "as": "profile word ignored: the request names a topic"})
         profile = None
-    elif profile and ignored:
+    elif profile and (ignored or topical_shadow):
         # "everything about signon": the topic word matched nothing, so the profile word must not widen to it.
         explain.append({"words": pword, "as": "profile word ignored: the request's other words matched nothing"})
         profile = None
@@ -317,8 +321,8 @@ def resolve(request, caps, profiles, run_dir=None):
         # intersection; the profile's other terms are kept as written.
         ptoks = (profiles[profile]["select"] or "").split()
         pcost = [t[len("cost<="):] for t in ptoks if t.startswith("cost<=")]
-        if cost and pcost:
-            cost = min([cost] + pcost, key=lambda c: "SML".index(c))
+        if pcost:  # the profile's own bound always holds; a modifier can only lower it
+            cost = min(([cost] if cost else []) + pcost, key=lambda c: "SML".index(c))
         literal = [t for t in ptoks if not t.startswith("cost<=") and t not in negate]
         topic = True
         explain.append({"words": pword, "as": "profile %s narrowed by the modifier" % profile})
@@ -372,7 +376,7 @@ def resolve(request, caps, profiles, run_dir=None):
         explain.append({"words": "what failed", "as": "%d of %d capabilities in %s with verdict fail or error" % (
             len(bad), len(run.get("capabilities", [])), os.path.basename(os.path.normpath(run_dir)))})
         topic_expr = profiles[profile]["select"] if profile else expr
-        if ignored and not topic:
+        if (ignored or topical_shadow) and not topic:
             # "re-run zorblax failures": a topic was given and matched nothing, so nothing is re-run.
             _status(out, "no-match")
             out["needs"].append("the topic words (%s) match nothing in the catalog" % ", ".join(ignored))
@@ -476,7 +480,7 @@ def _commands(out, run_dir):
         src = ["--src", "CHECKOUTS_DIR"] if out["target"] == "fixture" else []
         cmds.append(["e2e", "run"] + sel + tgt + ["--out", "PLAN_DIR", "--plan-only"] + src)
         if a != "plan":
-            cmds.append(["e2e", "run"] + sel + tgt + ["--out", "NEW_RUN_DIR", "--src", "CHECKOUTS_DIR"])
+            cmds.append(["e2e", "run"] + sel + tgt + ["--out", "NEW_RUN_DIR"] + src)
             cmds.append(["e2e", "validate", "--report", "NEW_RUN_DIR"] + base)
     elif a == "select" and sel:
         cmds.append(["e2e", "select"] + (["--profile", out["profile"]] if out["profile"] else [out["selection"]]))
