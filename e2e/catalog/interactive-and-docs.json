@@ -303,25 +303,12 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitDistributed",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitPlanned",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "event",
+    "source": "core-event",
+    "type": "unitPlanned",
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
      "status.posted messages contain the seated/returned fraction when unitDistributed.returned < seated",
@@ -428,7 +415,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/acceptance",
+    "path": "/api/v1/runs/{runId}/acceptance",
     "expect": {
      "status": 200
     },
@@ -748,13 +735,13 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "wicked-interactive adopt --root R --crew-api http://127.0.0.1:<crew>",
+      "cmd": "wicked-interactive adopt --root R --crew-api http://127.0.0.1:{crew}",
       "code": 0
      },
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}",
+      "path": "/api/v1/projects/{projectId}",
       "expect": {
        "status": 200
       }
@@ -807,7 +794,7 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "wicked-interactive validate a.html",
+      "cmd": "wicked-interactive create --from-file content.json --out a.html",
       "code": 0
      },
      {
@@ -818,7 +805,6 @@
     ],
     "complete": false,
     "untyped": [
-     "exit 0",
      "output file parses and `wicked-interactive validate a.html` exits 0",
      "with --project: <root>/<name>/versions.json and project.json exist",
      "with WICKED_CREW_API unset + --project: exit 1 and no dir"
@@ -865,16 +851,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-interactive doctor --json",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit codes 1 -> 0",
-     "JSON report.recorder.ok false then true",
-     "report.recorder.components[].present all true after install",
-     "files exist under PLAYWRIGHT_BROWSERS_PATH"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit codes 1 -> 0; JSON report.recorder.ok false then true; report.recorder.components[].present all true after install; files exist under PLAYWRIGHT_BROWSERS_PATH"
    },
    "oracle_text": "exit codes 1 -> 0; JSON report.recorder.ok false then true; report.recorder.components[].present all true after install; files exist under PLAYWRIGHT_BROWSERS_PATH",
    "covers": [
@@ -960,15 +939,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-interactive publish a.html",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit codes",
-     "stdout states simulated publish",
-     "no network call made (v0.1)"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit codes; stdout states simulated publish; no network call made (v0.1)"
    },
    "oracle_text": "exit codes; stdout states simulated publish; no network call made (v0.1)",
    "covers": [
@@ -1158,9 +1131,14 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit code 0/1; stdout/stderr JSON error code names the failing check"
+    "kind": "exit",
+    "cmd": "wicked-interactive validate a.html",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "exit code 0/1",
+     "stdout/stderr JSON error code names the failing check"
+    ]
    },
    "oracle_text": "exit code 0/1; stdout/stderr JSON error code names the failing check",
    "covers": [
@@ -1754,7 +1732,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/projects/{id}/interactive/api/docs",
+      "path": "/api/v1/projects/{projectId}/interactive/api/docs",
       "expect": {
        "status": 200
       }
@@ -3726,6 +3704,46 @@
       "expect": {
        "status": 200
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-review]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-review-approve]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-review-ask]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-audience-adapt]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-proposal-compare]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-proposal-keep]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-proposal-drop]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-present]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -3833,7 +3851,35 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "POST /api/v1/runs/{id}/gate",
+      "type": "POST /api/v1/runs/{runId}/gate",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-script-edit]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-script-save]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-retake-chapter]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-retake-note]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/runs/{runId}/demo/script",
       "count": {
        "min": 1
       }

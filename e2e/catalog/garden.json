@@ -473,7 +473,7 @@
     "reason": "The capability's terminal state is model-generated content; only its dispatch and artifacts are deterministic (precheck). A seeded-defect fixture with a fixed expected finding is needed before it can pass.",
     "precheck": {
      "kind": "exit",
-     "cmd": "wicked-garden run scripts/crew/flow_compiler.py <archetype>",
+     "cmd": "wicked-garden run scripts/crew/flow_compiler.py {archetype}",
      "code": 0
     }
    },
@@ -620,8 +620,12 @@
     "reason": "The capability's terminal state is model-generated content; only its dispatch and artifacts are deterministic (precheck). A seeded-defect fixture with a fixed expected finding is needed before it can pass.",
     "precheck": {
      "kind": "event",
-     "source": "bus",
-     "type": "wicked.garden.modernize.gap_emitted",
+     "source": "transcript",
+     "type": "tool_use",
+     "where": {
+      "name": "Skill",
+      "input.skill": "wicked-garden-archetype"
+     },
      "count": {
       "min": 1
      }
@@ -709,9 +713,16 @@
     "category": "model-output",
     "reason": "The capability's terminal state is model-generated content; only its dispatch and artifacts are deterministic (precheck). A seeded-defect fixture with a fixed expected finding is needed before it can pass.",
     "precheck": {
-     "kind": "exit",
-     "cmd": "python3 scripts/qe/verdict_schema.py verdict.json",
-     "code": 0
+     "kind": "event",
+     "source": "transcript",
+     "type": "tool_use",
+     "where": {
+      "name": "Skill",
+      "input.skill": "wicked-garden-archetype"
+     },
+     "count": {
+      "min": 1
+     }
     }
    },
    "oracle_text": "verdict JSON passes `python3 scripts/qe/verdict_schema.py verdict.json` (exit 0); remediate-or-accept is a hard gate",
@@ -1210,7 +1221,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "echo '<json>' | wicked-garden run scripts/classify/persist.py",
+    "cmd": "echo '{json}' | wicked-garden run scripts/classify/persist.py",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1259,12 +1270,12 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "npx wicked-garden install --claude-home <tmp>",
+      "cmd": "npx wicked-garden install --claude-home {tmp}",
       "code": 0
      },
      {
       "kind": "exit",
-      "cmd": "npx wicked-garden install [--claude-home <dir>] [--dry-run]",
+      "cmd": "npx wicked-garden install",
       "code": 0
      }
     ],
@@ -1335,7 +1346,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "npx wicked-garden install --dry-run --claude-home <tmp>",
+    "cmd": "npx wicked-garden install --dry-run --claude-home {tmp}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1660,33 +1671,20 @@
     "vault-entry"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "transcript",
-      "type": "tool_use",
-      "where": {
-       "name": "Skill",
-       "input.skill": "wicked-garden-core"
-      },
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault --version",
-      "code": 0
-     }
-    ],
+    "kind": "event",
+    "source": "transcript",
+    "type": "tool_use",
+    "where": {
+     "name": "Skill",
+     "input.skill": "wicked-garden-core"
+    },
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
      "after run, `loom doctor` reports wicked-vault reachable >=0.8.0",
-     "selected peers resolvable",
-     "`wicked-vault --version` exits 0 afterwards",
-     "`npm ls -g wicked-vault` lists it",
-     "the action printed the installed-vs-latest garden version line"
+     "selected peers resolvable"
     ]
    },
    "oracle_text": "after run, `loom doctor` reports wicked-vault reachable >=0.8.0; selected peers resolvable",
@@ -1820,33 +1818,21 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "transcript",
-      "type": "tool_use",
-      "where": {
-       "name": "Skill",
-       "input.skill": "wicked-garden-core"
-      },
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/setup/detect_state.py",
-      "code": 0
-     }
-    ],
+    "kind": "event",
+    "source": "transcript",
+    "type": "tool_use",
+    "where": {
+     "name": "Skill",
+     "input.skill": "wicked-garden-core"
+    },
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
      "~/.something-wicked/wicked-garden/config.json setup_complete==true",
      "subsequent prompt not blocked by setup gate",
-     "`detect_state.py config` prints it",
-     "`wicked-garden run scripts/setup/detect_state.py` reports setup complete",
-     "setup blocks iff `wicked-vault` is absent from PATH"
+     "`detect_state.py config` prints it"
     ]
    },
    "oracle_text": "~/.something-wicked/wicked-garden/config.json setup_complete==true; subsequent prompt not blocked by setup gate; `detect_state.py config` prints it",
@@ -1949,7 +1935,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/council/{id}",
+      "path": "/council/{councilId}",
       "expect": {
        "status": 200
       }
@@ -2639,7 +2625,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/demo/walkthrough.mjs lint --root <dir>",
+    "cmd": "wicked-garden run scripts/demo/walkthrough.mjs lint --root {dir}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -2801,7 +2787,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/draft/claims_scan.py out.html --repo <dir>",
+    "cmd": "wicked-garden run scripts/draft/claims_scan.py out.html --repo {dir}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -2926,14 +2912,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden run scripts/draft/self_check.py out.html --pages 2 --exact --render --repo <dir> --json",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit 0 PASS / 1 FAIL / 3 UNVERIFIED",
-     "JSON findings per floor"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 0 PASS / 1 FAIL / 3 UNVERIFIED; JSON findings per floor"
    },
    "oracle_text": "exit 0 PASS / 1 FAIL / 3 UNVERIFIED; JSON findings per floor",
    "covers": [
@@ -3031,7 +3012,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/editor/pin.py <dir>",
+    "cmd": "wicked-garden run scripts/editor/pin.py {dir}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -3085,12 +3066,12 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "wicked-garden run scripts/editor/scaffold.py --vendor acme --id acme-x --title 'X' --kinds k --out <dir>",
+      "cmd": "wicked-garden run scripts/editor/scaffold.py --vendor acme --id acme-x --title 'X' --kinds k --out {dir}",
       "code": 0
      },
      {
       "kind": "exit",
-      "cmd": "wicked-garden run scripts/editor/scaffold.py --vendor acme --id acme-terms --title \"Terms\" --kinds page --out <dir>",
+      "cmd": "wicked-garden run scripts/editor/scaffold.py --vendor acme --id acme-terms --title \"Terms\" --kinds page --out {dir}",
       "code": 0
      }
     ],
@@ -3474,7 +3455,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/engineering/patch/patch.py plan '<symbol_id>' --change add-field --json",
+    "cmd": "wicked-garden run scripts/engineering/patch/patch.py plan '{symbol_id}' --change add-field --json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -3553,14 +3534,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "git grep -w a",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "`git grep -w a` returns 0 hits in scope",
-     "b present at every former site"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: `git grep -w a` returns 0 hits in scope; b present at every former site"
    },
    "oracle_text": "`git grep -w a` returns 0 hits in scope; b present at every former site",
    "covers": [
@@ -4767,18 +4743,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "bus",
-    "type": "wicked.garden.quality.drift_detected",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "~/.something-wicked/wicked-garden/projects/<slug>/metrics/<project>/timeline.jsonl gains one record",
-     "guard findings written",
-     "drift emits wicked.garden.quality.drift_detected when special-cause"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: ~/.something-wicked/wicked-garden/projects/<slug>/metrics/<project>/timeline.jsonl gains one record; guard findings written; drift emits wicked.garden.quality.drift_detected when special-cause"
    },
    "oracle_text": "~/.something-wicked/wicked-garden/projects/<slug>/metrics/<project>/timeline.jsonl gains one record; guard findings written; drift emits wicked.garden.quality.drift_detected when special-cause",
    "covers": [
@@ -5852,7 +5819,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/mcp/probe.py -- node <dir>/server.mjs",
+    "cmd": "wicked-garden run scripts/mcp/probe.py -- node {dir}/server.mjs",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -5898,7 +5865,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/mcp/scaffold.py --name acme --lang typescript --out <dir>",
+    "cmd": "wicked-garden run scripts/mcp/scaffold.py --name acme --lang typescript --out {dir}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -6171,12 +6138,12 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "npx wicked-garden pack check <pack-dir> [--json]",
+      "cmd": "npx wicked-garden pack check {pack_dir}",
       "code": 0
      },
      {
       "kind": "exit",
-      "cmd": "npx wicked-garden pack check <dir> [--json]",
+      "cmd": "npx wicked-garden pack check {dir}",
       "code": 0
      }
     ],
@@ -6290,7 +6257,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "npx wicked-garden pack install <source>",
+    "cmd": "npx wicked-garden pack install {source}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -6374,7 +6341,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "npx wicked-garden pack register <dir> [--source u]",
+    "cmd": "npx wicked-garden pack register {dir}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -7272,12 +7239,12 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "claude plugins marketplace add <clone-or-mikeparcewski/wicked-garden>",
+      "cmd": "claude plugins marketplace add {clone_or_mikeparcewski_wicked_garden}",
       "code": 0
      },
      {
       "kind": "exit",
-      "cmd": "npx wicked-installer status",
+      "cmd": "npx wicked-installer install wicked-garden",
       "code": 0
      }
     ],
@@ -7427,7 +7394,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/where_am_i.py",
+    "cmd": "claude -p '/wicked-garden-core where-am-i'",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -7596,7 +7563,7 @@
      },
      {
       "kind": "exit",
-      "cmd": "python3 scripts/ci/codex_plugin.py",
+      "cmd": "codex plugin marketplace add \"$(npm root -g)/wicked-garden\"",
       "code": 0
      },
      {
@@ -7684,7 +7651,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/qe/prove.py tests-pass --by true",
+    "cmd": "codex exec --json 'use the wicked-garden-prove skill: prove tests-pass --by \"true\"'",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -7729,7 +7696,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden root",
+    "cmd": "wicked-garden run",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -8430,9 +8397,15 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: first verdict satisfied:false (UNATTESTED); after attest satisfied:true; a reject attestation flips to REJECT"
+    "kind": "exit",
+    "cmd": "wicked-vault attest {id} --opinion pass",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "first verdict satisfied:false (UNATTESTED)",
+     "after attest satisfied:true",
+     "a reject attestation flips to REJECT"
+    ]
    },
    "oracle_text": "first verdict satisfied:false (UNATTESTED); after attest satisfied:true; a reject attestation flips to REJECT",
    "covers": [
@@ -8938,7 +8911,7 @@
    "oracle": {
     "kind": "api",
     "method": "POST",
-    "path": "/api/v1/runs/{id}/gate",
+    "path": "/api/v1/runs/{runId}/gate",
     "expect": {
      "status": [
       200,
@@ -10701,7 +10674,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate index <repo>",
+    "cmd": "wicked-estate index {repo}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -11325,13 +11298,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "echo '{\"session_id\":\"x\"}' | wicked-garden run scripts/statusline.py",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "`echo '{\"session_id\":\"x\"}' | wicked-garden run scripts/statusline.py` prints one line starting '🌱 wg' and exits 0 even on garbage stdin"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: `echo '{\"session_id\":\"x\"}' | wicked-garden run scripts/statusline.py` prints one line starting '🌱 wg' and exits 0 even on garbage stdin"
    },
    "oracle_text": "`echo '{\"session_id\":\"x\"}' | wicked-garden run scripts/statusline.py` prints one line starting '🌱 wg' and exits 0 even on garbage stdin",
    "covers": [

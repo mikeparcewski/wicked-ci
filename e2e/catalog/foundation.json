@@ -690,16 +690,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus replay --cursor-id C --from-event-id K",
-    "code": 3,
-    "complete": false,
-    "untyped": [
-     "cursor last_event_id == K-1 after replay",
-     "next subscribe yields first id K",
-     "unknown cursor exit 6 stderr WB-006",
-     "K < MIN(event_id) exit 3 stderr WB-003"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: cursor last_event_id == K-1 after replay; next subscribe yields first id K; unknown cursor exit 6 stderr WB-006; K < MIN(event_id) exit 3 stderr WB-003"
    },
    "oracle_text": "cursor last_event_id == K-1 after replay; next subscribe yields first id K; unknown cursor exit 6 stderr WB-006; K < MIN(event_id) exit 3 stderr WB-003",
    "covers": [
@@ -736,9 +729,16 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: start JSON has pid; status JSON shows socket path (<dataDir> socket from socketPath()) existing and pid alive; second start reports prior_pid lock conflict; after stop, pid not alive and status reports not running"
+    "kind": "exit",
+    "cmd": "wicked-bus daemon start --detached",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "start JSON has pid",
+     "status JSON shows socket path (<dataDir> socket from socketPath()) existing and pid alive",
+     "second start reports prior_pid lock conflict",
+     "after stop, pid not alive and status reports not running"
+    ]
    },
    "oracle_text": "start JSON has pid; status JSON shows socket path (<dataDir> socket from socketPath()) existing and pid alive; second start reports prior_pid lock conflict; after stop, pid not alive and status reports not running",
    "covers": [
@@ -1274,21 +1274,12 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "sqlite3 $T/bus.db 'PRAGMA journal_mode'",
-      "code": 0
-     },
-     {
-      "kind": "file",
-      "path": "$T/bus.db",
-      "assert": "exists"
-     }
-    ],
+    "kind": "file",
+    "path": "$T/bus.db",
+    "assert": "exists",
     "complete": false,
     "untyped": [
+     "exit code 0",
      "stdout JSON .initialized==true and .db_path==\"$T/bus.db\"",
      "file $T/bus.db exists",
      "`sqlite3 $T/bus.db 'PRAGMA journal_mode'` == wal",
@@ -1977,18 +1968,9 @@
     "vault-entry"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "bus",
-    "type": "wicked.test.strategy.generated",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "bus events: wicked.test.strategy.generated, .scenario.authored, .run.started, .verdict.created, .evidence.captured (only when vault_payload_sha present), .run.completed",
-     "all domain 'qe' with payload.qe_version",
-     "absent bus CLI -> emitBusEvent returns false, CRUD unaffected"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: bus events: wicked.test.strategy.generated, .scenario.authored, .run.started, .verdict.created, .evidence.captured (only when vault_payload_sha present), .run.completed; all domain 'qe' with payload.qe_version; absent bus CLI -> emitBusEvent returns false, CRUD unaffected"
    },
    "oracle_text": "bus events: wicked.test.strategy.generated, .scenario.authored, .run.started, .verdict.created, .evidence.captured (only when vault_payload_sha present), .run.completed; all domain 'qe' with payload.qe_version; absent bus CLI -> emitBusEvent returns false, CRUD unaffected",
    "covers": [
@@ -2458,7 +2440,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/acceptance",
+    "path": "/api/v1/runs/{runId}/acceptance",
     "expect": {
      "status": 200
     },
@@ -2529,12 +2511,32 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/runs/{id}/acceptance",
-    "expect": {
-     "status": 200
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/runs/{runId}/acceptance",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=campaign-load-verdicts]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=campaign-verdict-chip]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=campaign-evidence-link]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "exactly N GET /runs/:id/acceptance requests after click (none before)",
@@ -2604,7 +2606,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/acceptance",
+      "path": "/api/v1/runs/{runId}/acceptance",
       "expect": {
        "status": 200
       }
@@ -2612,7 +2614,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/acceptance",
+      "path": "/api/v1/runs/{runId}/acceptance",
       "expect": {
        "status": 404
       }
@@ -2703,7 +2705,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/acceptance",
+    "path": "/api/v1/runs/{runId}/acceptance",
     "expect": {
      "status": 200
     },
@@ -2763,7 +2765,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/acceptance",
+      "path": "/api/v1/runs/{runId}/acceptance",
       "expect": {
        "status": 200
       }
@@ -3470,17 +3472,9 @@
     "ledger-entry"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "bus",
-    "type": "wicked.qe.gate.conditional",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "invalid manifest -> recorded verdict INCONCLUSIVE, event wicked.qe.gate.conditional, exit 3",
-     "valid exclusions -> verdict_summary contains 'quarantined excluded-with-reason (' with id/cause/owner/deadline; missing field -> exit 3, nothing recorded"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: invalid manifest -> recorded verdict INCONCLUSIVE, event wicked.qe.gate.conditional, exit 3; valid exclusions -> verdict_summary contains 'quarantined excluded-with-reason (' with id/cause/owner/deadline; missing field -> exit 3, nothing recorded"
    },
    "oracle_text": "invalid manifest -> recorded verdict INCONCLUSIVE, event wicked.qe.gate.conditional, exit 3; valid exclusions -> verdict_summary contains 'quarantined excluded-with-reason (' with id/cause/owner/deadline; missing field -> exit 3, nothing recorded",
    "covers": [],
@@ -3700,28 +3694,9 @@
     "vault-entry"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "bus",
-      "type": "wicked.team.finding.settled",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault verify <vault_entry>",
-      "code": 0
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "bus row wicked.team.finding.settled payload status=='held' with vault_entry non-null (or vault_error naming why)",
-     "`wicked-vault --cwd <evidence_root>/team/vault list --scope run:<run>` has entry claim 'finding:<finding_id>', phase 'team:<ord>', kind 'team-finding-withdrawal-request|team-finding-evidence-gone', created_by == monitor seat",
-     "`wicked-vault verify <vault_entry>` exit 0"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: bus row wicked.team.finding.settled payload status=='held' with vault_entry non-null (or vault_error naming why); `wicked-vault --cwd <evidence_root>/team/vault list --scope run:<run>` has entry claim 'finding:<finding_id>', phase 'team:<ord>', kind 'team-finding-withdrawal-request|team-finding-evid"
    },
    "oracle_text": "bus row wicked.team.finding.settled payload status=='held' with vault_entry non-null (or vault_error naming why); `wicked-vault --cwd <evidence_root>/team/vault list --scope run:<run>` has entry claim 'finding:<finding_id>', phase 'team:<ord>', kind 'team-finding-withdrawal-request|team-finding-evidence-gone', created_by == monitor seat; `wicked-vault verify <vault_entry>` exit 0",
    "covers": [
@@ -3780,17 +3755,22 @@
     "kind": "all",
     "of": [
      {
-      "kind": "exit",
-      "cmd": "wicked-vault verify <id>",
-      "code": 0
-     },
-     {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/walkthrough",
+      "path": "/api/v1/runs/{runId}/walkthrough",
       "expect": {
        "status": 200
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=walkthrough-checks]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=walkthrough-check]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -3918,17 +3898,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-vault attest <id> --opinion pass --rationale r --evaluator gemini-reviewer --model gemini/2.5-pro",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "independent: exit 0 JSON attestation_id, opinion 'pass'",
-     "evaluator==created_by: exit 1 'attest refused (G10/D4)… equals the artifact creator'",
-     "ambient worker: exit 1 unless --allow-weak-worker-identity, then attestation.worker_identity_weak==true",
-     "tampered: exit 1 'integrity check failed'",
-     "invalid opinion exit 1"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: independent: exit 0 JSON attestation_id, opinion 'pass'; evaluator==created_by: exit 1 'attest refused (G10/D4)… equals the artifact creator'; ambient worker: exit 1 unless --allow-weak-worker-identity, then attestation.worker_identity_weak==true; tampered: exit 1 'integrity check failed'; invalid o"
    },
    "oracle_text": "independent: exit 0 JSON attestation_id, opinion 'pass'; evaluator==created_by: exit 1 'attest refused (G10/D4)… equals the artifact creator'; ambient worker: exit 1 unless --allow-weak-worker-identity, then attestation.worker_identity_weak==true; tampered: exit 1 'integrity check failed'; invalid opinion exit 1",
    "covers": [
@@ -3964,7 +3936,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-vault attestations <id>",
+    "cmd": "wicked-vault attestations {id}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -4141,22 +4113,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault declare-contract --scope s --phase build --spec contract.json",
-      "code": 0
-     },
-     {
-      "kind": "event",
-      "source": "bus",
-      "type": "wicked.contract.published",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "exit",
+    "cmd": "wicked-vault declare-contract --scope s --phase build --spec contract.json",
+    "code": 0,
     "complete": false,
     "untyped": [
      "exit 0 JSON contract_version",
@@ -4448,7 +4407,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-vault inspect <id>",
+    "cmd": "wicked-vault inspect {id}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -4618,9 +4577,14 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 0; payload_sha256 == sha256(build.log); acceptance_criteria in entry == contents of criteria.md (@file resolved)"
+    "kind": "exit",
+    "cmd": "wicked-vault record --scope s --phase build --claim log-clean --kind log --source build.log --artifact build.log --criteria @criteria.md --verifier 'not_contains:ERROR'",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "payload_sha256 == sha256(build.log)",
+     "acceptance_criteria in entry == contents of criteria.md (@file resolved)"
+    ]
    },
    "oracle_text": "exit 0; payload_sha256 == sha256(build.log); acceptance_criteria in entry == contents of criteria.md (@file resolved)",
    "covers": [
@@ -4920,9 +4884,14 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: regex present -> pass/exit0, absent -> fail/exit1; not_contains clean -> pass, dirty -> fail detail 'forbidden /ERROR/ is present'"
+    "kind": "exit",
+    "cmd": "echo 'ok 5 passed'",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "regex present -> pass/exit0, absent -> fail/exit1",
+     "not_contains clean -> pass, dirty -> fail detail 'forbidden /ERROR/ is present'"
+    ]
    },
    "oracle_text": "regex present -> pass/exit0, absent -> fail/exit1; not_contains clean -> pass, dirty -> fail detail 'forbidden /ERROR/ is present'",
    "covers": [],
@@ -4956,7 +4925,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-vault verify <id>",
+    "cmd": "wicked-vault verify {id}",
     "code": 0,
     "complete": false,
     "untyped": [

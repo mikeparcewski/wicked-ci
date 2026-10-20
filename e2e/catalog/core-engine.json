@@ -200,6 +200,12 @@
      {
       "kind": "event",
       "source": "core-event",
+      "type": "campaignLaunched",
+      "count": 1
+     },
+     {
+      "kind": "event",
+      "source": "core-event",
       "type": "campaignNodeReady",
       "count": {
        "min": 1
@@ -208,15 +214,7 @@
      {
       "kind": "event",
       "source": "core-event",
-      "type": "campaignFailed",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "campaignNodeBlocked",
+      "type": "campaignNodeStarted",
       "count": {
        "min": 1
       }
@@ -224,10 +222,8 @@
     ],
     "complete": false,
     "untyped": [
-     "campaignNodeReady/Started/Completed order matches ready_set",
-     "concurrency ≤ cap",
-     "fail-fast cancels in-flight → campaignFailed",
-     "continue-independent blocks only dependents (campaignNodeBlocked)"
+     "nodes dispatch in dependency order within maxConcurrency",
+     "fail-fast (one run) cancels in-flight nodes and ends campaignFailed; continue-independent (a second run) blocks only the failed node's dependents (campaignNodeBlocked)"
     ]
    },
    "oracle_text": "campaignNodeReady/Started/Completed order matches ready_set; concurrency ≤ cap; fail-fast cancels in-flight → campaignFailed; continue-independent blocks only dependents (campaignNodeBlocked)",
@@ -257,6 +253,9 @@
    ],
    "sources": [
     "wicked-core:src/campaign.rs"
+   ],
+   "notes": [
+    "review 2026-10-20: one campaign has one failure policy, so the two policies' terminal events are separate runs, not one all-of"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -537,7 +536,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core coverage [--out coverage-report.json] --db <estate db>",
+    "cmd": "wicked-core coverage --db {estate_db}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -637,15 +636,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core gate-hook --scope S --phase P --db F",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit code (0 allow, 2 deny for a tripping policy)",
-     "decisions.ndjson gains one line naming the policy",
-     "never spawns the actor (single writer)"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit code (0 allow, 2 deny for a tripping policy); decisions.ndjson gains one line naming the policy; never spawns the actor (single writer)"
    },
    "oracle_text": "exit code (0 allow, 2 deny for a tripping policy); decisions.ndjson gains one line naming the policy; never spawns the actor (single writer)",
    "covers": [
@@ -986,7 +979,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core rules eval --corpus <evals:scope|dir|file.json> [--type t] [--json]",
+    "cmd": "wicked-core rules eval --corpus {evals_scope_dir_file_json}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1037,7 +1030,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core rules fanout <dir> (--enforcement-db F | --enforcement-crew-api URL) --discovery-db F --knowledge-db F [--scope repo|workspace] --manifest OUT.json",
+    "cmd": "wicked-core rules fanout {dir} --enforcement-db F --discovery-db F --knowledge-db F --manifest OUT.json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1083,9 +1076,14 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 0 and `rules list --json` shows ingested ids; empty dir / empty applies_to / typo'd field / bad regex each exit non-zero"
+    "kind": "exit",
+    "cmd": "wicked-core rules ingest {dir}",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "exit 0 and `rules list --json` shows ingested ids",
+     "empty dir / empty applies_to / typo'd field / bad regex each exit non-zero"
+    ]
    },
    "oracle_text": "exit 0 and `rules list --json` shows ingested ids; empty dir / empty applies_to / typo'd field / bad regex each exit non-zero",
    "covers": [
@@ -1129,9 +1127,17 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: JSON order critical→info then weight desc then id; --project scopes project rules; malformed --project refused; retired rows only under --include-retired; empty is a diagnostic not an error"
+    "kind": "exit",
+    "cmd": "wicked-core rules recall",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "JSON order critical→info then weight desc then id",
+     "--project scopes project rules",
+     "malformed --project refused",
+     "retired rows only under --include-retired",
+     "empty is a diagnostic not an error"
+    ]
    },
    "oracle_text": "JSON order critical→info then weight desc then id; --project scopes project rules; malformed --project refused; retired rows only under --include-retired; empty is a diagnostic not an error",
    "covers": [
@@ -1175,7 +1181,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core rules relink [--json]",
+    "cmd": "wicked-core rules relink",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1215,9 +1221,13 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: retired id absent from `rules recall --json`, present in `rules list --include-retired --json` with retired flag"
+    "kind": "exit",
+    "cmd": "wicked-core rules scoreboard",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "retired id absent from `rules recall --json`, present in `rules list --include-retired --json` with retired flag"
+    ]
    },
    "oracle_text": "retired id absent from `rules recall --json`, present in `rules list --include-retired --json` with retired flag",
    "covers": [
@@ -1317,15 +1327,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core seat-image build [<cli>…|all]",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit code",
-     "`seat-image status` then reports each tag `present`",
-     "image labelled SEAT_LABEL and tagged by Dockerfile hash"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit code; `seat-image status` then reports each tag `present`; image labelled SEAT_LABEL and tagged by Dockerfile hash"
    },
    "oracle_text": "exit code; `seat-image status` then reports each tag `present`; image labelled SEAT_LABEL and tagged by Dockerfile hash",
    "covers": [
@@ -1445,7 +1449,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core seat-login ingest <cli>",
+    "cmd": "wicked-core seat-login ingest {cli}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1495,7 +1499,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core seat-login refresh <cli>",
+    "cmd": "wicked-core seat-login refresh {cli}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1542,7 +1546,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core seat-login sign-out <cli>",
+    "cmd": "wicked-core seat-login sign-out {cli}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -2059,17 +2063,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "unitReassigned",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "unit output contains floor_refusal_text with reason (no_container_runtime, container_runtime_down, gateway_unavailable, agent_signed_out, gate_hook_unreachable, host_only_carrier, needs_container_floor)",
-     "unitReassigned or failover"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: unit output contains floor_refusal_text with reason (no_container_runtime, container_runtime_down, gateway_unavailable, agent_signed_out, gate_hook_unreachable, host_only_carrier, needs_container_floor); unitReassigned or failover"
    },
    "oracle_text": "unit output contains floor_refusal_text with reason (no_container_runtime, container_runtime_down, gateway_unavailable, agent_signed_out, gate_hook_unreachable, host_only_carrier, needs_container_floor); unitReassigned or failover",
    "covers": [],
@@ -2507,12 +2503,9 @@
       }
      },
      {
-      "kind": "event",
-      "source": "core-event",
-      "type": "repoChecksEvaluated",
-      "count": {
-       "min": 1
-      }
+      "kind": "dom",
+      "selector": "[data-testid=deliver-lift-summary]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -2565,18 +2558,36 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/runs/{id}",
-    "expect": {
-     "json": [
-      {
-       "path": "$.delivery",
-       "op": "eq",
-       "value": "none"
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/runs/{runId}",
+      "expect": {
+       "json": [
+        {
+         "path": "$.delivery",
+         "op": "eq",
+         "value": "none"
+        }
+       ]
       }
-     ]
-    },
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=launch-wizard-deliver-toggle]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "no unitPlanned for deliver",
@@ -2633,12 +2644,22 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/runs/{id}",
-    "expect": {
-     "status": 200
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/runs/{runId}",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=run-delivery-link]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "git ls-remote shows refs/heads/wicked/<run> == worktree HEAD",
@@ -3029,12 +3050,14 @@
       }
      },
      {
-      "kind": "event",
-      "source": "core-event",
-      "type": "cliUsageUnreported",
-      "count": {
-       "min": 1
-      }
+      "kind": "dom",
+      "selector": "[data-testid=seat-usage]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=rail-seat-week]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -3090,7 +3113,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/events",
+    "path": "/api/v1/runs/{runId}/events",
     "expect": {
      "status": 200
     },
@@ -3682,17 +3705,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "gateEvaluated",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "gateEvaluated.hasDeterministicFloor and criterion include EVIDENCE_CRITERION when changed",
-     "unchanged → ungated:true with ungatedReason / floorNote 'the unit left the worktree tree unchanged'"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: gateEvaluated.hasDeterministicFloor and criterion include EVIDENCE_CRITERION when changed; unchanged → ungated:true with ungatedReason / floorNote 'the unit left the worktree tree unchanged'"
    },
    "oracle_text": "gateEvaluated.hasDeterministicFloor and criterion include EVIDENCE_CRITERION when changed; unchanged → ungated:true with ungatedReason / floorNote 'the unit left the worktree tree unchanged'",
    "covers": [],
@@ -3793,6 +3808,16 @@
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=gate-verdict-check]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=gate-verdict-check-tail]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -3988,12 +4013,22 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "unitReworkAmended",
-    "count": {
-     "min": 1
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "unitReworkAmended",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=session-gate-note]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "unitReworkAmended{scope:'cursor'|'creator', amendment} before resumed",
@@ -4136,20 +4171,9 @@
       "count": 1
      },
      {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitReassigned",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "runCancelled",
-      "count": {
-       "min": 1
-      }
+      "kind": "dom",
+      "selector": "[data-testid=session-gate-dead-seat]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -4211,15 +4235,25 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "awaitingHuman",
-    "where": {
-     "gateKind": "deliver"
-    },
-    "count": {
-     "min": 1
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "awaitingHuman",
+      "where": {
+       "gateKind": "deliver"
+      },
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=session-proposal]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "awaitingHuman.gateKind=='deliver' before deliver unit",
@@ -4478,28 +4512,12 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "failureTriaged",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "awaitingHuman",
-      "where": {
-       "gateKind": "triage"
-      },
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "event",
+    "source": "core-event",
+    "type": "failureTriaged",
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
      "failureTriaged{decision, analysis}",
@@ -4562,12 +4580,9 @@
       }
      },
      {
-      "kind": "event",
-      "source": "core-event",
-      "type": "runCancelled",
-      "count": {
-       "min": 1
-      }
+      "kind": "dom",
+      "selector": "[data-testid=run-gate-approve]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -4640,31 +4655,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "gateEvaluated",
-      "where": {
-       "judgeDistinct": true
-      },
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "awaitingHuman",
-      "where": {
-       "gateKind": "judge_unavailable"
-      },
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "dom",
+    "selector": "[data-testid=session-gate-judge-wait]",
+    "assert": "visible",
     "complete": false,
     "untyped": [
      "gateEvaluated.judgeCli != creator and judgeDistinct==true when judged",
@@ -4849,12 +4842,22 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "awaitingHuman",
-    "count": {
-     "min": 1
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "awaitingHuman",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=gate-under-review]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "awaitingHuman.reviewingOrd == preceding phase ord for def gates",
@@ -4917,6 +4920,14 @@
       "kind": "event",
       "source": "core-event",
       "type": "sessionCompleted",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/gate",
       "count": {
        "min": 1
       }
@@ -5032,14 +5043,6 @@
       "kind": "event",
       "source": "core-event",
       "type": "governanceContextArmed",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "governanceUnenforced",
       "count": {
        "min": 1
       }
@@ -5421,12 +5424,9 @@
       }
      },
      {
-      "kind": "event",
-      "source": "core-event",
-      "type": "sandboxUnenforced",
-      "count": {
-       "min": 1
-      }
+      "kind": "dom",
+      "selector": "[data-testid=gate-posture]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -5553,17 +5553,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "gateEvaluated",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "gateEvaluated.denial.source names the deliverable floor when a file is missing",
-     "launch rejected when no plan/preset"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: gateEvaluated.denial.source names the deliverable floor when a file is missing; launch rejected when no plan/preset"
    },
    "oracle_text": "gateEvaluated.denial.source names the deliverable floor when a file is missing; launch rejected when no plan/preset",
    "covers": [],
@@ -6002,6 +5994,14 @@
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -6059,7 +6059,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/workflows/{id}",
+    "path": "/api/v1/workflows/{workflowId}",
     "expect": {
      "status": 200
     },
@@ -6191,28 +6191,15 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "bus",
-      "type": "wicked.team.plan.proposed",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "awaitingHuman",
-      "where": {
-       "gateKind": "plan_approval"
-      },
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "event",
+    "source": "core-event",
+    "type": "awaitingHuman",
+    "where": {
+     "gateKind": "plan_approval"
+    },
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
      "bus rows wicked.team.plan.proposed{by:human} → path.scored{score,band} → gate opened",
@@ -6389,7 +6376,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/members",
+      "path": "/api/v1/projects/{projectId}/members",
       "expect": {
        "status": 200
       }
@@ -6398,6 +6385,30 @@
       "kind": "event",
       "source": "bus",
       "type": "wicked.crew.membership.attached",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/projects",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/projects/{projectId}/members",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "DELETE /api/v1/projects/{projectId}/members/{mid}",
       "count": {
        "min": 1
       }
@@ -6577,7 +6588,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/acceptance",
+    "path": "/api/v1/runs/{runId}/acceptance",
     "expect": {
      "status": 200
     },
@@ -6750,6 +6761,14 @@
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/cancel",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -6852,52 +6871,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitReassigned",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitDispatched",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "sessionFailed",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "stepFailed",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "unitReassigned{newCli} or unitDispatched attempt+1 on another cli",
-     "single-seat → sessionFailed",
-     "dead seat, no seat left → awaitingHuman.gateKind escalation",
-     "stepFailed detail matches /seat '(.+)' failed \\(.*\\)",
-     "failing over to '(.+)'/",
-     "the next unitDispatched for that ord runs on the named seat",
-     "unit.worker_failed_clis grows",
-     "an evaluation unit is never failed over to its creator."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: unitReassigned{newCli} or unitDispatched attempt+1 on another cli; single-seat → sessionFailed; dead seat, no seat left → awaitingHuman.gateKind escalation"
    },
    "oracle_text": "unitReassigned{newCli} or unitDispatched attempt+1 on another cli; single-seat → sessionFailed; dead seat, no seat left → awaitingHuman.gateKind escalation",
    "covers": [],
@@ -7456,7 +7432,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/team",
+    "path": "/api/v1/runs/{runId}/team",
     "expect": {
      "status": 200
     },
@@ -7518,7 +7494,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/team",
+      "path": "/api/v1/runs/{runId}/team",
       "expect": {
        "status": 200
       }
@@ -7530,6 +7506,16 @@
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=run-tab-team]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=run-tab-team-members]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -7644,6 +7630,14 @@
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/terminals",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -7712,23 +7706,15 @@
      {
       "kind": "event",
       "source": "core-event",
-      "type": "workerMessageInjected",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "workerMessageQueued",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
       "type": "unitContextInjected",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/inject",
       "count": {
        "min": 1
       }
@@ -7853,20 +7839,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "awaitingHuman",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "walkthrough_review tool unit result pin passes",
-     "files under evidence root",
-     "failing → awaitingHuman escalation",
-     "unjailed → gateKind 'unjailed_host'",
-     "recorder got exactly the declared env"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: walkthrough_review tool unit result pin passes; files under evidence root; failing → awaitingHuman escalation; unjailed → gateKind 'unjailed_host'; recorder got exactly the declared env"
    },
    "oracle_text": "walkthrough_review tool unit result pin passes; files under evidence root; failing → awaitingHuman escalation; unjailed → gateKind 'unjailed_host'; recorder got exactly the declared env",
    "covers": [
@@ -7962,18 +7937,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "worktreeRetained",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "dirty → worktreeRetained{path}",
-     "clean → worktree dir absent",
-     "studio run-delivery-worktree / session-stranded-worktree shows path"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: dirty → worktreeRetained{path}; clean → worktree dir absent; studio run-delivery-worktree / session-stranded-worktree shows path"
    },
    "oracle_text": "dirty → worktreeRetained{path}; clean → worktree dir absent; studio run-delivery-worktree / session-stranded-worktree shows path",
    "covers": [],

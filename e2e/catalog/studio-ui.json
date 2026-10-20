@@ -259,6 +259,14 @@
       "kind": "dom",
       "selector": "[data-testid=agents-issue]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/terminals",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -605,6 +613,16 @@
       "expect": {
        "status": 200
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=agents-setup]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=agents-setup-skip]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -705,8 +723,29 @@
      },
      {
       "kind": "dom",
+      "selector": "[data-testid=agents-signout-run]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/seats/{cli}/logout",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
       "selector": "[data-testid=signin-warning]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/seats/{cli}/container-logout",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -1249,10 +1288,15 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "POST /api/v1/runs/{id}/demo/export",
+      "type": "POST /api/v1/runs/{runId}/demo/export",
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=walkthrough-export-gif]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -1544,6 +1588,16 @@
       "expect": {
        "status": 200
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=artifact-export-menu]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=artifact-export-download]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -2059,8 +2113,36 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "PUT /api/v1/runs/{id}/walkthrough/storyline",
+      "type": "PUT /api/v1/runs/{runId}/walkthrough/storyline",
       "count": 1
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=walkthrough-edit]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=walkthrough-storyline-save]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-script-edit]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-retake-chapter]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/projects/{projectId}/walkthrough/storyline",
+      "count": {
+       "min": 1
+      }
      },
      {
       "kind": "dom",
@@ -2074,13 +2156,16 @@
      },
      {
       "kind": "dom",
-      "selector": "[data-testid=walkthrough-storyline-save]",
+      "selector": "[data-testid=walkthrough-fix]",
       "assert": "visible"
      },
      {
-      "kind": "dom",
-      "selector": "[data-testid=walkthrough-fix]",
-      "assert": "visible"
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/runs/{runId}/walkthrough/storyline",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -3397,12 +3482,30 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "network",
-    "type": "POST /api/v1/runs/g1/gate",
-    "count": {
-     "min": 1
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/g1/gate",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=need-group-approve-all]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/gate",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "fixture log: POST /runs/g1/gate and /runs/g2/gate each once {approve:true}",
@@ -3472,6 +3575,14 @@
       "kind": "dom",
       "selector": "[data-testid=standing-orders-away]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/standing-orders/away",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -3635,7 +3746,7 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "POST /api/v1/projects/{id}/capture",
+      "type": "POST /api/v1/projects/{projectId}/capture",
       "count": 1
      },
      {
@@ -4927,7 +5038,7 @@
    "oracle": {
     "kind": "event",
     "source": "network",
-    "type": "POST /api/v1/proposals/{id}/approve",
+    "type": "POST /api/v1/proposals/{proposalId}/approve",
     "count": 5,
     "complete": false,
     "untyped": [
@@ -5851,7 +5962,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/events",
+      "path": "/api/v1/runs/{runId}/events",
       "expect": {
        "status": 200
       }
@@ -6625,9 +6736,25 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/testing/evals/{id}",
+      "path": "/api/v1/testing/evals/{evalId}",
       "expect": {
        "status": 200
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/testing/evals/run",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/testing/corpora/import",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -6866,13 +6993,28 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "network",
-    "type": "POST /api/v1/runs/{id}/archive",
-    "where": {
-     "body.archived": false
-    },
-    "count": 1,
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/archive",
+      "where": {
+       "body.archived": false
+      },
+      "count": 1
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=everything-archived]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=everything-unarchive]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "fixture log 1 POST /runs/<id>/archive body.archived==false",
@@ -6983,12 +7125,17 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "DELETE /api/v1/projects/{projectId}/interactive/api/docs/{id}",
+      "type": "DELETE /api/v1/projects/{projectId}/interactive/api/docs/{docId}",
       "count": 1
      },
      {
       "kind": "dom",
       "selector": "[data-testid=doc-delete-trigger]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=doc-delete-go]",
       "assert": "visible"
      },
      {
@@ -7000,6 +7147,14 @@
       "kind": "dom",
       "selector": "[data-testid=doc-delete-partial]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "DELETE /api/v1/projects/{p}/interactive/docs/{doc}",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -7799,6 +7954,14 @@
       "kind": "dom",
       "selector": "[data-testid=plugin-card]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/projects/{projectId}/interactive/api/docs",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -7914,6 +8077,14 @@
       "kind": "dom",
       "selector": "[data-testid=run-reuse-saved]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/presets/{name}",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -8396,6 +8567,11 @@
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=gate-verdict-layers]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -8730,6 +8906,14 @@
       "kind": "dom",
       "selector": "[data-testid=session-gate-note]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/gate",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -8844,20 +9028,9 @@
       }
      },
      {
-      "kind": "event",
-      "source": "core-event",
-      "type": "repoChecksEvaluated",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "floorRecheck",
-      "count": {
-       "min": 1
-      }
+      "kind": "dom",
+      "selector": "[data-testid=session-gate-choices]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -9153,8 +9326,8 @@
      },
      {
       "kind": "event",
-      "source": "bus",
-      "type": "wicked.team.plan.refused",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/plan",
       "count": {
        "min": 1
       }
@@ -9363,9 +9536,22 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": "[data-testid=steering-reassign-error]",
-    "assert": "visible",
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=steering-reassign-error]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/reassign",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "fixture log 1 POST reassign, 0 POST gate",
@@ -9986,12 +10172,22 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/roster?probe",
-    "expect": {
-     "status": 200
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/roster?probe",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=rail-probe-checked]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "new GET /roster?probe / /diagnostics request after click",
@@ -10360,6 +10556,14 @@
       "source": "network",
       "type": "POST /api/v1/projects/{projectId}/demo",
       "count": 1
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/projects/{p}/demo",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -10865,6 +11069,26 @@
       "expect": {
        "status": 200
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plan-edit]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plan-gate-score]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plan-gate-floor]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=preview-floor-note]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -11107,6 +11331,11 @@
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=launch-wizard-review-qe-off]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -11275,6 +11504,19 @@
          "value": true
         }
        ]
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=session-gate-reduced-relaunch]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -12382,6 +12624,14 @@
       "kind": "dom",
       "selector": "[data-testid=launch-wizard-chosen]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/learn/schedules/<repo:slug>",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -12456,7 +12706,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/chats/{id}",
+      "path": "/api/v1/chats/{chatId}",
       "expect": {
        "status": 200
       }
@@ -12649,7 +12899,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/events",
+      "path": "/api/v1/runs/{runId}/events",
       "expect": {
        "status": 200
       }
@@ -12665,7 +12915,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/acceptance",
+      "path": "/api/v1/runs/{runId}/acceptance",
       "expect": {
        "status": 200
       }
@@ -13919,7 +14169,7 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "POST /api/v1/proposals/{id}/approve",
+      "type": "POST /api/v1/proposals/{proposalId}/approve",
       "count": {
        "min": 1
       }
@@ -13935,6 +14185,21 @@
      {
       "kind": "dom",
       "selector": "[data-testid=proposal-card]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=proposal-edit]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=proposal-approve-edited]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=proposal-approve]",
       "assert": "visible"
      }
     ],
@@ -14218,7 +14483,7 @@
    "oracle": {
     "kind": "event",
     "source": "network",
-    "type": "POST /api/v1/runs/{id}/cancel",
+    "type": "POST /api/v1/runs/{runId}/cancel",
     "count": 1,
     "complete": false,
     "untyped": [
@@ -15444,7 +15709,7 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "PATCH /api/v1/projects/{id}",
+      "type": "PATCH /api/v1/projects/{projectId}",
       "count": {
        "min": 1
       }
@@ -15460,6 +15725,44 @@
       "path": "/api/v1/projects",
       "expect": {
        "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=project-docs-root]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=project-docs-root-edit]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=project-docs-root-input]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=project-docs-root-save]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=project-docs-root-clear]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=project-docs-root-value]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PATCH /api/v1/projects/{p}",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -15855,7 +16158,7 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "PATCH /api/v1/projects/{id}",
+      "type": "PATCH /api/v1/projects/{projectId}",
       "count": {
        "min": 1
       }
@@ -16628,7 +16931,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/graph",
+      "path": "/api/v1/repos/{repoId}/graph",
       "expect": {
        "status": 200
       }
@@ -16790,12 +17093,22 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/repos/{id}",
-    "expect": {
-     "status": 200
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/repos/{repoId}",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=repo-open-requirements]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "modal shows requirement rows from GET /repos/:id requirements fixture"
@@ -16877,6 +17190,14 @@
       "kind": "dom",
       "selector": "[data-testid=repo-onboard-error]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/repos/{repoId}/onboard",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -18652,7 +18973,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/acceptance",
+      "path": "/api/v1/runs/{runId}/acceptance",
       "expect": {
        "status": 200
       }
@@ -18756,12 +19077,22 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/runs/{id}/…zip",
-    "expect": {
-     "status": 200
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/runs/{runId}/…zip",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=run-codebase-zip]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "Playwright download event filename endswith .zip",
@@ -18935,7 +19266,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/acceptance",
+      "path": "/api/v1/runs/{runId}/acceptance",
       "expect": {
        "json": [
         {
@@ -19056,6 +19387,14 @@
       "kind": "dom",
       "selector": "[data-testid=session-failed-resume-error-detail]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/resume",
+      "count": {
+       "min": 1
+      }
      }
     ],
     "complete": false,
@@ -20031,7 +20370,7 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "POST /api/v1/runs/{id}/cancel",
+      "type": "POST /api/v1/runs/{runId}/cancel",
       "count": 1
      },
      {
@@ -20556,8 +20895,8 @@
      },
      {
       "kind": "event",
-      "source": "core-event",
-      "type": "councilConvened",
+      "source": "network",
+      "type": "PUT /api/v1/settings",
       "count": {
        "min": 1
       }
@@ -20639,9 +20978,22 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": "[data-testid=deliver-identity-invalid]",
-    "assert": "visible",
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deliver-identity-invalid]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/settings",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "PUT body fields",
@@ -20860,6 +21212,11 @@
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=qe-acceptance-toggle]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -20959,9 +21316,22 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": "[data-testid=tech-details]",
-    "assert": "visible",
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=tech-details]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/settings",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "default: no run handles in session head",
@@ -21041,6 +21411,14 @@
       "kind": "dom",
       "selector": "[data-testid=worker-root-invalid]",
       "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/settings",
+      "count": {
+       "min": 1
+      }
      },
      {
       "kind": "dom",
@@ -21138,9 +21516,22 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": "[data-testid=sheet-archived]",
-    "assert": "visible",
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=sheet-archived]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/archive",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "fixture log 1 POST archive",
@@ -21814,9 +22205,22 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": "[data-testid=skills-confirm-input]",
-    "assert": "visible",
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=skills-confirm-input]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/skills",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "fixture log one POST per action",
@@ -22226,9 +22630,22 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": "[data-testid=skills-recovery-state]",
-    "assert": "visible",
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=skills-recovery-state]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/skills/publish",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "fixture log 1 POST",
@@ -22315,10 +22732,28 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "network",
-    "type": "POST /api/v1/skills/{name}/<enabled|disabled>",
-    "count": 1,
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/skills/{name}/<enabled|disabled>",
+      "count": 1
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=skills-toggle]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/skills/{name}/enabled|disabled",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "fixture log 1 POST /skills/<name>/<enabled|disabled>",
@@ -22792,6 +23227,29 @@
       "path": "/api/v1/governance/rules?type=",
       "expect": {
        "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=steer-import-dialog]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=steer-import-go]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=steering-grid-retire]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/governance/steering/import",
+      "count": {
+       "min": 1
       }
      }
     ],
@@ -24142,6 +24600,14 @@
       "assert": "visible"
      },
      {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/events",
+      "count": {
+       "min": 1
+      }
+     },
+     {
       "kind": "dom",
       "selector": "[data-testid=learn-file-name]",
       "assert": "visible"
@@ -24417,6 +24883,16 @@
       "expect": {
        "status": 200
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=match-theme-input]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=match-theme-go]",
+      "assert": "visible"
      }
     ],
     "complete": false,

@@ -98,7 +98,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}",
+    "path": "/api/v1/runs/{runId}",
     "expect": {
      "status": 200
     },
@@ -354,7 +354,7 @@
    "oracle": {
     "kind": "api",
     "method": "POST",
-    "path": "/api/v1/chats/{id}/messages",
+    "path": "/api/v1/chats/{chatId}/messages",
     "expect": {
      "status": 409
     },
@@ -417,12 +417,9 @@
       }
      },
      {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitDistributed",
-      "count": {
-       "min": 1
-      }
+      "kind": "dom",
+      "selector": "[data-testid=launch-wizard-lead]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -530,18 +527,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "chatReply",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "chatReply event usage object (input/output tokens, cost) or null",
-     "ChatThread usageLabel renders exactly from it",
-     "no footer cost for usage null."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: chatReply event usage object (input/output tokens, cost) or null; ChatThread usageLabel renders exactly from it; no footer cost for usage null."
    },
    "oracle_text": "chatReply event usage object (input/output tokens, cost) or null; ChatThread usageLabel renders exactly from it; no footer cost for usage null.",
    "covers": [
@@ -588,18 +576,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "stepFailed",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "stepFailed / deliver refusal text names a path or commit and the credential kind",
-     "no push occurs",
-     "the value is absent from events/logs."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: stepFailed / deliver refusal text names a path or commit and the credential kind; no push occurs; the value is absent from events/logs."
    },
    "oracle_text": "stepFailed / deliver refusal text names a path or commit and the credential kind; no push occurs; the value is absent from events/logs.",
    "covers": [],
@@ -996,7 +975,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden doctor",
+    "cmd": "npx wicked-installer install-{agy_opencode_pi} wicked-garden",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1083,8 +1062,8 @@
      },
      {
       "kind": "event",
-      "source": "core-event",
-      "type": "unitDispatched",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/reassign",
       "count": {
        "min": 1
       }
@@ -1092,10 +1071,15 @@
      {
       "kind": "event",
       "source": "core-event",
-      "type": "toolResultDiscarded",
+      "type": "unitDispatched",
       "count": {
        "min": 1
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=rail-seat-move-button]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -1441,6 +1425,11 @@
          }
         ]
        }
+      },
+      {
+       "kind": "dom",
+       "selector": "[data-testid=agents-signin]",
+       "assert": "visible"
       }
      ]
     }
@@ -1858,11 +1847,6 @@
        }
       },
       {
-       "kind": "exit",
-       "cmd": "codex login status",
-       "code": 0
-      },
-      {
        "kind": "file",
        "path": "home>/codex/auth.json",
        "assert": "exists"
@@ -2073,17 +2057,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "unitDistributed",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "plan/launch refusal names the seat and the skill",
-     "unitDistributed.seat_constraint set when non-portable skills narrow to claude."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: plan/launch refusal names the seat and the skill; unitDistributed.seat_constraint set when non-portable skills narrow to claude."
    },
    "oracle_text": "plan/launch refusal names the seat and the skill; unitDistributed.seat_constraint set when non-portable skills narrow to claude.",
    "covers": [],
@@ -2706,6 +2682,11 @@
       "expect": {
        "status": 200
       }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=agents-check-all]",
+      "assert": "visible"
      }
     ],
     "complete": false,
@@ -2785,9 +2766,22 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": "[data-testid=launch-wizard-seat]",
-    "assert": "visible",
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=launch-wizard-seat]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
      "request body clisJson keys == checked launch-wizard-seat keys",

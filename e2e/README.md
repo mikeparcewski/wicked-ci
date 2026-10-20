@@ -96,7 +96,8 @@ A capability's `oracle` is one typed check, an `all` of typed checks, or `manual
   request was never sent. An `api` check is a request the runner itself makes. On a UI path that
   is only ever a GET that reads the terminal state.
 - **Placeholders** in `{braces}` come from a `capture` or from the runner's own bindings
-  (`{port}`, `{runId}`, `{projectId}`, `{tag}`).
+  (`{port}`, `{runId}`, `{projectId}`, `{repoId}`, `{tag}`, and seeded values a scenario's setup
+  names, such as `{stale_ord}`). A path's `:id` is named after its resource (`/runs/{runId}`).
 - **`complete`**: `true` means every clause of `oracle_text` is a typed check. `false` means the
   checks are necessary but not sufficient, and `untyped` lists the clauses that still need typing.
   A runner may report a partial oracle as `partial`, never as `pass`.
@@ -225,8 +226,8 @@ e2e select --profile release
 | profile | selection | count (2026-10-20 pins) |
 |---|---|---:|
 | `smoke` | `tag:smoke cost<=M !oracle=manual` | 34 |
-| `daily` | `cost<=M !oracle=manual` | 876 |
-| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 373 |
+| `daily` | `cost<=M !oracle=manual` | 859 |
+| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 358 |
 | `full` | everything (manual capabilities report `manual`) | 1410 |
 
 ## How the catalog was built
@@ -284,17 +285,29 @@ From now on the catalog files are the source.
   - A clause counts as typed only when it has one of the simple shapes a check captures whole: a
     bare status, `exit 0`, a testid that must be visible, or a request and its status. Every other
     clause (comparisons, counts, negations, request-body fields, prose) stays in `untyped`, even
-    when it also produced a check. A negated clause yields no check, except a negated UI request,
-    which becomes a `count: 0` network event.
-  - **Exits**: a clause's exit code binds to a command named in that clause, before the exit
-    and outside any quoted message. The path's own command binds only to an unconditional
-    `exit 0`, and never on a rejection path.
+    when it also produced a check. A negated, conditional (`when`, `if`, `or`) or arrowed
+    (`X -> outcome`) clause yields no event check. A negated UI request becomes a `count: 0`
+    network event.
+  - **Exits**:
+    - A clause's exit code binds to a command named in that clause, before the exit, outside any
+      quoted message and not in a negated clause.
+    - The path's own command comes from the user path only. Commands in the oracle text are
+      checks or forbidden spawns.
+    - The path's command binds only to an unconditional `exit 0`, and never on a rejection path
+      (decided by the title).
+    - Search commands (`grep`, `git grep`, `rg`) never bind, because their exit encodes a match.
+    - Usage synopses become one invocation: `<name>` becomes `{name}`, and `[optional]` and
+      `(a | b)` parts are dropped.
   - **Fallback**: when no clause yields a check, the capability's own request, tool, command or
-    terminal control is the necessary check. On a rejection path, a command expects the single
-    non-zero code its unconditional clauses state. On any other path, it expects 0, unless the
-    text names non-zero exits for other conditions; then the capability stays untyped.
+    terminal control is the necessary check.
+    - On a rejection path, a command expects the single non-zero code its unconditional clauses
+      state. That holds only when the text names no exit 0 and the path has no other variants.
+    - On any other path, it expects 0, unless the text or the path names non-zero exits for other
+      conditions (code lists included). Then the capability stays untyped.
+  - **UI capabilities** always carry the studio controls their user path names as `dom` checks,
+    and the requests the path sends as `network` events.
   - Hand-written oracles that omit a clause of their user path list it in `untyped` too.
-  - 19 oracles are complete, 992 partial, 289 untyped and 110 manual.
+  - 19 oracles are complete, 969 partial, 312 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.

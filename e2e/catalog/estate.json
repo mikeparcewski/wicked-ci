@@ -350,7 +350,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate annotations <name> --json",
+    "cmd": "wicked-estate annotations {name} --json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -475,13 +475,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "git diff --name-only SHA0..HEAD",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "set of returned files == `git diff --name-only SHA0..HEAD` intersected with indexed files"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: set of returned files == `git diff --name-only SHA0..HEAD` intersected with indexed files"
    },
    "oracle_text": "set of returned files == `git diff --name-only SHA0..HEAD` intersected with indexed files",
    "covers": [
@@ -835,7 +831,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate fingerprint <fn>",
+    "cmd": "wicked-estate fingerprint {fn}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -874,7 +870,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate graph-view --limit 50 [--focus <name|id>] [--include-tests] [--ignore 'vendor/**']",
+    "cmd": "wicked-estate graph-view --limit 50",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -919,7 +915,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate lineage <sym> [--depth N] [--relation flows_to] [--json]",
+    "cmd": "wicked-estate lineage {sym}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1010,7 +1006,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate path caller leaf [--max-depth N] [--json]",
+    "cmd": "wicked-estate path caller leaf",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1053,7 +1049,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate query <fn> --db $T/g.db [--json]",
+    "cmd": "wicked-estate query {fn} --db $T/g.db",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1139,7 +1135,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate resolve <name> [--file F] [--kind K] [--include-values] --json",
+    "cmd": "wicked-estate resolve {name} --json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1182,9 +1178,14 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: --json content == MCP RulesInventory / rules.recall content; --language '' rejected (empty value)"
+    "kind": "exit",
+    "cmd": "wicked-estate rules-inventory --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "--json content == MCP RulesInventory / rules.recall content",
+     "--language '' rejected (empty value)"
+    ]
    },
    "oracle_text": "--json content == MCP RulesInventory / rules.recall content; --language '' rejected (empty value)",
    "covers": [
@@ -1296,7 +1297,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate source <name>",
+    "cmd": "wicked-estate source {name}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1392,7 +1393,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "git rev-parse HEAD",
+    "cmd": "wicked-estate stats --db $T/g.db",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -2240,12 +2241,7 @@
    "oracle": {
     "kind": "manual",
     "category": "model-output",
-    "reason": "The capability's terminal state is model-generated content; only its dispatch and artifacts are deterministic (precheck). A seeded-defect fixture with a fixed expected finding is needed before it can pass.",
-    "precheck": {
-     "kind": "exit",
-     "cmd": "wicked-estate (index|scip|tfstate|import-telemetry|compact|watch)",
-     "code": 0
-    }
+    "reason": "The capability's terminal state is model-generated content; only its dispatch and artifacts are deterministic (precheck). A seeded-defect fixture with a fixed expected finding is needed before it can pass."
    },
    "oracle_text": "transcript contains no invocation of `wicked-estate (index|scip|tfstate|import-telemetry|compact|watch)` or `clusters --annotate`; report includes the STALENESS line from shim diagnostics",
    "covers": [
@@ -3063,7 +3059,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate index <wicked-garden clone> --db $T/g.db",
+    "cmd": "wicked-estate index {wicked_garden_clone} --db $T/g.db",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -3193,25 +3189,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "cargo test -p wicked-estate-retrieve --features <f>",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "cargo test -p wicked-estate-store --features postgres",
-      "code": 0
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "cargo exit 0",
-     "for model2vec/fastembed: `cargo test -p wicked-estate-retrieve --features <f>` exit 0 (semantic-quality ordering test)",
-     "for postgres: `cargo test -p wicked-estate-store --features postgres` exit 0 with TEST_POSTGRES_URL"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: cargo exit 0; for model2vec/fastembed: `cargo test -p wicked-estate-retrieve --features <f>` exit 0 (semantic-quality ordering test); for postgres: `cargo test -p wicked-estate-store --features postgres` exit 0 with TEST_POSTGRES_URL"
    },
    "oracle_text": "cargo exit 0; for model2vec/fastembed: `cargo test -p wicked-estate-retrieve --features <f>` exit 0 (semantic-quality ordering test); for postgres: `cargo test -p wicked-estate-store --features postgres` exit 0 with TEST_POSTGRES_URL",
    "covers": [
@@ -6926,7 +6906,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "WICKED_ESTATE_DB=$T/g.db wicked-garden run scripts/_estate_client.py --readonly call '{\"tool\":\"BlastRadius\",\"arguments\":{\"symbol\":\"<fn>\"}}'",
+    "cmd": "WICKED_ESTATE_DB=$T/g.db wicked-garden run scripts/_estate_client.py --readonly call '{\"tool\":\"BlastRadius\",\"arguments\":{\"symbol\":\"{fn}\"}}'",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -7138,7 +7118,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/projects/{id}/graph/refresh",
+      "path": "/api/v1/projects/{projectId}/graph/refresh",
       "expect": {
        "status": 200
       }
@@ -7146,7 +7126,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/graph",
+      "path": "/api/v1/projects/{projectId}/graph",
       "expect": {
        "status": 200
       }
@@ -7154,7 +7134,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/graph",
+      "path": "/api/v1/projects/{projectId}/graph",
       "expect": {
        "status": 409
       }
@@ -7290,7 +7270,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/graph/blast-radius?symbol=add",
+      "path": "/api/v1/repos/{repoId}/graph/blast-radius?symbol=add",
       "expect": {
        "status": 200
       }

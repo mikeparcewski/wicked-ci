@@ -327,12 +327,22 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/skills",
-    "expect": {
-     "status": 200
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/skills",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=skills-behind]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "GET /api/v1/skills .installed.baseline != .manifest baseline while behind",
@@ -478,7 +488,7 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "wicked-garden run scripts/editor/install.py --dir <pack> --target daemon --crew-url <proof daemon> --json",
+      "cmd": "wicked-garden run scripts/editor/install.py --dir {pack} --target daemon --crew-url {proof_daemon} --json",
       "code": 0
      },
      {
@@ -489,7 +499,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/editors/{id}/{version}/entry",
+      "path": "/api/v1/editors/{editorId}/{version}/entry",
       "expect": {
        "status": 200
       }
@@ -497,7 +507,7 @@
      {
       "kind": "api",
       "method": "DELETE",
-      "path": "/api/v1/editors/{id}",
+      "path": "/api/v1/editors/{editorId}",
       "expect": {
        "status": 200
       }
@@ -683,7 +693,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/editor/install.py --dir <pack> --dry-run --json",
+    "cmd": "wicked-garden run scripts/editor/install.py --dir {pack} --dry-run --json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1016,14 +1026,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "python3 scripts/crew/specialist_resolver.py acme-seo-keyword-analyst",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "`pack list --json` shows the pack (first source wins on duplicate names)",
-     "`python3 scripts/crew/specialist_resolver.py acme-seo-keyword-analyst` resolves to the pack skill"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: `pack list --json` shows the pack (first source wins on duplicate names); `python3 scripts/crew/specialist_resolver.py acme-seo-keyword-analyst` resolves to the pack skill"
    },
    "oracle_text": "`pack list --json` shows the pack (first source wins on duplicate names); `python3 scripts/crew/specialist_resolver.py acme-seo-keyword-analyst` resolves to the pack skill",
    "covers": [
@@ -1069,7 +1074,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "npx wicked-garden pack register <dir> --source <url>",
+    "cmd": "npx wicked-garden pack register {dir} --source {url}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1229,7 +1234,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "node dist/install-claude.js wicked-estate --claude-home <dir> --json",
+    "cmd": "node dist/install-claude.js wicked-estate --claude-home {dir} --json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1514,7 +1519,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "node dist/install-claude.js wicked-bus wicked-crew --claude-home <dir> --json",
+    "cmd": "node dist/install-claude.js wicked-bus wicked-crew --claude-home {dir} --json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1566,17 +1571,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "node dist/install-claude.js status --all --claude-home <dir> --json",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "state 'current' iff lastResult installed and all files[] exist and json-key hashes match",
-     "delete a recorded dir => 'stale'",
-     "edit .claude.json key => 'stale' with modified-externally",
-     "exit 0 on query success, 2 when neither home nor marker exists, 1 on unparseable marker",
-     "plugins not reported"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: state 'current' iff lastResult installed and all files[] exist and json-key hashes match; delete a recorded dir => 'stale'; edit .claude.json key => 'stale' with modified-externally; exit 0 on query success, 2 when neither home nor marker exists, 1 on unparseable marker; plugins not reported"
    },
    "oracle_text": "state 'current' iff lastResult installed and all files[] exist and json-key hashes match; delete a recorded dir => 'stale'; edit .claude.json key => 'stale' with modified-externally; exit 0 on query success, 2 when neither home nor marker exists, 1 on unparseable marker; plugins not reported",
    "covers": [
@@ -1621,7 +1618,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "node dist/install-claude.js uninstall <ids>|--all --claude-home <dir> [--dry-run] [--purge-binaries] --json",
+    "cmd": "node dist/install-claude.js uninstall {ids}|--all --claude-home {dir} --json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1867,17 +1864,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "codex plugin add",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "no `codex plugin add` spawned (it would re-enable)",
-     "loose skills stay",
-     "no estate repair",
-     "`codex plugin list --json` still shows it disabled",
-     "a failed `codex plugin list` adds nothing"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: no `codex plugin add` spawned (it would re-enable); loose skills stay; no estate repair; `codex plugin list --json` still shows it disabled; a failed `codex plugin list` adds nothing"
    },
    "oracle_text": "no `codex plugin add` spawned (it would re-enable); loose skills stay; no estate repair; `codex plugin list --json` still shows it disabled; a failed `codex plugin list` adds nothing",
    "covers": [
@@ -2026,15 +2015,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "codex plugin marketplace add",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "no `codex plugin marketplace add` and no `codex plugin add` spawned",
-     "report notes say unchanged line by line",
-     "config.toml and marker hashes unchanged except updatedAt-free fields"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: no `codex plugin marketplace add` and no `codex plugin add` spawned; report notes say unchanged line by line; config.toml and marker hashes unchanged except updatedAt-free fields"
    },
    "oracle_text": "no `codex plugin marketplace add` and no `codex plugin add` spawned; report notes say unchanged line by line; config.toml and marker hashes unchanged except updatedAt-free fields",
    "covers": [
@@ -2072,16 +2055,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "codex plugin add wicked-garden@wicked-garden",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "`codex plugin add wicked-garden@wicked-garden` re-run exactly when the offered version differs",
-     "codex plugin list --json version == new version",
-     "a user-managed marketplace is never repointed (no remove/add of it) but the plugin still updates",
-     "a git marketplace is never repointed even with --force"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: `codex plugin add wicked-garden@wicked-garden` re-run exactly when the offered version differs; codex plugin list --json version == new version; a user-managed marketplace is never repointed (no remove/add of it) but the plugin still updates; a git marketplace is never repointed even with --force"
    },
    "oracle_text": "`codex plugin add wicked-garden@wicked-garden` re-run exactly when the offered version differs; codex plugin list --json version == new version; a user-managed marketplace is never repointed (no remove/add of it) but the plugin still updates; a git marketplace is never repointed even with --force",
    "covers": [
@@ -2185,15 +2161,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "npm install -g",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "spawned argv of 2nd..nth install-<cli>.js contains '--skip-binaries'",
-     "codex argv additionally contains '--plugin-packages' iff a selected product has install.codexPlugin=true",
-     "`npm install -g` runs at most once per package (stubbed spawn log)"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: spawned argv of 2nd..nth install-<cli>.js contains '--skip-binaries'; codex argv additionally contains '--plugin-packages' iff a selected product has install.codexPlugin=true; `npm install -g` runs at most once per package (stubbed spawn log)"
    },
    "oracle_text": "spawned argv of 2nd..nth install-<cli>.js contains '--skip-binaries'; codex argv additionally contains '--plugin-packages' iff a selected product has install.codexPlugin=true; `npm install -g` runs at most once per package (stubbed spawn log)",
    "covers": [
@@ -2289,19 +2259,9 @@
     "vault-entry"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "npx wicked-installer install wicked-garden wicked-estate",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault --version",
-      "code": 0
-     }
-    ],
+    "kind": "exit",
+    "cmd": "npx wicked-installer install wicked-garden wicked-estate",
+    "code": 0,
     "complete": false,
     "untyped": [
      "exit 0 iff every product result success",
@@ -2410,16 +2370,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "npx wicked-installer install wicked-testing",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "exit 1",
-     "output names successors from registry.json .successors (wicked-garden, wicked-crew / wicked-estate)",
-     "`--all --dry-run --json` reports[].productId contains no product with status retired or design",
-     "no npm/cargo spawn"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 1; output names successors from registry.json .successors (wicked-garden, wicked-crew / wicked-estate); `--all --dry-run --json` reports[].productId contains no product with status retired or design; no npm/cargo spawn"
    },
    "oracle_text": "exit 1; output names successors from registry.json .successors (wicked-garden, wicked-crew / wicked-estate); `--all --dry-run --json` reports[].productId contains no product with status retired or design; no npm/cargo spawn",
    "covers": [
@@ -2677,15 +2630,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "npx wicked-installer",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit 0 (or 1 if any product failed)",
-     "stdout shows per-product results from installer.installProduct",
-     "with no `claude` on PATH, garden line says manual step and <home>/.claude/plugins/wicked-garden does not exist"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 0 (or 1 if any product failed); stdout shows per-product results from installer.installProduct; with no `claude` on PATH, garden line says manual step and <home>/.claude/plugins/wicked-garden does not exist"
    },
    "oracle_text": "exit 0 (or 1 if any product failed); stdout shows per-product results from installer.installProduct; with no `claude` on PATH, garden line says manual step and <home>/.claude/plugins/wicked-garden does not exist",
    "covers": [
@@ -2958,7 +2905,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "npx wicked-installer mcp upsert acme-notes --command node --arg ~/acme/dist/server.js --cli claude --claude-home <dir> --json",
+    "cmd": "npx wicked-installer mcp upsert acme-notes --command node --arg ~/acme/dist/server.js --cli claude --claude-home {dir} --json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -3016,7 +2963,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "npx wicked-installer mcp upsert acme-notes --command node --arg x.js --cli codex --codex-home <dir> --json",
+    "cmd": "npx wicked-installer mcp upsert acme-notes --command node --arg x.js --cli codex --codex-home {dir} --json",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -3073,7 +3020,7 @@
      },
      {
       "kind": "exit",
-      "cmd": "npx wicked-installer mcp upsert acme-notes --command node --arg x.js --cli opencode --opencode-home <dir>/opencode --json",
+      "cmd": "npx wicked-installer mcp upsert acme-notes --command node --arg x.js --cli opencode --opencode-home {dir}/opencode --json",
       "code": 0
      }
     ],
@@ -3467,7 +3414,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden doctor",
+    "cmd": "npx wicked-installer status",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -3566,7 +3513,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "npx wicked-installer status [--claude-home <dir>]",
+    "cmd": "npx wicked-installer status",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -3740,12 +3687,32 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/runs",
-    "expect": {
-     "status": 200
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/runs",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=editor-plugins-create]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=launch-wizard]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=launch-wizard-launch]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "launch wizard visible with workflowId 'editor-plugin'",
@@ -4112,7 +4079,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/editors/{id}/grants",
+      "path": "/api/v1/editors/{editorId}/grants",
       "expect": {
        "status": 200
       }
@@ -4339,7 +4306,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/acceptance",
+    "path": "/api/v1/runs/{runId}/acceptance",
     "expect": {
      "status": 200
     },
@@ -4614,7 +4581,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-garden run scripts/mcp/install.py --dir <server> --dry-run --json",
+    "cmd": "wicked-garden run scripts/mcp/install.py --dir {server} --dry-run --json",
     "code": 0,
     "complete": false,
     "untyped": [

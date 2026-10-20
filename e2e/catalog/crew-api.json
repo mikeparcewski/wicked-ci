@@ -710,7 +710,7 @@
    "oracle": {
     "kind": "api",
     "method": "POST",
-    "path": "/api/v1/campaigns/{id}/cancel",
+    "path": "/api/v1/campaigns/{campaignId}/cancel",
     "expect": {
      "status": 200
     },
@@ -779,7 +779,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/campaigns/{id}",
+      "path": "/api/v1/campaigns/{campaignId}",
       "expect": {
        "status": 200
       }
@@ -1056,7 +1056,7 @@
      {
       "kind": "api",
       "method": "DELETE",
-      "path": "/api/v1/chats/{id}",
+      "path": "/api/v1/chats/{chatId}",
       "expect": {
        "status": 200
       }
@@ -1145,7 +1145,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/chats/{id}/turns/{turnId}/considered",
+    "path": "/api/v1/chats/{chatId}/turns/{turnId}/considered",
     "expect": {
      "status": 200
     },
@@ -1288,7 +1288,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/chats/{id}/messages",
+      "path": "/api/v1/chats/{chatId}/messages",
       "expect": {
        "status": 202
       }
@@ -1562,7 +1562,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/chats/{id}/seats",
+      "path": "/api/v1/chats/{chatId}/seats",
       "expect": {
        "status": 200
       }
@@ -1570,7 +1570,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/chats/{id}/seats",
+      "path": "/api/v1/chats/{chatId}/seats",
       "expect": {
        "status": 404
       }
@@ -1645,7 +1645,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/chats/{id}",
+    "path": "/api/v1/chats/{chatId}",
     "expect": {
      "status": 200
     },
@@ -1774,7 +1774,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-crew governance replay <state home>/core.db.governance/emit-outbox.ndjson --db <core db> --dry-run, then without",
+    "cmd": "wicked-crew governance replay {state_home}/core.db.governance/emit-outbox.ndjson --db {core_db} --dry-run, then without",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1823,9 +1823,17 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: macOS: ~/Library/LaunchAgents/<label>.plist exists and launchctl list shows it; Linux: systemctl --user is-enabled ok; env keeps PATH/HOME/WICKED_* but no token; uninstall -> file gone; port held -> non-zero exit"
+    "kind": "exit",
+    "cmd": "wicked-crew serve --install-service --port 7701",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "macOS: ~/Library/LaunchAgents/<label>.plist exists and launchctl list shows it",
+     "Linux: systemctl --user is-enabled ok",
+     "env keeps PATH/HOME/WICKED_* but no token",
+     "uninstall -> file gone",
+     "port held -> non-zero exit"
+    ]
    },
    "oracle_text": "macOS: ~/Library/LaunchAgents/<label>.plist exists and launchctl list shows it; Linux: systemctl --user is-enabled ok; env keeps PATH/HOME/WICKED_* but no token; uninstall -> file gone; port held -> non-zero exit",
    "covers": [
@@ -2320,7 +2328,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "status": 200
       }
@@ -2348,7 +2356,7 @@
      },
      {
       "kind": "exit",
-      "cmd": "wicked-crew start --problem \"...\" [--workflow X] [--repo id]",
+      "cmd": "wicked-crew start --problem \"...\"",
       "code": 0
      }
     ],
@@ -2694,7 +2702,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/decisions/{id}/dismiss",
+      "path": "/api/v1/decisions/{decisionId}/dismiss",
       "expect": {
        "status": 200
       }
@@ -2802,7 +2810,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/decisions/{id}/remember",
+      "path": "/api/v1/decisions/{decisionId}/remember",
       "expect": {
        "status": 200
       }
@@ -2863,7 +2871,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/decisions/{id}/same",
+      "path": "/api/v1/decisions/{decisionId}/same",
       "expect": {
        "status": 200
       }
@@ -2871,7 +2879,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/decisions/{id}/same",
+      "path": "/api/v1/decisions/{decisionId}/same",
       "expect": {
        "status": 400
       }
@@ -2879,7 +2887,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/decisions/{id}/same",
+      "path": "/api/v1/decisions/{decisionId}/same",
       "expect": {
        "status": 404
       }
@@ -2927,7 +2935,7 @@
    "oracle": {
     "kind": "api",
     "method": "POST",
-    "path": "/api/v1/decisions/{id}/undo",
+    "path": "/api/v1/decisions/{decisionId}/undo",
     "expect": {
      "status": 200
     },
@@ -3301,7 +3309,7 @@
    "oracle": {
     "kind": "api",
     "method": "POST",
-    "path": "/api/v1/runs/{id}/deliver",
+    "path": "/api/v1/runs/{runId}/deliver",
     "expect": {
      "status": 200
     },
@@ -3416,7 +3424,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/deliver-target",
+      "path": "/api/v1/repos/{repoId}/deliver-target",
       "expect": {
        "status": 200
       }
@@ -3424,7 +3432,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/deliver-target",
+      "path": "/api/v1/repos/{repoId}/deliver-target",
       "expect": {
        "status": 404
       }
@@ -3475,7 +3483,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/diff",
+    "path": "/api/v1/runs/{runId}/diff",
     "expect": {
      "status": 200
     },
@@ -3528,7 +3536,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/runs/{id}/demo/document",
+      "path": "/api/v1/runs/{runId}/demo/document",
       "expect": {
        "status": 200
       }
@@ -3600,7 +3608,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/runs/{id}/demo/export",
+      "path": "/api/v1/runs/{runId}/demo/export",
       "expect": {
        "status": 200
       }
@@ -3678,7 +3686,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/projects/{id}/demo",
+      "path": "/api/v1/projects/{projectId}/demo",
       "expect": {
        "status": 201
       },
@@ -3721,7 +3729,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "status": 200
       }
@@ -3786,7 +3794,7 @@
    "oracle": {
     "kind": "api",
     "method": "PUT",
-    "path": "/api/v1/runs/{id}/demo/script",
+    "path": "/api/v1/runs/{runId}/demo/script",
     "expect": {
      "status": 200
     },
@@ -3839,7 +3847,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/demo",
+      "path": "/api/v1/runs/{runId}/demo",
       "expect": {
        "status": 200
       }
@@ -3847,7 +3855,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/demo",
+      "path": "/api/v1/runs/{runId}/demo",
       "expect": {
        "status": 206
       }
@@ -4316,7 +4324,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/editors/{id}/enabled",
+      "path": "/api/v1/editors/{editorId}/enabled",
       "expect": {
        "status": 200
       }
@@ -4324,7 +4332,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/editors/{id}/enabled",
+      "path": "/api/v1/editors/{editorId}/enabled",
       "expect": {
        "status": 404
       }
@@ -4392,7 +4400,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/editors/{id}/{version}/entry",
+      "path": "/api/v1/editors/{editorId}/{version}/entry",
       "expect": {
        "status": 200
       }
@@ -4400,7 +4408,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/editors/{id}/{version}/entry",
+      "path": "/api/v1/editors/{editorId}/{version}/entry",
       "expect": {
        "status": 409
       }
@@ -4477,7 +4485,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/editors/{id}/grants",
+      "path": "/api/v1/editors/{editorId}/grants",
       "expect": {
        "status": 200
       }
@@ -4485,7 +4493,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/editors/{id}/grants",
+      "path": "/api/v1/editors/{editorId}/grants",
       "expect": {
        "status": 404
       }
@@ -4493,7 +4501,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/editors/{id}/grants",
+      "path": "/api/v1/editors/{editorId}/grants",
       "expect": {
        "status": 501
       }
@@ -4501,7 +4509,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/editors/{id}/grants?project={p}",
+      "path": "/api/v1/editors/{editorId}/grants?project={p}",
       "expect": {
        "status": 200
       }
@@ -4742,7 +4750,7 @@
      {
       "kind": "api",
       "method": "DELETE",
-      "path": "/api/v1/editors/{id}",
+      "path": "/api/v1/editors/{editorId}",
       "expect": {
        "status": 200
       }
@@ -4844,7 +4852,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/runs/{id}/gate",
+      "path": "/api/v1/runs/{runId}/gate",
       "expect": {
        "status": 200
       }
@@ -5485,7 +5493,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/gate",
+    "path": "/api/v1/runs/{runId}/gate",
     "expect": {
      "status": 200
     },
@@ -5600,7 +5608,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "json": [
         {
@@ -5665,19 +5673,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "unitReworkAmended",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "200",
-     "unitReworkAmended or creator re-dispatch frame",
-     "status not 'cancelled'",
-     "action/approve disagreement -> 400"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: 200; unitReworkAmended or creator re-dispatch frame; status not 'cancelled'; action/approve disagreement -> 400"
    },
    "oracle_text": "200; unitReworkAmended or creator re-dispatch frame; status not 'cancelled'; action/approve disagreement -> 400",
    "covers": [],
@@ -6177,7 +6175,7 @@
    "oracle": {
     "kind": "api",
     "method": "DELETE",
-    "path": "/api/v1/governance/rules/{id}",
+    "path": "/api/v1/governance/rules/{ruleId}",
     "expect": {
      "status": 200
     },
@@ -6469,7 +6467,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/interactive/docs/{doc}/checks",
+      "path": "/api/v1/projects/{projectId}/interactive/docs/{doc}/checks",
       "expect": {
        "status": 200
       }
@@ -6477,7 +6475,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/interactive/docs/{doc}/checks",
+      "path": "/api/v1/projects/{projectId}/interactive/docs/{doc}/checks",
       "expect": {
        "status": 400
       }
@@ -6485,7 +6483,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/interactive/docs/{doc}/checks",
+      "path": "/api/v1/projects/{projectId}/interactive/docs/{doc}/checks",
       "expect": {
        "status": 404
       }
@@ -6675,7 +6673,7 @@
      {
       "kind": "api",
       "method": "DELETE",
-      "path": "/api/v1/projects/{id}/interactive/docs/{doc}",
+      "path": "/api/v1/projects/{projectId}/interactive/docs/{doc}",
       "expect": {
        "status": 200
       }
@@ -6762,7 +6760,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/interactive/api/docs",
+      "path": "/api/v1/projects/{projectId}/interactive/api/docs",
       "expect": {
        "status": 200
       }
@@ -6770,7 +6768,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/interactive/api/docs",
+      "path": "/api/v1/projects/{projectId}/interactive/api/docs",
       "expect": {
        "status": 404
       }
@@ -6939,7 +6937,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/projects/{id}/interactive-events",
+      "path": "/api/v1/projects/{projectId}/interactive-events",
       "expect": {
        "status": 202
       }
@@ -7024,7 +7022,7 @@
      {
       "kind": "api",
       "method": "DELETE",
-      "path": "/api/v1/projects/{id}/interactive/{any}",
+      "path": "/api/v1/projects/{projectId}/interactive/{any}",
       "expect": {
        "status": [
         200,
@@ -7465,7 +7463,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/learn/schedules/{id}/run-now",
+      "path": "/api/v1/learn/schedules/{scheduleId}/run-now",
       "expect": {
        "status": 200
       },
@@ -7582,7 +7580,7 @@
      {
       "kind": "api",
       "method": "PUT",
-      "path": "/api/v1/learn/schedules/{id}",
+      "path": "/api/v1/learn/schedules/{scheduleId}",
       "expect": {
        "status": 200
       }
@@ -7590,7 +7588,7 @@
      {
       "kind": "api",
       "method": "PUT",
-      "path": "/api/v1/learn/schedules/{id}",
+      "path": "/api/v1/learn/schedules/{scheduleId}",
       "expect": {
        "status": 403
       }
@@ -7754,7 +7752,7 @@
    "oracle": {
     "kind": "api",
     "method": "POST",
-    "path": "/api/v1/runs/{id}/gate",
+    "path": "/api/v1/runs/{runId}/gate",
     "expect": {
      "status": [
       200,
@@ -7806,7 +7804,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}",
+    "path": "/api/v1/runs/{runId}",
     "expect": {
      "json": [
       {
@@ -8033,7 +8031,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/events[?type]",
+    "path": "/api/v1/runs/{runId}/events[?type]",
     "expect": {
      "status": 200
     },
@@ -8077,7 +8075,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}",
+    "path": "/api/v1/runs/{runId}",
     "expect": {
      "status": 200
     },
@@ -9723,7 +9721,12 @@
    "oracle": {
     "kind": "manual",
     "category": "model-output",
-    "reason": "The capability's terminal state is model-generated content; only its dispatch and artifacts are deterministic (precheck). A seeded-defect fixture with a fixed expected finding is needed before it can pass."
+    "reason": "The capability's terminal state is model-generated content; only its dispatch and artifacts are deterministic (precheck). A seeded-defect fixture with a fixed expected finding is needed before it can pass.",
+    "precheck": {
+     "kind": "exit",
+     "cmd": "wicked-crew gate",
+     "code": 0
+    }
    },
    "oracle_text": "agent transcript contains no `wicked-crew gate --run <its run>` without '--reject'; /audit gate.decided actor for that run is not the agent's",
    "covers": [
@@ -9895,7 +9898,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/projects/{id}/activity",
+    "path": "/api/v1/projects/{projectId}/activity",
     "expect": {
      "status": 200
     },
@@ -9951,7 +9954,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/requirements",
+      "path": "/api/v1/projects/{projectId}/requirements",
       "expect": {
        "status": 200
       }
@@ -9959,7 +9962,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/requirements",
+      "path": "/api/v1/projects/{projectId}/requirements",
       "expect": {
        "status": 404
       }
@@ -9967,7 +9970,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/requirements",
+      "path": "/api/v1/projects/{projectId}/requirements",
       "expect": {
        "status": 501
       }
@@ -10019,7 +10022,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/projects/{id}/capture",
+      "path": "/api/v1/projects/{projectId}/capture",
       "expect": {
        "status": 201
       },
@@ -10187,7 +10190,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/projects/{id}/members",
+      "path": "/api/v1/projects/{projectId}/members",
       "expect": {
        "status": 201
       }
@@ -10195,7 +10198,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/projects/{id}/members",
+      "path": "/api/v1/projects/{projectId}/members",
       "expect": {
        "status": 200
       }
@@ -10255,7 +10258,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/projects/{id}/product/compose",
+      "path": "/api/v1/projects/{projectId}/product/compose",
       "expect": {
        "status": 202
       },
@@ -10266,7 +10269,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/projects/{id}/product/compose",
+      "path": "/api/v1/projects/{projectId}/product/compose",
       "expect": {
        "status": 400
       }
@@ -10338,7 +10341,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/projects/{id}/prompts",
+    "path": "/api/v1/projects/{projectId}/prompts",
     "expect": {
      "status": 200
     },
@@ -10388,7 +10391,7 @@
      {
       "kind": "api",
       "method": "PATCH",
-      "path": "/api/v1/projects/{id}",
+      "path": "/api/v1/projects/{projectId}",
       "expect": {
        "status": [
         200,
@@ -10473,7 +10476,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/proposals/{id}/approve",
+      "path": "/api/v1/proposals/{proposalId}/approve",
       "expect": {
        "status": 200
       }
@@ -10726,7 +10729,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/proposals/{id}/reject",
+      "path": "/api/v1/proposals/{proposalId}/reject",
       "expect": {
        "status": 200
       }
@@ -11003,7 +11006,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/walkthrough/storyline",
+      "path": "/api/v1/runs/{runId}/walkthrough/storyline",
       "expect": {
        "status": 200
       }
@@ -11011,7 +11014,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/walkthrough/storyline?step=",
+      "path": "/api/v1/runs/{runId}/walkthrough/storyline?step=",
       "expect": {
        "status": 409
       }
@@ -11080,7 +11083,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/walkthrough",
+      "path": "/api/v1/runs/{runId}/walkthrough",
       "expect": {
        "status": 200
       }
@@ -11088,7 +11091,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/walkthrough",
+      "path": "/api/v1/runs/{runId}/walkthrough",
       "expect": {
        "status": 206
       }
@@ -11096,7 +11099,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/walkthrough[?step=]",
+      "path": "/api/v1/runs/{runId}/walkthrough[?step=]",
       "expect": {
        "status": 200
       }
@@ -11104,7 +11107,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/walkthrough[?step=]",
+      "path": "/api/v1/runs/{runId}/walkthrough[?step=]",
       "expect": {
        "status": 206
       }
@@ -11177,7 +11180,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/domain-graph",
+      "path": "/api/v1/repos/{repoId}/domain-graph",
       "expect": {
        "status": 200
       }
@@ -11185,7 +11188,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/domain-graph",
+      "path": "/api/v1/repos/{repoId}/domain-graph",
       "expect": {
        "status": 404
       }
@@ -11237,7 +11240,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/repos/{id}/git-history",
+    "path": "/api/v1/repos/{repoId}/git-history",
     "expect": {
      "status": 404
     },
@@ -11327,7 +11330,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/onboard",
+      "path": "/api/v1/repos/{repoId}/onboard",
       "expect": {
        "status": 200
       }
@@ -11335,7 +11338,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/onboard",
+      "path": "/api/v1/repos/{repoId}/onboard",
       "expect": {
        "status": 201
       }
@@ -11583,7 +11586,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/requirements",
+      "path": "/api/v1/repos/{repoId}/requirements",
       "expect": {
        "status": 200
       }
@@ -11591,7 +11594,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/requirements",
+      "path": "/api/v1/repos/{repoId}/requirements",
       "expect": {
        "status": 400
       }
@@ -11599,7 +11602,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/requirements",
+      "path": "/api/v1/repos/{repoId}/requirements",
       "expect": {
        "status": 404
       }
@@ -11971,7 +11974,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/runs/{id}/archive",
+      "path": "/api/v1/runs/{runId}/archive",
       "expect": {
        "status": 200
       }
@@ -11987,7 +11990,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "status": 200
       }
@@ -12131,7 +12134,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/runs/{id}/cancel",
+      "path": "/api/v1/runs/{runId}/cancel",
       "expect": {
        "status": 200
       }
@@ -12139,7 +12142,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "json": [
         {
@@ -12220,7 +12223,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/artifacts/codebase.zip",
+      "path": "/api/v1/runs/{runId}/artifacts/codebase.zip",
       "expect": {
        "status": 200
       }
@@ -12228,7 +12231,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "status": 200
       }
@@ -12282,7 +12285,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/deliver-text",
+      "path": "/api/v1/runs/{runId}/deliver-text",
       "expect": {
        "status": 200
       }
@@ -12290,7 +12293,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/deliver-text",
+      "path": "/api/v1/runs/{runId}/deliver-text",
       "expect": {
        "status": 404
       }
@@ -12348,7 +12351,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/diff",
+    "path": "/api/v1/runs/{runId}/diff",
     "expect": {
      "status": 200
     },
@@ -12412,7 +12415,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/elicitation",
+    "path": "/api/v1/runs/{runId}/elicitation",
     "expect": {
      "status": 200
     },
@@ -12472,7 +12475,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/events?type=gateEvaluated",
+      "path": "/api/v1/runs/{runId}/events?type=gateEvaluated",
       "expect": {
        "status": 200
       }
@@ -12553,7 +12556,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/evidence",
+      "path": "/api/v1/runs/{runId}/evidence",
       "expect": {
        "status": 200
       }
@@ -12561,7 +12564,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/events",
+      "path": "/api/v1/runs/{runId}/events",
       "expect": {
        "status": 200
       }
@@ -12615,7 +12618,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/files?path=<abs",
+    "path": "/api/v1/runs/{runId}/files?path=<abs",
     "expect": {
      "status": 200
     },
@@ -12662,7 +12665,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}",
+    "path": "/api/v1/runs/{runId}",
     "expect": {
      "status": 200
     },
@@ -12742,28 +12745,6 @@
       "kind": "event",
       "source": "core-event",
       "type": "unitDenied",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "awaitingHuman",
-      "where": {
-       "gateKind": "escalation"
-      },
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "sessionFailed",
-      "where": {
-       "gateKind": "escalation"
-      },
       "count": {
        "min": 1
       }
@@ -12851,7 +12832,7 @@
      {
       "kind": "api",
       "method": "PUT",
-      "path": "/api/v1/runs/{id}/guidance",
+      "path": "/api/v1/runs/{runId}/guidance",
       "expect": {
        "status": 200
       }
@@ -12859,7 +12840,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "status": 200
       }
@@ -12913,7 +12894,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/runs/{id}/inject",
+      "path": "/api/v1/runs/{runId}/inject",
       "expect": {
        "status": 200
       }
@@ -12976,7 +12957,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/inventory",
+    "path": "/api/v1/runs/{runId}/inventory",
     "expect": {
      "status": 404
     },
@@ -13029,7 +13010,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}",
+    "path": "/api/v1/runs/{runId}",
     "expect": {
      "status": 200
     },
@@ -13084,7 +13065,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}",
+    "path": "/api/v1/runs/{runId}",
     "expect": {
      "status": 200
     },
@@ -13147,7 +13128,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "status": 200
       }
@@ -13231,7 +13212,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "status": 200
       }
@@ -13344,7 +13325,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "status": 200
       }
@@ -13352,7 +13333,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/campaigns/{id}",
+      "path": "/api/v1/campaigns/{campaignId}",
       "expect": {
        "status": 200
       }
@@ -13411,7 +13392,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}",
+      "path": "/api/v1/runs/{runId}",
       "expect": {
        "json": [
         {
@@ -13425,7 +13406,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/gate",
+      "path": "/api/v1/runs/{runId}/gate",
       "expect": {
        "status": 200,
        "json": [
@@ -13547,7 +13528,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}",
+    "path": "/api/v1/runs/{runId}",
     "expect": {
      "status": 201
     },
@@ -13703,7 +13684,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/projects/{id}/members",
+      "path": "/api/v1/projects/{projectId}/members",
       "expect": {
        "status": 200
       }
@@ -13788,7 +13769,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/acceptance",
+    "path": "/api/v1/runs/{runId}/acceptance",
     "expect": {
      "status": 200
     },
@@ -14050,14 +14031,6 @@
       "kind": "event",
       "source": "core-event",
       "type": "runBaseResolved",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "sessionFailed",
       "count": {
        "min": 1
       }
@@ -14387,7 +14360,7 @@
    "oracle": {
     "kind": "api",
     "method": "POST",
-    "path": "/api/v1/runs/{id}/plan",
+    "path": "/api/v1/runs/{runId}/plan",
     "expect": {
      "status": 200
     },
@@ -14444,7 +14417,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/runs/{id}/reassign",
+      "path": "/api/v1/runs/{runId}/reassign",
       "expect": {
        "status": 200
       }
@@ -14521,7 +14494,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/runs/{id}/resume",
+      "path": "/api/v1/runs/{runId}/resume",
       "expect": {
        "status": 200
       }
@@ -14596,7 +14569,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/events",
+      "path": "/api/v1/runs/{runId}/events",
       "expect": {
        "status": 200
       }
@@ -14688,28 +14661,6 @@
       "expect": {
        "status": 400
       }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "workerStalled",
-      "where": {
-       "action": "reassign"
-      },
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitReassigned",
-      "where": {
-       "action": "reassign"
-      },
-      "count": {
-       "min": 1
-      }
      }
     ],
     "complete": false,
@@ -14772,7 +14723,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/team",
+      "path": "/api/v1/runs/{runId}/team",
       "expect": {
        "status": 200
       }
@@ -14780,7 +14731,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/team",
+      "path": "/api/v1/runs/{runId}/team",
       "expect": {
        "status": 404
       }
@@ -14833,7 +14784,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/units/{unitKey}/considered",
+    "path": "/api/v1/runs/{runId}/units/{unitKey}/considered",
     "expect": {
      "status": 200
     },
@@ -14881,7 +14832,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{id}/units/{unitKey}/output",
+    "path": "/api/v1/runs/{runId}/units/{unitKey}/output",
     "expect": {
      "status": 200
     },
@@ -16237,7 +16188,7 @@
      {
       "kind": "api",
       "method": "DELETE",
-      "path": "/api/v1/standing-orders/{id}",
+      "path": "/api/v1/standing-orders/{standingOrderId}",
       "expect": {
        "status": 200
       }
@@ -16245,7 +16196,7 @@
      {
       "kind": "api",
       "method": "DELETE",
-      "path": "/api/v1/standing-orders/{id}",
+      "path": "/api/v1/standing-orders/{standingOrderId}",
       "expect": {
        "status": 404
       }
@@ -16906,7 +16857,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/terminals/{id}/resize",
+      "path": "/api/v1/terminals/{terminalId}/resize",
       "expect": {
        "status": 200
       }
@@ -16914,7 +16865,7 @@
      {
       "kind": "api",
       "method": "POST",
-      "path": "/api/v1/terminals/{id}/resize",
+      "path": "/api/v1/terminals/{terminalId}/resize",
       "expect": {
        "status": 404
       }
@@ -17799,7 +17750,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/runs/{id}/demo",
+      "path": "/api/v1/runs/{runId}/demo",
       "expect": {
        "status": 200
       }
@@ -17878,7 +17829,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/repos/{id}/domain-graph",
+      "path": "/api/v1/repos/{repoId}/domain-graph",
       "expect": {
        "status": 200
       }
@@ -18295,7 +18246,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/repos/{id}/graph",
+    "path": "/api/v1/repos/{repoId}/graph",
     "expect": {
      "status": 200
     },
