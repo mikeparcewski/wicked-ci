@@ -93,7 +93,8 @@ def _tokens(text):
     t = PORT_WORD.sub(" ", PORT_ONLY.sub(" ", HOST_PORT.sub(" ", URL.sub(" ", t))))
     out = []
     for tok in re.findall(r"!?[A-Za-z0-9][A-Za-z0-9.\-_*:<=,?!\[\]]*", t):
-        out.append(tok if TERM.match(tok) else tok.rstrip(".,?!:").lower())
+        tok = tok.rstrip(".,?!:")
+        out.append(tok if TERM.match(tok) else tok.lower())
     return [x for x in out if x]
 
 
@@ -185,8 +186,11 @@ def _intent_text(text, vocab):
     """The request without what names a selection (URLs, ids, id prefixes and globs, literal terms), so a
     word inside a capability id (`studio-ui.launch.plan-preview`) never picks the action."""
     words = []
-    for w in URL.sub(" ", text).split():
+    t = re.sub(r"'s\b", "", URL.sub(" ", text.replace("\u2019", "'")), flags=re.I)
+    for w in t.split():
         bare = w.strip(".,?!:;()'\"")
+        if "-" in bare and any(_norm(bare) in d for d in (vocab.tag_norm, vocab.seg_norm, vocab.area_norm)):
+            continue  # a hyphenated tag or id group (plan-preview, coverage-domain) names a topic, not an action
         if TERM.match(bare) or ("." in bare and (bare in vocab.ids or any(ch in bare for ch in "*?[")
                                                   or any(i.startswith(bare + ".") for i in vocab.ids))):
             continue
@@ -273,6 +277,10 @@ def resolve(request, caps, profiles, run_dir=None):
         else:
             explain.append({"words": pword, "as": "profile word ignored: the request names a topic"})
         profile = None
+    elif profile and ignored:
+        # "everything about signon": the topic word matched nothing, so the profile word must not widen to it.
+        explain.append({"words": pword, "as": "profile word ignored: the request's other words matched nothing"})
+        profile = None
     elif not profile and not topic and (cost or negate):
         # A modifier narrows a topic; alone it would select across every area.
         explain.append({"words": "cost/manual modifier", "as": "ignored: no word names a topic to narrow"})
@@ -341,6 +349,13 @@ def resolve(request, caps, profiles, run_dir=None):
             elif out["studio"] and _url_port(str(out["studio"])) in OPERATOR_PORTS:
                 _status(out, "refused")
                 out["needs"].append("the earlier run targeted an operator daemon port; certify a throwaway daemon")
+    if action == "evidence" and run_dir:
+        ids = [x for x in (expr or "").split() if x.startswith("id:")]
+        one = ids[0][3:] if len(ids) == 1 else ""
+        if not one or "," in one or any(ch in one for ch in "*?[") or one not in vocab.ids:
+            _status(out, "needs-input" if not ignored else "no-match")
+            out["needs"].append("one capability id: `e2e evidence` opens one capability's evidence (an area or "
+                                "tag names many; list them with `e2e report` first)")
     # Size the selection.
     sel_expr = profiles[profile]["select"] if profile else expr
     sel = []

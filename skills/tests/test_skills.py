@@ -326,6 +326,14 @@ class Install(unittest.TestCase):
         self.assertEqual(self.sh("--copy", "--force", "--codex", env={"CODEX_HOME": dest}).returncode, 0)
 
     @unittest.skipIf(sys.platform.startswith("win"), "install.sh runs under Git Bash there; covered on ubuntu and macOS")
+    def test_codex_and_a_destination_are_exclusive_in_either_order(self):
+        dest = os.path.join(self.tmp, "x")
+        for args in (("--codex", dest), (dest, "--codex")):
+            r = self.sh(*args, env={"CODEX_HOME": os.path.join(self.tmp, "c")})
+            self.assertEqual(r.returncode, 2, args)
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "c")))
+
+    @unittest.skipIf(sys.platform.startswith("win"), "install.sh runs under Git Bash there; covered on ubuntu and macOS")
     def test_dry_run_writes_nothing(self):
         dest = os.path.join(self.tmp, "dry")
         r = self.sh("--dry-run", dest)

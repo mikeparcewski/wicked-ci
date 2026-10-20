@@ -22,6 +22,7 @@ while [ $# -gt 0 ]; do
     --dry-run) dry=1 ;;
     --codex)
       if [ -z "${CODEX_HOME:-}" ]; then echo "install.sh: --codex needs CODEX_HOME set (the Codex home whose skills/ to use)" >&2; exit 2; fi
+      if [ -n "$dest" ]; then echo "install.sh: one destination only" >&2; exit 2; fi
       dest="$CODEX_HOME/skills" ;;
     -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
     -*) echo "install.sh: unknown option $1" >&2; exit 2 ;;
