@@ -368,7 +368,10 @@ def resolve(request, caps, profiles, run_dir=None):
             elif out["studio"] and _url_port(str(out["studio"])) in OPERATOR_PORTS:
                 _status(out, "refused")
                 out["needs"].append("the earlier run targeted an operator daemon port; certify a throwaway daemon")
-    if action == "evidence" and run_dir:
+            elif out["target"] == "live" and not out["studio"]:
+                _status(out, "needs-input")
+                out["needs"].append("--studio URL: the earlier run was live but records no daemon URL")
+    if action == "evidence":
         ids = [x for x in (expr or "").split() if x.startswith("id:")]
         one = ids[0][3:] if len(ids) == 1 else ""
         if one in vocab.canonical:  # a run records the canonical id, never an alias
@@ -429,7 +432,7 @@ def _commands(out, run_dir):
     tgt = ["--target", out["target"]] + (["--studio", out["studio"]] if out["target"] == "live" and out["studio"] else [])
     sel = _sel_args(out)
     base = ["--baseline", "e2e/coverage-baseline.json"]
-    if a in ("run", "plan", "rerun") and sel:
+    if a in ("run", "plan", "rerun") and sel and not (out["target"] == "live" and not out["studio"]):
         cmds.append(["e2e", "run"] + sel + tgt + ["--out", "PLAN_DIR", "--plan-only"])
         if a != "plan":
             cmds.append(["e2e", "run"] + sel + tgt + ["--out", "NEW_RUN_DIR", "--src", "CHECKOUTS_DIR"])

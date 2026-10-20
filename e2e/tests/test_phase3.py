@@ -399,6 +399,18 @@ class ResolveEdges(unittest.TestCase):
         out = self.r("re-run what failed cost<=XL", run_dir=tmp)
         self.assertEqual(out["status"], "no-match")
 
+    def test_round4_evidence_needs_one_canonical_id_with_or_without_a_run_dir(self):
+        out = self.r("show evidence for seats.ui.copy-signin-and-check-again")
+        self.assertTrue(out["commands"][0].endswith(" studio-ui.agents.check-now"), out["commands"])
+        out = self.r("show evidence for studio")
+        self.assertTrue(any("one capability id" in n for n in out["needs"]), out["needs"])
+
+    def test_round4_a_live_rerun_without_a_recorded_url_needs_one(self):
+        tmp = self.run_dir({"target": "live"}, {"crew-api.runs.cancel": "fail"})
+        out = self.r("re-run what failed", run_dir=tmp)
+        self.assertEqual(out["status"], "needs-input")
+        self.assertEqual(out["commands"], [], "no run command for a live target with no URL")
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])
