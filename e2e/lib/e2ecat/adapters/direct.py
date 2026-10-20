@@ -55,7 +55,10 @@ class LiveClient:
             with self.open(req, timeout=self.timeout) as r:
                 status, raw = r.status, r.read()
         except urllib.error.HTTPError as e:
-            status, raw = e.code, e.read() if hasattr(e, "read") else b""
+            try:
+                status, raw = e.code, e.read() if hasattr(e, "read") else b""
+            finally:
+                e.close()
         except (urllib.error.URLError, OSError) as e:
             self.calls.append({"method": "GET", "url": path, "status": 0, "error": str(e)})
             return None
@@ -246,6 +249,10 @@ class DirectAdapter(Adapter):
                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except OSError:
             ws = None
+        if ws is not None:  # let the subscription open first, so the reads' frames are in the log
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline and not any("open" in r or "error" in r for r in read_jsonl(wslog)):
+                time.sleep(0.1)
         try:
             for cid in unit.caps:
                 for ch in ctx.checks_of(cid):

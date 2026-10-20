@@ -94,14 +94,21 @@ class VitestAdapter(Adapter):
                     o = Outcome("failed", "failed: %s" % "; ".join(t["name"] for t in mine if t["status"] == "failed"), s.get("fidelity"))
                 elif all(t["status"] in ("skipped", "pending", "todo") for t in mine):
                     o = Outcome("error", "the named test was skipped", s.get("fidelity"))
+                elif rc is None:
+                    o = Outcome("error", "vitest timed out (the unit ceiling)", s.get("fidelity"))
+                elif rc != 0:
+                    o = Outcome("failed", "the named test passed but vitest exited %s (a hook or teardown failed)" % rc, s.get("fidelity"))
                 else:
                     o = Outcome("passed", "%d test(s) passed" % sum(t["status"] == "passed" for t in mine), s.get("fidelity"))
             else:
                 failed = [t["name"] for t in tests if t["status"] == "failed"]
                 ran = [t for t in tests if t["status"] == "passed"]
-                o = Outcome("failed" if failed or rc not in (0, None) else ("passed" if ran else "error"),
-                            ("failed: " + "; ".join(failed[:5])) if failed else "%d tests passed (exit %s)" % (len(ran), rc),
-                            s.get("fidelity"))
+                if rc is None:
+                    o = Outcome("error", "vitest timed out (the unit ceiling)", s.get("fidelity"))
+                else:
+                    o = Outcome("failed" if failed or rc != 0 else ("passed" if ran else "error"),
+                                ("failed: " + "; ".join(failed[:5])) if failed else "%d tests passed (exit %s)" % (len(ran), rc),
+                                s.get("fidelity"))
             o.add("test-report", report)
             o.add("test-report", os.path.join(out, "vitest.log"))
             mine_taps = [t for t in taps if not name or name in (t.get("test") or "")] or ([] if name else taps)

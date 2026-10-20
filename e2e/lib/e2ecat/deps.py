@@ -41,7 +41,8 @@ RULES = [
                    r"render browser|browser on host"),
     ("studio-dist", r"studio:bundled-dist|studio dist|studio-dist|frontend/dist|studio served by crew|^studio$|"
                     r"^wicked-studio$|studio \+ "),
-    ("signed-in-seats", r"signed-in|signed in|seat|claude-code harness|answerer|stalling seat|seats signed out"),
+    ("seat-state", r"signed out|signed-out|revoked credential|out of quota|seat record data"),  # a seeded seat state
+    ("signed-in-seats", r"signed-in|signed in|seat|claude-code harness|answerer|stalling seat"),
     ("registered-repo", r"registered[- ]repo|repo:registered|registered repos"),
     ("projects-engine", r"projects-engine|project with crew\.repo members"),
     ("real-engine", r"real-engine|core-ts|wicked-core-ts|engine core-ts"),
@@ -84,6 +85,9 @@ BINARIES = {
     "bin-cursor": "cursor", "tool-cargo": "cargo", "tool-node": "node", "tool-python": None, "tool-git": "git",
     "tool-ffmpeg": "ffmpeg", "tool-jq": "jq", "tool-uv": "uv",
 }
+
+# Python packages a dep names (the probe imports them).
+PY_MODULES = {"pyyaml": "yaml", "python-pptx": "pptx", "flask": "flask", "requests": "requests"}
 
 # The classes a live target answers for (probed on the daemon's read-only API).
 TARGET_CLASSES = {"daemon", "real-engine", "signed-in-seats", "registered-repo", "projects-engine", "studio-dist"}
@@ -152,7 +156,13 @@ class Probe:
         if cls == "tool-python":
             m = re.search(r">=\s*3\.(\d+)", dep)
             need = int(m.group(1)) if m else 0
-            return sys.version_info >= (3, need), "python %d.%d" % sys.version_info[:2]
+            if sys.version_info < (3, need):
+                return False, "python %d.%d" % sys.version_info[:2]
+            mod = next((m_ for k, m_ in PY_MODULES.items() if k in dep.lower()), None)
+            if mod:
+                import importlib.util
+                return importlib.util.find_spec(mod) is not None, "python module %s" % mod
+            return True, "python %d.%d" % sys.version_info[:2]
         if cls == "tool-node":
             return self._once("node:" + dep, lambda: self._node(dep))
         if cls in BINARIES:
@@ -191,6 +201,8 @@ class Probe:
         if not p:
             return False, "node not on PATH"
         ok, out = self._cmd_ok([p, "--version"])
+        if not ok:
+            return False, "node --version failed: %s" % out
         m = re.search(r"(\d+)", out or "")
         have = int(m.group(1)) if m else 0
         need = re.search(r"(?:>=\s*|node )(\d+)", dep)

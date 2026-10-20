@@ -654,6 +654,48 @@ class ReviewFindings(unittest.TestCase):
             srv.shutdown()
             srv.server_close()
 
+    def test_second_review_round(self):
+        # cli tokens: .exe and placeholders inside a token
+        self.assertTrue(ob.cli_matches("wicked-core gate-hook --scope=e2e-{runId}",
+                                       ["C:/bin/wicked-core.EXE", "gate-hook", "--scope=e2e-123"]))
+        self.assertFalse(ob.cli_matches("wicked-core gate-hook --scope=e2e-{runId}", ["wicked-core", "gate-hook", "--x"]))
+        # an unbound expected value is undecidable, never a contradiction
+        o = ob.Observations()
+        o.add_http("GET", "/api/v1/runs/r1", 200, None, {"id": "r1"})
+
+        class Live:
+            def get(self, path):
+                return {"status": 200, "json": {"id": "r1"}}
+        ch = {"kind": "api", "method": "GET", "path": "/api/v1/runs/r1",
+              "expect": {"json": [{"path": "$.id", "op": "eq", "value": "{runId}"}]}}
+        self.assertIsNone(ob.evaluate(ch, o, {}, "c#0")["ok"])
+        self.assertIsNone(ob.evaluate(ch, ob.Observations(), {}, "c#0", direct=Live(), direct_definitive=True)["ok"])
+        self.assertIs(ob.evaluate(ch, o, {"runId": "r1"}, "c#0")["ok"], True)
+        # a file outside every root is not observed, even for `absent`
+        d = tempfile.mkdtemp()
+        try:
+            o.file_roots = [d]
+            self.assertIsNone(ob.evaluate({"kind": "file", "path": "../../outside", "assert": "absent"}, o, {}, "c#0")["ok"])
+            self.assertIs(ob.evaluate({"kind": "file", "path": "inside-missing", "assert": "absent"}, o, {}, "c#0")["ok"], True)
+        finally:
+            shutil.rmtree(d)
+        # the runner's own exit run decides only on a read-only path
+        o2 = ob.Observations()
+        o2.cli.append({"argv": ["wicked-crew", "--version"], "code": 1, "stdout": "", "stderr": "", "source": "direct"})
+        exitc = {"kind": "exit", "cmd": "wicked-crew --version", "code": 0}
+        self.assertIsNone(ob.evaluate(exitc, o2, {}, "c#0")["ok"])
+        self.assertIs(ob.evaluate(exitc, o2, {}, "c#0", direct_definitive=True)["ok"], False)
+        # seat states and python modules
+        self.assertEqual(deps.classify("seats signed out"), "seat-state")
+        self.assertEqual(deps.classify("a seat with a revoked credential"), "seat-state")
+        self.assertIn("python module pptx", deps.Probe().check("tool-python", "python-pptx")[1])
+        # negative DOM checks hold only at the end
+        sys.path.insert(0, os.path.join(E2E, "lib", "e2ecat", "pwhook"))
+        import e2e_pw
+        self.assertTrue(e2e_pw.negative({"assert": "count", "value": 0}))
+        self.assertTrue(e2e_pw.negative({"assert": "hidden"}))
+        self.assertFalse(e2e_pw.negative({"assert": "count", "value": 2}))
+
     @unittest.skipIf(os.name == "nt", "process groups: POSIX (Windows uses taskkill /T)")
     def test_a_timeout_ends_the_whole_process_tree(self):
         from e2ecat.adapters import run_logged

@@ -104,13 +104,19 @@ class CargoAdapter(Adapter):
                     o = Outcome("failed", "FAILED %s" % f, s.get("fidelity"))
                 elif all(v == "ignored" for v in mine.values()):
                     o = Outcome("error", "%s is #[ignore]d" % f, s.get("fidelity"))
+                elif rc != 0:
+                    o = Outcome("failed" if rc is not None else "error",
+                                "ok %s, but cargo exited %s" % (f, rc), s.get("fidelity"))
                 else:
                     o = Outcome("passed", "ok %s" % f, s.get("fidelity"))
             else:
                 failed = [n for n, v in results.items() if v == "FAILED"]
-                o = Outcome("failed" if failed or rc != 0 else "passed",
-                            ("FAILED " + ", ".join(failed[:5])) if failed else "%d tests ok (exit %s)" % (
-                                sum(v == "ok" for v in results.values()), rc), s.get("fidelity"))
+                named = s.get("name")
+                o = Outcome("error" if rc is None else ("failed" if failed or rc != 0 else "passed"),
+                            ("FAILED " + ", ".join(failed[:5])) if failed else "%d tests ok (exit %s)%s" % (
+                                sum(v == "ok" for v in results.values()), rc,
+                                "; the scenario's name %r is not a test filter, so the whole target ran" % named
+                                if named else ""), s.get("fidelity"))
             o.add("test-report", log)
             o.extra = {"cargo": " ".join(argv[len(ctx.build_slot):]), "tests": len(results)}
             outcomes[key] = o

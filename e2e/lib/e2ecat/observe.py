@@ -19,7 +19,6 @@ exit code, output), DOM samples (the Playwright hook), and file roots it left be
 
 Only `True` counts toward a pass. A runner never turns `None` into `True`.
 """
-import fnmatch
 import hashlib
 import json
 import os
@@ -94,10 +93,29 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def compare(doc, cmp_):
-    """One `{path, op, value}` comparison over a JSON document: (holds, observed values)."""
+class Unbound(PathError):
+    """An expected value names a {placeholder} the run never bound: the check cannot be decided."""
+
+
+def bind_value(v, bindings):
+    """Bind placeholders inside an expected value (strings, recursively); raise Unbound if any remain."""
+    if isinstance(v, str):
+        b = bind(v, bindings or {})
+        if unbound(b):
+            raise Unbound("unbound %s in an expected value" % ", ".join("{%s}" % u for u in unbound(b)))
+        return b
+    if isinstance(v, list):
+        return [bind_value(x, bindings) for x in v]
+    if isinstance(v, dict):
+        return {k: bind_value(x, bindings) for k, x in v.items()}
+    return v
+
+
+def compare(doc, cmp_, bindings=None):
+    """One `{path, op, value}` comparison over a JSON document: (holds, observed values). Raises Unbound
+    when the expected value names an unbound placeholder."""
     vals = jsonpath(doc, cmp_["path"])
-    op, want = cmp_.get("op", "eq"), cmp_.get("value")
+    op, want = cmp_.get("op", "eq"), bind_value(cmp_.get("value"), bindings)
     if op == "exists":
         return bool(vals), vals[:3]
     if op == "absent":
@@ -298,14 +316,16 @@ def body_matches(ch, h, bindings):
     return _subset(body, h.get("req"), bindings)
 
 
-def _api_holds(ch, h):
+def _api_holds(ch, h, bindings=None):
     exp = ch.get("expect") or {}
     if not _status_ok(exp.get("status"), h["status"]):
         return False, {"status": h["status"]}
     seen = {"status": h["status"]}
     for cmp_ in exp.get("json", []) or []:
         try:
-            ok, vals = compare(h["res"], cmp_)
+            ok, vals = compare(h["res"], cmp_, bindings)
+        except Unbound:
+            raise
         except PathError as e:
             return False, {"status": h["status"], "error": str(e)}
         seen[cmp_["path"]] = vals
@@ -314,7 +334,7 @@ def _api_holds(ch, h):
     if "error_code" in exp:
         code = dig(h["res"], "error.code") or dig(h["res"], "code") or dig(h["res"], "error")
         seen["error_code"] = code
-        if code != exp["error_code"]:
+        if code != bind_value(exp["error_code"], bindings):
             return False, seen
     return True, seen
 
@@ -340,7 +360,7 @@ def eval_api(ch, obs, bindings, direct=None, direct_definitive=False):
     if cand:
         last = None
         for h in cand:
-            ok, seen = _api_holds(ch, h)
+            ok, seen = _api_holds(ch, h, bindings)
             if ok:
                 for name, p in (ch.get("capture") or {}).items():
                     vals = jsonpath(h["res"], p) if isinstance(h["res"], (dict, list)) else []
@@ -365,7 +385,7 @@ def eval_api(ch, obs, bindings, direct=None, direct_definitive=False):
         h = direct.get(tmpl)
         if h is not None:
             obs.add_http("GET", tmpl, h["status"], None, h.get("json"), source="direct")
-            ok, seen = _api_holds(ch, {"status": h["status"], "res": h.get("json")})
+            ok, seen = _api_holds(ch, {"status": h["status"], "res": h.get("json")}, bindings)
             if not ok and not direct_definitive:
                 return _res(None, dict(seen, request="GET %s" % tmpl), "direct: unsatisfied")
             return _res(ok, dict(seen, request="GET %s" % tmpl), "direct")
@@ -457,14 +477,23 @@ def program_argv(argv):
     return argv
 
 
+_EXE = re.compile(r"\.(exe|cmd|bat)$", re.I)
+
+
+def _token_rx(w):
+    """A command token: literal, with each {placeholder} matching any non-empty run of characters."""
+    return re.compile("^" + "".join(".+" if PLACEHOLDER.fullmatch(part) else re.escape(part)
+                                    for part in re.split(r"(\{[A-Za-z_][\w-]*\})", w)) + "$", re.S)
+
+
 def cli_matches(cmd, argv):
     want = _cmd_tokens(cmd)
     argv = program_argv(argv)
     if not want or not argv or len(want) != len(argv):
         return False
-    if os.path.basename(argv[0]).replace(".cmd", "") != os.path.basename(want[0]):
+    if _EXE.sub("", os.path.basename(argv[0])) != _EXE.sub("", os.path.basename(want[0])):
         return False
-    return all(PLACEHOLDER.fullmatch(w) or fnmatch.fnmatchcase(str(a), w.replace("[", "[[]")) for w, a in zip(want[1:], argv[1:]))
+    return all(_token_rx(w).match(str(a)) for w, a in zip(want[1:], argv[1:]))
 
 
 def _exit_holds(ch, e):
@@ -477,10 +506,20 @@ def _exit_holds(ch, e):
     return ok
 
 
-def eval_exit(ch, obs, bindings, direct=None):
+def _direct_exit(ch, e, direct_definitive):
+    val = {"code": e["code"], "argv": " ".join(map(str, e["argv"]))}
+    if _exit_holds(ch, e):
+        return _res(True, val, "direct")
+    return _res(False, val, "direct") if direct_definitive else _res(None, val, "direct: unsatisfied")
+
+
+def eval_exit(ch, obs, bindings, direct=None, direct_definitive=False):
     cmd = bind(ch.get("cmd", ""), bindings)
     cand = [e for e in obs.cli if cli_matches(cmd, e["argv"])]
     if cand:
+        mine = [e for e in cand if e.get("source") == "direct"]
+        if mine:  # the runner's own run (live target): decided like a direct GET
+            return _direct_exit(ch, mine[-1], direct_definitive and not unbound(cmd))
         for e in cand:
             if _exit_holds(ch, e):
                 return _res(True, {"code": e["code"], "argv": " ".join(map(str, e["argv"]))}, "transcript",
@@ -490,8 +529,8 @@ def eval_exit(ch, obs, bindings, direct=None):
     if direct is not None and not unbound(cmd):
         e = direct.run_safe(cmd)
         if e is not None:
-            obs.cli.append(e)
-            return _res(_exit_holds(ch, e), {"code": e["code"], "argv": " ".join(map(str, e["argv"]))}, "direct")
+            obs.cli.append(dict(e, source="direct"))
+            return _direct_exit(ch, e, direct_definitive)
     return _res(None, "no matching invocation recorded" if not unbound(cmd) else "unbound placeholder", "not observed")
 
 
@@ -511,17 +550,26 @@ def eval_file(ch, obs, bindings, examined):
     if not roots:
         return _res(None, "the scenario left no file root", "not observed")
     found = None
+    inside = False
     for r in roots:
         cand = path if os.path.isabs(path) else os.path.join(r, path)
         real_r = os.path.realpath(r)
         real = os.path.realpath(cand)
-        if os.path.commonpath([real_r, real]) != real_r:
-            continue  # never read outside the scenario's roots
+        try:
+            if os.path.commonpath([real_r, real]) != real_r:
+                continue  # never read outside the scenario's roots
+        except ValueError:  # another drive (Windows)
+            continue
+        inside = True
         if os.path.exists(cand):
             found = cand
             break
+    if not inside:
+        return _res(None, {"path": path, "outside": "every root the scenario left"}, "not observed")
     a = ch.get("assert", "exists")
     if a == "absent":
+        if found is not None and os.path.isfile(found):
+            examined.append(found)
         return _res(found is None, {"path": path, "present": found is not None}, "file roots")
     if found is None:
         # Absent from every root the scenario left: the file may live in a root this run cannot see.
@@ -532,13 +580,17 @@ def eval_file(ch, obs, bindings, examined):
         return _res(True, {"path": path}, "file roots")
     if a == "non-empty":
         return _res(os.path.getsize(found) > 0, {"path": path, "bytes": os.path.getsize(found)}, "file roots")
-    if a == "sha256":
-        got = sha256_file(found)
-        return _res(got == bind(str(ch.get("value")), bindings), {"path": path, "sha256": got}, "file roots")
-    if a == "matches":
+    if a in ("sha256", "matches"):
+        try:
+            want = bind_value(str(ch.get("value")), bindings)
+        except Unbound as e:
+            return _res(None, {"path": path, "unbound": str(e)}, "not observed")
+        if a == "sha256":
+            got = sha256_file(found)
+            return _res(got == want, {"path": path, "sha256": got}, "file roots")
         with open(found, encoding="utf-8", errors="replace") as fh:
             txt = fh.read()
-        return _res(re.search(str(ch.get("value")), txt) is not None, {"path": path}, "file roots")
+        return _res(re.search(want, txt) is not None, {"path": path}, "file roots")
     if a == "json-path":
         with open(found, encoding="utf-8") as fh:
             doc = json.load(fh)
@@ -584,7 +636,7 @@ def eval_gh(ch, bindings, direct):
     if doc is None:
         return _res(None, "gh read failed or the object is not addressable", "not observed")
     try:
-        ok, vals = compare(doc, ch["assert"])
+        ok, vals = compare(doc, ch["assert"], bindings)
     except PathError as e:
         return _res(None, str(e), "not observed")
     # `target: run` reads the repo's LATEST workflow run, not one this path named.
@@ -610,13 +662,15 @@ def evaluate(ch, obs, bindings, check_id, direct=None, examined=None, direct_def
         if k == "dom":
             return eval_dom(ch, obs, check_id)
         if k == "exit":
-            return eval_exit(ch, obs, bindings, direct)
+            return eval_exit(ch, obs, bindings, direct, direct_definitive)
         if k == "file":
             return eval_file(ch, obs, bindings, examined)
         if k == "npm":
             return eval_npm(ch, bindings, direct)
         if k == "gh":
             return eval_gh(ch, bindings, direct)
+    except Unbound as e:
+        return _res(None, str(e), "not observed")
     except (PathError, ValueError, OSError, KeyError, TypeError) as e:
         return _res(None, "evaluation error: %s" % e, "not observed")
     return _res(None, "unknown check kind %r" % k, "not observed")

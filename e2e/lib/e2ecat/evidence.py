@@ -189,6 +189,10 @@ def check_bundle(run_dir, run, selected, results, vault_argv=None, use_cli=True)
     fails += _check_frozen(vdir, scope, RUN_CLAIM, index.get("run"), "run.json",
                            lambda man: [] if man.get("run_json_sha256") == sha256_file(os.path.join(run_dir, "run.json"))
                            else ["run.json changed after it was recorded (hash differs from the vault)"])
+    if cli is not None and index.get("run"):
+        ok, doc = cli.verify(index["run"])
+        if not ok:
+            fails.append("run.json: wicked-vault verify %s did not pass: %s" % (index["run"], doc.get("detail") or doc))
     for cid in selected:
         res = results.get(cid)
         if res is None:

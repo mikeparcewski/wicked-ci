@@ -50,7 +50,7 @@ _lock = threading.Lock()
 _ctx_n = itertools.count(1)
 _shot_n = itertools.count(1)
 _state = {"contexts": [], "videos": [], "traces": [], "hars": [], "shots": [], "sampled": 0, "errors": [],
-          "seen": {}, "final": {}, "last_sample": 0.0}
+          "seen": {}, "final": {}, "last_sample": 0.0, "last_label": None}
 _checks = []
 _in_sample = threading.local()
 
@@ -94,13 +94,20 @@ def _holds(c, r):
     return None
 
 
+def negative(c):
+    """A check that says something is NOT there: it can only hold at the end, never by a moment."""
+    return c.get("assert") == "hidden" or (c.get("assert") == "count" and c.get("value") == 0)
+
+
 def sample(page, label, final=False, force=False):
-    """Evaluate every DOM check on `page` now; record what held."""
+    """Evaluate every DOM check on `page` now; record what held. Only a repeat of the SAME action within
+    250 ms is skipped (a wait loop); a different action right after a navigation is always sampled."""
     if not _checks or getattr(_in_sample, "on", False):
         return
     now = time.monotonic()
-    if not (final or force) and now - _state["last_sample"] < 0.25:
+    if not (final or force) and label == _state["last_label"] and now - _state["last_sample"] < 0.25:
         return
+    _state["last_label"] = label
     _in_sample.on = True
     try:
         if page.is_closed():
@@ -115,9 +122,11 @@ def sample(page, label, final=False, force=False):
                 continue
             held, value = h
             if final:
+                # A negative check must hold at the final sample of EVERY page the journey ends: one page
+                # still showing the element is enough to say it did not.
                 prev = _state["final"].get(c["id"])
-                _state["final"][c["id"]] = {"held": held or bool(prev and prev["held"]), "value": value, "url": url}
-            if held and c.get("assert") != "hidden" and c["id"] not in _state["seen"]:
+                _state["final"][c["id"]] = {"held": held and (prev is None or prev["held"]), "value": value, "url": url}
+            if held and not negative(c) and c["id"] not in _state["seen"]:
                 _state["seen"][c["id"]] = {"ok": True, "value": value, "url": url, "at": label}
     except Exception as e:  # navigation in flight, page closing: a missed sample, never a failure
         _err("sample(%s)" % label, e)
@@ -132,7 +141,7 @@ def _dump():
     dom = dict(_state["seen"])
     for c in _checks:
         f = _state["final"].get(c["id"])
-        if c.get("assert") == "hidden" and f and f["held"]:
+        if negative(c) and f and f["held"]:
             dom[c["id"]] = {"ok": True, "value": f["value"], "url": f["url"], "at": "final"}
     doc = {"journey": JOURNEY, "contexts": len(_state["contexts"]), "videos": _state["videos"],
            "traces": _state["traces"], "hars": _state["hars"], "shots": _state["shots"],
@@ -270,6 +279,12 @@ def install():
     def page_close(self, *a, **kw):
         owner = getattr(self, "_e2e_owner", None)
         if owner is not None:
+            if a or kw:  # e.g. run_before_unload=True: honour it, then close the owned context
+                try:
+                    _finalize(owner)
+                except Exception as e:
+                    _err("finalize", e)
+                orig_page_close(self, *a, **kw)
             return ctx_close(owner)
         return orig_page_close(self, *a, **kw)
 

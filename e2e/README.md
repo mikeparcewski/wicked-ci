@@ -470,9 +470,15 @@ OBSERVED value is kept in `result.json`:
   an unbound `{placeholder}` (some run completed, not necessarily this path's), an event in a
   stream window other runs share, a gh check on a repo's latest workflow run. It is recorded as
   held, and it never counts toward a pass.
-- The runner's own direct read decides (`ok: false` on a mismatch) only when the capability's
-  user path is itself that read. On any other path it read a daemon nobody drove down the path,
-  so a mismatch is `direct: unsatisfied`.
+- The runner's own direct read (a GET, a `--version` run) decides (`ok: false` on a mismatch)
+  only when the capability's user path is itself that read. On any other path it read a daemon
+  nobody drove down the path, so a mismatch is `direct: unsatisfied`.
+- A request check matches only a recorded request with the same method, path and (when the check
+  names one) body fields. `{request_body}` is the scenario's own body. An expected value that
+  names an unbound placeholder makes the check undecidable (`ok: null`), never a contradiction.
+- DOM samples: a positive check (`visible`, `text-*`, `count` > 0, `attr`) holds when a sample saw
+  it. A negative one (`hidden`, `count: 0`) holds only when it held at the final sample of every
+  page the journey ended.
 
 ### The verdict rule
 

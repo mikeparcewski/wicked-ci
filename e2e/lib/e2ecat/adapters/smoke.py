@@ -136,7 +136,8 @@ class SmokeAdapter(Adapter):
             lo, hi = windows.get(step, (None, None))
             if lo is not None and bus is not None:
                 for ev in bus:
-                    if lo <= ev["emitted_at"] < hi:
+                    at = ev["emitted_at"]
+                    if isinstance(at, (int, float)) and lo <= at < hi:
                         o.obs.add_event("bus", ev["event_type"], ev)
                 o.obs.stream("bus", False, "the hermetic bus.db, by step window (an async emit can land in the next step)")
             sd = os.path.join(out, step)
