@@ -64,6 +64,6 @@ Each count is what `id:<group>,<group>.*` selects (aliases included).
 | registered-repo | 1 | registered repo with .wicked-qe ledger |
 | tool-jq | 1 | jq |
 
-"who can run it": `fixture adapter` = a scenario an adapter runs on the fixture target (given the checkouts it needs); `live journey` = only an e2e-live studio journey (`--target live --live-journeys`); `no adapter yet` = reports `skipped: adapter:none`; `planned only` = reports `skipped: scenario:planned`.
+"who can run it": `fixture adapter` = a scenario an adapter runs on the fixture target (given the checkouts it needs); `live journey` = only an e2e-live studio journey (`--target live --live-journeys`); `no adapter yet` = no adapter runs its catalog scenarios; `planned only` = it has no scenario yet. This is catalog-scenario coverage: on the live target the runner's own direct reads may still prove a read-only capability, and `--plan-only` gives the actual assignment.
 
 <!-- END generated -->

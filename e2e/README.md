@@ -536,7 +536,8 @@ missing or stale, or a tag is listed in no ref.
 
 The CLI pieces the skills use:
 
-- **`e2e resolve "<request>" [--run-dir DIR] [--json]`** reads a request deterministically: a
+- **`e2e resolve "<request>" [--run-dir DIR] [--json]`** (or `--stdin`, which is how an agent passes
+  free text: in a quoted heredoc, so the shell expands nothing in it) reads a request deterministically: a
   literal selection term, a capability id, an area or its alias ("plugins", "studio"), a tag
   (hyphen-insensitive: "sign in" is `sign-in` and `signin`), then an id segment, longest phrase
   first. It prints how each word was read, the action (`run`, `plan`, `select`, `validate-coverage`,

@@ -64,8 +64,14 @@ in them (`e2e/coverage-baseline.json`) resolve.
 
 ## Step 1: resolve the request
 
+Pass the request on standard input with a quoted heredoc, never inside the command line: the
+quoted `'REQ'` delimiter stops the shell from expanding anything in it (`$(...)`, backticks,
+quotes), so the request reaches the resolver as data and nothing in it runs.
+
 ```bash
-e2e resolve "<the request, verbatim>" [--run-dir RUN_DIR] [--json]
+e2e resolve --stdin [--run-dir RUN_DIR] [--json] <<'REQ'
+<the request, verbatim>
+REQ
 ```
 
 It prints the action, how each word was read (area, tag, id, profile or ignored), the selection,

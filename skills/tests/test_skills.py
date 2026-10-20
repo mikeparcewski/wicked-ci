@@ -16,6 +16,7 @@
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -410,6 +411,17 @@ class RouterEvals(unittest.TestCase):
                 out = rs.resolve(case["request"], self.caps, self.profiles, run_dir=self.tmp if case.get("run_dir") else None)
                 for k, want in case["expect"].items():
                     self.assertEqual(out[k], want, "%s: %s" % (k, json.dumps(out, indent=1)[:1500]))
+
+    @unittest.skipIf(sys.platform.startswith("win"), "the heredoc form is a POSIX shell instruction")
+    def test_the_router_heredoc_passes_shell_syntax_through_unexpanded(self):
+        evil = "test crew-api.standing-orders.read $(printf EXPANDED >&2) `printf TICK >&2`"
+        script = "%s %s resolve --stdin --json <<'REQ'\n%s\nREQ\n" % (shlex.quote(sys.executable), shlex.quote(E2E_BIN), evil)
+        r = subprocess.run([shutil.which("sh"), "-c", script], capture_output=True, text=True, timeout=60)
+        self.assertNotIn("EXPANDED", r.stderr)
+        self.assertNotIn("TICK", r.stderr)
+        self.assertEqual(json.loads(r.stdout)["request"], evil)
+        self.assertIn("--stdin", read(os.path.join(SKILLS, "wicked-e2e", "SKILL.md")))
+        self.assertIn("<<'REQ'", read(os.path.join(SKILLS, "wicked-e2e", "SKILL.md")))
 
     def test_the_cli_wires_the_resolver_and_its_exit_code(self):
         ok = subprocess.run([sys.executable, E2E_BIN, "resolve", "test the run page", "--json"], capture_output=True,

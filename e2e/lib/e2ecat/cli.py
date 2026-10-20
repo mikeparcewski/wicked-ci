@@ -181,7 +181,11 @@ def cmd_resolve(a):
     if a.run_dir and not os.path.isfile(os.path.join(a.run_dir, "run.json")):
         print("e2e resolve: %s has no run.json" % a.run_dir, file=sys.stderr)
         return 2
-    out = rs.resolve(" ".join(a.request), caps, _profiles(a.e2e), run_dir=a.run_dir)
+    if a.stdin == bool(a.request):
+        print("e2e resolve: give the request as arguments or with --stdin, exactly one", file=sys.stderr)
+        return 2
+    request = sys.stdin.read().strip() if a.stdin else " ".join(a.request)
+    out = rs.resolve(request, caps, _profiles(a.e2e), run_dir=a.run_dir)
     sys.stdout.write(_dump(out) if a.json else rs.render(out))
     return 0 if out["status"] == "resolved" else 1
 
@@ -336,7 +340,9 @@ def build_parser():
     pe.add_argument("--json", action="store_true", help="print as JSON")
     pe.add_argument("--no-vault-cli", action="store_true", help="re-derive the hashes offline only (skip `wicked-vault verify`)")
     pq = sub.add_parser("resolve", help="read a plain request as an action and a selection (deterministic; runs nothing)")
-    pq.add_argument("request", nargs="+", help='the request, e.g. "test the run page"')
+    pq.add_argument("request", nargs="*", help='the request, e.g. "test the run page"')
+    pq.add_argument("--stdin", action="store_true",
+                    help="read the request from standard input (an agent passes free text this way, never in argv)")
     pq.add_argument("--run-dir", help="an earlier run directory (for re-run, report, evidence, validate --report)")
     pq.add_argument("--json", action="store_true", help="print the resolution as JSON")
     pf = sub.add_parser("surfaces", help="extract surface manifests")
