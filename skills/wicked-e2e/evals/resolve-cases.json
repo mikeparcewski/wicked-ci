@@ -1,0 +1,43 @@
+{
+ "version": 1,
+ "$comment": "Router evals: a plain request -> the action and selection `e2e resolve` must produce. Deterministic: skills/tests/test_skills.py runs the resolver itself (no model). `run_dir: true` means the case runs with the fixture run directory below. Only the listed `expect` fields are compared.",
+ "run_fixture": {
+  "target": "fixture",
+  "results": {
+   "crew-api.standing-orders.read": "pass",
+   "crew-api.runs.cancel": "fail",
+   "studio-ui.rail.order": "error",
+   "studio-ui.rail.badge-count": "partial",
+   "crew-api.runs.archive": "skipped"
+  }
+ },
+ "cases": [
+  {"request": "test the run page", "expect": {"action": "run", "status": "resolved", "selection": "tag:run-page", "target": "fixture", "ask_before_running": true}},
+  {"request": "certify plugins", "expect": {"action": "run", "status": "resolved", "selection": "area:plugins-and-installs"}},
+  {"request": "smoke", "expect": {"action": "run", "status": "resolved", "profile": "smoke", "selection": null}},
+  {"request": "everything about sign-in", "expect": {"action": "run", "status": "resolved", "selection": "tag:sign-in,signin", "profile": null}},
+  {"request": "what's not covered", "expect": {"action": "validate-coverage", "status": "resolved", "selection": null, "ask_before_running": false}},
+  {"request": "re-run what failed", "run_dir": true, "expect": {"action": "rerun", "status": "resolved", "selection": "id:crew-api.runs.cancel,studio-ui.rail.order", "target": "fixture"}},
+  {"request": "re-run what failed", "expect": {"action": "rerun", "status": "needs-input"}},
+  {"request": "show me the plan for the release profile", "expect": {"action": "plan", "status": "resolved", "profile": "release", "ask_before_running": false}},
+  {"request": "how long would the daily run take", "expect": {"action": "plan", "status": "resolved", "profile": "daily"}},
+  {"request": "test the estate MCP tools", "expect": {"action": "run", "status": "resolved", "selection": "area:estate tag:mcp"}},
+  {"request": "certify the editors", "expect": {"action": "run", "status": "resolved", "selection": "tag:editors"}},
+  {"request": "run the gates checks against http://127.0.0.1:7801", "expect": {"action": "run", "status": "resolved", "selection": "tag:gates", "target": "live", "studio": "http://127.0.0.1:7801", "ask_before_running": true}},
+  {"request": "test the studio against :7701", "expect": {"action": "run", "status": "refused", "target": "live", "commands": []}},
+  {"request": "certify the run page on http://localhost:7721/", "expect": {"status": "refused", "commands": []}},
+  {"request": "summarise the last run", "run_dir": true, "expect": {"action": "report", "status": "resolved"}},
+  {"request": "summarise the last run", "expect": {"action": "report", "status": "needs-input"}},
+  {"request": "show me the video for studio-ui.rail.order", "run_dir": true, "expect": {"action": "evidence", "status": "resolved", "selection": "id:studio-ui.rail.order"}},
+  {"request": "is the run report complete", "run_dir": true, "expect": {"action": "validate-report", "status": "resolved"}},
+  {"request": "test the foobar widget", "expect": {"action": "run", "status": "no-match", "selection": null, "ignored": ["foobar", "widget"]}},
+  {"request": "certify crew-api.standing-orders.read", "expect": {"action": "run", "status": "resolved", "selection": "id:crew-api.standing-orders.read", "ask_before_running": false}},
+  {"request": "cheap studio checks", "expect": {"action": "run", "status": "resolved", "selection": "area:studio-ui cost<=S", "ask_before_running": false}},
+  {"request": "test everything", "expect": {"action": "run", "status": "resolved", "profile": "full", "ask_before_running": true}},
+  {"request": "check the bus", "expect": {"action": "run", "status": "resolved", "selection": "tag:bus"}},
+  {"request": "studio smoke", "expect": {"action": "run", "status": "resolved", "selection": "area:studio-ui tag:smoke", "profile": null}},
+  {"request": "run tag:qe cost<=S", "expect": {"action": "run", "status": "resolved", "selection": "tag:qe cost<=S"}},
+  {"request": "test the live daemon", "expect": {"target": "live", "status": "needs-input"}},
+  {"request": "everything about sign-in in the ui", "expect": {"status": "resolved", "selection": "tag:sign-in,signin area:studio-ui"}}
+ ]
+}

@@ -1,0 +1,241 @@
+"""Phase 3 CLI helpers the skills call: the plan summary (`run --plan-only`), the report's
+blockers, `e2e evidence` and `e2e resolve` edge cases (stdlib unittest; fake adapter, stub vault).
+
+The router evals (request -> selection) live with the skill: skills/tests/test_skills.py.
+"""
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from contextlib import redirect_stdout
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+E2E = os.path.dirname(HERE)
+sys.path.insert(0, os.path.join(E2E, "lib"))
+sys.path.insert(0, HERE)
+
+from e2ecat import deps, evidence as evm, plansum, report, resolve as rs, run as runmod, validate as v  # noqa: E402
+from e2ecat.adapters import write_json  # noqa: E402
+from e2ecat.util import read_json, read_text  # noqa: E402
+from test_runner import STUB_VAULT, FakeAdapter, cap, run_args  # noqa: E402
+
+
+class Fixture(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="e2e-phase3-test-")
+        self.out = os.path.join(self.tmp, "run")
+        self.old_vault = os.environ.get("E2E_VAULT")
+        os.environ["E2E_VAULT"] = json.dumps(STUB_VAULT)
+        self.caps = [
+            cap("crew-api.health.ok", deps=["daemon"]),
+            cap("crew-api.health.partial", oracle={"kind": "api", "method": "GET", "path": "/api/v1/health",
+                                                   "expect": {"status": 200}, "complete": False, "untyped": ["more"]}),
+            cap("studio-ui.page.shows", surface="ui", required_evidence=["video", "screenshot", "trace"],
+                oracle={"kind": "dom", "selector": "[data-testid=x]", "assert": "visible", "complete": True},
+                scenarios=[{"ref": "fake:fixture/journey", "fidelity": "e2e-fixture"}]),
+            cap("crew-api.needs.container", deps=["container runtime"]),
+            cap("crew-api.only.planned", scenarios=["planned"]),
+            cap("crew-api.manual.one", oracle={"kind": "manual", "category": "human-gui", "reason": "a login"}),
+        ]
+        self.fake = FakeAdapter()
+
+    def tearDown(self):
+        if self.old_vault is None:
+            os.environ.pop("E2E_VAULT", None)
+        else:
+            os.environ["E2E_VAULT"] = self.old_vault
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def execute(self, **kw):
+        class NoContainer(deps.Probe):
+            def check(self, cls, dep):
+                return (False, "no container runtime") if cls == "container" else super().check(cls, dep)
+        orig = deps.Probe
+        runmod.depsmod.Probe = NoContainer
+        buf = io.StringIO()
+        try:
+            with redirect_stdout(buf):
+                rc = runmod.execute(run_args(self.out, **kw), E2E, self.caps, {}, "", None, adapters=[self.fake])
+        finally:
+            runmod.depsmod.Probe = orig
+        return rc, buf.getvalue()
+
+
+class PlanSummary(Fixture):
+    def test_plan_only_prints_and_writes_an_honest_summary(self):
+        (_, rc), text = self.execute(plan_only=True)
+        self.assertEqual(rc, 0)
+        self.assertEqual(self.fake.runs, [], "a plan runs nothing")
+        s = read_json(os.path.join(self.out, "plan.json"))["summary"]
+        self.assertEqual((s["selected"], s["will_run"], s["skipped"]), (6, 4, 2))
+        self.assertEqual(s["ceilings"], {"pass": 1, "partial": 2, "manual": 1},
+                         "only the complete hermetic one can pass; partial oracle and fixture fidelity cap at partial")
+        self.assertEqual(set(s["skips"]), {"container runtime", "scenario:planned"})
+        self.assertIn("daemon", s["requirements"])
+        self.assertEqual(s["requirements"]["daemon"]["provided"], 1, "the fake scenario provides the daemon")
+        self.assertGreater(s["estimate"]["high_s"], s["estimate"]["low_s"])
+        self.assertTrue(all(u["basis"] for u in s["units"]))
+        self.assertFalse(s["ask_before_running"], "all cost S on the fixture target")
+        self.assertIn("best possible verdicts: pass 1, partial 2, manual 1", text)
+        self.assertIn("skipped before running", text)
+
+    def test_cost_m_or_l_asks(self):
+        self.caps[0] = cap("crew-api.health.ok", cost="L")
+        (_, _), text = self.execute(plan_only=True)
+        s = read_json(os.path.join(self.out, "plan.json"))["summary"]
+        self.assertTrue(s["ask_before_running"])
+        self.assertIn("ask before running", text)
+
+    def test_live_target_asks_and_names_the_daemon(self):
+        class Ctx:
+            target, studio_url, live_journeys = "live", "http://127.0.0.1:7801", True
+        s = plansum.summarize([], [], {}, Ctx())
+        self.assertTrue(s["ask_before_running"])
+        self.assertIn("--live-journeys", s["ask_reasons"][0])
+
+    def test_ceiling_of_direct_reads_on_a_driven_path(self):
+        c = cap("crew-api.runs.launch", user_path="POST /api/v1/runs {}")
+
+        class U:
+            class adapter:
+                name = "direct"
+        self.assertEqual(plansum.ceiling(c, U, {"fidelity": "e2e-live"})[0], "partial")
+        self.assertEqual(plansum.ceiling(cap("crew-api.health.ok"), U, {"fidelity": "e2e-live"})[0], "pass")
+
+
+class Blockers(Fixture):
+    def test_report_lists_what_blocks_a_pass(self):
+        self.execute()
+        doc = read_json(os.path.join(self.out, "report.json"))
+        b = doc["blockers"]
+        self.assertIn("partial: incomplete oracle (untyped clauses)", b)
+        self.assertIn("partial: scenario fidelity e2e-fixture is not certification", b)
+        self.assertIn("skipped: no scenario exists yet (planned)", b)
+        self.assertIn("manual oracle (never a pass)", b)
+        self.assertTrue(any(k.startswith("skipped: unmet dependency") for k in b), b)
+        self.assertNotIn("crew-api.health.ok", [c for g in b.values() for c in g["capabilities"]], "a pass has no blocker")
+        md = read_text(os.path.join(self.out, "report.md"))
+        self.assertIn("## What blocks a pass", md)
+        self.assertIn("What blocks a pass", read_text(os.path.join(self.out, "report.html")))
+
+    def test_blocks_reads_structure_not_reason_text(self):
+        c = cap("x.y.z")
+        self.assertEqual(report.blocks(c, {"verdict": "pass", "reason": "the oracle is partial"}), [])
+        self.assertEqual(report.blocks(c, {"verdict": "skipped", "skip": {"dep": "checkout:wicked-crew"}}),
+                         ["skipped: missing checkout (wicked-crew; pass --src or --checkout)"])
+        self.assertEqual(report.blocks(c, {"verdict": "partial", "observed": [{"ok": True, "wildcard": True}],
+                                           "scenario": {"adapter": "smoke", "fidelity": "e2e-hermetic"}}),
+                         ["partial: a check held only on something not tied to this path (wildcard)"])
+        self.assertEqual(report.blocks(c, {}), ["no result.json (the run did not record it)"])
+
+
+class Evidence(Fixture):
+    def cli(self, *args):
+        return subprocess.run([sys.executable, os.path.join(E2E, "bin", "e2e")] + list(args), capture_output=True,
+                              text=True, timeout=60, env=dict(os.environ, E2E_VAULT=json.dumps(STUB_VAULT)))
+
+    def test_intact_evidence_lists_every_file(self):
+        self.execute()
+        out = evm.inspect(self.out, "studio-ui.page.shows")
+        self.assertTrue(out["intact"], out["problems"])
+        kinds = {r["kind"] for r in out["evidence"]}
+        self.assertLessEqual({"video", "screenshot", "trace"}, kinds)
+        self.assertTrue(all(r["status"] == "ok" for r in out["evidence"]))
+        self.assertEqual(out["vault"].get("verify"), "pass")
+        r = self.cli("evidence", self.out, "studio-ui.page.shows")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("integrity: INTACT", r.stdout)
+
+    def test_edited_deleted_and_flipped_are_not_intact(self):
+        self.execute()
+        res = read_json(os.path.join(self.out, "studio-ui.page.shows", "result.json"))
+        vid = res["evidence"]["video"][0]
+        shot = res["evidence"]["screenshot"][0]
+        with open(os.path.join(self.out, shot), "ab") as fh:
+            fh.write(b"x")
+        os.remove(os.path.join(self.out, vid))
+        out = evm.inspect(self.out, "studio-ui.page.shows", use_cli=False)
+        st = {r["path"]: r["status"] for r in out["evidence"]}
+        self.assertEqual(st[vid], "gone")
+        self.assertEqual(st[shot], "changed")
+        self.assertFalse(out["intact"])
+        p = os.path.join(self.out, "crew-api.health.partial", "result.json")
+        r = read_json(p)
+        r["verdict"] = "pass"
+        write_json(p, r)
+        out = evm.inspect(self.out, "crew-api.health.partial", use_cli=False)
+        self.assertEqual(out["result"]["status"], "changed")
+        self.assertFalse(out["intact"])
+        cp = self.cli("evidence", self.out, "crew-api.health.partial", "--no-vault-cli", "--json")
+        self.assertEqual(cp.returncode, 1)
+        self.assertFalse(json.loads(cp.stdout)["intact"])
+
+    def test_an_unsealed_run_is_never_intact(self):
+        self.execute(no_vault=True)
+        out = evm.inspect(self.out, "crew-api.health.ok")
+        self.assertFalse(out["intact"])
+        self.assertTrue(all(r["status"] == "unverified" for r in out["evidence"]))
+
+    def test_unknown_capability_is_an_error(self):
+        self.execute()
+        r = self.cli("evidence", self.out, "nope.nope.nope")
+        self.assertEqual(r.returncode, 2)
+
+
+class ResolveEdges(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        _, _, cls.caps = v.load_catalog(E2E)
+        cls.profiles = read_json(os.path.join(E2E, "profiles.json"))["profiles"]
+
+    def r(self, text, **kw):
+        return rs.resolve(text, self.caps, self.profiles, **kw)
+
+    def test_operator_ports_are_refused_in_every_spelling(self):
+        for text in ("test it on http://127.0.0.1:7701", "studio on :7721", "check the bus at http://localhost:7701/api"):
+            out = self.r(text)
+            self.assertEqual(out["status"], "refused", text)
+            self.assertEqual(out["commands"], [], text)
+
+    def test_a_rerun_of_an_operator_port_run_is_refused(self):
+        tmp = tempfile.mkdtemp(prefix="e2e-resolve-")
+        try:
+            write_json(os.path.join(tmp, "run.json"), {"target": "live", "studio": "http://127.0.0.1:7701",
+                                                       "capabilities": ["crew-api.runs.cancel"]})
+            write_json(os.path.join(tmp, "crew-api.runs.cancel", "result.json"), {"verdict": "fail"})
+            out = self.r("re-run what failed", run_dir=tmp)
+            self.assertEqual(out["status"], "refused")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_nothing_failed_means_nothing_to_rerun(self):
+        tmp = tempfile.mkdtemp(prefix="e2e-resolve-")
+        try:
+            write_json(os.path.join(tmp, "run.json"), {"target": "fixture", "capabilities": ["crew-api.runs.cancel"]})
+            write_json(os.path.join(tmp, "crew-api.runs.cancel", "result.json"), {"verdict": "partial"})
+            out = self.r("re-run what failed", run_dir=tmp)
+            self.assertEqual(out["status"], "no-match")
+            self.assertIsNone(out["selection"])
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_the_plan_action_never_asks_but_the_run_does(self):
+        self.assertFalse(self.r("plan the release profile")["ask_before_running"])
+        self.assertTrue(self.r("run the release profile")["ask_before_running"])
+
+    def test_every_suggested_command_parses(self):
+        import shlex
+        from e2ecat import cli
+        for text in ("test the run page", "smoke", "what's not covered", "check the bus against http://127.0.0.1:7801",
+                     "summarise the last run", "show me the evidence for crew-api.runs.cancel"):
+            for c in self.r(text)["commands"]:
+                with self.subTest(cmd=c):
+                    a = cli.build_parser().parse_args(shlex.split(c)[1:])  # argparse exits on an unknown flag
+                    self.assertTrue(a.cmd)
+
+if __name__ == "__main__":
+    unittest.main()

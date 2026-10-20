@@ -222,3 +222,76 @@ def check_bundle(run_dir, run, selected, results, vault_argv=None, use_cli=True)
             if not ok:
                 fails.append("%s: wicked-vault verify %s did not pass: %s" % (cid, aid, doc.get("detail") or doc))
     return fails
+
+
+def inspect(run_dir, cid, use_cli=True, vault_argv=None):
+    """One capability's evidence, file by file, with its integrity against the vault's frozen manifest.
+
+    Returns {"id", "verdict", "scenario", "evidence": [{"kind", "path", "abs", "sha256", "status"}],
+    "result": {...}, "vault": {...}, "intact": bool, "problems": [...]}. A file's status is `ok` (its hash
+    matches the frozen copy), `changed`, `gone` or `not-recorded`; `intact` is true only when the run is
+    sealed, every file and result.json match, and (with the CLI) `wicked-vault verify` passes."""
+    run_dir = os.path.abspath(run_dir)
+    with open(os.path.join(run_dir, "run.json"), encoding="utf-8") as fh:
+        run = json.load(fh)
+    rp = os.path.join(run_dir, cid, "result.json")
+    if cid not in run.get("capabilities", []):
+        raise KeyError("%s is not a capability of this run" % cid)
+    if not os.path.isfile(rp):
+        raise KeyError("%s has no result.json in this run" % cid)
+    with open(rp, encoding="utf-8") as fh:
+        res = json.load(fh)
+    problems, man = [], None
+    vinfo = run.get("vault") or {}
+    vault = {"scope": vinfo.get("scope"), "entry": None, "sealed": bool(vinfo.get("scope")) and not vinfo.get("disabled")}
+    if not vault["sealed"]:
+        problems.append("the run is not sealed in wicked-vault (%s): nothing can be verified" % (
+            vinfo.get("disabled") or "no vault entry"))
+    else:
+        idx_p = os.path.join(run_dir, vinfo.get("index", "vault-index.json"))
+        index = {}
+        if os.path.isfile(idx_p):
+            with open(idx_p, encoding="utf-8") as fh:
+                index = json.load(fh)
+        aid = (index.get("entries") or {}).get(cid)
+        vault["entry"] = aid
+        man, err = _frozen(os.path.join(run_dir, ".wicked-vault"), vinfo.get("scope"), cid, aid)
+        if err:
+            problems.append(err)
+    files = (man or {}).get("files") or {}
+    result_ok = bool(man) and sha256_file(rp) == man.get("result_sha256")
+    if man and not result_ok:
+        problems.append("result.json changed after it was recorded (the verdict may have been edited)")
+    rows = []
+    for kind, paths in sorted((res.get("evidence") or {}).items()):
+        for p in (paths if isinstance(paths, list) else [paths]):
+            full = os.path.join(run_dir, p)
+            h = sha256_file(full) if os.path.isfile(full) else None
+            if h is None:
+                st = "gone"
+            elif not man:
+                st = "unverified"
+            elif p not in files:
+                st = "not-recorded"
+            elif files[p] != h:
+                st = "changed"
+            else:
+                st = "ok"
+            if st in ("gone", "not-recorded", "changed"):
+                problems.append("%s %s: %s" % (kind, p, st))
+            rows.append({"kind": kind, "path": p, "abs": full, "sha256": h, "status": st})
+    for p in sorted(set(files) - {r["path"] for r in rows}):
+        problems.append("recorded evidence %s is no longer listed in result.json" % p)
+    if use_cli and vault["entry"]:
+        cli = Vault(run_dir, argv=vault_argv)
+        if cli.argv:
+            ok, doc = cli.verify(vault["entry"])
+            vault["verify"] = "pass" if ok else "fail"
+            if not ok:
+                problems.append("wicked-vault verify %s did not pass: %s" % (vault["entry"], doc.get("detail") or doc))
+        else:
+            vault["verify"] = "skipped (wicked-vault CLI not found)"
+    return {"id": cid, "verdict": res.get("verdict"), "reason": res.get("reason"), "scenario": res.get("scenario"),
+            "evidence": rows, "result": {"path": "%s/result.json" % cid, "abs": rp, "status": "ok" if result_ok else
+                                         ("changed" if man else "unverified")},
+            "vault": vault, "intact": vault["sealed"] and not problems, "problems": problems}

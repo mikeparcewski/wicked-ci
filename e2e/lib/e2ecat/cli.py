@@ -148,6 +148,43 @@ def cmd_select(a):
     return 0
 
 
+def cmd_evidence(a):
+    from . import evidence as evm
+    try:
+        out = evm.inspect(a.run_dir, a.cap_id, use_cli=not a.no_vault_cli)
+    except (OSError, ValueError, KeyError) as e:
+        print("e2e evidence: %s" % (e.args[0] if isinstance(e, KeyError) else e), file=sys.stderr)
+        return 2
+    if a.json:
+        sys.stdout.write(_dump(out))
+    else:
+        sc = out["scenario"] or {}
+        print("%s: verdict %s%s" % (out["id"], out["verdict"], " via %s at %s" % (sc.get("ref"), sc.get("fidelity")) if sc else ""))
+        if out["reason"]:
+            print("  reason: %s" % out["reason"][:400])
+        for r in out["evidence"]:
+            print("  %-15s %-12s %s" % (r["kind"], r["status"], r["abs"]))
+        print("  %-15s %-12s %s" % ("result.json", out["result"]["status"], out["result"]["abs"]))
+        vlt = out["vault"]
+        print("vault: %s" % ("scope %s, entry %s%s" % (vlt["scope"], vlt["entry"], ", verify %s" % vlt["verify"] if vlt.get("verify") else "")
+                             if vlt["sealed"] else "NOT sealed"))
+        for p in out["problems"]:
+            print("problem: %s" % p)
+        print("integrity: %s" % ("INTACT" if out["intact"] else "NOT INTACT"))
+    return 0 if out["intact"] else 1
+
+
+def cmd_resolve(a):
+    from . import resolve as rs
+    _, _, caps = v.load_catalog(a.e2e)
+    if a.run_dir and not os.path.isfile(os.path.join(a.run_dir, "run.json")):
+        print("e2e resolve: %s has no run.json" % a.run_dir, file=sys.stderr)
+        return 2
+    out = rs.resolve(" ".join(a.request), caps, _profiles(a.e2e), run_dir=a.run_dir)
+    sys.stdout.write(_dump(out) if a.json else rs.render(out))
+    return 0 if out["status"] == "resolved" else 1
+
+
 def cmd_surfaces(a):
     out = a.out or os.path.join(a.e2e, "surfaces")
     src_pins = os.path.join(a.e2e, "surfaces", "pins.json")  # the pins are always read from the repo
@@ -245,7 +282,7 @@ def cmd_baseline(a):
     return 0
 
 
-def main(argv):
+def build_parser():
     here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     p = argparse.ArgumentParser(prog="e2e", description="wicked platform certification catalog tool")
     p.add_argument("--e2e", default=here, help=argparse.SUPPRESS)
@@ -292,6 +329,15 @@ def main(argv):
     ps = sub.add_parser("select", help="print the capabilities an expression selects")
     ps.add_argument("expr", nargs="?", default="")
     ps.add_argument("--profile")
+    pe = sub.add_parser("evidence", help="list one capability's evidence files and check them against the vault")
+    pe.add_argument("run_dir")
+    pe.add_argument("cap_id")
+    pe.add_argument("--json", action="store_true", help="print as JSON")
+    pe.add_argument("--no-vault-cli", action="store_true", help="re-derive the hashes offline only (skip `wicked-vault verify`)")
+    pq = sub.add_parser("resolve", help="read a plain request as an action and a selection (deterministic; runs nothing)")
+    pq.add_argument("request", nargs="+", help='the request, e.g. "test the run page"')
+    pq.add_argument("--run-dir", help="an earlier run directory (for re-run, report, evidence, validate --report)")
+    pq.add_argument("--json", action="store_true", help="print the resolution as JSON")
     pf = sub.add_parser("surfaces", help="extract surface manifests")
     g = pf.add_mutually_exclusive_group(required=True)
     g.add_argument("--src", help="a directory holding the repo checkouts")
@@ -303,6 +349,11 @@ def main(argv):
     pb = sub.add_parser("baseline", help="print or write the known-unmapped baseline")
     pb.add_argument("--path", default=os.path.join(here, "coverage-baseline.json"))
     pb.add_argument("--write", action="store_true")
-    a = p.parse_args(argv)
+    return p
+
+
+def main(argv):
+    a = build_parser().parse_args(argv)
     return {"validate": cmd_validate, "select": cmd_select, "surfaces": cmd_surfaces, "baseline": cmd_baseline,
-            "drift": cmd_drift, "run": cmd_run, "report": cmd_report}[a.cmd](a)
+            "drift": cmd_drift, "run": cmd_run, "report": cmd_report, "resolve": cmd_resolve,
+            "evidence": cmd_evidence}[a.cmd](a)
