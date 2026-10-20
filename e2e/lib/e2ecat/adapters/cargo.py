@@ -104,9 +104,10 @@ class CargoAdapter(Adapter):
                     o = Outcome("failed", "FAILED %s" % f, s.get("fidelity"))
                 elif all(v == "ignored" for v in mine.values()):
                     o = Outcome("error", "%s is #[ignore]d" % f, s.get("fidelity"))
-                elif rc != 0:
-                    o = Outcome("failed" if rc is not None else "error",
-                                "ok %s, but cargo exited %s" % (f, rc), s.get("fidelity"))
+                elif rc is None:
+                    o = Outcome("error", "ok %s, but cargo timed out" % f, s.get("fidelity"))
+                elif rc != 0 and "FAILED" not in results.values():
+                    o = Outcome("failed", "ok %s, but cargo exited %s with no failing test" % (f, rc), s.get("fidelity"))
                 else:
                     o = Outcome("passed", "ok %s" % f, s.get("fidelity"))
             else:

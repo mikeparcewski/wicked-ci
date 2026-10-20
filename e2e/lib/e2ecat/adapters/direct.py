@@ -159,8 +159,8 @@ class DirectClient:
         elif target == "release":
             path = "repos/%s/releases/latest" % repo
         elif target == "pr":
-            n = ch.get("number") or bindings.get("pr")
-            if not n:
+            n = bind(str(ch.get("number") or bindings.get("pr") or ""), bindings)
+            if not n or unbound(n):
                 return None
             path = "repos/%s/pulls/%s" % (repo, n)
         else:

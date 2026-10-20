@@ -67,7 +67,7 @@ def jsonpath(doc, path):
             for v in cur:
                 for el in (v if isinstance(v, list) else []):
                     got = dig(el, key)
-                    if (got == want) == (op == "=="):
+                    if jeq(got, want) == (op == "=="):
                         nxt.append(el)
         else:  # wildcard
             for v in cur:
@@ -75,6 +75,19 @@ def jsonpath(doc, path):
         cur = nxt
         pos = m.end()
     return cur
+
+
+def jeq(a, b):
+    """JSON equality: a boolean equals only a boolean (Python's `1 == True` does not hold in JSON)."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return isinstance(a, bool) and isinstance(b, bool) and a is b
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(jeq(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(jeq(x, y) for x, y in zip(a, b))
+    if _num(a) and _num(b):
+        return a == b
+    return type(a) is type(b) and a == b
 
 
 def dig(obj, dotted):
@@ -114,8 +127,8 @@ def bind_value(v, bindings):
 def compare(doc, cmp_, bindings=None):
     """One `{path, op, value}` comparison over a JSON document: (holds, observed values). Raises Unbound
     when the expected value names an unbound placeholder."""
-    vals = jsonpath(doc, cmp_["path"])
     op, want = cmp_.get("op", "eq"), bind_value(cmp_.get("value"), bindings)
+    vals = jsonpath(doc, bind_value(cmp_["path"], bindings))
     if op == "exists":
         return bool(vals), vals[:3]
     if op == "absent":
@@ -125,11 +138,11 @@ def compare(doc, cmp_, bindings=None):
 
     def one(v):
         if op == "eq":
-            return v == want
+            return jeq(v, want)
         if op == "ne":
-            return v != want
+            return not jeq(v, want)
         if op == "in":
-            return isinstance(want, list) and v in want
+            return isinstance(want, list) and any(jeq(v, w) for w in want)
         if op == "matches":
             return isinstance(v, str) and re.search(str(want), v) is not None
         if op in ("gt", "gte", "lt", "lte"):
@@ -142,8 +155,8 @@ def compare(doc, cmp_, bindings=None):
             if isinstance(v, str):
                 return isinstance(want, str) and want in v
             if isinstance(v, list):
-                return want in v or (isinstance(want, dict) and any(
-                    isinstance(e, dict) and all(e.get(k) == x for k, x in want.items()) for e in v))
+                return any(jeq(e, want) for e in v) or (isinstance(want, dict) and any(
+                    isinstance(e, dict) and all(k in e and jeq(e[k], x) for k, x in want.items()) for e in v))
             return False
         raise PathError("unknown op %r" % op)
 
@@ -283,13 +296,29 @@ def _status_ok(want, got):
     return got in want if isinstance(want, list) else got == want
 
 
+def _str_match(w, got):
+    """(holds, loose) for a string pattern whose unbound {placeholders} match any non-empty text."""
+    if not unbound(w):
+        return isinstance(got, str) and got == w, False
+    if PLACEHOLDER.fullmatch(w):
+        return got is not None, True  # any value at all, tied to nothing
+    return isinstance(got, str) and _token_rx(w).match(got) is not None, True
+
+
 def _subset(want, got, bindings):
     """(holds, unbound?): every field the check's body names is in the recorded request body, equal."""
     if isinstance(want, str):
-        w = bind(want, bindings)
-        if unbound(w):
-            return True, True  # a placeholder the run never bound: matches anything, tied to nothing
-        return w == got or str(got) == w, False
+        return _str_match(bind(want, bindings), got)
+    if isinstance(want, list):
+        if not isinstance(got, list) or len(got) != len(want):
+            return False, False
+        loose = False
+        for w, g in zip(want, got):
+            ok, u = _subset(w, g, bindings)
+            if not ok:
+                return False, False
+            loose = loose or u
+        return True, loose
     if isinstance(want, dict):
         if not isinstance(got, dict):
             return False, False
@@ -302,9 +331,7 @@ def _subset(want, got, bindings):
                 return False, False
             loose = loose or u
         return True, loose
-    if isinstance(want, list):
-        return want == got, False
-    return want == got, False
+    return jeq(want, got), False
 
 
 def body_matches(ch, h, bindings):
@@ -318,6 +345,12 @@ def body_matches(ch, h, bindings):
 
 def _api_holds(ch, h, bindings=None):
     exp = ch.get("expect") or {}
+    # An expectation the run cannot bind is undecidable, whatever else mismatches (raise before deciding).
+    for cmp_ in exp.get("json", []) or []:
+        bind_value(cmp_.get("value"), bindings)
+        bind_value(cmp_.get("path"), bindings)
+    if "error_code" in exp:
+        bind_value(exp["error_code"], bindings)
     if not _status_ok(exp.get("status"), h["status"]):
         return False, {"status": h["status"]}
     seen = {"status": h["status"]}
@@ -435,9 +468,10 @@ def eval_event(ch, obs, bindings):
             em, _, ep = (e["type"] or "").partition(" ")
             if m.upper() != em.upper() or not request_matches(p, ep):
                 continue
-        elif e["type"] != typ:
+        elif not _str_match(typ, e["type"])[0]:
             continue
-        if all((isinstance(v, str) and unbound(v)) or dig(e["data"], k) == v for k, v in where.items()):
+        if all(_str_match(v, dig(e["data"], k))[0] if isinstance(v, str) and unbound(v) else jeq(dig(e["data"], k), v)
+               for k, v in where.items()):
             hits.append(e)
     ok, txt = _count_ok(ch.get("count"), len(hits), complete)
     if ok is False and loose:
@@ -506,10 +540,10 @@ def _exit_holds(ch, e):
     return ok
 
 
-def _direct_exit(ch, e, direct_definitive):
+def _direct_exit(ch, e, direct_definitive, wildcard=False):
     val = {"code": e["code"], "argv": " ".join(map(str, e["argv"]))}
     if _exit_holds(ch, e):
-        return _res(True, val, "direct")
+        return _res(True, val, "direct", wildcard=wildcard)
     return _res(False, val, "direct") if direct_definitive else _res(None, val, "direct: unsatisfied")
 
 
@@ -519,7 +553,7 @@ def eval_exit(ch, obs, bindings, direct=None, direct_definitive=False):
     if cand:
         mine = [e for e in cand if e.get("source") == "direct"]
         if mine:  # the runner's own run (live target): decided like a direct GET
-            return _direct_exit(ch, mine[-1], direct_definitive and not unbound(cmd))
+            return _direct_exit(ch, mine[-1], direct_definitive and not unbound(cmd), wildcard=bool(unbound(cmd)))
         for e in cand:
             if _exit_holds(ch, e):
                 return _res(True, {"code": e["code"], "argv": " ".join(map(str, e["argv"]))}, "transcript",
@@ -592,15 +626,15 @@ def eval_file(ch, obs, bindings, examined):
             txt = fh.read()
         return _res(re.search(want, txt) is not None, {"path": path}, "file roots")
     if a == "json-path":
+        try:
+            jp = bind_value(ch.get("json_path"), bindings)
+            want = bind_value(ch.get("value"), bindings)
+        except Unbound as e:
+            return _res(None, {"path": path, "unbound": str(e)}, "not observed")
         with open(found, encoding="utf-8") as fh:
             doc = json.load(fh)
-        vals = jsonpath(doc, ch.get("json_path"))
-        want = ch.get("value")
-        if isinstance(want, str):
-            want = bind(want, bindings)
-            if unbound(want):
-                return _res(None, {"path": path, "values": vals[:3], "want": want}, "file roots")
-        return _res(any(v == want for v in vals), {"path": path, "values": vals[:3]}, "file roots")
+        vals = jsonpath(doc, jp)
+        return _res(any(jeq(v, want) for v in vals), {"path": path, "values": vals[:3]}, "file roots")
     return _res(None, "unknown assert %r" % a, "not observed")
 
 

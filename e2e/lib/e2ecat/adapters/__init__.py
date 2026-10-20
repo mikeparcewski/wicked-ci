@@ -121,25 +121,71 @@ def kill_tree(p, only_stragglers=False):
             pass
         return
     import signal
+    # Snapshot the descendants BEFORE signalling (once a parent dies its children re-parent and the tree
+    # is lost): a descendant that started its own session (a journey's daemon) is outside the group.
+    pids = descendants(p.pid)
     for sig, grace in ((signal.SIGTERM, 10), (signal.SIGKILL, 10)):
         try:
             os.killpg(p.pid, sig)
         except (ProcessLookupError, PermissionError):
-            break
+            pass
+        for pid in pids:
+            try:
+                os.kill(pid, sig)
+            except (ProcessLookupError, PermissionError):
+                pass
         deadline = time.monotonic() + grace
         while time.monotonic() < deadline:
-            try:
-                os.killpg(p.pid, 0)
-            except (ProcessLookupError, PermissionError):
+            p.poll()  # reap the leader, or its zombie keeps the group "alive"
+            if not (_group_alive(p.pid) or any(_alive(x) for x in pids)):
                 break
             time.sleep(0.2)
-        else:
-            continue
-        break
+        p.poll()
+        if not (_group_alive(p.pid) or any(_alive(x) for x in pids)):
+            break
     try:
         p.wait(timeout=10)
     except subprocess.TimeoutExpired:
         pass
+
+
+def descendants(root):
+    """Every live descendant pid of `root` (POSIX `ps`), found through parent links."""
+    try:
+        out = subprocess.run(["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    kids = {}
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            kids.setdefault(int(parts[1]), []).append(int(parts[0]))
+    found, todo = [], [root]
+    while todo:
+        for c in kids.get(todo.pop(), []):
+            if c not in found and c != root:
+                found.append(c)
+                todo.append(c)
+    return found
+
+
+def _alive(pid):
+    try:
+        os.kill(pid, 0)
+    except (ProcessLookupError, PermissionError):
+        return False
+    try:  # a zombie child of ours: reap it
+        return os.waitpid(pid, os.WNOHANG) == (0, 0)
+    except ChildProcessError:
+        return True
+
+
+def _group_alive(pgid):
+    try:
+        os.killpg(pgid, 0)
+        return True
+    except (ProcessLookupError, PermissionError):
+        return False
 
 
 def read_jsonl(path):

@@ -696,6 +696,88 @@ class ReviewFindings(unittest.TestCase):
         self.assertTrue(e2e_pw.negative({"assert": "hidden"}))
         self.assertFalse(e2e_pw.negative({"assert": "count", "value": 2}))
 
+    def test_third_review_round(self):
+        # JSON equality: 0 is not false, 1 is not true
+        doc = {"away": 0, "orders": [], "flag": 1, "list": [True]}
+        self.assertFalse(ob.compare(doc, {"path": "$.away", "op": "eq", "value": False})[0])
+        self.assertFalse(ob.compare(doc, {"path": "$.flag", "op": "in", "value": [True]})[0])
+        self.assertFalse(ob.compare(doc, {"path": "$.list", "op": "contains", "value": 1})[0])
+        self.assertTrue(ob.compare({"away": False}, {"path": "$.away", "op": "eq", "value": False})[0])
+        self.assertTrue(ob.compare({"n": 2}, {"path": "$.n", "op": "eq", "value": 2.0})[0])
+        # a final sample that fails voids every negative hold
+        sys.path.insert(0, os.path.join(E2E, "lib", "e2ecat", "pwhook"))
+        import e2e_pw
+        saved = list(e2e_pw._checks), dict(e2e_pw._state["final"])
+        try:
+            e2e_pw._checks[:] = [{"id": "c#0", "selector": "[data-testid=x]", "assert": "hidden"}]
+            e2e_pw._state["final"]["c#0"] = {"held": True, "value": {}, "url": "u"}
+            e2e_pw._final_failed("execution context destroyed")
+            self.assertFalse(e2e_pw._state["final"]["c#0"]["held"])
+        finally:
+            e2e_pw._checks[:] = saved[0]
+            e2e_pw._state["final"].clear()
+            e2e_pw._state["final"].update(saved[1])
+
+    def test_fourth_review_round(self):
+        # an unbound type on a non-network stream matches by pattern; a zero count is then decided on it
+        o = ob.Observations()
+        o.stream("bus", True)
+        o.add_event("bus", "wicked.run.r1.cancelled", {})
+        never = {"kind": "event", "source": "bus", "type": "wicked.run.{runId}.cancelled", "count": 0}
+        self.assertIsNone(ob.evaluate(never, o, {}, "c#0")["ok"], "a loose hit on a forbidden event: not decided")
+        o2 = ob.Observations()
+        o2.stream("bus", True)
+        self.assertIs(ob.evaluate(never, o2, {}, "c#0")["ok"], True)
+        # partially bound strings must keep their literal part
+        self.assertEqual(ob._subset({"name": "prefix-{id}"}, {"name": "other"}, {})[0], False)
+        self.assertEqual(ob._subset({"name": "prefix-{id}"}, {"name": "prefix-9"}, {}), (True, True))
+        self.assertEqual(ob._subset({"ids": ["{id}"]}, {"ids": ["a"]}, {}), (True, True))
+        self.assertEqual(ob._subset({"v": "None"}, {"v": None}, {})[0], False)
+        # an unbound placeholder inside a JSONPath filter is undecidable, not an `absent` hold
+        doc = {"items": [{"id": "a"}]}
+        with self.assertRaises(ob.Unbound):
+            ob.compare(doc, {"path": "$.items[?(@.id=='{itemId}')]", "op": "absent"})
+        self.assertTrue(ob.compare(doc, {"path": "$.items[?(@.id=='{itemId}')]", "op": "exists"}, {"itemId": "a"})[0])
+        # a status mismatch never pre-empts an unbound expectation on a definitive read
+        class Live:
+            def get(self, path):
+                return {"status": 500, "json": {}}
+        ch = {"kind": "api", "method": "GET", "path": "/api/v1/x", "expect": {"status": 200, "json": [
+            {"path": "$.id", "op": "eq", "value": "{runId}"}]}}
+        self.assertIsNone(ob.evaluate(ch, ob.Observations(), {}, "c#0", direct=Live(), direct_definitive=True)["ok"])
+        # the runner's own exit run through an unbound command is a wildcard hold
+        o3 = ob.Observations()
+        o3.cli.append({"argv": ["wicked-crew", "--version"], "code": 0, "stdout": "", "stderr": "", "source": "direct"})
+        r = ob.evaluate({"kind": "exit", "cmd": "wicked-crew {sub}", "code": 0}, o3, {}, "c#0")
+        self.assertTrue(r["ok"] and r.get("wildcard"))
+
+    @unittest.skipIf(os.name == "nt", "process groups: POSIX (Windows uses taskkill /T)")
+    def test_a_timeout_ends_a_descendant_in_its_own_session(self):
+        from e2ecat.adapters import run_logged
+        import time
+        d = tempfile.mkdtemp()
+        try:
+            pidf = os.path.join(d, "detached.pid")
+            code = ("import subprocess, sys, time\n"
+                    "g = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)\n"
+                    "open(%r, 'w').write(str(g.pid))\n"
+                    "time.sleep(60)\n" % pidf)
+            rc, _ = run_logged([sys.executable, "-c", code], d, dict(os.environ), os.path.join(d, "log"), 3)
+            self.assertIsNone(rc)
+            with open(pidf) as fh:
+                gpid = int(fh.read())
+            for _ in range(50):
+                try:
+                    os.kill(gpid, 0)
+                except ProcessLookupError:
+                    break
+                time.sleep(0.1)
+            else:
+                os.kill(gpid, 9)
+                self.fail("a descendant that started its own session survived the unit timeout")
+        finally:
+            shutil.rmtree(d)
+
     @unittest.skipIf(os.name == "nt", "process groups: POSIX (Windows uses taskkill /T)")
     def test_a_timeout_ends_the_whole_process_tree(self):
         from e2ecat.adapters import run_logged

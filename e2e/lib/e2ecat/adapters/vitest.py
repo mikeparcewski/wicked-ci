@@ -55,7 +55,8 @@ class VitestAdapter(Adapter):
         out = os.path.join(ctx.run_dir, "scenarios", unit.slug)
         os.makedirs(out, exist_ok=True)
         tap_file = os.path.join(out, "http-tap.jsonl")
-        cfg = os.path.join(pkg_dir, ".e2e-vitest.config.mts")
+        # One config per invocation: two runs sharing the checkout never delete each other's.
+        cfg = os.path.join(pkg_dir, ".e2e-vitest-%d-%s.config.mts" % (os.getpid(), unit.slug[-40:]))
         with open(cfg, "w", encoding="utf-8") as fh:
             fh.write(CONFIG % json.dumps(os.path.join(ctx.taps_dir, "vitest-tap.mjs").replace(os.sep, "/")))
         names = {s["params"]["name"] for s in unit.scenarios.values()}
@@ -96,7 +97,8 @@ class VitestAdapter(Adapter):
                     o = Outcome("error", "the named test was skipped", s.get("fidelity"))
                 elif rc is None:
                     o = Outcome("error", "vitest timed out (the unit ceiling)", s.get("fidelity"))
-                elif rc != 0:
+                elif rc != 0 and not any(t["status"] == "failed" for t in tests):
+                    # Nothing failed, yet vitest exited non-zero: a hook, teardown or the run itself broke.
                     o = Outcome("failed", "the named test passed but vitest exited %s (a hook or teardown failed)" % rc, s.get("fidelity"))
                 else:
                     o = Outcome("passed", "%d test(s) passed" % sum(t["status"] == "passed" for t in mine), s.get("fidelity"))

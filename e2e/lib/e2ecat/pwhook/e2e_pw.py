@@ -111,6 +111,8 @@ def sample(page, label, final=False, force=False):
     _in_sample.on = True
     try:
         if page.is_closed():
+            if final:
+                _final_failed("the page closed before its final sample")
             return
         res = page.evaluate(SAMPLE_JS, _checks)
         _state["last_sample"] = time.monotonic()
@@ -119,6 +121,8 @@ def sample(page, label, final=False, force=False):
         for c, r in zip(_checks, res):
             h = _holds(c, r)
             if h is None:
+                if final and negative(c):
+                    _state["final"][c["id"]] = {"held": False, "value": r.get("error"), "url": url}
                 continue
             held, value = h
             if final:
@@ -130,8 +134,17 @@ def sample(page, label, final=False, force=False):
                 _state["seen"][c["id"]] = {"ok": True, "value": value, "url": url, "at": label}
     except Exception as e:  # navigation in flight, page closing: a missed sample, never a failure
         _err("sample(%s)" % label, e)
+        if final:
+            _final_failed("final sample failed: %s" % e)
     finally:
         _in_sample.on = False
+
+
+def _final_failed(why):
+    """A page whose final state could not be read: no negative check may claim the end state held."""
+    for c in _checks:
+        if negative(c):
+            _state["final"][c["id"]] = {"held": False, "value": why, "url": None}
 
 
 def _dump():
@@ -157,24 +170,32 @@ def _shot_path(tag):
     return os.path.join(BASE, "shots", "%03d-%s.png" % (next(_shot_n), re.sub(r"[^\w.-]+", "_", tag)[:60]))
 
 
+def _final_page(page, rec, i):
+    """The final sample, screenshot and video path of one page (once)."""
+    if getattr(page, "_e2e_final", False):
+        return
+    page._e2e_final = True
+    try:
+        sample(page, "final", final=True)
+        _state["tag"] = "final-ctx%d-page%d" % (rec["n"], i)
+        page.screenshot()  # the patched screenshot keeps the copy under shots/
+        _state["tag"] = None
+    except Exception as e:
+        _err("final screenshot", e)
+    try:
+        if page.video:
+            rec["videos"].append(page.video.path())
+    except Exception as e:
+        _err("video path", e)
+
+
 def _finalize(ctx):
     rec = getattr(ctx, "_e2e_rec", None)
     if rec is None or rec["done"]:
         return
     rec["done"] = True
     for i, page in enumerate(list(ctx.pages)):
-        try:
-            sample(page, "final", final=True)
-            _state["tag"] = "final-ctx%d-page%d" % (rec["n"], i)
-            page.screenshot()  # the patched screenshot keeps the copy under shots/
-            _state["tag"] = None
-        except Exception as e:
-            _err("final screenshot", e)
-        try:
-            if page.video:
-                rec["videos"].append(page.video.path())
-        except Exception as e:
-            _err("video path", e)
+        _final_page(page, rec, i)
     if rec["tracing"]:
         try:
             p = os.path.join(BASE, "trace", "ctx-%d.zip" % rec["n"])
@@ -286,6 +307,10 @@ def install():
                     _err("finalize", e)
                 orig_page_close(self, *a, **kw)
             return ctx_close(owner)
+        rec = getattr(self.context, "_e2e_rec", None) if not self.is_closed() else None
+        if rec is not None and not rec["done"]:
+            # A page closed before its context: its end state counts too (a negative check must hold on it).
+            _final_page(self, rec, len(rec["videos"]))
         return orig_page_close(self, *a, **kw)
 
     def browser_close(self, *a, **kw):
