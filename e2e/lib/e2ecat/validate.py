@@ -60,6 +60,32 @@ def load_surfaces(e2e_dir=E2E, surfaces_dir=None):
     return out
 
 
+# Composite oracle kinds and the key holding their children. `all` is the only composite the schema has
+# today; a future one (any/sequence) registers here and inherits the same recursive rule.
+COMPOSITES = {"all": "of"}
+
+
+def _children(o):
+    key = COMPOSITES.get(o.get("kind")) if isinstance(o, dict) else None
+    return o.get(key) or [] if key else []
+
+
+def _node_complete(o):
+    """A node is complete only if it is typed (not manual), declares no `complete: false`, lists no `untyped`
+    clause, and every child, at any depth, is complete by the same rule."""
+    if not isinstance(o, dict) or o.get("kind") == "manual":
+        return False
+    if o.get("complete") is False or o.get("untyped"):
+        return False
+    return all(_node_complete(k) for k in _children(o))
+
+
+def oracle_complete(o):
+    """THE completeness of a capability's oracle: it must declare `complete: true` and be complete
+    recursively. Catalog validation, the summary and the run-report guard all use this one function."""
+    return isinstance(o, dict) and o.get("complete") is True and _node_complete(o)
+
+
 def _checks(oracle):
     if oracle["kind"] == "all":
         return oracle["of"]
@@ -127,9 +153,11 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
                 fails.append("%s: a typed oracle must say whether it is complete" % cid)
             elif o["complete"] and o.get("untyped"):
                 fails.append("%s: oracle is marked complete but lists untyped clauses" % cid)
+            elif o["complete"] and not oracle_complete(o):
+                fails.append("%s: oracle declares complete over an incomplete, untyped or manual child" % cid)
             elif not o["complete"] and not o.get("untyped"):
                 fails.append("%s: a partial oracle must list its untyped clauses" % cid)
-            if o.get("complete") and c.get("surface") == "ui" and not any(ch.get("kind") == "dom" for ch in _checks(o)):
+            if oracle_complete(o) and c.get("surface") == "ui" and not any(ch.get("kind") == "dom" for ch in _checks(o)):
                 fails.append("%s: a UI oracle without a dom check cannot be complete" % cid)
         elif isinstance(o, dict) and o.get("kind") == "manual" and isinstance(o.get("precheck"), dict):
             fails += ["%s: precheck: %s" % (cid, f) for f in check_semantics(_checks(o["precheck"]))]
@@ -347,7 +375,7 @@ def summary(caps, surfaces, unmapped):
             a["untyped"] += 1
         elif k == "manual":
             a["manual"] += 1
-        elif c["oracle"].get("complete"):
+        elif oracle_complete(c["oracle"]):
             a["typed_complete"] += 1
         else:
             a["typed_partial"] += 1
@@ -443,8 +471,8 @@ def check_report(run_dir, caps, profiles):
         o = cap["oracle"]
         if o["kind"] == "manual" and v == "pass":
             fails.append("%s: a manual oracle can never be `pass` (report `manual`)" % cid)
-        if o["kind"] != "manual" and not o.get("complete") and v == "pass":
-            fails.append("%s: the oracle is partial (complete=false); report `partial`, not `pass`" % cid)
+        if o["kind"] != "manual" and not oracle_complete(o) and v == "pass":
+            fails.append("%s: the oracle is partial (it, or a child, is incomplete or untyped); report `partial`, not `pass`" % cid)
         if v != "skipped" and o["kind"] != "manual":
             n = len(_checks(o))
             obs = res.get("observed")

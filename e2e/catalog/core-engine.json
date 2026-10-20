@@ -1032,7 +1032,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core rules fanout {dir} --enforcement-db F --discovery-db F --knowledge-db F --manifest OUT.json",
+    "cmd": "wicked-core rules fanout {dir} --enforcement-db {enforcement_db} --discovery-db {discovery_db} --knowledge-db {knowledge_db} --manifest {manifest}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -1648,7 +1648,7 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "wicked-core seed-domain-validators --db F",
+      "cmd": "wicked-core seed-domain-validators --db {db}",
       "code": 0
      },
      {
@@ -2854,14 +2854,13 @@
   {
    "id": "core.deliver.secret-guard",
    "title": "Seat-secret guard: a seat credential never leaves with the work",
-   "surface": "ui",
-   "user_path": "Studio the run page /s/run:{runId} (gate card): drive this from the studio control (not the API). A unit writes CLAUDE_CODE_OAUTH_TOKEN value into a file/commit message. Terminal: unit fails at its settled diff; at delivery a match refuses the push (nothing pushed).",
+   "surface": "background",
+   "user_path": "A unit writes CLAUDE_CODE_OAUTH_TOKEN value into a file/commit message. Terminal: unit fails at its settled diff; at delivery a match refuses the push (nothing pushed).",
    "deps": [
     "test daemon",
     "container floor claude seat (pass-through token)",
-    "playwright-chromium",
-    "crew:daemon-hermetic",
-    "studio:bundled-dist"
+    "container floor",
+    "claude pass-through token"
    ],
    "cost": "L",
    "tags": [
@@ -2870,9 +2869,6 @@
     "seats"
    ],
    "required_evidence": [
-    "video",
-    "screenshot",
-    "trace",
     "event-log"
    ],
    "oracle": {
@@ -2890,21 +2886,28 @@
     ]
    },
    "oracle_text": "unit stepFailed naming the secret guard; deliver refused before deliver command spawns; remote ref unchanged",
-   "covers": [
-    "studio:route:/s/:id"
-   ],
+   "covers": [],
    "scenarios": [
     {
      "ref": "wicked-core:src/seat_secret_guard.rs",
      "name": "tests",
      "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-core:src/seat_secret_guard.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
     }
    ],
-   "related": [
+   "aliases": [
     "seats.container.secret-guard"
    ],
    "sources": [
-    "wicked-core:src/seat_secret_guard.rs (core#1024 follow-up)"
+    "wicked-core:src/seat_secret_guard.rs (core#1024 follow-up)",
+    "wicked-core:src/seat_secret_guard.rs"
+   ],
+   "notes": [
+    "merged duplicate seats.container.secret-guard (seats-and-clis area); its oracle: stepFailed / deliver refusal text names a path or commit and the credential kind; no push occurs; the value is absent from events/logs."
    ],
    "origin": "inventory-2026-10-20"
   },

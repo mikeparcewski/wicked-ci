@@ -231,6 +231,58 @@ class CatalogChecks(unittest.TestCase):
         self.assertEqual(stale, ["studio:testid:rail"])
 
 
+class RecursiveCompleteness(unittest.TestCase):
+    """An `all` can never launder a partial child into a pass (validator-integrity review, f017b6b)."""
+    child_ok = {"kind": "dom", "selector": "[data-testid=desk]", "assert": "visible"}
+    child_partial = dict(child_ok, complete=False, untyped=["the rest of the clause"])
+    child_untyped = dict(child_ok, untyped=["a clause no check captures"])
+
+    def test_function(self):
+        self.assertTrue(v.oracle_complete({"kind": "all", "complete": True, "of": [self.child_ok, self.child_ok]}))
+        for bad in (self.child_partial, self.child_untyped, {"kind": "manual", "category": "model-output", "reason": "x" * 12}):
+            self.assertFalse(v.oracle_complete({"kind": "all", "complete": True, "of": [self.child_ok, bad]}), bad)
+        nested = {"kind": "all", "complete": True, "of": [self.child_ok, {"kind": "all", "of": [self.child_ok, self.child_partial]}]}
+        self.assertFalse(v.oracle_complete(nested))
+        nested_ok = {"kind": "all", "complete": True, "of": [self.child_ok, {"kind": "all", "of": [self.child_ok]}]}
+        self.assertTrue(v.oracle_complete(nested_ok))
+        self.assertFalse(v.oracle_complete(dict(self.child_ok)))           # no declaration
+        self.assertFalse(v.oracle_complete({"kind": "manual", "complete": True}))
+
+    def test_catalog_refuses_complete_over_a_partial_or_untyped_child(self):
+        for bad in (self.child_partial, self.child_untyped):
+            o = {"kind": "all", "complete": True, "of": [self.child_ok, bad]}
+            fails, _ = CatalogChecks.run_check(self._cc(), cap(oracle=o))
+            self.assertTrue(any("declares complete over an incomplete" in f for f in fails), (bad, fails))
+
+    def _cc(self):
+        cc = CatalogChecks()
+        cc.setUp()
+        return cc
+
+    def test_summary_counts_it_partial_and_report_refuses_pass(self):
+        o = {"kind": "all", "complete": True, "of": [self.child_ok, self.child_partial]}
+        c = dict(cap(id="studio-ui.a.b", oracle=o), _area="studio-ui")
+        summ = v.summary([c], {}, {})
+        self.assertEqual((summ["total"]["typed_complete"], summ["total"]["typed_partial"]), (0, 1))
+        d = tempfile.mkdtemp(prefix="e2e-rec-")
+        try:
+            for p_, body in (("ev/a.webm", "x"), ("ev/a.png", "x"), ("ev/a.zip", "x")):
+                os.makedirs(os.path.dirname(os.path.join(d, p_)), exist_ok=True)
+                write_text(os.path.join(d, p_), body)
+            write_text(os.path.join(d, "run.json"), json.dumps({"version": 1, "capabilities": ["studio-ui.a.b"]}))
+            os.makedirs(os.path.join(d, "results"))
+            res = {"id": "studio-ui.a.b", "verdict": "pass", "observed": [{"value": 1, "ok": True}, {"value": 1, "ok": True}],
+                   "evidence": {"video": ["ev/a.webm"], "screenshot": ["ev/a.png"], "trace": ["ev/a.zip"]}}
+            write_text(os.path.join(d, "results", "studio-ui.a.b.json"), json.dumps(res))
+            fails, _ = v.check_report(d, [c], {})
+            self.assertTrue(any("report `partial`, not `pass`" in f for f in fails), fails)
+            res["verdict"] = "partial"
+            write_text(os.path.join(d, "results", "studio-ui.a.b.json"), json.dumps(res))
+            self.assertEqual(v.check_report(d, [c], {})[0], [])
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+
 class Selection(unittest.TestCase):
     caps = [
         dict(cap(id="crew-api.runs.launch", surface="api", cost="L", tags=["launch", "gates"]), _area="crew-api"),

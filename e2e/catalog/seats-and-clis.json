@@ -538,46 +538,6 @@
    "origin": "inventory-2026-10-20"
   },
   {
-   "id": "seats.container.secret-guard",
-   "title": "Seat secret guard: injected credential never ships with the work",
-   "surface": "background",
-   "user_path": "A unit writes the pass-through token into the worktree/commit. Terminal state: the unit FAILS at its settled-diff check; at delivery the push is refused naming the place and credential kind, never the value.",
-   "deps": [
-    "container floor",
-    "claude pass-through token"
-   ],
-   "cost": "L",
-   "tags": [
-    "seats-and-clis",
-    "container",
-    "seats"
-   ],
-   "required_evidence": [
-    "event-log"
-   ],
-   "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: stepFailed / deliver refusal text names a path or commit and the credential kind; no push occurs; the value is absent from events/logs."
-   },
-   "oracle_text": "stepFailed / deliver refusal text names a path or commit and the credential kind; no push occurs; the value is absent from events/logs.",
-   "covers": [],
-   "scenarios": [
-    {
-     "ref": "wicked-core:src/seat_secret_guard.rs",
-     "name": "inline tests",
-     "fidelity": "unit"
-    }
-   ],
-   "related": [
-    "core.deliver.secret-guard"
-   ],
-   "sources": [
-    "wicked-core:src/seat_secret_guard.rs"
-   ],
-   "origin": "inventory-2026-10-20"
-  },
-  {
    "id": "seats.council.seat-failed-diagnostics",
    "title": "Council seat no-vote carries branch, output and classified reason",
    "surface": "background",

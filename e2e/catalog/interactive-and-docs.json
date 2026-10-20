@@ -716,7 +716,7 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "wicked-interactive adopt --root R --crew-api http://127.0.0.1:{crew}",
+      "cmd": "wicked-interactive adopt --root {root} --crew-api http://127.0.0.1:{crew}",
       "code": 0
      },
      {
