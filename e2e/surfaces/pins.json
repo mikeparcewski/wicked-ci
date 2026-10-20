@@ -1,0 +1,17 @@
+{
+ "repos": {
+  "wicked-bus": "2b895a6a131620c5f883ca811bc972e65bd3faf1",
+  "wicked-core": "a56cf1861bd97244fc4e37c6898bcddaa5350fb0",
+  "wicked-crew": "8158e618d073b322fc945f3a24f3723f95d09e60",
+  "wicked-estate": "e1f99d6292d7013de56941336fa6d167e78c9ae6",
+  "wicked-garden": "7bc892d1567c8efe82bafd12a043790d23206198",
+  "wicked-installer": "f3a8ed649bf73060476764147fe47c1b62181c6d",
+  "wicked-interactive": "1ca0c3d1cae007cd9c687f8459e3cdef75aa58c3",
+  "wicked-ledger": "86cd9cf015366f47973e0947e2b897f7b4435319",
+  "wicked-studio": "c4151ce0288b8028f732ae12277ad80afc41364f",
+  "wicked-vault": "f611e00a3a0a4bf174a04d6b11e27bc215ab32e0"
+ },
+ "npm": {
+  "wicked-crew": "0.15.5"
+ }
+}

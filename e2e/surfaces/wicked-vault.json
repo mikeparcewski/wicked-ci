@@ -1,0 +1,36 @@
+{
+ "version": 1,
+ "repo": "wicked-vault",
+ "prefix": "vault",
+ "sha": "f611e00a3a0a4bf174a04d6b11e27bc215ab32e0",
+ "meta": {},
+ "counts": {"cli": 11},
+ "elements": [
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:attest", "kind": "cli", "name": "attest"},
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:attestations", "kind": "cli", "name": "attestations"},
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:cross-check", "kind": "cli", "name": "cross-check"},
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:declare-contract", "kind": "cli", "name": "declare-contract"},
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:init", "kind": "cli", "name": "init"},
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:inspect", "kind": "cli", "name": "inspect"},
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:list", "kind": "cli", "name": "list"},
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:record", "kind": "cli", "name": "record"},
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:supersede", "kind": "cli", "name": "supersede"},
+  {"files": ["bin/wicked-vault.mjs"], "key": "vault:cli:verify", "kind": "cli", "name": "verify"},
+  {"files": ["install.mjs"], "key": "vault:cli:wicked-vault-install", "kind": "cli", "name": "wicked-vault-install"}
+ ],
+ "tests": [
+  ".github/workflows/ci.yml",
+  ".github/workflows/release.yml",
+  "test/atomic-write.sh",
+  "test/attestation.sh",
+  "test/bus-integration.sh",
+  "test/cli-baseline.sh",
+  "test/contract-integrity.sh",
+  "test/manifest.sh",
+  "test/manifest.spec.mjs",
+  "test/prove-on-memos.sh",
+  "test/runtime-profile.sh",
+  "test/types/consumer.mts",
+  "test/verifiers.sh"
+ ]
+}

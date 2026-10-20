@@ -1,0 +1,3122 @@
+{
+ "version": 1,
+ "area": "seats-and-clis",
+ "description": "Seats: the agent CLIs crew runs as workers: roster, sign-in by floor, live checks, benching, chat seats, usage and container isolation.",
+ "capabilities": [
+  {
+   "id": "seats.assurance.single-seat-notice",
+   "title": "One-seat roster under full assurance waits for a distinct seat",
+   "surface": "cli",
+   "user_path": "Only one CLI signed in; `wicked-crew start --problem ...` or POST /runs. Terminal state: assuranceNotice in the launch response; CLI prints '[crew] <message> (wicked-crew start --reduced-assurance …)'; review waits at a gate unless --reduced-assurance.",
+   "deps": [
+    "crew daemon",
+    "single signed-in seat"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "assurance",
+    "seats"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "POST",
+      "path": "/api/v1/runs",
+      "expect": {
+       "status": [
+        200,
+        201,
+        202
+       ]
+      },
+      "body": "{request_body}"
+     },
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "unitDistributed",
+      "where": {
+       "distinctness_fallback": "creator_seat"
+      },
+      "count": {
+       "min": 1
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "POST /runs 2xx body.assuranceNotice.message present",
+     "stderr line contains 'wicked-crew start --reduced-assurance'",
+     "with --reduced-assurance unitDistributed.distinctness_fallback=='creator_seat' disclosed."
+    ]
+   },
+   "oracle_text": "POST /runs 2xx body.assuranceNotice.message present; stderr line contains 'wicked-crew start --reduced-assurance'; with --reduced-assurance unitDistributed.distinctness_fallback=='creator_seat' disclosed.",
+   "covers": [
+    "crew:cli:start",
+    "crew:route:POST /api/v1/runs"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-core:tests/single_seat_scope.rs",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.runs.launch.reduced-assurance"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/cli/index.ts (start)",
+    "wicked-core:src/event.rs:UnitDistributed.distinctness_fallback"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.bench.dead-seat-gate",
+   "title": "All seats dead at distribution parks at a dead_seat escalation gate",
+   "surface": "background",
+   "user_path": "Every roster seat fails at distribution (e.g. two dead wrapped seats). Terminal state: run parks at an escalation gate of kind dead_seat instead of failing.",
+   "deps": [
+    "crew daemon",
+    "engine core-ts >= 0.7.27"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "bench",
+    "gates",
+    "seats"
+   ],
+   "required_evidence": [
+    "screenshot",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{runId}",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "run state awaiting human with gate kind 'dead_seat' in GET /runs/:id",
+     "no sessionFailed."
+    ]
+   },
+   "oracle_text": "run state awaiting human with gate kind 'dead_seat' in GET /runs/:id; no sessionFailed.",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/dead-seat-distribution-gate.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-core:tests/dead_seat_gate.rs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:tests/deadSeatGate.test.tsx",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "core.gate.dead-seat"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/tests/integration/dead-seat-distribution-gate.test.ts (doc)",
+    "wicked-core:tests/dead_seat_gate.rs"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.bench.engine-seat-benched",
+   "title": "Engine benches a dead seat in-run; crew carries it to next launches",
+   "surface": "background",
+   "user_path": "A worker/judge refuses on not_logged_in / quota_exhausted / not_installed / approval_unavailable during a run. Terminal state: seatBenched event; roster[key].recent_bench {kind, runs, last_at, lifts_at, source, reason}; issue quota|usage_limit|benched; next launches/asks exclude the seat for 30 min or until its next ok turn / live sign-in.",
+   "deps": [
+    "crew daemon",
+    "a seat out of quota or signed out",
+    "test daemon",
+    "seats"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "bench",
+    "launch",
+    "seats"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "seatBenched",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/roster",
+      "expect": {
+       "status": 200
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "run events contain {type:'seatBenched', cli, reason, source}",
+     "GET /roster -> recent_bench.kind == reason prefix, lifts_at == at+30min",
+     "a new launch's engine roster gives the seat health.usable false.",
+     "seatBenched{cli, cause} once",
+     "no later unitDistributed.cli == benched seat",
+     "session.benched_seats contains it"
+    ]
+   },
+   "oracle_text": "run events contain {type:'seatBenched', cli, reason, source}; GET /roster -> recent_bench.kind == reason prefix, lifts_at == at+30min; a new launch's engine roster gives the seat health.usable false.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-recent-bench.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/seat-bench-next-launch.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-core:tests/benched_seat_dispatch.rs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-core:tests/benched_seat_dispatch.rs",
+     "name": "3 tests",
+     "fidelity": "integration"
+    }
+   ],
+   "aliases": [
+    "core.seat.bench-dead"
+   ],
+   "related": [
+    "crew-api.seats.health-standing"
+   ],
+   "sources": [
+    "wicked-core:src/event.rs:SeatBenched",
+    "wicked-crew:packages/crew/src/api/seat-health.ts:SEAT_BENCH_WINDOW_MS/recentBenchFor",
+    "wicked-crew:packages/crew/src/api/seat-agents.ts:recentBenchWire",
+    "wicked-core:src/domain.rs:bench_seat"
+   ],
+   "notes": [
+    "merged duplicate core.seat.bench-dead (core-engine area); its oracle: seatBenched{cli, cause} once; no later unitDistributed.cli == benched seat; session.benched_seats contains it"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.bench.no-eligible-seat",
+   "title": "Launch with every seat benched is refused 409 no_eligible_seat",
+   "surface": "api",
+   "user_path": "All seats signed out; POST /api/v1/runs. Terminal state: 409 {code:'no_eligible_seat', error, runId, benched, remedy}; nothing persisted.",
+   "deps": [
+    "crew daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "bench",
+    "launch",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "HTTP 409 and body.code=='no_eligible_seat'",
+     "GET /runs does not list the runId."
+    ]
+   },
+   "oracle_text": "HTTP 409 and body.code=='no_eligible_seat'; GET /runs does not list the runId.",
+   "covers": [
+    "crew:route:GET /api/v1/runs",
+    "crew:route:POST /api/v1/runs"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/no-eligible-seat-route.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/core/engine-roster.ts:parseNoEligibleSeat/noEligibleSeatBody",
+    "wicked-crew:packages/crew/src/api/routes.ts (~L2810)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.bench.survives-restart",
+   "title": "Seat bench persisted on the audit trail across daemon restart",
+   "surface": "api",
+   "user_path": "Bench a seat, restart the daemon, GET /roster and GET /audit?action=seat.benched. Terminal state: the bench is still active (within its window) and the audit trail holds seat.benched (and seat.bench_lifted for early lifts).",
+   "deps": [
+    "crew daemon restart"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "bench",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/audit?action=seat.benched",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "GET /api/v1/audit?action=seat.benched -> entries with detail.{cli,at,reason,source,runs}",
+     "after restart roster[cli].recent_bench present until lifts_at."
+    ]
+   },
+   "oracle_text": "GET /api/v1/audit?action=seat.benched -> entries with detail.{cli,at,reason,source,runs}; after restart roster[cli].recent_bench present until lifts_at.",
+   "covers": [
+    "crew:route:GET /api/v1/audit",
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-recent-bench.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-bench-trail.ts:SEAT_BENCHED_ACTION/SEAT_BENCH_LIFTED_ACTION/auditSeatBenchStore"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.chat.no-eligible-seat",
+   "title": "Chat message with no eligible seat is refused 409",
+   "surface": "api",
+   "user_path": "All chat seats benched/signed out; POST /api/v1/chats/:id/messages. Terminal state: 409 \"chat '<id>' has no eligible seat — sign a seat in and re-seat it (POST /chats/:id/seats)\".",
+   "deps": [
+    "open chat",
+    "seats signed out"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "chat",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: HTTP 409 with that error text; no chatReply emitted."
+   },
+   "oracle_text": "HTTP 409 with that error text; no chatReply emitted.",
+   "covers": [
+    "crew:route:POST /api/v1/chats/:id/messages",
+    "crew:route:POST /api/v1/chats/:id/seats"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/chat-turns.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/routes.ts (~L3700)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.chat.primary-pick",
+   "title": "Choose the primary/lead agent for an ask or run",
+   "surface": "ui",
+   "user_path": "Studio New job wizard (launch-wizard-lead): drive this from the studio control (not the API). Launch wizard 'Lead agent' (launch-wizard-lead) or ChatOpenBody.primary / LaunchRunBody.primary. Terminal state: the chosen seat leads; omitted = engine random pick; a non-eligible seat -> 400.",
+   "deps": [
+    "crew daemon",
+    "≥2 seats",
+    "playwright-chromium",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "chat",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=launch-wizard-lead]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "POST /runs with primary:<key> -> the run's first lead unit unitDistributed.cli==<key>",
+     "primary not eligible -> 400",
+     "health.capabilities.launchPrimary==true."
+    ]
+   },
+   "oracle_text": "POST /runs with primary:<key> -> the run's first lead unit unitDistributed.cli==<key>; primary not eligible -> 400; health.capabilities.launchPrimary==true.",
+   "covers": [
+    "crew:mcp:ask",
+    "crew:route:POST /api/v1/runs",
+    "studio:testid-pattern:launch-wizard-workflow-*",
+    "studio:testid:launch-wizard",
+    "studio:testid:launch-wizard-back",
+    "studio:testid:launch-wizard-blocker",
+    "studio:testid:launch-wizard-cards",
+    "studio:testid:launch-wizard-change",
+    "studio:testid:launch-wizard-chosen",
+    "studio:testid:launch-wizard-clear",
+    "studio:testid:launch-wizard-close",
+    "studio:testid:launch-wizard-deliver",
+    "studio:testid:launch-wizard-deliver-toggle",
+    "studio:testid:launch-wizard-demo",
+    "studio:testid:launch-wizard-demo-audience",
+    "studio:testid:launch-wizard-demo-audience-pick",
+    "studio:testid:launch-wizard-demo-gates",
+    "studio:testid:launch-wizard-demo-project",
+    "studio:testid:launch-wizard-demo-show",
+    "studio:testid:launch-wizard-demo-url",
+    "studio:testid:launch-wizard-draft-instructions",
+    "studio:testid:launch-wizard-draft-project",
+    "studio:testid:launch-wizard-error",
+    "studio:testid:launch-wizard-error-detail",
+    "studio:testid:launch-wizard-gate",
+    "studio:testid:launch-wizard-helpers",
+    "studio:testid:launch-wizard-intent",
+    "studio:testid:launch-wizard-keys",
+    "studio:testid:launch-wizard-launch",
+    "studio:testid:launch-wizard-lead",
+    "studio:testid:launch-wizard-next",
+    "studio:testid:launch-wizard-optin-note",
+    "studio:testid:launch-wizard-progress",
+    "studio:testid:launch-wizard-project",
+    "studio:testid:launch-wizard-qe",
+    "studio:testid:launch-wizard-qe-off",
+    "studio:testid:launch-wizard-qe-refused",
+    "studio:testid:launch-wizard-reduced",
+    "studio:testid:launch-wizard-repo",
+    "studio:testid:launch-wizard-requirements",
+    "studio:testid:launch-wizard-requirements-browser",
+    "studio:testid:launch-wizard-review",
+    "studio:testid:launch-wizard-review-lead",
+    "studio:testid:launch-wizard-review-qe-off",
+    "studio:testid:launch-wizard-scrim",
+    "studio:testid:launch-wizard-seat",
+    "studio:testid:launch-wizard-skip",
+    "studio:testid:launch-wizard-skip-toggle",
+    "studio:testid:launch-wizard-soon",
+    "studio:testid:launch-wizard-start-chat",
+    "studio:testid:launch-wizard-step"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-core:tests/ask_primary_pick.rs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:tests/launchWizard.test.tsx",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_run_team_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "related": [
+    "crew-api.runs.launch.primary"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew-api-types/index.d.ts:ChatOpenBody.primary",
+    "wicked-studio:src/components/launch/LaunchWizard.tsx (launch-wizard-lead)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.chat.usage-per-reply",
+   "title": "Per-seat token/cost usage on chat replies",
+   "surface": "ui",
+   "user_path": "Send a chat message; read the seat bubble footer in ChatThread. Terminal state: '12.3k in · 800 out · $0.04' when the seat reports usage; usage null for bridges that report none (pi, agy) shown as unreported.",
+   "deps": [
+    "open chat"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "chat",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: chatReply event usage object (input/output tokens, cost) or null; ChatThread usageLabel renders exactly from it; no footer cost for usage null."
+   },
+   "oracle_text": "chatReply event usage object (input/output tokens, cost) or null; ChatThread usageLabel renders exactly from it; no footer cost for usage null.",
+   "covers": [
+    "studio:testid-pattern:chat-narration-raw-*",
+    "studio:testid-pattern:chat-narration-toggle-*",
+    "studio:testid:chat-cell",
+    "studio:testid:chat-cell-empty",
+    "studio:testid:chat-narration-line",
+    "studio:testid:chat-narration-seat",
+    "studio:testid:chat-round",
+    "studio:testid:chat-round-grid",
+    "studio:testid:seat-bubble",
+    "studio:testid:seat-usage",
+    "studio:testid:user-bubble"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:tests/ChatThread.transcript.test.ts",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-core:src/event.rs:ChatReply.usage",
+    "wicked-studio:src/components/ChatThread.tsx:usageLabel"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.council.seat-failed-diagnostics",
+   "title": "Council seat no-vote carries branch, output and classified reason",
+   "surface": "background",
+   "user_path": "A decision council convenes; a seat fails. Terminal state: councilSeatFailed {cli, kind, exit_code, stderr, stdout tail, detail, reason not_logged_in|quota_exhausted|not_installed|approval_unavailable|null, latency_ms}.",
+   "deps": [
+    "a council-convening run"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "council",
+    "seats"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "core-event",
+    "type": "councilVoted",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "each convened seat without a vote has exactly one councilSeatFailed with kind non-empty",
+     "councilVoted.seated == number convened."
+    ]
+   },
+   "oracle_text": "each convened seat without a vote has exactly one councilSeatFailed with kind non-empty; councilVoted.seated == number convened.",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:crates/wicked-council/src/dispatch.rs",
+     "name": "inline tests",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-core:src/event.rs:CouncilSeatFailed/CouncilVoted/CouncilConvened"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.diagnostics.acp-and-binaries",
+   "title": "Diagnostics: per-CLI ACP record and engine binaries",
+   "surface": "api",
+   "user_path": "GET /api/v1/diagnostics. Terminal state: components.engineBinaries, acp.byCli fold, seatGovernance, skills health.",
+   "deps": [
+    "crew daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "diagnostics",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "dead-path",
+    "reason": "The oracle cites engine events that are no longer emitted (C5 removed ACP from the seats: AcpSessionStarted/AcpTurnSettled/EvaluatorToolCallDenied have no emitter), so a key-presence check passes vacuously. Retire the capability or restate it on the headless carrier."
+   },
+   "oracle_text": "200 with keys components, daemon, stores, recentErrors, acp, skills, governance, decisions, stateHome, seatGovernance, memoryStore, vault (confirmed on 7721); acp.byCli keyed by cli.",
+   "covers": [
+    "crew:route:GET /api/v1/diagnostics"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/diagnostics-route.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/diagnostics.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/routes.ts:GET ${V}/diagnostics",
+    "wicked-crew:packages/crew/src/api/diagnostics.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.failover.container-fail-closed",
+   "title": "Container that cannot start refuses the unit (never runs on host)",
+   "surface": "background",
+   "user_path": "Container floor with no runtime / no seat image; launch governed work. Terminal state: the governed unit is refused with the reason and the failover ladder moves the work; nothing runs on the host.",
+   "deps": [
+    "container floor"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "failover",
+    "seats",
+    "container"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "core-event",
+    "type": "stepFailed",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "stepFailed/refusal detail names the container reason",
+     "no process for the seat CLI runs outside a container",
+     "failover detail present."
+    ]
+   },
+   "oracle_text": "stepFailed/refusal detail names the container reason; no process for the seat CLI runs outside a container; failover detail present.",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/container_floor.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-core:tests/governed_floor_and_fence.rs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-core:src/container_floor.rs (Fail closed)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.floor.default-container",
+   "title": "Daemon defaults governed seats to the container floor",
+   "surface": "cli",
+   "user_path": "`wicked-crew serve` with WICKED_SEAT_FLOOR unset. Terminal state: process env WICKED_SEAT_FLOOR=container; container seats report sign_in:'container'. With WICKED_SEAT_FLOOR=host the daemon prints '[crew] WICKED_SEAT_FLOOR=host — governed seats run on the interim HOST floor, not in containers'.",
+   "deps": [
+    "crew daemon",
+    "container runtime (docker/podman/nerdctl) for container floor"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "floor",
+    "seats",
+    "container"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "GET /roster -> every seat in {claude,codex,pi,opencode,copilot} has sign_in == 'container' when floor unset",
+     "with host floor no seat has sign_in and stderr contains the interim HOST floor warning."
+    ]
+   },
+   "oracle_text": "GET /roster -> every seat in {claude,codex,pi,opencode,copilot} has sign_in == 'container' when floor unset; with host floor no seat has sign_in and stderr contains the interim HOST floor warning.",
+   "covers": [
+    "crew:cli:serve",
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-container-login.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "core.container.floor-default"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-container-login.ts:defaultSeatFloor/isContainerSeatFloor/isHostSeatFloor",
+    "wicked-crew:packages/crew/src/cli/index.ts:bootstrap",
+    "wicked-core:src/container_floor.rs:default_seat_floor"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.livecheck.container-last-step",
+   "title": "Container-floor live check: the seat's own last step",
+   "surface": "api",
+   "user_path": "Run any step (a chat answer counts) on a container seat; GET /roster. Terminal state: login_check 'live' (via step) when its last step answered within 30 min; 'status' via no_answer (warning live_check_failed) when it timed out / CLI failed; 'status' via broker with no warning when no step ran yet.",
+   "deps": [
+    "container floor",
+    "signed-in seat"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "livecheck",
+    "seats",
+    "container"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "After an ok step: roster[key].login_check=='live' and no 'live_check_failed' issue",
+     "after a timed-out step: issues includes live_check_failed with message 'credential broker says signed in, but its last step on the container floor did not answer'",
+     "idle seat: no live_check_failed. (crew main afda9af #1095; the 7721 daemon at 0.15.4 still shows live_check_failed on every idle container seat.)"
+    ]
+   },
+   "oracle_text": "After an ok step: roster[key].login_check=='live' and no 'live_check_failed' issue; after a timed-out step: issues includes live_check_failed with message 'credential broker says signed in, but its last step on the container floor did not answer'; idle seat: no live_check_failed. (crew main afda9af #1095; the 7721 daemon at 0.15.4 still shows live_check_failed on every idle container seat.)",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/roster-standing.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-agents.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/roster-standing.ts:containerLoginReading",
+    "wicked-crew:packages/crew/src/api/seat-health.ts:SEAT_ANSWER_WINDOW_MS/lastAnswerFor",
+    "wicked-crew:packages/crew/src/api/seat-agents.ts (live_check_failed)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.livecheck.launch-ready",
+   "title": "Launch waits (bounded) for stale sign-in checks before routing",
+   "surface": "api",
+   "user_path": "POST /runs (or wicked-crew start) right after a login expired. Terminal state: the launch roster reflects a fresh check (expired seat benched, signed_out) instead of the stale cache.",
+   "deps": [
+    "crew daemon"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "livecheck",
+    "sign-in",
+    "launch",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "core-event",
+    "type": "unitDistributed",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "rosterWithStanding.ready() resolves before the engine roster is built",
+     "a seat whose fresh probe says signed out appears in the run as benched (unitDistributed.degradedReason names it) rather than receiving a unit."
+    ]
+   },
+   "oracle_text": "rosterWithStanding.ready() resolves before the engine roster is built; a seat whose fresh probe says signed out appears in the run as benched (unitDistributed.degradedReason names it) rather than receiving a unit.",
+   "covers": [
+    "crew:cli:start",
+    "crew:route:POST /api/v1/runs"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/roster-standing.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/onboarding-run-seats.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/roster-standing.ts:accessor.ready",
+    "wicked-crew:packages/crew/src/core/adapter.ts:readyLaunchRoster"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.operator.codex-plugin",
+   "title": "Operator uses Codex with garden as a Codex plugin",
+   "surface": "plugin",
+   "user_path": "`npm i -g wicked-garden`; `codex plugin marketplace add \"$(npm root -g)/wicked-garden\"`; `codex plugin add wicked-garden@wicked-garden` (codex-cli 0.163+). Terminal state: skills namespaced wicked-garden:<skill>, wicked-estate MCP server via `wicked-garden run scripts/estate_mcp.mjs`, no hooks.",
+   "deps": [
+    "codex CLI >= 0.163",
+    "npm"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "operator",
+    "plugins",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "codex plugin marketplace add \"$(npm root -g)/wicked-garden\"",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "`codex plugin list` includes wicked-garden",
+     ".codex-plugin/plugin.json version == 12.58.0 with skills './skills', mcpServers './.codex-plugin/mcp.json', hooks {}",
+     "a codex session lists wicked-garden:* skills."
+    ]
+   },
+   "oracle_text": "`codex plugin list` includes wicked-garden; .codex-plugin/plugin.json version == 12.58.0 with skills './skills', mcpServers './.codex-plugin/mcp.json', hooks {}; a codex session lists wicked-garden:* skills.",
+   "covers": [
+    "garden:cli:run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/test_codex_plugin_manifest.py",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.plugin.codex.marketplace-install"
+   ],
+   "sources": [
+    "wicked-garden:.codex-plugin/plugin.json",
+    "wicked-garden:.codex-plugin/mcp.json",
+    "wicked-garden:README.md (Codex)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.operator.skills-only-hosts",
+   "title": "Operator uses agy / opencode / pi with garden skills only",
+   "surface": "plugin",
+   "user_path": "`npx wicked-installer install-<agy|opencode|pi> wicked-garden`; `npm i -g wicked-garden` for script-backed skills; `wicked-garden doctor`. Terminal state: skills copied flat by name into the CLI's skills dir; scripts resolve through `wicked-garden run`; no hooks.",
+   "deps": [
+    "target CLI",
+    "npm",
+    "wicked-installer"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "operator",
+    "seats",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: each installed skill dir has SKILL.md whose name matches; `wicked-garden doctor` exit 0 naming the plugin root and interpreter; skill text passes portability rules."
+   },
+   "oracle_text": "each installed skill dir has SKILL.md whose name matches; `wicked-garden doctor` exit 0 naming the plugin root and interpreter; skill text passes portability rules.",
+   "covers": [
+    "garden:cli:doctor",
+    "garden:cli:run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/test_skill_portability.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/test_launcher.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/test_portability_fixture_parity.py",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.plugin.cross-cli.skills-copy"
+   ],
+   "sources": [
+    "wicked-garden:README.md (Other CLIs)",
+    "wicked-garden:install.mjs (run/doctor)",
+    "wicked-garden:scripts/wicked-garden.mjs"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.reassign.manual",
+   "title": "Manually reassign a unit to another seat",
+   "surface": "ui",
+   "user_path": "Studio the run page /s/run:{runId} (palette: reassign unit): drive this from the studio control (not the API). Run page -> steering reassign row (steering-reassign-seat select -> steering-reassign) -> POST /api/v1/runs/:id/reassign {cli?}. Terminal state: unitReassigned {previous_cli, new_cli}; cli omitted lets the council re-pick; seats refused under the distinct-evaluator contract are withheld (unit.reassign_refused).",
+   "deps": [
+    "live run with an active unit",
+    "≥2 seats",
+    "playwright-chromium",
+    "crew:daemon-hermetic",
+    "studio:bundled-dist",
+    "crew test daemon"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "reassign",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "unitReassigned",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=steering-reassign-status]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=steering-reassign-withheld]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/reassign",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "unitDispatched",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=rail-seat-move-button]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "POST returns {status, ord, cli}",
+     "events contain unitReassigned with previous_cli and new_cli==requested",
+     "reassign to a refused author seat -> refusal",
+     "studio shows steering-reassign-status / steering-reassign-withheld.",
+     "unitReassigned{ord, newCli}",
+     "new unitDispatched",
+     "late result → toolResultDiscarded{reason:'superseded'}"
+    ]
+   },
+   "oracle_text": "POST returns {status, ord, cli}; events contain unitReassigned with previous_cli and new_cli==requested; reassign to a refused author seat -> refusal; studio shows steering-reassign-status / steering-reassign-withheld.",
+   "covers": [
+    "crew:route:POST /api/v1/runs/:id/reassign",
+    "studio:route:/s/:id",
+    "studio:testid:rail-seat-move-button",
+    "studio:testid:steering-reassign",
+    "studio:testid:steering-reassign-error",
+    "studio:testid:steering-reassign-none",
+    "studio:testid:steering-reassign-option",
+    "studio:testid:steering-reassign-qe-refused",
+    "studio:testid:steering-reassign-retry",
+    "studio:testid:steering-reassign-row",
+    "studio:testid:steering-reassign-seat",
+    "studio:testid:steering-reassign-status",
+    "studio:testid:steering-reassign-withheld"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/reassign-route.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/reassign-awaiting-human.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:tests/qeRefusalWarning.test.tsx",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:tests/reassignRefused.e2e7721.test.ts",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-core:tests/operator_api.rs",
+     "name": "reassign_unit_redispatches",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-core:tests/operator_api.rs",
+     "name": "reassign_unit_returns_error_when_not_executing",
+     "fidelity": "integration"
+    }
+   ],
+   "aliases": [
+    "core.unit.reassign"
+   ],
+   "related": [
+    "crew-api.runs.reassign"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/routes.ts:POST ${V}/runs/:id/reassign (ReassignSchema)",
+    "wicked-crew:packages/crew/src/core/reassign-refusal.ts",
+    "wicked-studio:src/components/ReassignControl.tsx",
+    "wicked-core:crates/wicked-core-ts/index.d.ts:reassignUnit"
+   ],
+   "notes": [
+    "merged duplicate core.unit.reassign (core-engine area); its oracle: unitReassigned{ord, newCli}; new unitDispatched; late result → toolResultDiscarded{reason:'superseded'}"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.roster.builtin-set",
+   "title": "Built-in seats: claude, codex, pi, copilot, opencode (agy listed but off)",
+   "surface": "api",
+   "user_path": "Fresh install, no clis.toml overlay: GET /api/v1/roster. Terminal state: roster keys are exactly claude, codex, pi, copilot, opencode; agy is absent because its built-in record has enabled_for_council=false and seat_eligible_for_work=false and registry_roster filters seats that take neither role.",
+   "deps": [
+    "crew daemon",
+    "no ~/.config/wicked-council/clis.toml overlay"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "roster",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "set(roster[].key) == {claude,codex,pi,copilot,opencode}",
+     "'agy' not in keys (no overlay). Engine unit test builtin_lists_real_clis passes."
+    ]
+   },
+   "oracle_text": "set(roster[].key) == {claude,codex,pi,copilot,opencode}; 'agy' not in keys (no overlay). Engine unit test builtin_lists_real_clis passes.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-core:crates/wicked-council/src/registry.rs",
+     "name": "builtin_lists_real_clis",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-core:crates/wicked-council/src/registry.rs:builtin",
+    "wicked-core:src/lib.rs:registry_roster",
+    "wicked-crew:packages/crew/src/core/adapter.ts:CoreAdapter.roster"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.roster.clis-toml-overlay",
+   "title": "Add or override a seat with clis.toml (incl. instances like claude#2)",
+   "surface": "api",
+   "user_path": "Operator writes a [[cli]] record (key, display_name, binary, headless_invocation, optional enabled_for_council / seat_eligible_for_work / login_invocation / acp block) in ~/.config/wicked-council/clis.toml, then GET /api/v1/roster. Terminal state: the new/overridden seat appears with its fields; /diagnostics.seatGovernance.rosterFile names the overlay path.",
+   "deps": [
+    "crew daemon",
+    "writable ~/.config/wicked-council"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "roster",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/diagnostics",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "roster contains the overlay key with the written binary/headless_invocation",
+     "GET /api/v1/diagnostics -> seatGovernance.rosterFile == overlay path. An override that omits [cli.acp] loses acp_input_governance (governance_mode.scoped_bound.mode != 'admitted')."
+    ]
+   },
+   "oracle_text": "roster contains the overlay key with the written binary/headless_invocation; GET /api/v1/diagnostics -> seatGovernance.rosterFile == overlay path. An override that omits [cli.acp] loses acp_input_governance (governance_mode.scoped_bound.mode != 'admitted').",
+   "covers": [
+    "crew:route:GET /api/v1/diagnostics",
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-core:crates/wicked-council/src/registry.rs",
+     "name": "unit tests",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-work-default.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-core:crates/wicked-council/src/registry.rs:TomlCli / From<TomlCli> for AgenticCli",
+    "wicked-crew:packages/crew/src/api/diagnostics.ts:seatRosterFile"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.roster.work-default-warning",
+   "title": "Warn when a custom council-off seat silently became work-eligible",
+   "surface": "api",
+   "user_path": "Overlay a custom seat with enabled_for_council=false and no seat_eligible_for_work; run `wicked-crew status` or GET /api/v1/health. Terminal state: one seat.work_default warning naming the seat (health.warnings, diagnostics.seatGovernance.roleFindings, and a stderr line from wicked-crew status).",
+   "deps": [
+    "crew daemon",
+    "clis.toml overlay"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "roster",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/health",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/diagnostics",
+      "expect": {
+       "status": 200
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "GET /health -> warnings[] contains {kind:'seat.work_default'} naming the key",
+     "GET /diagnostics -> seatGovernance.roleFindings has the same entry",
+     "built-in keys never produce it."
+    ]
+   },
+   "oracle_text": "GET /health -> warnings[] contains {kind:'seat.work_default'} naming the key; GET /diagnostics -> seatGovernance.roleFindings has the same entry; built-in keys never produce it.",
+   "covers": [
+    "crew:cli:status",
+    "crew:route:GET /api/v1/diagnostics",
+    "crew:route:GET /api/v1/health"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-work-default.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-work-default.ts:SEAT_WORK_DEFAULT_KIND",
+    "wicked-crew:packages/crew/src/api/routes.ts:GET ${V}/health warnings",
+    "wicked-crew:packages/crew/src/cli/index.ts:runStatus"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.settings.inherit-operator-config",
+   "title": "Inherit hatch: seats run on the operator's own CLI homes",
+   "surface": "cli",
+   "user_path": "Start the daemon with WICKED_WORKER_INHERIT_OPERATOR_CONFIG set. Terminal state: login commands are plain (no root prefix); probes read ~/.codex, ~/.claude, ~/.pi/agent, ~/.copilot, ~/.local/share/opencode; codex has no skills lever.",
+   "deps": [
+    "crew daemon restart with env"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "settings",
+    "seats"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "GET /roster login_invocation for codex == 'codex login' (no CODEX_HOME=)",
+     "signed_in mirrors the operator's own logins."
+    ]
+   },
+   "oracle_text": "GET /roster login_invocation for codex == 'codex login' (no CODEX_HOME=); signed_in mirrors the operator's own logins.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-signin.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-signin.ts (inherit)",
+    "wicked-core:crates/wicked-council/src/types.rs:in_seat_root"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.container.claude",
+   "title": "Container sign-in: claude via `claude setup-token`",
+   "surface": "ui",
+   "user_path": "Agents -> Claude Code -> Sign in (agents-signin) -> login container terminal runs `claude setup-token` under script; paste/finish; window closes. Terminal state: broker holds the long-lived setup token (pass-through as CLAUDE_CODE_OAUTH_TOKEN); roster[claude] signed in, sign_in 'container'.",
+   "deps": [
+    "container floor",
+    "claude subscription",
+    "container runtime"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats",
+    "container"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists.",
+    "precheck": {
+     "kind": "all",
+     "of": [
+      {
+       "kind": "api",
+       "method": "GET",
+       "path": "/api/v1/seats/claude/container-login",
+       "expect": {
+        "status": 200
+       }
+      },
+      {
+       "kind": "api",
+       "method": "GET",
+       "path": "/api/v1/roster?refresh=claude",
+       "expect": {
+        "json": [
+         {
+          "path": "$.roster[claude].auth",
+          "op": "eq",
+          "value": "signed_in"
+         }
+        ]
+       }
+      },
+      {
+       "kind": "dom",
+       "selector": "[data-testid=agents-signin]",
+       "assert": "visible"
+      }
+     ]
+    }
+   },
+   "oracle_text": "GET /seats/claude/container-login -> ok:true, files includes the claude setup-token record; GET /roster?refresh=claude -> roster[claude].auth=='signed_in'; `wicked-core seat-login status claude` JSON status=='signed_in'.",
+   "covers": [
+    "core:cli:seat-login",
+    "crew:route:GET /api/v1/roster",
+    "crew:route:GET /api/v1/seats/:cli/container-login",
+    "studio:testid:agents-login",
+    "studio:testid:agents-login-close",
+    "studio:testid:agents-login-line",
+    "studio:testid:agents-login-scrim",
+    "studio:testid:agents-signin"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/seat_login.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_agents_signin_test.py",
+     "name": "fake container",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:tests/containerSignIn.test.tsx",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "studio-ui.agents.container-signin"
+   ],
+   "sources": [
+    "wicked-core:src/seat_login.rs:CLAUDE_SETUP_TOKEN_LOGIN",
+    "wicked-core:src/seat_credentials.rs",
+    "wicked-studio:src/components/agents/containerSignIn.tsx"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.container.codex",
+   "title": "Container sign-in: codex via browser ChatGPT login",
+   "surface": "ui",
+   "user_path": "Agents -> Codex -> Sign in -> container runs `codex login -c cli_auth_credentials_store=\"file\"`; browser sign-in; exit. Terminal state: broker ingests codex/auth.json; roster[codex] signed in.",
+   "deps": [
+    "container floor",
+    "ChatGPT account",
+    "browser on host"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats",
+    "chat",
+    "container"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists."
+   },
+   "oracle_text": "container-login outcome ok:true with files ['codex/auth.json']; roster[codex].auth=='signed_in'; seat-login status codex -> signed_in with expires_at.",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/seat_login.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "studio-ui.agents.container-signin"
+   ],
+   "sources": [
+    "wicked-core:src/seat_login.rs (codex argv/hint, credential files)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.container.copilot",
+   "title": "Container sign-in: copilot device code + account host/models",
+   "surface": "ui",
+   "user_path": "Agents -> Copilot -> Sign in -> container runs `copilot login --device-code`; enter the code on github.com. Terminal state: broker ingests copilot/config.json and records the account's Copilot API host and model list (identifiers only).",
+   "deps": [
+    "container floor",
+    "GitHub Copilot entitlement"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats",
+    "container"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists."
+   },
+   "oracle_text": "container-login outcome ok:true, files include 'copilot/config.json'; roster[copilot].auth=='signed_in'; gateway copilot route targets the account's endpoints.api host.",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/copilot_account.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-core:src/seat_login.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "studio-ui.agents.container-signin"
+   ],
+   "sources": [
+    "wicked-core:src/seat_login.rs (copilot argv)",
+    "wicked-core:src/copilot_account.rs"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.container.opencode",
+   "title": "Container sign-in: opencode auth login + export",
+   "surface": "ui",
+   "user_path": "Agents -> opencode -> Sign in -> container runs `opencode auth login --standalone` then `auth export`; choose OpenAI 'Codex browser (legacy)', GitHub Copilot or API key. Terminal state: broker ingests data/opencode/wicked-auth.json.",
+   "deps": [
+    "container floor",
+    "provider account"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats",
+    "container"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists."
+   },
+   "oracle_text": "container-login outcome ok:true, files include 'data/opencode/wicked-auth.json'; roster[opencode].auth=='signed_in'.",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/seat_login.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "studio-ui.agents.container-signin"
+   ],
+   "sources": [
+    "wicked-core:src/seat_login.rs:OPENCODE_HOST_LOGIN"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.container.pi",
+   "title": "Container sign-in: pi via /login providers",
+   "surface": "ui",
+   "user_path": "Agents -> Pi -> Sign in -> container pi REPL; /login, choose Anthropic / GitHub Copilot / OpenAI Codex (legacy) browser login; ctrl+d. Terminal state: broker ingests pi/auth.json + pi/models.json.",
+   "deps": [
+    "container floor",
+    "a supported provider account"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats",
+    "container"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists."
+   },
+   "oracle_text": "container-login outcome ok:true, files include 'pi/auth.json'; roster[pi].auth=='signed_in'.",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/seat_login.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "studio-ui.agents.container-signin"
+   ],
+   "sources": [
+    "wicked-core:src/seat_login.rs (pi argv/hint)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.host.agy",
+   "title": "agy seat sign-in (in progress: off by default)",
+   "surface": "cli",
+   "user_path": "Enable agy via clis.toml (enabled_for_council / seat_eligible_for_work true), run its login_invocation (HOME=<seat root> agy), GET /roster. Terminal state: agy listed; signed_in true when any .json exists under the seat's ~/.gemini, else null (unknown); no logout command; no container login (POST /seats/agy/container-login -> 404).",
+   "deps": [
+    "agy CLI",
+    "clis.toml overlay"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/roster",
+      "expect": {
+       "status": 200,
+       "json": [
+        {
+         "path": "$.roster[?(@.key=='agy')].signed_in",
+         "op": "eq",
+         "value": true
+        },
+        {
+         "path": "$.roster[?(@.key=='agy')].logout_invocation",
+         "op": "eq",
+         "value": null
+        }
+       ]
+      }
+     },
+     {
+      "kind": "api",
+      "method": "POST",
+      "path": "/api/v1/seats/agy/container-login",
+      "expect": {
+       "status": 404
+      },
+      "body": "{request_body}"
+     }
+    ],
+    "complete": true
+   },
+   "oracle_text": "roster contains agy only with the overlay; roster[agy].logout_invocation == null; signed_in in {true,null}; POST /seats/agy/container-login -> 404 'container login unavailable for seat: agy'.",
+   "covers": [
+    "crew:route:GET /api/v1/roster",
+    "crew:route:POST /api/v1/seats/:cli/container-login"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-signin.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.seats.signin-presence"
+   ],
+   "sources": [
+    "wicked-core:crates/wicked-council/src/registry.rs:builtin (agy record)",
+    "wicked-core:crates/wicked-council/src/types.rs:default_login_invocation (agy)",
+    "wicked-crew:packages/crew/src/api/seat-signin.ts (agy)",
+    "wicked-crew:packages/crew/src/api/seat-container-login.ts:isContainerLoginCli"
+   ],
+   "notes": [
+    "critic 2026-10-20 (tautological/presence-only): seeded with a .json under the seat's ~/.gemini, so signed_in must be true."
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.host.claude",
+   "title": "Sign in the claude seat on the host floor",
+   "surface": "cli",
+   "user_path": "WICKED_SEAT_FLOOR=host. Copy roster[claude].login_invocation (CLAUDE_CONFIG_DIR=\"<worker home>/claude\" claude), run it in the operator's terminal, /login inside the REPL; then GET /roster?refresh=claude. Terminal state: refresh.outcome 'probed', auth signed_in, login_check 'live'.",
+   "deps": [
+    "claude CLI installed",
+    "crew daemon on host floor",
+    "provider account"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists.",
+    "precheck": {
+     "kind": "api",
+     "method": "GET",
+     "path": "/api/v1/roster?refresh=claude",
+     "expect": {
+      "json": [
+       {
+        "path": "$.roster[claude].auth",
+        "op": "eq",
+        "value": "signed_in"
+       },
+       {
+        "path": "$.login_check",
+        "op": "eq",
+        "value": "live"
+       }
+      ]
+     }
+    }
+   },
+   "oracle_text": "login_invocation starts with CLAUDE_CONFIG_DIR= pointing at <WICKED_WORKER_HOME or ~/.wicked-worker>/claude; after sign-in GET /roster?refresh=claude -> {refresh:{key:'claude',outcome:'probed'}} and roster[claude].auth=='signed_in' && login_check=='live' (probe = `claude auth status --json` loggedIn + one live request).",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-core:crates/wicked-council/src/types.rs",
+     "name": "every_builtin_seat_has_a_default_login_invocation",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-probe.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/roster-refresh-route.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.seats.signin-presence"
+   ],
+   "sources": [
+    "wicked-core:crates/wicked-council/src/types.rs:default_login_invocation",
+    "wicked-crew:packages/crew/src/api/seat-probe.ts:SeatProbe",
+    "wicked-crew:packages/crew/src/api/seat-signin.ts:signedInHeuristic (claude)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.host.codex",
+   "title": "Sign in the codex seat on the host floor",
+   "surface": "cli",
+   "user_path": "Run roster[codex].login_invocation (CODEX_HOME=\"<worker home>/codex\" codex login; add --device-auth headless), then GET /roster?refresh=codex. Terminal state: auth signed_in, login_check 'live'.",
+   "deps": [
+    "codex CLI",
+    "crew daemon host floor"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists.",
+    "precheck": {
+     "kind": "all",
+     "of": [
+      {
+       "kind": "api",
+       "method": "GET",
+       "path": "/api/v1/roster?refresh=codex",
+       "expect": {
+        "status": 200
+       }
+      },
+      {
+       "kind": "file",
+       "path": "home>/codex/auth.json",
+       "assert": "exists"
+      }
+     ]
+    }
+   },
+   "oracle_text": "login_invocation contains CODEX_HOME= <worker home>/codex and 'codex login'; GET /roster?refresh=codex -> outcome 'probed', auth 'signed_in' (probe: `codex login status` exit 0 + one live request); credential lands in <worker home>/codex/auth.json, never ~/.codex.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-probe.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-signin.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.seats.signin-presence"
+   ],
+   "sources": [
+    "wicked-core:crates/wicked-council/src/types.rs:default_login_invocation",
+    "wicked-crew:packages/crew/src/api/seat-probe.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.host.copilot",
+   "title": "Sign in the copilot seat on the host floor (unverified check)",
+   "surface": "cli",
+   "user_path": "Run roster[copilot].login_invocation (COPILOT_HOME=\"<worker home>/copilot\" copilot login) or export COPILOT_GITHUB_TOKEN/GH_TOKEN/GITHUB_TOKEN for the daemon; GET /roster?refresh=copilot. Terminal state: signed_in true (heuristic), login_check 'unverified', issue 'unverified'; refresh.outcome 'not_probed'.",
+   "deps": [
+    "copilot CLI",
+    "crew daemon host floor"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists.",
+    "precheck": {
+     "kind": "api",
+     "method": "GET",
+     "path": "/api/v1/roster?refresh=copilot",
+     "expect": {
+      "json": [
+       {
+        "path": "$.refresh.outcome",
+        "op": "eq",
+        "value": "not_probed"
+       }
+      ]
+     }
+    }
+   },
+   "oracle_text": "GET /roster?refresh=copilot -> refresh.outcome=='not_probed'; roster[copilot].signed_in true when config.json records a logged-in user or a token env is set, null when installed with no user, false with no trace; issues includes 'unverified' when signed in.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-signin.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.seats.signin-presence"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-signin.ts:signedInHeuristic (copilot)",
+    "wicked-crew:packages/crew/src/api/roster-standing.ts:recheck"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.host.opencode",
+   "title": "Sign in the opencode seat on the host floor (optional provider)",
+   "surface": "cli",
+   "user_path": "Run roster[opencode].login_invocation (XDG_DATA_HOME=\"<worker home>/opencode/data\" opencode auth login); GET /roster. Terminal state: auth signed_in when <root>/opencode/data/opencode/auth.json is credential-shaped, else not_required (free tier).",
+   "deps": [
+    "opencode CLI",
+    "crew daemon host floor"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists.",
+    "precheck": {
+     "kind": "api",
+     "method": "GET",
+     "path": "/api/v1/roster",
+     "expect": {
+      "status": 200
+     }
+    }
+   },
+   "oracle_text": "roster[opencode].auth == 'signed_in' after a provider login; 'not_required' without; refresh.outcome 'not_probed'.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-signin.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.seats.signin-presence"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-signin.ts:signedInHeuristic (opencode)/hasCredentialShape"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.signin.host.pi",
+   "title": "Sign in the pi seat on the host floor",
+   "surface": "cli",
+   "user_path": "Run roster[pi].login_invocation (PI_CODING_AGENT_DIR=\"<worker home>/pi\" pi) and sign in inside pi; GET /roster. Terminal state: signed_in true only if <root>/pi/auth.json holds a non-empty credential-shaped value ({} reads false).",
+   "deps": [
+    "pi CLI",
+    "crew daemon host floor"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "signin",
+    "sign-in",
+    "seats"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "human-gui",
+    "reason": "Needs a real provider login (OAuth/device code/token paste) or a third-party app's GUI; no deterministic driver exists.",
+    "precheck": {
+     "kind": "api",
+     "method": "GET",
+     "path": "/api/v1/roster",
+     "expect": {
+      "status": 200
+     }
+    }
+   },
+   "oracle_text": "roster[pi].signed_in == hasCredentialShape(<root>/pi/auth.json); login_check 'unverified' with issue 'unverified' when signed in; refresh.outcome 'not_probed'.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-signin.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-auth-wave6.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.seats.signin-presence"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-signin.ts:hasCredentialShape/signedInHeuristic (pi)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.skills.absent-lever-refusal",
+   "title": "No skills lever (agy, foreign bridge) refuses skill-bearing units by name",
+   "surface": "background",
+   "user_path": "Plan a unit requiring a skill on agy or an unknown binary. Terminal state: the unit is refused for that seat by name (no side channel); routing narrows to seats with a lever.",
+   "deps": [
+    "snapshot",
+    "agy via overlay or non-portable skill"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "skills",
+    "seats"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: plan/launch refusal names the seat and the skill; unitDistributed.seat_constraint set when non-portable skills narrow to claude."
+   },
+   "oracle_text": "plan/launch refusal names the seat and the skill; unitDistributed.seat_constraint set when non-portable skills narrow to claude.",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:tests/skills_plan_admission.rs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-core:src/skills_snapshot.rs:SkillsLever::Absent",
+    "wicked-core:src/event.rs:UnitDistributed.seat_constraint"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.skills.claude-plugin",
+   "title": "Skills handed to claude seats via the plugin loader",
+   "surface": "background",
+   "user_path": "Launch a unit with skill_ref on claude. Terminal state: the seat spawns with --plugin-dir <snapshot> (wrapped) and the skill loads.",
+   "deps": [
+    "claude CLI",
+    "published skills snapshot"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "skills",
+    "plugins",
+    "seats"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: spawn argv contains --plugin-dir <WICKED_SKILLS_SNAPSHOT>; unit output in role of the skill; skills_live test passes (#[ignore], run explicitly)."
+   },
+   "oracle_text": "spawn argv contains --plugin-dir <WICKED_SKILLS_SNAPSHOT>; unit output in role of the skill; skills_live test passes (#[ignore], run explicitly).",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:tests/skills_live.rs",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-core:src/skills_snapshot.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-core:src/skills_snapshot.rs:SkillsLever::ClaudePlugin"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.skills.copilot-view",
+   "title": "Skills handed to copilot via --add-dir views/copilot",
+   "surface": "background",
+   "user_path": "Publish skills (POST /api/v1/skills/publish) then route a skill unit to copilot. Terminal state: snapshot contains views/copilot/.github/skills/<name>/ for every enabled portable skill; copilot spawns with --add-dir <snapshot>/views/copilot.",
+   "deps": [
+    "copilot CLI",
+    "skills publish"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "skills",
+    "seats"
+   ],
+   "required_evidence": [
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "{snapshot}/views/copilot/.github/skills/{name}/SKILL.md",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "file exists <snapshot>/views/copilot/.github/skills/<name>/SKILL.md for each portable skill and not for non-portable ones",
+     "spawn argv has --add-dir .../views/copilot."
+    ]
+   },
+   "oracle_text": "file exists <snapshot>/views/copilot/.github/skills/<name>/SKILL.md for each portable skill and not for non-portable ones; spawn argv has --add-dir .../views/copilot.",
+   "covers": [
+    "crew:route:POST /api/v1/skills/publish"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/skills_snapshot.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/skills-publish-starvation.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-core:src/skills_snapshot.rs:SkillsLever::CopilotAddDir",
+    "wicked-crew:packages/crew/src/skills/store.ts (views/copilot)",
+    "wicked-crew:packages/crew/src/skills/guards.ts (non-portable)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.skills.opencode-config",
+   "title": "Skills handed to opencode via OPENCODE_CONFIG_CONTENT skills.paths",
+   "surface": "background",
+   "user_path": "Skill unit routed to opencode. Terminal state: OPENCODE_CONFIG_CONTENT carries skills.paths composed with the governance content.",
+   "deps": [
+    "opencode CLI",
+    "snapshot"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "skills",
+    "seats"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: spawn env OPENCODE_CONFIG_CONTENT parses as JSON with skills.paths pointing into the snapshot and the governance keys intact."
+   },
+   "oracle_text": "spawn env OPENCODE_CONFIG_CONTENT parses as JSON with skills.paths pointing into the snapshot and the governance keys intact.",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/skills_snapshot.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-core:src/skills_snapshot.rs:SkillsLever::OpencodeConfig"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.skills.pi-flags",
+   "title": "Skills handed to pi via --no-skills + --skill per portable skill",
+   "surface": "background",
+   "user_path": "Unit with skill_ref routed to pi. Terminal state: pi spawns with --no-skills and one --skill <snapshot>/skills/<dir> per portable skill.",
+   "deps": [
+    "pi CLI",
+    "snapshot"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "skills",
+    "seats"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: spawn argv for pi contains '--no-skills' and '--skill' entries matching the snapshot's portable skills; a non-portable required skill refuses the seat by name."
+   },
+   "oracle_text": "spawn argv for pi contains '--no-skills' and '--skill' entries matching the snapshot's portable skills; a non-portable required skill refuses the seat by name.",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/skills_snapshot.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-core:tests/skills_plan_admission.rs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-core:src/skills_snapshot.rs:SkillsLever::PiSkillFlags"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.standing.account-kind-scrubbed",
+   "title": "Account kind shown, identifiers never on the wire",
+   "surface": "api",
+   "user_path": "Signed-in claude/codex; GET /roster. Terminal state: account carries only a kind (and a provider-public plan) — no email, org id, UUID or key prefix anywhere in the roster JSON.",
+   "deps": [
+    "crew daemon",
+    "a signed-in seat"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "standing",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "roster JSON matches none of EMAIL_RE, UUID_RE, KEY_PREFIX_RE (sk-, ghp_, github_pat_, xox?-, AKIA) or the operator's home path",
+     "account.kind present for signed-in seats."
+    ]
+   },
+   "oracle_text": "roster JSON matches none of EMAIL_RE, UUID_RE, KEY_PREFIX_RE (sk-, ghp_, github_pat_, xox?-, AKIA) or the operator's home path; account.kind present for signed-in seats.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-scrub.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-standing-plain-reason.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-scrub.ts:scrubStatusOutput/scrubEvidence/accountFromStatus",
+    "wicked-crew:packages/crew/src/api/seat-agents.ts:seatAccount"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.standing.auth-refusal-override",
+   "title": "A seat's own 'no credential' output flips it signed out",
+   "surface": "background",
+   "user_path": "A run/chat step on a seat fails with 'No API key found' / 'Not logged in' / HTTP 401; then GET /roster. Terminal state: auth 'signed_out' with auth_evidence (crew vocabulary), council_eligible false, for 30 minutes or until an ok output / a live sign-in check after the refusal.",
+   "deps": [
+    "crew daemon",
+    "a seat with a revoked credential"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "standing",
+    "seats"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "After the refusal frame: roster[key].auth == 'signed_out', council_eligible == false, issues[].code includes 'signed_out'",
+     "after an ok unitOutputCaptured on that seat (or a live check with signedIn true and probedAt later) auth returns to signed_in. Bare numbers like ':401:' in stack traces never trigger it (AUTH_REFUSAL_PATTERNS)."
+    ]
+   },
+   "oracle_text": "After the refusal frame: roster[key].auth == 'signed_out', council_eligible == false, issues[].code includes 'signed_out'; after an ok unitOutputCaptured on that seat (or a live check with signedIn true and probedAt later) auth returns to signed_in. Bare numbers like ':401:' in stack traces never trigger it (AUTH_REFUSAL_PATTERNS).",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-auth-wave6.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-health.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-health.ts:AUTH_REFUSAL_PATTERNS/AUTH_FAILURE_WINDOW_MS/clearAuthFailureBefore",
+    "wicked-crew:packages/crew/src/api/roster-standing.ts (authFailure)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.standing.council-vs-work",
+   "title": "Council (ballot) and work roles read independently",
+   "surface": "api",
+   "user_path": "Seat A council-only, seat B work-only (overlay flags); GET /roster then launch. Terminal state: each seat's council_eligible and work_eligible reflect its own role; the engine roster gets health {usable:true} when either is true, {usable:false, reason} when both are false.",
+   "deps": [
+    "crew daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "standing",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "core-event",
+    "type": "unitDistributed",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "toEngineSeat(seat).health.usable == (council_eligible||work_eligible)",
+     "a both-false seat appears in the run's unitDistributed.degradedReason as '<key> (<short reason> — launcher)'."
+    ]
+   },
+   "oracle_text": "toEngineSeat(seat).health.usable == (council_eligible||work_eligible); a both-false seat appears in the run's unitDistributed.degradedReason as '<key> (<short reason> — launcher)'.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/engine-roster.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-standing.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-seams-engine-roster.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/campaign-seam-engine-roster.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/core/engine-roster.ts:toEngineSeat/shortBenchReason",
+    "wicked-crew:packages/crew/src/api/seat-standing.ts:seatStanding"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.standing.free-tier",
+   "title": "Free-tier seat reads 'no sign-in needed' (opencode Zen)",
+   "surface": "api",
+   "user_path": "opencode with no auth.json; GET /roster. Terminal state: auth 'not_required', free_tier text, free_tier_source 'crew-heuristic' (or 'registry' when the record declares credential='optional'); the Agents modal shows agents-free-tier.",
+   "deps": [
+    "crew daemon",
+    "opencode installed, no provider auth"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "standing",
+    "sign-in",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "roster[key=opencode].auth == 'not_required' && free_tier == 'OpenCode Zen free models (no account needed)' && free_tier_source in {'crew-heuristic','registry'}"
+    ]
+   },
+   "oracle_text": "roster[key=opencode].auth == 'not_required' && free_tier == 'OpenCode Zen free models (no account needed)' && free_tier_source in {'crew-heuristic','registry'}",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-standing.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-standing.ts:FREE_TIER_SEATS/seatAuth"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.standing.issues",
+   "title": "Per-seat issue list (codes, severity, commands), most important first",
+   "surface": "api",
+   "user_path": "GET /roster. Terminal state: each seat's issues[] lists {code, severity, params, message, commands?} sorted problem > warning > note, safety codes before availability codes.",
+   "deps": [
+    "crew daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "standing",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "issues[].code drawn from {signed_out, qe_blocked, quota, usage_limit, benched, host_floor, host_floor_unknown, codex_worktree, version_unproven, unchecked, fence_scoped, live_check_failed, opt_in, no_qe, unverified}",
+     "ordering by SEVERITY_ORDER then SAFETY_CODES",
+     "commands[].display uses $HOME, never the absolute home path."
+    ]
+   },
+   "oracle_text": "issues[].code drawn from {signed_out, qe_blocked, quota, usage_limit, benched, host_floor, host_floor_unknown, codex_worktree, version_unproven, unchecked, fence_scoped, live_check_failed, opt_in, no_qe, unverified}; ordering by SEVERITY_ORDER then SAFETY_CODES; commands[].display uses $HOME, never the absolute home path.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-agents.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-agents.ts:seatIssues/displayCommand"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.standing.work-admission",
+   "title": "Whether a job would give the seat work, per scope kind",
+   "surface": "api",
+   "user_path": "GET /roster. Terminal state: work_admission.{unscoped,scoped,scoped_bound} = {ok, reason_code?, source in auth|launcher|scope}; absent when the addon lacks Core.worktreeBenched.",
+   "deps": [
+    "crew daemon",
+    "wicked-core-ts with worktreeBenched"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "standing",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "For a signed-out seat every work_admission[*].ok == false with source 'auth'",
+     "for codex on a bound run on the host floor (no WICKED_CODEX_WORKTREE_OK) scoped_bound.reason_code == 'worktree_bench' and issue 'codex_worktree' present."
+    ]
+   },
+   "oracle_text": "For a signed-out seat every work_admission[*].ok == false with source 'auth'; for codex on a bound run on the host floor (no WICKED_CODEX_WORKTREE_OK) scoped_bound.reason_code == 'worktree_bench' and issue 'codex_worktree' present.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-agents.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/host-floor-bench-adapter.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/host-floor-bench-addon.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-agents.ts:workAdmission",
+    "wicked-core:src/lib.rs:worktree_benched",
+    "wicked-crew:packages/crew/src/core/adapter.ts:worktreeBenched"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.ui.agents-offline",
+   "title": "Agents page when the daemon is down or roster fails",
+   "surface": "ui",
+   "user_path": "Stop the daemon; open /agents. Terminal state: agents-banner offline with Retry and agents-offline-how ('npx wicked-crew serve'); other failures show error banner + agents-health-link; partial reads show agents-partial; stale roster shows stale banner.",
+   "deps": [
+    "studio"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "ui",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=agents-banner]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=agents-offline-how]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "agents-banner present with kind offline",
+     "agents-offline-how text contains 'npx wicked-crew serve'",
+     "summary count hidden."
+    ]
+   },
+   "oracle_text": "agents-banner present with kind offline; agents-offline-how text contains 'npx wicked-crew serve'; summary count hidden.",
+   "covers": [
+    "crew:cli:serve",
+    "studio:route:/agents",
+    "studio:testid-computed:testId",
+    "studio:testid:agents-add",
+    "studio:testid:agents-band",
+    "studio:testid:agents-banner",
+    "studio:testid:agents-cards",
+    "studio:testid:agents-check-all",
+    "studio:testid:agents-empty",
+    "studio:testid:agents-fix",
+    "studio:testid:agents-foot",
+    "studio:testid:agents-governed",
+    "studio:testid:agents-health-link",
+    "studio:testid:agents-loading",
+    "studio:testid:agents-offline-how",
+    "studio:testid:agents-open",
+    "studio:testid:agents-page",
+    "studio:testid:agents-panel",
+    "studio:testid:agents-partial",
+    "studio:testid:agents-ready",
+    "studio:testid:agents-row",
+    "studio:testid:agents-setup-guide",
+    "studio:testid:agents-sign",
+    "studio:testid:agents-table",
+    "studio:testid:agents-tile-checked",
+    "studio:testid:agents-tile-fix",
+    "studio:testid:agents-tile-ready",
+    "studio:testid:agents-tiles",
+    "studio:testid:agents-version"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_agents_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:tests/agentsPage.test.tsx",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/agents/AgentsPage.tsx"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.ui.check-all",
+   "title": "'Check sign-ins now' re-checks every agent",
+   "surface": "ui",
+   "user_path": "/agents -> agents-check-all. Terminal state: one re-check per agent with a sign-in (skips 'No sign-in needed'), then one full roster re-read; button shows 'Checking…' while running.",
+   "deps": [
+    "studio"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "ui",
+    "sign-in",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/roster?refresh={k}",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/roster",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=agents-check-all]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "network shows GET /roster?refresh=<k> for each non-free agent then GET /roster",
+     "button re-enabled at end."
+    ]
+   },
+   "oracle_text": "network shows GET /roster?refresh=<k> for each non-free agent then GET /roster; button re-enabled at end.",
+   "covers": [
+    "crew:route:GET /api/v1/roster",
+    "studio:route:/agents",
+    "studio:testid-computed:testId",
+    "studio:testid:agents-add",
+    "studio:testid:agents-band",
+    "studio:testid:agents-banner",
+    "studio:testid:agents-cards",
+    "studio:testid:agents-check-all",
+    "studio:testid:agents-empty",
+    "studio:testid:agents-fix",
+    "studio:testid:agents-foot",
+    "studio:testid:agents-governed",
+    "studio:testid:agents-health-link",
+    "studio:testid:agents-loading",
+    "studio:testid:agents-offline-how",
+    "studio:testid:agents-open",
+    "studio:testid:agents-page",
+    "studio:testid:agents-panel",
+    "studio:testid:agents-partial",
+    "studio:testid:agents-ready",
+    "studio:testid:agents-row",
+    "studio:testid:agents-setup-guide",
+    "studio:testid:agents-sign",
+    "studio:testid:agents-table",
+    "studio:testid:agents-tile-checked",
+    "studio:testid:agents-tile-fix",
+    "studio:testid:agents-tile-ready",
+    "studio:testid:agents-tiles",
+    "studio:testid:agents-version"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_agents_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:tests/agentsPage.test.tsx",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/agents/AgentsPage.tsx:checkAll"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.ui.launch-wizard-seats",
+   "title": "Launch wizard helper picker with opt-in notes",
+   "surface": "ui",
+   "user_path": "New job -> launch wizard -> helpers fieldset (launch-wizard-seat per seat) -> launch-wizard-launch. Terminal state: POST /runs clisJson contains exactly the picked seats (crew-only fields stripped by the daemon).",
+   "deps": [
+    "studio",
+    "crew daemon"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "ui",
+    "launch",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=launch-wizard-seat]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "request body clisJson keys == checked launch-wizard-seat keys",
+     "opencode shows its opt-in note",
+     "signed-out seats disabled or flagged."
+    ]
+   },
+   "oracle_text": "request body clisJson keys == checked launch-wizard-seat keys; opencode shows its opt-in note; signed-out seats disabled or flagged.",
+   "covers": [
+    "crew:route:POST /api/v1/runs",
+    "studio:testid-pattern:launch-wizard-workflow-*",
+    "studio:testid:launch-wizard",
+    "studio:testid:launch-wizard-back",
+    "studio:testid:launch-wizard-blocker",
+    "studio:testid:launch-wizard-cards",
+    "studio:testid:launch-wizard-change",
+    "studio:testid:launch-wizard-chosen",
+    "studio:testid:launch-wizard-clear",
+    "studio:testid:launch-wizard-close",
+    "studio:testid:launch-wizard-deliver",
+    "studio:testid:launch-wizard-deliver-toggle",
+    "studio:testid:launch-wizard-demo",
+    "studio:testid:launch-wizard-demo-audience",
+    "studio:testid:launch-wizard-demo-audience-pick",
+    "studio:testid:launch-wizard-demo-gates",
+    "studio:testid:launch-wizard-demo-project",
+    "studio:testid:launch-wizard-demo-show",
+    "studio:testid:launch-wizard-demo-url",
+    "studio:testid:launch-wizard-draft-instructions",
+    "studio:testid:launch-wizard-draft-project",
+    "studio:testid:launch-wizard-error",
+    "studio:testid:launch-wizard-error-detail",
+    "studio:testid:launch-wizard-gate",
+    "studio:testid:launch-wizard-helpers",
+    "studio:testid:launch-wizard-intent",
+    "studio:testid:launch-wizard-keys",
+    "studio:testid:launch-wizard-launch",
+    "studio:testid:launch-wizard-lead",
+    "studio:testid:launch-wizard-next",
+    "studio:testid:launch-wizard-optin-note",
+    "studio:testid:launch-wizard-progress",
+    "studio:testid:launch-wizard-project",
+    "studio:testid:launch-wizard-qe",
+    "studio:testid:launch-wizard-qe-off",
+    "studio:testid:launch-wizard-qe-refused",
+    "studio:testid:launch-wizard-reduced",
+    "studio:testid:launch-wizard-repo",
+    "studio:testid:launch-wizard-requirements",
+    "studio:testid:launch-wizard-requirements-browser",
+    "studio:testid:launch-wizard-review",
+    "studio:testid:launch-wizard-review-lead",
+    "studio:testid:launch-wizard-review-qe-off",
+    "studio:testid:launch-wizard-scrim",
+    "studio:testid:launch-wizard-seat",
+    "studio:testid:launch-wizard-skip",
+    "studio:testid:launch-wizard-skip-toggle",
+    "studio:testid:launch-wizard-soon",
+    "studio:testid:launch-wizard-start-chat",
+    "studio:testid:launch-wizard-step"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:tests/launchWizard.test.tsx",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_run_team_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_e2e7721_r3_test.py",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/launch/LaunchWizard.tsx (launch-wizard-helpers, launch-wizard-seat)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.usage.burn-panel",
+   "title": "Run burn panel from cliUsage (unreported units disclosed)",
+   "surface": "ui",
+   "user_path": "Open a run -> Burn panel (data-testid burn). Terminal state: token/cost totals from cliUsage; burn-partial note when some units are unreported; burn-empty while none yet.",
+   "deps": [
+    "studio",
+    "run with usage"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "usage",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "cliUsage",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=burn-partial]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "cliUsageUnreported",
+      "count": 1
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "DOM burn totals equal the sum of the run's cliUsage events",
+     "burn-partial visible iff ≥1 cliUsageUnreported."
+    ]
+   },
+   "oracle_text": "DOM burn totals equal the sum of the run's cliUsage events; burn-partial visible iff ≥1 cliUsageUnreported.",
+   "covers": [
+    "studio:testid:burn",
+    "studio:testid:burn-empty",
+    "studio:testid:burn-partial",
+    "studio:testid:burn-pending",
+    "studio:testid:burn-rework",
+    "studio:testid:burn-unavailable"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:e2e/burn_cov_test.py",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-studio:tests/cockpitPanels.test.tsx",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/Burn.tsx",
+    "wicked-studio:src/store/events.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.usage.cli-usage-events",
+   "title": "cliUsage / cliUsageUnreported per unit attempt",
+   "surface": "api",
+   "user_path": "Run a governed unit; GET /api/v1/runs/:id/events. Terminal state: one cliUsage {session, ord, attempt, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd?} or cliUsageUnreported {cli} per agent attempt.",
+   "deps": [
+    "a run"
+   ],
+   "cost": "L",
+   "tags": [
+    "seats-and-clis",
+    "usage",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "cliUsage",
+      "count": 1
+     },
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "cliUsageUnreported",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "for each agent unit attempt exactly one of cliUsage | cliUsageUnreported exists",
+     "cache tokens <= input_tokens",
+     "claude wrapped seats report usage."
+    ]
+   },
+   "oracle_text": "for each agent unit attempt exactly one of cliUsage | cliUsageUnreported exists; cache tokens <= input_tokens; claude wrapped seats report usage.",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id/events"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-record-route.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/ask-relay.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "core.events.cli-usage"
+   ],
+   "sources": [
+    "wicked-core:src/event.rs:CliUsage/CliUsageUnreported",
+    "wicked-crew:packages/crew-api-types/index.d.ts:CliUsageEvent"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.usage.mcp-by-seat",
+   "title": "MCP tool usage filtered by seat",
+   "surface": "api",
+   "user_path": "GET /api/v1/mcp/usage?days=7&seat=<key>. Terminal state: counts, decision split, latency percentiles and tool x seat x run drill-down for that seat.",
+   "deps": [
+    "crew daemon",
+    "MCP broker calls"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "usage",
+    "mcp",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/mcp/usage?days=7&seat={key}",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "every drill-down row has seat==<key>",
+     "days outside 1..30 -> 400",
+     "no call records -> 503."
+    ]
+   },
+   "oracle_text": "200; every drill-down row has seat==<key>; days outside 1..30 -> 400; no call records -> 503.",
+   "covers": [
+    "crew:route:GET /api/v1/mcp/usage"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/mcp-usage.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:tests/McpUsage.test.tsx",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/mcp/usage.ts:foldMcpUsage",
+    "wicked-crew:packages/crew/src/api/mcp.ts:GET ${V}/mcp/usage"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.usage.window-spend",
+   "title": "Window spend across helpers",
+   "surface": "ui",
+   "user_path": "Desk/front door spend figure (useWindowSpend) over the recent window. Terminal state: the figure equals summed cliUsage.costUsd for the window.",
+   "deps": [
+    "studio"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "usage",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: displayed spend == sum of /roster/record costs for the window (null shows unpriced)."
+   },
+   "oracle_text": "displayed spend == sum of /roster/record costs for the window (null shows unpriced).",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:tests/frontdoorDesk.test.tsx",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/hooks/useWindowSpend.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.version.container-image-pins",
+   "title": "Container seat images pinned to verified CLI versions",
+   "surface": "cli",
+   "user_path": "`wicked-core seat-image status` (or build [<cli>|all]). Terminal state: prints runtime, floor image tag present/missing, and per CLI the image tag built from the pinned package (claude-code 2.1.296, codex 0.162.1, pi-coding-agent 1.1.0, @opencode/cli 2.0.25, copilot 1.0.96).",
+   "deps": [
+    "container runtime",
+    "wicked-core binary"
+   ],
+   "cost": "M",
+   "tags": [
+    "seats-and-clis",
+    "version",
+    "seats",
+    "container"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-core seat-image status",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "`wicked-core seat-image status` exit 0 with one line per CLI '<cli>: <tag> present|missing'",
+     "`seat-image build claude` exit 0 'claude: built <tag>'",
+     "no runtime -> exit 1 with reason."
+    ]
+   },
+   "oracle_text": "`wicked-core seat-image status` exit 0 with one line per CLI '<cli>: <tag> present|missing'; `seat-image build claude` exit 0 'claude: built <tag>'; no runtime -> exit 1 with reason.",
+   "covers": [
+    "core:cli:seat-image"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/container_floor.rs",
+     "name": "inline tests",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "core.cli.seat-image-status"
+   ],
+   "sources": [
+    "wicked-core:src/container_floor.rs:SEAT_PACKAGES/seat_image_main",
+    "wicked-core:containers/seats/seat.Dockerfile"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "seats.version.pin-proven",
+   "title": "Version pin: proven build vs unproven (safety checks off)",
+   "surface": "api",
+   "user_path": "Seat with acp.verified_version (opencode) on PATH; GET /roster. Terminal state: version.status 'proven' when the pin's own --version first line matches; otherwise 'unproven' with why no_answer|different_build(observed)|invalid_answer and issue version_unproven (with a `<binary> --version` command).",
+   "deps": [
+    "opencode installed"
+   ],
+   "cost": "S",
+   "tags": [
+    "seats-and-clis",
+    "version",
+    "seats"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "roster[opencode].version_pin.matched true => version.status=='proven' (7721 live: opencode proven)",
+     "a different build => status 'unproven', why 'different_build', params.observed set",
+     "never status from `installed` alone."
+    ]
+   },
+   "oracle_text": "roster[opencode].version_pin.matched true => version.status=='proven' (7721 live: opencode proven); a different build => status 'unproven', why 'different_build', params.observed set; never status from `installed` alone.",
+   "covers": [
+    "crew:route:GET /api/v1/roster"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-version-pins.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-agents.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-version.ts (why rules)",
+    "wicked-crew:packages/crew/src/api/diagnostics.ts:SeatVersionPinCache/probeSeatVersionPins"
+   ],
+   "origin": "inventory-2026-10-20"
+  }
+ ]
+}

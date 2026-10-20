@@ -2,6 +2,51 @@
 
 ## Unreleased
 
+### e2e — phase 1 of the platform certification suite: catalog, typed oracles, surface manifests, coverage validator
+
+The certification rule is "the user's exact path to its terminal state". A launch is not done,
+creating something through the API is not creating it in the UI, and a stub is not the real thing.
+`e2e/` now holds what has to be certified and proves that list is complete. It runs nothing
+against a product. The runner, the evidence capture and the skills are phases 2 and 3.
+
+- **`e2e/catalog/<area>.json`**: 1410 capabilities in 9 areas, normalised from the 2026-10-20
+  inventory (1533) and its completeness critic. The critic folds:
+  - 49 capabilities added;
+  - 172 true duplicates merged and kept as `aliases` (merged only within one surface; the UI and
+    API forms of a feature stay separate as `related`);
+  - proxy paths converted to the real user path: studio against a real crew daemon serving its
+    bundled studio, and launches that end at the run's terminal state;
+  - permissive and tautological oracles tightened.
+- **`e2e/catalog/SCHEMA.json`**: the record schema.
+  - Each capability carries a **typed oracle**: `dom`, `api`, `event`, `file`, `exit`, `npm` or
+    `gh`, an `all` of those, or `manual` with a category and reason. Manual is counted
+    separately and is never a pass.
+  - Each capability also carries `required_evidence`. A UI capability always requires `video`,
+    `screenshot` and `trace`.
+- **`e2e/surfaces/`**: user-facing surface elements and a test-file index per repo, read from
+  source at pinned SHAs.
+  - The repos are studio, crew, estate, garden, core, interactive, bus, vault, ledger and
+    installer.
+  - The crew CLI comes from the published tarball's compiled text, read without executing it.
+  - The manifests reproduce byte for byte from `pins.json`.
+- **`e2e/bin/e2e validate`** (Python 3, stdlib only):
+  - schema and id checks;
+  - every surface element covered (unmapped elements fail by repo, with a ratchet baseline that
+    only shrinks);
+  - every scenario reference a real test file at the pin;
+  - oracle semantics: comparisons carry values, nothing is vacuous, every typed oracle states
+    `complete`, completeness is computed recursively over composites (one function for the
+    catalog, the summary and the run-report guard), and a UI oracle with no dom check is never
+    complete;
+  - `--report <run-dir>`, which checks a phase 2 run for verdicts, observed values and non-empty
+    evidence (UI needs a `.webm`; symlinks may not leave the run dir).
+- **`e2e select`**: the selection language (`area:`, `tag:`, `id:` glob, `surface=`, `cost<=`,
+  `oracle=`, `!`), and `e2e/profiles.json` (`smoke`, `daily`, `release`, `full`).
+- **`.github/workflows/e2e-catalog.yml`**:
+  - On PRs: unit tests on 3 OSes, manifest reproduction from the pins, and `e2e validate
+    --baseline`.
+  - Daily: a drift report against current mains. It never fails and opens nothing.
+
 ### smoke — the chat seat declares `seat_eligible_for_work` (crew 0.15.2)
 
 The crew 0.15.2 release smoke (run 39233376132) failed S04 on ubuntu and macOS. crew#916 made crew

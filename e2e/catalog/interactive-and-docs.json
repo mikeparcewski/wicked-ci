@@ -1,0 +1,4128 @@
+{
+ "version": 1,
+ "area": "interactive-and-docs",
+ "description": "wicked-interactive (the document engine crew proxies), the document/demo seams in crew and studio, and the product sites.",
+ "capabilities": [
+  {
+   "id": "crew.interactive.ask-refusal",
+   "title": "An ask on a document kind no seam answers is refused before the bridge (422)",
+   "surface": "api",
+   "user_path": "API: POST /api/v1/projects/<p>/interactive/api/events {event_type:'wicked.interactive.chat.posted', payload:{role:'user', text:'make it punchier', document_id:<demo doc>}}. Terminal state: 422 {code:'ask_unsupported_for_doc_kind', doc_kind:'demo', remedy}; nothing emitted on the bus.",
+   "deps": [
+    "interactive.doc.create-demo-kind"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "interactive",
+    "chat",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: status 422 and body.code; no chat.posted on the bus for that doc in the window"
+   },
+   "oracle_text": "status 422 and body.code; no chat.posted on the bus for that doc in the window",
+   "covers": [
+    "crew:mcp:ask",
+    "crew:route:POST /api/v1/projects/:projectId/interactive/*",
+    "interactive:route:POST /api/events"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/interactive-proxy.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-chat-events.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/interactive/proxy-routes.ts:askOf/askRefusalFor",
+    "wicked-crew:packages/crew/src/interactive/chat-events.ts:DEMO_DOC_MOVED_MESSAGE/isAnswerableDocKind"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "crew.interactive.bridge-pool",
+   "title": "Crew spawns, health-checks and reuses one interactive bridge per resolved docs root",
+   "surface": "background",
+   "user_path": "Background/API: on a fresh daemon, GET /api/v1/projects/<p>/interactive/api/health. Terminal state: crew spawns `npx wicked-interactive@^0.14.1 serve --root <resolved root>` (WICKED_INTERACTIVE_SPEC overrides), waits for /api/health reporting that root, records its origin with POST /api/studio-origin, and proxies; a second request reuses the same pid; a dead bridge is restarted; unreachable -> 503 {code:'bridge_unavailable', hint}.",
+   "deps": [
+    "crew daemon",
+    "npm registry or cached wicked-interactive"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "interactive"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/projects/{p}/interactive/api/health",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "<root>/.wi-serve.json pid stable across two requests",
+     "proxied /api/health.root === resolved root",
+     "503 body.code==='bridge_unavailable' when spawn fails"
+    ]
+   },
+   "oracle_text": "<root>/.wi-serve.json pid stable across two requests; proxied /api/health.root === resolved root; 503 body.code==='bridge_unavailable' when spawn fails",
+   "covers": [
+    "crew:route:GET /api/v1/projects/:projectId/interactive/*",
+    "interactive:route:POST /api/studio-origin"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/interactive-bridge-pool.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-bridge-spec.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-bus-location.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.interactive.proxy-wildcard"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/interactive/bridge-pool.ts:InteractiveBridgePool.ensure, INTERACTIVE_DEFAULT_RANGE, INTERACTIVE_SPEC_ENV",
+    "wicked-crew:packages/crew/src/interactive/bus-location.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "crew.interactive.doc-run-binding",
+   "title": "Document-to-run binding: runs filtered by document",
+   "surface": "api",
+   "user_path": "API: GET /api/v1/runs?doc=<doc> and GET /api/v1/runs/:id (confirmed 200 on :7721). Terminal state: only runs the interactive seams launched for that doc; each run DTO carries document_id.",
+   "deps": [
+    "crew daemon",
+    "a governed doc run"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "interactive",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "ledger-entry"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs?doc={doc}",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "every returned run.document_id === doc",
+     "run ids equal the ledger rows keyed '<doc>…'"
+    ]
+   },
+   "oracle_text": "every returned run.document_id === doc; run ids equal the ledger rows keyed '<doc>…'",
+   "covers": [
+    "crew:route:GET /api/v1/runs",
+    "crew:route:GET /api/v1/runs/:id"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/doc-run-index.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/narration-wave6.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/interactive/doc-run-index.ts:DocRunIndex",
+    "wicked-crew:packages/crew/src/api/routes.ts:GET /runs ?doc="
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "crew.interactive.draft-grounding",
+   "title": "Draft grounded on the named/brief-named/sole repo via an inbox snapshot (never a silent first member)",
+   "surface": "background",
+   "user_path": "Background: create a source doc in a two-repo project naming one repo (repo_ref) and another naming none. Terminal state: the run's inbox holds a shallow snapshot of exactly the named repo (no symlinks, no node_modules, size-capped); the thread says which repo was read; with no named/brief/sole repo none is used and the thread says so.",
+   "deps": [
+    "crew.interactive.draft-seam",
+    "registered repos"
+   ],
+   "cost": "L",
+   "tags": [
+    "interactive-and-docs",
+    "interactive",
+    "repos"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: snapshot dir under the run's extra write root matches the named repo's HEAD tree; status.posted text names the repo; no snapshot for the ungrounded case"
+   },
+   "oracle_text": "snapshot dir under the run's extra write root matches the named repo's HEAD tree; status.posted text names the repo; no snapshot for the ungrounded case",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-repo-snapshot.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-doc-grounding.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/interactive/doc-grounding.ts:resolveGroundingRepos",
+    "wicked-crew:packages/crew/src/interactive/repo-snapshot.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "crew.interactive.draft-quality-floor",
+   "title": "Interactive presets require the wicked-garden-draft quality-floor skill (fail, never run without it)",
+   "surface": "background",
+   "user_path": "Background: launch a draft with the published skills snapshot lacking wicked-garden-draft, then with it. Terminal state: without it the run fails with the engine's SkillsError::Missing ('enable and republish'); with it the drafting step's task names the page budget and snapshot for self_check.py.",
+   "deps": [
+    "crew.interactive.draft-seam",
+    "wicked-garden >= 12.35.0"
+   ],
+   "cost": "L",
+   "tags": [
+    "interactive-and-docs",
+    "interactive",
+    "skills"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: run status failed + error text contains 'Missing'; with skill: unit task text contains 'self_check.py' and '--pages'"
+   },
+   "oracle_text": "run status failed + error text contains 'Missing'; with skill: unit task text contains 'self_check.py' and '--pages'",
+   "covers": [
+    "garden:skill:draft"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-draft-skill.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/interactive/draft-skill.ts",
+    "wicked-garden:skills/draft/SKILL.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "crew.interactive.edit-demo-decline",
+   "title": "Feedback on an engine demo document is declined with an honest status",
+   "surface": "background",
+   "user_path": "Background: post feedback.submitted with a structural item on a kind:'demo' doc. Terminal state: no run launched; status.posted {state:'error'} naming New job › Demo video.",
+   "deps": [
+    "interactive.doc.create-demo-kind",
+    "crew daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "interactive",
+    "artifacts",
+    "demo"
+   ],
+   "required_evidence": [
+    "video",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: no run for the doc; status.posted error message contains 'Demo video'"
+   },
+   "oracle_text": "no run for the doc; status.posted error message contains 'Demo video'",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-edit-demo-decline.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/interactive/edit-events.ts:head.kind==='demo'"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "crew.interactive.narration",
+   "title": "Honest thread narration: phase lines, heartbeat, council fraction",
+   "surface": "background",
+   "user_path": "Background: watch status.posted during a governed doc run where some seats are benched. Terminal state: every unit transition narrated; 'Council picked X… (1 of 5 seats answered — 4 benched)' when fewer ballots returned; plan re-reads after a plan-gate edit.",
+   "deps": [
+    "crew.interactive.draft-seam"
+   ],
+   "cost": "L",
+   "tags": [
+    "interactive-and-docs",
+    "interactive"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "core-event",
+    "type": "unitPlanned",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "status.posted messages contain the seated/returned fraction when unitDistributed.returned < seated",
+     "one line per unitPlanned"
+    ]
+   },
+   "oracle_text": "status.posted messages contain the seated/returned fraction when unitDistributed.returned < seated; one line per unitPlanned",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/council-outcome.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-run-units.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/unit-distributed-line.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/interactive/council-outcome.ts",
+    "wicked-crew:packages/crew/src/interactive/run-units.ts:resyncRunUnits"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "crew.interactive.review-seam",
+   "title": "Governed document review by four reviewers on a non-author seat (API-only)",
+   "surface": "api",
+   "user_path": "API: POST …/interactive/api/events {event_type:'wicked.interactive.review.requested', payload:{document_id, version?, reviewers?}}. Terminal state: one read-only interactive-review run excluding the authoring seats (excludeSeats); one wicked-ledger verdict row per reviewer (match, a11y, copy, qe) in the doc's review root; wicked.interactive.review.completed per reviewer read back; a repeat request is deduped. No studio button emits this.",
+   "deps": [
+    "crew daemon",
+    "signed-in seats distinct from the author",
+    "wicked-ledger"
+   ],
+   "cost": "L",
+   "tags": [
+    "interactive-and-docs",
+    "interactive",
+    "seats",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "ledger-entry"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/projects/{projectId}/interactive/api/events",
+    "expect": {
+     "status": [
+      200,
+      201,
+      202
+     ]
+    },
+    "body": "{request_body}",
+    "complete": false,
+    "untyped": [
+     "bridge 200 {event_id} with version defaulted to head",
+     "review root ledger has N rows stamped crew_run_id",
+     "N review.completed events",
+     "run roster excludes draft-run creator seats",
+     "second identical request launches no new run"
+    ]
+   },
+   "oracle_text": "bridge 200 {event_id} with version defaulted to head; review root ledger has N rows stamped crew_run_id; N review.completed events; run roster excludes draft-run creator seats; second identical request launches no new run",
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/interactive-review-events.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.interactive.seam-review"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/interactive/review-events.ts",
+    "wicked-crew:packages/crew/src/interactive/review-ledger.ts",
+    "wicked-interactive:src/service/server.js:review.requested version stamping",
+    "wicked-interactive:CLAUDE.md ('no studio button yet')"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "crew.walkthrough.acceptance",
+   "title": "Walkthrough block in the run's acceptance read ('checked' only from evidence)",
+   "surface": "api",
+   "user_path": "API: GET /api/v1/runs/:id/acceptance on a run with a sealed walkthrough. Terminal state: walkthrough block {chapters, checks with at_sec, vault_entry} and summary used by studio's 'checked at 0:30' chips.",
+   "deps": [
+    "crew.walkthrough.view-file",
+    "wicked-ledger/vault"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "walkthrough",
+    "qe"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: acceptance.walkthrough present; each check.passed boolean mirrors result.json; summary counts equal"
+   },
+   "oracle_text": "acceptance.walkthrough present; each check.passed boolean mirrors result.json; summary counts equal",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id/acceptance"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/walkthrough-acceptance.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/recording.ts:walkthroughAcceptance"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.api.instances-and-crew-projects",
+   "title": "List running engine instances and crew projects for the picker (fail-closed without WICKED_CREW_API)",
+   "surface": "api",
+   "user_path": "API: GET /api/projects; GET /api/crew/projects with WICKED_CREW_API unset and set; POST /api/crew/projects {name}. Terminal state: instances list flags the current root first; crew projects answers {available:false, reason:'WICKED_CREW_API unset'} when unset, the non-archived non-default projects when set; POST creates through crew or forwards crew's 4xx verbatim (503 when unset).",
+   "deps": [
+    "interactive.cli.serve-daemon",
+    "crew daemon (for the set case)"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "api",
+    "projects"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: JSON shapes: /api/projects.projects[0].current===true; /api/crew/projects.available boolean; POST status 200 {id,name} | 4xx passthrough | 503"
+   },
+   "oracle_text": "JSON shapes: /api/projects.projects[0].current===true; /api/crew/projects.available boolean; POST status 200 {id,name} | 4xx passthrough | 503",
+   "covers": [
+    "interactive:route:GET /api/crew/projects",
+    "interactive:route:GET /api/projects",
+    "interactive:route:POST /api/crew/projects"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/instances.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/crew-projects.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:GET /api/projects, GET/POST /api/crew/projects",
+    "wicked-interactive:src/service/instances.mjs"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.api.preflight",
+   "title": "Install gate: sibling plugins, recorder browser and crew reachability",
+   "surface": "api",
+   "user_path": "API: GET /api/preflight (top-level or /d/:doc/api/preflight) via the crew proxy GET /api/v1/projects/:id/interactive/api/preflight. Terminal state: JSON naming which sibling wicked-* tools are present, the recorder browser snapshot and crew availability.",
+   "deps": [
+    "interactive.cli.serve-daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "api",
+    "plugins",
+    "gates",
+    "install"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/preflight",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "200 JSON with fields ok, missing[], playwright.detected, recorder.ok, crew_available (boolean)"
+    ]
+   },
+   "oracle_text": "200 JSON with fields ok, missing[], playwright.detected, recorder.ok, crew_available (boolean)",
+   "covers": [
+    "crew:route:GET /api/v1/projects/:projectId/interactive/*",
+    "interactive:route:GET /api/preflight"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/preflight.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/preflight.js:preflight/crewAvailable",
+    "wicked-interactive:src/service/server.js:GET /api/preflight",
+    "wicked-interactive:bin/ensure-siblings.mjs",
+    "wicked-interactive:docs/adr/0016-sibling-install-gate.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.api.recorder-browser-install",
+   "title": "Provision the recorder browser on demand over HTTP",
+   "surface": "api",
+   "user_path": "API: POST /api/demo/browser/install {headless:true} on the bridge (through the crew proxy). Terminal state: 200 {ok:true, ...status} once Playwright's headless shell + ffmpeg are present, or 503 typed recorder error payload when provisioning fails.",
+   "deps": [
+    "network (Playwright download)"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "api",
+    "install"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "POST",
+      "path": "/api/demo/browser/install",
+      "body": {
+       "headless": true
+      },
+      "expect": {
+       "status": 200,
+       "json": [
+        {
+         "path": "$.ok",
+         "op": "eq",
+         "value": true
+        }
+       ]
+      }
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/d/{doc}/api/demo/status",
+      "expect": {
+       "status": 200,
+       "json": [
+        {
+         "path": "$.browser.ok",
+         "op": "eq",
+         "value": true
+        }
+       ]
+      }
+     }
+    ],
+    "complete": true
+   },
+   "oracle_text": "status 200 with ok:true and recorder components present, or 503 with code/remedy fields; subsequent GET /d/:doc/api/demo/status browser.ok===true",
+   "covers": [
+    "interactive:route:GET /d/:doc/api/demo/status",
+    "interactive:route:POST /api/demo/browser/install"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/recorder-preflight.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:top.post('/api/demo/browser/install')",
+    "wicked-interactive:src/service/recorder-preflight.js:ensureRecorderBrowser"
+   ],
+   "notes": [
+    "critic 2026-10-20 (permissive disjunction): the failure branch no longer passes; a 503 remedy is a FAIL (network is a dep)."
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.api.root-redirect",
+   "title": "GET / on the bridge redirects to the recorded studio origin (API-only engine)",
+   "surface": "api",
+   "user_path": "API: with no studio origin recorded, GET http://127.0.0.1:<port>/ ; then POST /api/studio-origin {origin:'http://127.0.0.1:7721'} from loopback and GET /?doc=<name>. Terminal state: first answer is an HTML page saying the bridge serves the API, not the UI; second is a 302 to the origin + studioPathFor(doc) ('/' for unbound docs, '/p/<project>/document/<doc>' for project-bound).",
+   "deps": [
+    "interactive.cli.serve-daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "api"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/studio-origin",
+    "expect": {
+     "status": 200
+    },
+    "body": "{request_body}",
+    "complete": false,
+    "untyped": [
+     "first GET: 200 text/html containing 'serves the API'",
+     "POST /api/studio-origin 200 {ok:true,studio_origin}",
+     "second GET: 302 with Location starting with recorded origin",
+     "non-loopback POST -> 403",
+     "invalid origin -> 400"
+    ]
+   },
+   "oracle_text": "first GET: 200 text/html containing 'serves the API'; POST /api/studio-origin 200 {ok:true,studio_origin}; second GET: 302 with Location starting with recorded origin; non-loopback POST -> 403; invalid origin -> 400",
+   "covers": [
+    "interactive:route:POST /api/studio-origin"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/shell-retirement.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/studio-origin.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:top.get('/') noStudioOriginPage/studioPathFor",
+    "wicked-interactive:src/service/server.js:top.post('/api/studio-origin')",
+    "wicked-crew:packages/crew/src/interactive/bridge-pool.ts (records daemon origin on start/adopt, crew#298)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.bus.two-roots-isolation",
+   "title": "Two bridges on one bus never consume each other's documents",
+   "surface": "background",
+   "user_path": "Background: run two bridges with different roots on the same WICKED_BUS_DATA_DIR; emit a command event for a doc that only root A holds. Terminal state: A materializes it; B refuses it loudly and its /api/health.unknown_doc_refused increments.",
+   "deps": [
+    "interactive.cli.serve-daemon x2"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "bus",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: A's versions.json advanced; B's /api/health.unknown_doc_refused >= 1; B's root unchanged"
+   },
+   "oracle_text": "A's versions.json advanced; B's /api/health.unknown_doc_refused >= 1; B's root unchanged",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/bridge-two-roots.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:onCommand refuse/unknownDocRefused, bridgeRootId plugin naming"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.cli.adopt",
+   "title": "adopt re-registers doc-to-project memberships from project.json breadcrumbs",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-interactive adopt --root R --crew-api http://127.0.0.1:<crew>` over a root containing breadcrumbed docs. Terminal state: each breadcrumbed doc is an interactive.doc member of its crew project; a second run is a no-op (idempotent).",
+   "deps": [
+    "crew daemon",
+    "docs root with project.json breadcrumbs"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "cli",
+    "projects"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "wicked-interactive adopt --root {root} --crew-api http://127.0.0.1:{crew}",
+      "code": 0
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/projects/{projectId}",
+      "expect": {
+       "status": 200
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "crew GET /api/v1/projects/:id (members) lists each doc as interactive.doc",
+     "second run reports already-registered and member count unchanged"
+    ]
+   },
+   "oracle_text": "exit 0; crew GET /api/v1/projects/:id (members) lists each doc as interactive.doc; second run reports already-registered and member count unchanged",
+   "covers": [
+    "crew:route:GET /api/v1/projects/:id",
+    "interactive:cli:adopt"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/project-binding.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/artifact/adopt.js:runAdopt",
+    "wicked-interactive:src/service/project.js:loadBreadcrumb/registerDocMembership"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.cli.create-artifact",
+   "title": "create a self-contained HTML artifact from a wi-content file, crew session or garden council verdict",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-interactive create --from-file content.json --out a.html` (also --from-crew <id>, --from-garden [id]; --project <id> files it as a workspace doc under the serve root). Terminal state: a.html exists containing <script id=\"wi-data\" type=\"application/json\"> that validates; with --project a doc dir with versions.json + project.json breadcrumb exists, or a loud error with nothing created when crew is unreachable.",
+   "deps": [
+    "crew daemon for --from-crew/--project",
+    "wicked-garden data root for --from-garden"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "cli",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "wicked-interactive create --from-file content.json --out a.html",
+      "code": 0
+     },
+     {
+      "kind": "file",
+      "path": "{root}/{name}/versions.json",
+      "assert": "exists"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "output file parses and `wicked-interactive validate a.html` exits 0",
+     "with --project: <root>/<name>/versions.json and project.json exist",
+     "with WICKED_CREW_API unset + --project: exit 1 and no dir"
+    ]
+   },
+   "oracle_text": "exit 0; output file parses and `wicked-interactive validate a.html` exits 0; with --project: <root>/<name>/versions.json and project.json exist; with WICKED_CREW_API unset + --project: exit 1 and no dir",
+   "covers": [
+    "interactive:cli:create",
+    "interactive:cli:validate"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/from-garden.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/artifact/create.js:runCreate",
+    "wicked-interactive:src/artifact/from-crew.js",
+    "wicked-interactive:src/artifact/from-garden.js",
+    "wicked-interactive:src/artifact/template.js",
+    "wicked-interactive:src/artifact/schema.js"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.cli.doctor",
+   "title": "doctor reports whether the demo recorder can record; --install provisions it",
+   "surface": "cli",
+   "user_path": "CLI: with PLAYWRIGHT_BROWSERS_PATH pointed at an empty dir run `wicked-interactive doctor --json`, then `doctor --install`, then `doctor --json` again. Terminal state: first exits 1 with recorder.ok=false and a remedy; install downloads headless shell + ffmpeg; last exits 0 with recorder.ok=true.",
+   "deps": [
+    "network (Playwright CDN download)",
+    "node>=20"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "cli",
+    "install",
+    "demo",
+    "repos"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit codes 1 -> 0; JSON report.recorder.ok false then true; report.recorder.components[].present all true after install; files exist under PLAYWRIGHT_BROWSERS_PATH"
+   },
+   "oracle_text": "exit codes 1 -> 0; JSON report.recorder.ok false then true; report.recorder.components[].present all true after install; files exist under PLAYWRIGHT_BROWSERS_PATH",
+   "covers": [
+    "interactive:cli:doctor"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:.github/workflows/ci.yml",
+     "name": "recorder-provision job (doctor MISSING exit 1 -> --install -> READY exit 0)",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/recorder-preflight.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/recorder-installed-browser.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:bin/wicked-interactive.js:runDoctor",
+    "wicked-interactive:src/service/recorder-preflight.js:recorderBrowserStatus/ensureRecorderBrowser",
+    "wicked-interactive:docs/adr/0028-recorder-preflight-terminal-failures.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.cli.dry-run",
+   "title": "dry-run a demo spec read-only without recording",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-interactive dry-run ./demo.spec.mjs --json` against a running local app. Terminal state: exit 0 with {ok:true, steps:N} when every step ran; a step issuing a non-GET request fails as side_effect_blocked with exit 1; no video, no version written.",
+   "deps": [
+    "recorder browser (interactive.cli.doctor)",
+    "a target app URL"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "cli",
+    "demo"
+   ],
+   "required_evidence": [
+    "video",
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit code; stdout JSON ok/steps or ok:false + code ('side_effect_blocked' etc.); no *.webm created beside the spec"
+   },
+   "oracle_text": "exit code; stdout JSON ok/steps or ok:false + code ('side_effect_blocked' etc.); no *.webm created beside the spec",
+   "covers": [
+    "interactive:cli:dry-run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/demo-readonly.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:bin/wicked-interactive.js:runDryRun",
+    "wicked-interactive:src/service/demo.js:recordDemo(dryRun)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.cli.publish-artifact",
+   "title": "publish an artifact to wicked-reads (v0.1 simulated placeholder)",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-interactive publish a.html` without and with the API key configured in the environment (do not read the key value). Terminal state: missing key -> exit 1; with key -> simulated success exit 0 (real HTTP submission deferred).",
+   "deps": [
+    "WICKED_READS_API_KEY present (not read by the tester)"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "cli",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit codes; stdout states simulated publish; no network call made (v0.1)"
+   },
+   "oracle_text": "exit codes; stdout states simulated publish; no network call made (v0.1)",
+   "covers": [
+    "interactive:cli:publish"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-interactive:src/artifact/publish.js:runPublish (v0.1 placeholder)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.cli.serve-daemon",
+   "title": "Start the document engine bridge as a detached daemon on a docs root",
+   "surface": "cli",
+   "user_path": "CLI: `node bin/wicked-interactive.js serve --daemon --root $TMP/wi-docs` (or npx wicked-interactive serve --daemon). Terminal state: the process exits 0 after printing the URL, `<root>/.wi-serve.json` holds {port,host,pid,startedAt,version}, and GET http://127.0.0.1:<port>/api/health answers {ok:true, root:<root>}.",
+   "deps": [
+    "node>=20",
+    "wicked-bus (embedded SQLite, WICKED_BUS_DATA_DIR)"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "cli",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "node bin/wicked-interactive.js serve --daemon --root $TMP/wi-docs",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "JSON-parse <root>/.wi-serve.json and assert pid alive + port integer >=4400",
+     "GET /api/health -> 200 with body.ok===true and body.root===resolve(root) and body.pid===lock.pid"
+    ]
+   },
+   "oracle_text": "exit code 0; JSON-parse <root>/.wi-serve.json and assert pid alive + port integer >=4400; GET /api/health -> 200 with body.ok===true and body.root===resolve(root) and body.pid===lock.pid",
+   "covers": [
+    "interactive:cli:serve",
+    "interactive:route:GET /api/health"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/serve-bridge.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/instances.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:.github/workflows/ci.yml",
+     "name": "Cross-machine smoke (packaged tarball installs & serves)",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:bin/wicked-interactive.js:main/daemonize/runServer",
+    "wicked-interactive:src/service/serve-bridge.mjs:readLock/writeLock/pickPort/bridgeIdentity",
+    "wicked-interactive:src/service/server.js:top.get('/api/health')",
+    "wicked-interactive:docs/adr/0022-dynamic-port-lockfile.md",
+    "wicked-interactive:docs/adr/0025-one-shared-instance.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.cli.serve-reuse-restart",
+   "title": "Re-running serve reuses the live bridge for the same root; --restart replaces it; --port falls forward",
+   "surface": "cli",
+   "user_path": "CLI: run `serve --daemon --root R` twice, then `serve --daemon --root R --restart`, then start a second root with `--port <taken>`. Terminal state: run 2 prints the same URL/pid; --restart yields a new pid in .wi-serve.json; the second root binds the next free port and its /api/health reports its own root.",
+   "deps": [
+    "interactive.cli.serve-daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "cli"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: lock.pid identical after run 1 and 2; differs after --restart and old pid is dead; second root's lock.port != first and its /api/health.root === second root"
+   },
+   "oracle_text": "lock.pid identical after run 1 and 2; differs after --restart and old pid is dead; second root's lock.port != first and its /api/health.root === second root",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/serve-bridge.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/bridge-two-roots.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:bin/wicked-interactive.js:daemonize (restart, reuse identity check)",
+    "wicked-interactive:src/service/serve-bridge.mjs:stopDaemon/pickPort"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.cli.standalone-dev-shell",
+   "title": "Dev-only retired SPA shell behind --standalone",
+   "surface": "cli",
+   "user_path": "CLI: `serve --root R --standalone` (or WI_STANDALONE=1), open http://127.0.0.1:<port>/ in a browser. Terminal state: frontend/dist index.html is served (doc picker), not the redirect page.",
+   "deps": [
+    "interactive.cli.serve-daemon",
+    "frontend/dist built"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "cli"
+   ],
+   "required_evidence": [
+    "screenshot",
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: GET / -> 200 text/html containing the frontend/dist index script tag (assets/index-*.js); without the flag the same GET returns the redirect/no-origin page"
+   },
+   "oracle_text": "GET / -> 200 text/html containing the frontend/dist index script tag (assets/index-*.js); without the flag the same GET returns the redirect/no-origin page",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/e2e.mjs",
+     "name": "npm run acceptance; headless Chrome bus loop on the shell",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-interactive:test/shell-retirement.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:bin/wicked-interactive.js:--standalone",
+    "wicked-interactive:src/service/server.js:createMultiServer standalone branch",
+    "wicked-interactive:frontend/src/App.jsx"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.cli.validate-artifact",
+   "title": "validate an HTML artifact against the wi-content schema v1.0",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-interactive validate a.html` on a good and on a tampered artifact. Terminal state: exit 0 for valid; exit 1 with a structured JSON error for missing wi-data block, bad JSON, schema violation or idempotency-key mismatch.",
+   "deps": [],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "cli",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-interactive validate a.html",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "exit code 0/1",
+     "stdout/stderr JSON error code names the failing check"
+    ]
+   },
+   "oracle_text": "exit code 0/1; stdout/stderr JSON error code names the failing check",
+   "covers": [
+    "interactive:cli:validate"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-interactive:src/artifact/validate.js:runValidate",
+    "wicked-interactive:src/artifact/schema.js:validateWiContent/validateIdempotencyKey"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.conversation.transcript",
+   "title": "Per-document conversation transcript readback",
+   "surface": "api",
+   "user_path": "API: create a source doc with a brief, post chat/status events, GET …/d/:doc/api/conversation. Terminal state: JSON array of entries {role, text, ts} in order, brief first.",
+   "deps": [
+    "interactive.doc.create-source"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "conversation",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: array[0].role==='user' && text===brief; length equals conversation.jsonl line count"
+   },
+   "oracle_text": "array[0].role==='user' && text===brief; length equals conversation.jsonl line count",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/bridge.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/api-parity.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:GET /api/conversation",
+    "wicked-interactive:src/service/handlers.js:appendConversation",
+    "wicked-interactive:docs/adr/0014-conversation-transcript.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.deck.audience-proposal",
+   "title": "Deck audience and audience-rewrite proposal (open, keep, drop)",
+   "surface": "api",
+   "user_path": "API: PUT …/api/deck/audience {version, preset:'exec'}; POST …/api/deck/proposal {base, preset:'customer'}; POST …/api/deck/proposal/close {outcome:'kept', version} or {outcome:'dropped'}. Terminal state: audience recorded; one open proposal at a time (a second open is refused); keep makes the proposal's audience current; each write emits audience.changed {state:set|proposed|kept|dropped}.",
+   "deps": [
+    "interactive.deck.ops"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "deck",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/d/{doc}/api/deck/review",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "GET /api/deck/review audience/proposal fields",
+     "events audience.changed states in order"
+    ]
+   },
+   "oracle_text": "GET /api/deck/review audience/proposal fields; events audience.changed states in order",
+   "covers": [
+    "interactive:route:GET /d/:doc/api/deck/review"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/deck-review.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/deck-review.js:setAudience/openProposal/closeProposal",
+    "wicked-interactive:src/service/server.js:PUT /api/deck/audience, POST /api/deck/proposal(/close)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.deck.fit-check",
+   "title": "Measure whether each slide fits at 1080p (API only)",
+   "surface": "api",
+   "user_path": "API: POST …/d/:deck/api/deck/fit {version, stated?}. Terminal state: per-slide fit report for the deck's top-level slides plus the stated vs actual count; a non-deck -> 409 not_a_deck; bad body -> 400. No studio caller (the deck plugin's 'fit' is a zoom control).",
+   "deps": [
+    "Playwright/Chrome render browser"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "deck",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: 200 JSON with one entry per slide and an overflow flag; 409 for a document-style doc"
+   },
+   "oracle_text": "200 JSON with one entry per slide and an overflow flag; 409 for a document-style doc",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/deck-fit.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:.github/workflows/ci.yml",
+     "name": "Deck fit check in headless Chrome",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/deck-fit.js:deckFit",
+    "wicked-interactive:src/service/server.js:POST /api/deck/fit"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.deck.ops",
+   "title": "Deck operations: insert, duplicate, move a slide and set speaker notes (one version per op)",
+   "surface": "api",
+   "user_path": "API: POST …/d/:deck/api/deck {expect_head:H, op:{type:'slide-move', slide:'s3', after:'s1'}} (also slide-insert, slide-duplicate, notes-set {text}). Terminal state: 200 {version:H+1, parent:H}; a no-op move -> {unchanged:true}; unknown slide -> 422 refused; non-deck doc -> 409 not_a_deck; stale expect_head -> 409 head_moved; missing expect_head -> 400.",
+   "deps": [
+    "interactive.doc.create-html (style ppt)"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "deck",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: status codes per case; new version's data-slide-id order matches the op; notes aside contains text; exactly one new manifest entry per successful op"
+   },
+   "oracle_text": "status codes per case; new version's data-slide-id order matches the op; notes aside contains text; exactly one new manifest entry per successful op",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/deck.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:POST /api/deck",
+    "wicked-interactive:src/service/handlers.js:deckOpProblem/materializeDeckOp",
+    "wicked-interactive:src/core/deck.js:DECK_OPS"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.deck.review-decisions",
+   "title": "Per-slide review decisions carried forward only on unchanged slides",
+   "surface": "api",
+   "user_path": "API: POST …/d/:deck/api/deck/decisions {version, slide_id, decision:'approved'|'changes'|'cleared', note}; then edit that slide's text and GET …/api/deck/review?version=<new>. Terminal state: decision recorded with the slide's content hash; slide.decided emitted; on a moved-but-unchanged slide the approval stays current; on an edited slide it reads approved-on-version-N-changed-since.",
+   "deps": [
+    "interactive.deck.ops"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "deck",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/d/{doc}/api/deck/review",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "GET /api/deck/review JSON decision state per slide",
+     "deck-review.json",
+     "event slide.decided {slide_id, version, decision}"
+    ]
+   },
+   "oracle_text": "GET /api/deck/review JSON decision state per slide; deck-review.json; event slide.decided {slide_id, version, decision}",
+   "covers": [
+    "interactive:route:GET /d/:doc/api/deck/review"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/deck-review.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/deck-review.js:recordDecision/reviewFor",
+    "wicked-interactive:src/core/deck-review.js",
+    "wicked-interactive:src/service/server.js:GET /api/deck/review, POST /api/deck/decisions"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.demo.cut-edit",
+   "title": "Read, re-cut, restyle and retake a demo cut (each a rendered version)",
+   "surface": "api",
+   "user_path": "API: GET …/d/:doc/api/demo/cut; POST …/api/demo/recut {rev, chapters:[{id,title,take,inSec,outSec}]}; PUT …/api/demo/style {rev, style:{captions…, theme…}}; POST …/api/demo/takes {chapter}. Terminal state: each call answers {rev, version} with a new rendered MP4; a stale rev is refused; cut GET reports style, ffmpeg capabilities, skin and resolvedTheme.",
+   "deps": [
+    "ffmpeg",
+    "interactive.demo.cut-import or interactive.demo.record",
+    "crew GET /api/v1/appearance/video-palette"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "demo"
+   ],
+   "required_evidence": [
+    "video",
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: rev increments; versions.json head increments per call; stale rev -> 4xx; resolvedTheme.palette equals crew video-palette when palette is 'studio'"
+   },
+   "oracle_text": "rev increments; versions.json head increments per call; stale rev -> 4xx; resolvedTheme.palette equals crew video-palette when palette is 'studio'",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/demo-cut.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/video-skin.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:GET /api/demo/cut, POST /api/demo/recut, PUT /api/demo/style, POST /api/demo/takes",
+    "wicked-interactive:src/service/demo-cut.js:validateRecut/validateStyle/renderCut/checkRev",
+    "wicked-interactive:src/service/video-skin.js:fetchSkin/effectiveTheme"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.demo.cut-import",
+   "title": "Import a chaptered cut from takes recorded elsewhere",
+   "surface": "api",
+   "user_path": "API: PUT …/d/:doc/api/demo/import/<chapter> with each chapter's MP4 bytes; POST …/api/demo/import {title, url, chapters:[{id,title,say}]}. Terminal state: one rendered version {rev, version}; demo-cut.json exists; a second import -> 409 cut_exists; oversized upload -> 413 too_large; concurrent upload -> 429.",
+   "deps": [
+    "ffmpeg",
+    "interactive.doc.create-html"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "demo"
+   ],
+   "required_evidence": [
+    "video",
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "recordings/_v{version}.mp4",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "responses",
+     "demo-cut.json chapters ids === imported",
+     "recordings/_v<version>.mp4 exists"
+    ]
+   },
+   "oracle_text": "responses; demo-cut.json chapters ids === imported; recordings/_v<version>.mp4 exists",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/demo-import.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:PUT /api/demo/import/:chapter, POST /api/demo/import",
+    "wicked-interactive:src/service/demo-cut.js:importCut/stageImport/importStagePath"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.demo.media-player-gif",
+   "title": "Stream recordings, serve the HTML player and convert to GIF",
+   "surface": "api",
+   "user_path": "API: GET …/d/:doc/api/demo/recording/_v1.mp4 (and .webm/.vtt/-poster.jpg); GET …/api/demo/player/1; POST …/api/demo/gif {version:1}. Terminal state: correct Content-Types; player HTML references mp4 then webm and the poster; gif 200 {file, bytes, cached, download}, second call cached:true; no recording or no ffmpeg -> 400 (route exists, never 404).",
+   "deps": [
+    "interactive.demo.record",
+    "ffmpeg"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "demo"
+   ],
+   "required_evidence": [
+    "video",
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: Content-Type per extension; GIF magic 'GIF8'; cached flag flips; 400 not 404 before a recording"
+   },
+   "oracle_text": "Content-Type per extension; GIF magic 'GIF8'; cached flag flips; 400 not 404 before a recording",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/demo.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:e2e/interactive_wire_contract_test.py",
+     "name": "§5 (LIVE)",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:GET /api/demo/recording/:name, /api/demo/player/:version, POST /api/demo/gif",
+    "wicked-interactive:src/service/demo.js:exportGif/ffmpegGifEncoder"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.demo.record",
+   "title": "Record a captioned demo of a running app from an agent-authored spec",
+   "surface": "api",
+   "user_path": "Bus/API: on a kind:'demo' doc whose dir holds demo.spec.mjs, POST …/interactive/api/events demo.requested {document_id}. Terminal state: recordings/_v{n}.webm (+ .mp4, -poster.jpg, step thumbnails) exist; a storyboard version lands with version.created; GET …/api/demo/status reads state 'recorded'; on failure state 'failed' with typed error, status.posted error and error.raised {source:'recorder'}, partial clip kept as _attempt-<n>.failed.webm.",
+   "deps": [
+    "recorder browser",
+    "ffmpeg",
+    "target app URL running"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "demo"
+   ],
+   "required_evidence": [
+    "video",
+    "api-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/projects/{projectId}/interactive/api/events",
+    "expect": {
+     "status": [
+      200,
+      201,
+      202
+     ]
+    },
+    "body": "{request_body}",
+    "complete": false,
+    "untyped": [
+     "files exist with nonzero size",
+     "ffprobe duration > 0",
+     "demo/status.state==='recorded' and .version===n",
+     "events in order preflight->recording->version.created"
+    ]
+   },
+   "oracle_text": "files exist with nonzero size; ffprobe duration > 0; demo/status.state==='recorded' and .version===n; events in order preflight->recording->version.created",
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/demo.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/recorder-smoke.mjs",
+     "name": "CI recorder-provision job",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/handlers.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/handlers.js:materializeDemo",
+    "wicked-interactive:src/service/demo.js:recordDemo/storyboard",
+    "wicked-interactive:src/service/recorder-preflight.js"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.demo.status-gate",
+   "title": "Recording state machine and re-record gate (409 in flight, 503 browser missing), surviving restarts",
+   "surface": "api",
+   "user_path": "API: GET …/d/:doc/api/demo/status; post demo.requested twice quickly; with WI_RECORDER_AUTO_INSTALL=0 and no browser post demo.requested; restart the bridge after a failure and read status. Terminal state: second request 409 with retryable:true; missing browser 503 recorder_browser_missing with remedy; after restart status still 'failed' with step/reason.",
+   "deps": [
+    "interactive.doc.create-demo-kind"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "demo",
+    "gates"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: status codes; demo/status.state/in_flight fields; <doc>/demo-status.json persisted terminal state"
+   },
+   "oracle_text": "status codes; demo/status.state/in_flight fields; <doc>/demo-status.json persisted terminal state",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/recorder-preflight.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/handlers.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:createServer demoState/onDemoState, top.post('/api/events') demo gate",
+    "wicked-interactive:src/service/recorder-preflight.js:RECORDER_ERROR_CODES"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.activity",
+   "title": "Doc build activity probe for rehydrating a working indicator",
+   "surface": "api",
+   "user_path": "API: GET /api/docs/:doc/activity on the bridge during and after a governed draft. Terminal state: {active:true, run:{id,workflow_id,status}} while crew reports a non-terminal run whose problem names the doc or a fresh working pulse exists; active:false afterwards; 404 unknown, 410 retired.",
+   "deps": [
+    "crew daemon",
+    "interactive.crew.draft-seam"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs?doc={doc}",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "JSON active boolean flips true->false",
+     "run.id equals the crew run id from GET /api/v1/runs?doc=<doc>"
+    ]
+   },
+   "oracle_text": "JSON active boolean flips true->false; run.id equals the crew run id from GET /api/v1/runs?doc=<doc>",
+   "covers": [
+    "crew:route:GET /api/v1/runs",
+    "interactive:route:GET /api/docs/:doc/activity"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/doc-activity.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:activityFor, GET /api/docs/:doc/activity"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.create-demo-kind",
+   "title": "Create an engine demo document (kind demo, URL + brief)",
+   "surface": "api",
+   "user_path": "API: POST …/interactive/api/docs {name, kind:'demo', url:'http://localhost:3000', brief}. Terminal state: 200 {name, head:0, kind:'demo', learning:true}; manifest kind 'demo'; placeholder storyboard v0; non-http url -> 400.",
+   "deps": [
+    "crew daemon",
+    "interactive bridge"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc",
+    "artifacts",
+    "demo"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/projects/{projectId}/interactive/api/docs",
+    "expect": {
+     "status": [
+      200,
+      201,
+      202
+     ]
+    },
+    "body": "{request_body}",
+    "complete": false,
+    "untyped": [
+     "response fields",
+     "versions.json.kind==='demo'",
+     "invalid url -> 400 'a valid http(s) url is required'"
+    ]
+   },
+   "oracle_text": "response fields; versions.json.kind==='demo'; invalid url -> 400 'a valid http(s) url is required'",
+   "covers": [
+    "interactive:route:POST /api/docs"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/demo.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:e2e/interactive_wire_contract_test.py",
+     "name": "LIVE",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:POST /api/docs isDemo branch",
+    "wicked-interactive:src/service/demo.js:demoPlaceholder",
+    "wicked-interactive:docs/adr/0018-demo-doc-kind.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.create-html",
+   "title": "Create a document from HTML with a recorded style",
+   "surface": "api",
+   "user_path": "API: POST /api/v1/projects/:id/interactive/api/docs {name:'q3-report', html:'<main>…</main>', style:'doc'|'web'|'ppt'|'brochure'}. Terminal state: 200 {name, head:0}; <docs root>/q3-report/versions.json has head 0 and style; _v0.html exists with data-wid anchors; wicked.interactive.doc.created emitted.",
+   "deps": [
+    "crew daemon",
+    "interactive bridge (spawned by crew)",
+    "wicked-bus"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.interactive.doc.created",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "response 200 name/head",
+     "versions.json.head===0 and .style===requested",
+     "_v0.html contains data-wid attributes",
+     "bus/WS event wicked.interactive.doc.created with payload.document_id"
+    ]
+   },
+   "oracle_text": "response 200 name/head; versions.json.head===0 and .style===requested; _v0.html contains data-wid attributes; bus/WS event wicked.interactive.doc.created with payload.document_id",
+   "covers": [
+    "crew:route:POST /api/v1/projects/:projectId/interactive/*",
+    "crew:route:POST /api/v1/projects/:projectId/interactive/api/docs",
+    "interactive:route:POST /api/docs"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/multidoc.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/server.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/interactive-proxy.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:top.post('/api/docs')",
+    "wicked-interactive:src/service/workspace.js:initWorkspace",
+    "wicked-interactive:src/core/instrument.js:instrument",
+    "wicked-crew:packages/crew/src/interactive/proxy-routes.ts:prepareDocCreate"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.create-project-bound",
+   "title": "Project binding at creation is registration-first (nothing created on a refused bind)",
+   "surface": "api",
+   "user_path": "API: POST …/projects/<proj>/interactive/api/docs {name, html} (crew canonicalizes project from the route). Then the same with an unknown/archived project directly on the bridge. Terminal state: bound doc has project.json breadcrumb, crew project lists it as interactive.doc member, and every service emit for it carries project_id; refused bind -> 502 and no doc dir exists.",
+   "deps": [
+    "crew daemon (WICKED_CREW_API exported to the bridge)"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc",
+    "projects"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "{doc}/project.json",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "<doc>/project.json exists with project id",
+     "crew members include doc",
+     "event payload.project_id===proj",
+     "on refusal response 502 and existsSync(<root>/<name>)===false"
+    ]
+   },
+   "oracle_text": "<doc>/project.json exists with project id; crew members include doc; event payload.project_id===proj; on refusal response 502 and existsSync(<root>/<name>)===false",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/project-binding.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/interactive-proxy.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:POST /api/docs bindProject",
+    "wicked-interactive:src/service/project.js:assertProjectAttachable/bindDocToProject",
+    "wicked-crew:packages/crew/src/interactive/proxy-routes.ts:prepareDocCreate (project_mismatch)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.create-source",
+   "title": "Create a document 'from my content' (brief and/or source paths) awaiting a governed first draft",
+   "surface": "api",
+   "user_path": "API: POST …/interactive/api/docs {name, kind:'source', brief:'…', source_paths:[…]}. Terminal state: 200 {name, head:0, generating:true}; placeholder v0; conversation.jsonl first line is the brief; doc.created {kind:'source', source_paths, brief}. Empty brief and no paths -> 400.",
+   "deps": [
+    "crew daemon",
+    "interactive bridge"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/projects/{projectId}/interactive/api/docs",
+    "expect": {
+     "status": 200,
+     "json": [
+      {
+       "path": "$.generating",
+       "op": "eq",
+       "value": true
+      }
+     ]
+    },
+    "body": "{request_body}",
+    "complete": false,
+    "untyped": [
+     "200 with generating===true",
+     "<doc>/conversation.jsonl line 1 role 'user' text===brief",
+     "400 'add at least one source path or a brief' for empty"
+    ]
+   },
+   "oracle_text": "200 with generating===true; <doc>/conversation.jsonl line 1 role 'user' text===brief; 400 'add at least one source path or a brief' for empty",
+   "covers": [
+    "interactive:route:POST /api/docs"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/generation.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/multidoc.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:POST /api/docs fromSource branch",
+    "wicked-interactive:src/service/generation.js:generationPlaceholder",
+    "wicked-interactive:docs/adr/0010-model-free-service.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.data-wid-anchoring",
+   "title": "data-wid anchoring: every landed version is instrumented and existing anchors are preserved (INV-2)",
+   "surface": "background",
+   "user_path": "Background: create a doc, apply an edit and a structural edit; read each _v*.html. Terminal state: all text blocks carry data-wid; every data-wid present in the parent survives byte-exact in the child; an edit that drops an anchor is rejected with no version.",
+   "deps": [
+    "interactive.doc.create-html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc"
+   ],
+   "required_evidence": [
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: collectWids(parent) ⊆ collectWids(child) for every version pair; unanchoredTextBlocks(child) empty; an INV-2-violating edit.completed leaves versions.json unchanged and emits status.posted state 'error'"
+   },
+   "oracle_text": "collectWids(parent) ⊆ collectWids(child) for every version pair; unanchoredTextBlocks(child) empty; an INV-2-violating edit.completed leaves versions.json unchanged and emits status.posted state 'error'",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/instrument.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/regenerate.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/edit-safety.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/core/instrument.js:instrument/collectWids/unanchoredTextBlocks",
+    "wicked-interactive:src/core/regenerate.js:regenerate (Inv2Error)",
+    "wicked-interactive:docs/adr/0001-data-wid-anchoring.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.fork",
+   "title": "Fork ('start again from here') with an optional expect_head guard",
+   "surface": "api",
+   "user_path": "API: POST …/d/:doc/api/fork {from:1, expect_head:<head>}; then repeat with a stale expect_head. Terminal state: 200 {version:N+1, parent:1}; manifest head moves; version.created {kind:'fork'}; stale guard -> 409 {error:'head_moved', head}; no version written.",
+   "deps": [
+    "interactive.doc.create-html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: response; versions.json new entry parent===1; event kind==='fork'; 409 body and versions count unchanged"
+   },
+   "oracle_text": "response; versions.json new entry parent===1; event kind==='fork'; 409 body and versions count unchanged",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/queue-fork.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/versions.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:POST /api/fork",
+    "wicked-interactive:src/service/workspace.js:forkVersion",
+    "wicked-interactive:docs/adr/0008-parent-pointer-versions-and-fork.md",
+    "wicked-interactive:docs/adr/0007-fifo-mutation-serialization.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.list",
+   "title": "List a root's documents (bridge) including retired on request",
+   "surface": "api",
+   "user_path": "API: GET /d-less /api/docs and /api/docs?includeRetired=1 on the bridge. Terminal state: rows {name, kind, head, versions, updated_at}; retired docs only with the flag.",
+   "deps": [
+    "interactive.cli.serve-daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: array rows; a retired doc absent by default and present with includeRetired=1"
+   },
+   "oracle_text": "array rows; a retired doc absent by default and present with includeRetired=1",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/multidoc.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/doc-retire.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:top.get('/api/docs') listDocs"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.name-rules",
+   "title": "Doc name grammar, slugify, collision and retired-name reservation",
+   "surface": "api",
+   "user_path": "API: POST …/api/docs with name 'Q3 Report!' then again with the same slug, then after retiring it. Terminal state: name slugified to 'q3-report'; second create 409 'doc already exists'; after retire 409 with retired:true ('lineage keeps the name reserved').",
+   "deps": [
+    "interactive.doc.create-html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc",
+    "governance"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: 200 name==='q3-report'; 409 body.error; 409 body.retired===true"
+   },
+   "oracle_text": "200 name==='q3-report'; 409 body.error; 409 body.retired===true",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/doc-retire.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/multidoc.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:DOC_NAME/slugify, POST /api/docs isExistingDoc/retiredInfo"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.retire",
+   "title": "Soft-retire a document (tombstone, idempotent, refused while a build is in flight)",
+   "surface": "api",
+   "user_path": "API (bridge half): DELETE /api/docs/:doc twice, then GET /d/:doc/api/versions and POST /api/events for it; also DELETE while a crew run for the doc is active. Terminal state: first 200 {retired:true, already_retired:false, retired_at}; second 200 already_retired:true same retired_at, no second event; doc routes answer 410; in-flight -> 409 with run+status; doc.retired emitted exactly once; lineage files kept.",
+   "deps": [
+    "interactive.doc.create-html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.interactive.doc.retired",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "status codes 200/200/410/409",
+     "event count of wicked.interactive.doc.retired for the doc ===1",
+     "versions.json has retired_at",
+     "_v*.html files still exist",
+     "no .pending-retire marker left"
+    ]
+   },
+   "oracle_text": "status codes 200/200/410/409; event count of wicked.interactive.doc.retired for the doc ===1; versions.json has retired_at; _v*.html files still exist; no .pending-retire marker left",
+   "covers": [
+    "interactive:route:DELETE /api/docs/:doc",
+    "interactive:route:GET /d/:doc/api/versions",
+    "interactive:route:POST /api/events"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/doc-retire.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:e2e/interactive_wire_contract_test.py",
+     "name": "§8 (LIVE)",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:top.delete('/api/docs/:doc'), drainPendingRetireEvent, /d/:doc 410 gate",
+    "wicked-interactive:src/core/versions.js:retireManifest"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.doc.versions-read",
+   "title": "Read the version manifest and any version's HTML",
+   "surface": "api",
+   "user_path": "API: GET …/interactive/d/:doc/api/versions, GET …/d/:doc/doc (head), GET …/d/:doc/doc/:n. Terminal state: manifest {head, versions:[{version,parent,feedback_file,created_at}]}; HTML of head and of version n; unknown version -> 404.",
+   "deps": [
+    "interactive.doc.create-html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/projects/{projectId}/interactive/d/{doc}/api/versions",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "versions.json-equal manifest",
+     "/doc body === _v<head>.html bytes",
+     "/doc/999 -> 404"
+    ]
+   },
+   "oracle_text": "versions.json-equal manifest; /doc body === _v<head>.html bytes; /doc/999 -> 404",
+   "covers": [
+    "interactive:route:GET /d/:doc/api/versions"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/versions.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/server.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:GET /api/versions, /doc, /doc/:version",
+    "wicked-interactive:src/service/fsstore.js",
+    "wicked-interactive:src/core/versions.js"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.events.sse-down",
+   "title": "One SSE stream of bus envelopes to clients",
+   "surface": "api",
+   "user_path": "API: GET /api/events (bridge, or through the crew proxy) and trigger any doc change. Terminal state: first frame 'event: ready'; each bus event arrives as 'event: <event_type>' with the full envelope; a ': ping' comment at least every 15 s.",
+   "deps": [
+    "interactive.cli.serve-daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "events",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.interactive.version.created",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "stream contains 'event: ready' then 'event: wicked.interactive.version.created' with data.payload.document_id",
+     "ping within 16 s"
+    ]
+   },
+   "oracle_text": "stream contains 'event: ready' then 'event: wicked.interactive.version.created' with data.payload.document_id; ping within 16 s",
+   "covers": [
+    "interactive:route:GET /api/events"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/bridge.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/frontend-sse.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:top.get('/api/events') bridgeSend",
+    "wicked-interactive:docs/adr/0006-sse-as-protocol.md",
+    "wicked-crew:packages/crew/src/interactive/proxy-routes.ts (unbuffered streaming)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.events.ui-emit-whitelist",
+   "title": "UI emit bridge accepts only whitelisted intent events and derives project_id",
+   "surface": "api",
+   "user_path": "API: POST …/interactive/api/events with (a) unknown type, (b) a service-owned type like version.created, (c) unknown doc, (d) retired doc, (e) feedback.submitted carrying a spoofed project_id. Terminal state: 400, 403, 404, 410; (e) 200 {ok, event_id, correlation_id} and the bus event's project_id is the breadcrumb's (or absent), never the spoofed value.",
+   "deps": [
+    "interactive.doc.create-html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "events",
+    "projects"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/projects/{projectId}/interactive/api/events",
+    "expect": {
+     "status": [
+      200,
+      201,
+      202
+     ]
+    },
+    "body": "{request_body}",
+    "complete": false,
+    "untyped": [
+     "status codes per case",
+     "for (e) bus event payload.project_id === project.json id or undefined",
+     "producer==='wi-ui'"
+    ]
+   },
+   "oracle_text": "status codes per case; for (e) bus event payload.project_id === project.json id or undefined; producer==='wi-ui'",
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/events.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/bridge.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:top.post('/api/events')",
+    "wicked-interactive:src/service/events.js:EVENT_TYPES/uiEmittable/canEmit",
+    "wicked-interactive:docs/adr/0019-one-bus-vocabulary.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.export.html",
+   "title": "Export a version to self-contained HTML with a dependency receipt",
+   "surface": "api",
+   "user_path": "API: POST …/d/:doc/api/export {version:1, format:'html'}; then GET the returned download URL. Terminal state: 200 {format, file:'<doc>_v1.html', download, dependencies:{embedded,remote,unresolved}, layout, layout_source}; export.requested and export.generated {path, file, download} emitted; the download is an attachment of text/html.",
+   "deps": [
+    "interactive.doc.create-html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "export"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "{doc}/exports/{doc}_v1.html",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "file exists at <doc>/exports/<doc>_v1.html",
+     "Content-Disposition attachment",
+     "event export.generated.file === response.file"
+    ]
+   },
+   "oracle_text": "file exists at <doc>/exports/<doc>_v1.html; Content-Disposition attachment; event export.generated.file === response.file",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/export.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:POST /api/export",
+    "wicked-interactive:src/service/export.js:exportHtml/inlineHtml/downloadBase",
+    "wicked-interactive:docs/adr/0009-self-contained-export.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.export.list-download",
+   "title": "List finished exports and download one (path-safe)",
+   "surface": "api",
+   "user_path": "API: GET …/d/:doc/api/export; GET …/api/export/file/<name>; GET …/api/export/file/..%2Fversions.json. Terminal state: rows [{version, format, name, bytes, generated_at}]; file streams with correct type; traversal/dot names -> 400.",
+   "deps": [
+    "interactive.export.html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "export"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: rows match exports dir files matching <slug>_v<n>.(html|pdf|pptx); 400 'invalid name' for dot/traversal; 404 for missing"
+   },
+   "oracle_text": "rows match exports dir files matching <slug>_v<n>.(html|pdf|pptx); 400 'invalid name' for dot/traversal; 404 for missing",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/export.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:tests/exportsOnDisk.test.ts",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/export.js:listExports",
+    "wicked-interactive:src/service/server.js:GET /api/export, GET /api/export/file/:name"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.export.offline-strict",
+   "title": "Strict offline export refuses with the list of non-embeddable resources",
+   "surface": "api",
+   "user_path": "API: POST …/api/export {version, format:'html', offline:true} on a version referencing a remote image. Terminal state: 422 {code, dependencies} listing the remote/unresolved resource; no file written.",
+   "deps": [
+    "interactive.export.html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "export"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: 422 status, body.dependencies.remote non-empty; exports dir has no new file"
+   },
+   "oracle_text": "422 status, body.dependencies.remote non-empty; exports dir has no new file",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/export.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/export.js:ExportNotOfflineError/approvedAssetRoots",
+    "wicked-interactive:src/service/server.js:POST /api/export offline"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.export.pdf",
+   "title": "Export a version to PDF with layout classification (document vs deck) and page report",
+   "surface": "api",
+   "user_path": "API: POST …/d/:doc/api/export {version, format:'pdf'} for a style:'doc' A4 brief and a style:'ppt' deck. Terminal state: PDF written; response carries layout 'document'|'deck', layout_source, page_size (e.g. 'A4 portrait'), pages (actual count).",
+   "deps": [
+    "Chrome or Playwright chromium (findChrome/launchRenderBrowser)"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "export",
+    "artifacts",
+    "repos"
+   ],
+   "required_evidence": [
+    "screenshot",
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: inspectPdf(file).pages === response.pages; layout per recorded style (doc->document, ppt->deck); %PDF magic bytes"
+   },
+   "oracle_text": "inspectPdf(file).pages === response.pages; layout per recorded style (doc->document, ppt->deck); %PDF magic bytes",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/export.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/export.js:exportPdf/classifyLayout/inspectPdf/describePageSize",
+    "wicked-interactive:test/fixtures/brochure-a4-two-page.html"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.export.pptx",
+   "title": "Export a version to native PowerPoint",
+   "surface": "api",
+   "user_path": "API: POST …/d/:doc/api/export {version, format:'pptx'} on a deck. Terminal state: <doc>_vN.pptx written; response layout 'deck', layout_source 'format: pptx'; slide count equals the deck's slides.",
+   "deps": [
+    "python3 (vendor/pptx/html_to_pptx.py)",
+    "python-pptx for readback"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "export"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: python-pptx Presentation(file).slides length === deck slide count; zip magic PK; Content-Type application/vnd.openxmlformats-officedocument.presentationml.presentation on download"
+   },
+   "oracle_text": "python-pptx Presentation(file).slides length === deck slide count; zip magic PK; Content-Type application/vnd.openxmlformats-officedocument.presentationml.presentation on download",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/pptx.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/pptx.js:exportPptx",
+    "wicked-interactive:vendor/pptx/html_to_pptx.py"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.feedback.deterministic",
+   "title": "Deterministic feedback batch (content-edit, style-edit, remove) lands one version instantly",
+   "surface": "api",
+   "user_path": "API: POST …/interactive/api/events {event_type:'wicked.interactive.feedback.submitted', payload:{document_id, version:<head>, items:[{type:'content-edit', selector:'[data-wid=headline]', value:'New'}]}}. Terminal state: _v{n}.md feedback file + _v{n}.html with the change; version.created {kind:'deterministic'}; feedback.processed {applied, rejected, stale, landed:true}. A no-op batch lands nothing and emits no version.created.",
+   "deps": [
+    "interactive.doc.create-html",
+    "wicked-bus"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "feedback"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/projects/{projectId}/interactive/api/events",
+    "expect": {
+     "status": [
+      200,
+      201,
+      202
+     ]
+    },
+    "body": "{request_body}",
+    "complete": false,
+    "untyped": [
+     "versions.json head incremented by exactly 1",
+     "new HTML element text === value",
+     "feedback.processed.applied===1",
+     "for no-op: head unchanged, feedback.processed.unchanged===true"
+    ]
+   },
+   "oracle_text": "versions.json head incremented by exactly 1; new HTML element text === value; feedback.processed.applied===1; for no-op: head unchanged, feedback.processed.unchanged===true",
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/handlers.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/workspace.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/feedback-schema.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/handlers.js:materializeFeedback",
+    "wicked-interactive:src/service/workspace.js:writeFeedback/applyFeedbackItems",
+    "wicked-interactive:src/core/feedback-schema.js:TYPES",
+    "wicked-interactive:docs/adr/0002-single-writer-feedback-files.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.feedback.expect-head-guard",
+   "title": "A feedback batch made against a moved head is refused with nothing written",
+   "surface": "api",
+   "user_path": "API: post feedback.submitted with payload.expect_head = an older head. Terminal state: status.posted {state:'error', code:'head_moved', head} on the doc thread; no version written.",
+   "deps": [
+    "interactive.feedback.deterministic"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "feedback"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: versions.json unchanged; event status.posted code==='head_moved'"
+   },
+   "oracle_text": "versions.json unchanged; event status.posted code==='head_moved'",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/handlers.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/handlers.js:materializeFeedback expect_head"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.feedback.structural-handoff",
+   "title": "Structural-change items are handed off inline and land via edit.completed",
+   "surface": "background",
+   "user_path": "Bus: post feedback.submitted with one structural-change item {selector, instruction}; an answerer (crew edit seam or assist agent) emits wicked.interactive.edit.completed {version, fragments}. Terminal state: feedback.processed.awaiting_structural===1 with structural_items carrying the current fragment; after edit.completed a new version lands (version.created) with the fragment applied and anchors preserved.",
+   "deps": [
+    "interactive.feedback.deterministic",
+    "an answerer (interactive.crew.edit-seam or assist skill)"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "feedback"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: feedback.processed payload fields; subsequent version.created; new HTML contains the edited fragment and parent wids"
+   },
+   "oracle_text": "feedback.processed payload fields; subsequent version.created; new HTML contains the edited fragment and parent wids",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/structural.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/handlers.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:e2e/interactive_edit_leg.mjs",
+     "name": "manual",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/handlers.js:materializeFeedback/materializeEdit",
+    "wicked-interactive:src/service/structural.js:applyStructuralResults"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.generation.draft-landing",
+   "title": "A generated draft (draft.completed) lands as an instrumented, themed version",
+   "surface": "background",
+   "user_path": "Bus: on a source doc, emit wicked.interactive.draft.completed {document_id, html} from an allowed producer (wi-agent/wi-crew). Terminal state: _v1.html exists with data-wid anchors and theme base style; version.created emitted.",
+   "deps": [
+    "interactive.doc.create-source"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "generation",
+    "theme"
+   ],
+   "required_evidence": [
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: versions.json head===1; _v1.html contains data-wid and the theme style block; event version.created"
+   },
+   "oracle_text": "versions.json head===1; _v1.html contains data-wid and the theme style block; event version.created",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/generation.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/handlers.js:materializeDraft",
+    "wicked-interactive:src/service/generation.js:applyGeneratedHtml",
+    "wicked-interactive:docs/adr/0011-theme-base-style-block.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.plugin.manifest-version",
+   "title": "Claude Code plugin manifest installs and stays version-consistent",
+   "surface": "plugin",
+   "user_path": "Plugin: `claude plugin install` from .claude-plugin/marketplace.json; `npm run check:version`. Terminal state: plugin.json/marketplace.json version === package.json version (0.14.1), skills serve and assist listed.",
+   "deps": [],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "plugin",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "claude plugin install",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "check-version script exit 0",
+     "JSON versions equal",
+     "skills/serve/SKILL.md and skills/assist/SKILL.md frontmatter parse with name/description"
+    ]
+   },
+   "oracle_text": "check-version script exit 0; JSON versions equal; skills/serve/SKILL.md and skills/assist/SKILL.md frontmatter parse with name/description",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:.github/workflows/ci.yml",
+     "name": "Plugin version is consistent",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:.claude-plugin/plugin.json",
+    "wicked-interactive:.claude-plugin/marketplace.json",
+    "wicked-interactive:.github/scripts/check-version.mjs",
+    "wicked-interactive:.github/scripts/sync-plugin-version.mjs"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.plugin.skill-assist",
+   "title": "Plugin skill 'assist' answers the bus loop (structural edits, drafts, clarifying questions)",
+   "surface": "plugin",
+   "user_path": "Plugin: invoke wicked-interactive:assist with a running bridge, then submit a structural-change feedback batch. Terminal state: the agent emits edit.completed (or status.posted question then reads question.answered) and a new version lands.",
+   "deps": [
+    "Claude Code with plugin",
+    "signed-in seat",
+    "wicked-bus CLI"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "plugin",
+    "plugins",
+    "bus",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: bus events from producer 'wi-agent' (edit.completed); versions.json head +1; INV-2 holds"
+   },
+   "oracle_text": "bus events from producer 'wi-agent' (edit.completed); versions.json head +1; INV-2 holds",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/e2e.mjs",
+     "name": "stub agent over the bus",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:skills/assist/SKILL.md",
+    "wicked-interactive:skills/assist/references/edit-routing.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.plugin.skill-serve",
+   "title": "Plugin skill 'serve' starts the bridge and hands off to assist (legacy builder text)",
+   "surface": "plugin",
+   "user_path": "Plugin: in Claude Code say 'start wicked-interactive' (skill wicked-interactive:serve). Terminal state: a bridge is running (lockfile + /api/health ok) and the session moves into the assist loop. Note: the skill still describes the retired in-browser builder (CLAUDE.md flags it as legacy).",
+   "deps": [
+    "Claude Code with the plugin installed",
+    "signed-in seat"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "plugin",
+    "plugins",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "{root}/.wi-serve.json",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "<root>/.wi-serve.json present and /api/health ok after the skill turn",
+     "transcript shows the assist subscription command"
+    ]
+   },
+   "oracle_text": "<root>/.wi-serve.json present and /api/health ok after the skill turn; transcript shows the assist subscription command",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-interactive:skills/serve/SKILL.md",
+    "wicked-interactive:CLAUDE.md (skills legacy note)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.recorder.installed-browser",
+   "title": "Interactive recorder uses an installed browser (WI_RECORDER_CHROME)",
+   "surface": "api",
+   "user_path": "Start the bridge with WI_RECORDER_CHROME pointing at an installed Chrome; GET /api/preflight; record one demo take.",
+   "deps": [
+    "chrome installed",
+    "ffmpeg"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "recorder",
+    "install",
+    "demo"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "video"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/preflight",
+      "expect": {
+       "status": 200,
+       "json": [
+        {
+         "path": "$.recorder.browser",
+         "op": "exists"
+        }
+       ]
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "the take is recorded with the installed browser, not a downloaded headless shell"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) Interactive recorder uses an installed browser (WI_RECORDER_CHROME)",
+   "covers": [
+    "interactive:route:GET /api/preflight"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/recorder-installed-browser.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:CHANGELOG.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "interactive.sources.attach-remove",
+   "title": "Attach, update and remove source files on a document",
+   "surface": "api",
+   "user_path": "API: POST …/api/events source.attached {document_id, path}; an agent emits source.updated; UI emits source.removed; GET …/d/:doc/api/sources between steps. Terminal state: sources list grows, shows the agent's update, then shrinks. (Studio has no live caller: attachSourceFromThread is defined but unused.)",
+   "deps": [
+    "interactive.doc.create-html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "sources",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: GET /api/sources.sources length 0->1->1(updated)->0; requests/sources.json matches"
+   },
+   "oracle_text": "GET /api/sources.sources length 0->1->1(updated)->0; requests/sources.json matches",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/events.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/api-parity.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/handlers.js:materializeSourceAttached/Updated/Removed",
+    "wicked-interactive:src/service/server.js:GET /api/sources",
+    "wicked-interactive:docs/adr/0017-attached-sources.md",
+    "wicked-studio:src/interactive/themeWire.ts:attachSourceFromThread (unused)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.theme.learn-url",
+   "title": "Learn a theme from a public URL (SSRF-guarded page grab)",
+   "surface": "api",
+   "user_path": "API: POST …/interactive/api/events {event_type:'wicked.interactive.theme.requested', payload:{document_id, url:'https://example.com'}}; repeat with url 'http://127.0.0.1:7701'. Terminal state: status.posted working 'Grabbing the page…', then wicked.interactive.theme.learned {url, render_path, format:'pdf'} with the PDF on disk under <doc>/theme/; the loopback URL is refused with status.posted state 'error' and error.raised.",
+   "deps": [
+    "network (public URL)",
+    "Playwright chromium"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "theme"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/projects/{projectId}/interactive/api/events",
+    "expect": {
+     "status": [
+      200,
+      201,
+      202
+     ]
+    },
+    "body": "{request_body}",
+    "complete": false,
+    "untyped": [
+     "event sequence",
+     "render_path file exists with %PDF magic",
+     "private/loopback URL -> no theme.learned, status.posted.state==='error'"
+    ]
+   },
+   "oracle_text": "event sequence; render_path file exists with %PDF magic; private/loopback URL -> no theme.learned, status.posted.state==='error'",
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/theme-grab.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/handlers.js:materializeThemeRequested",
+    "wicked-interactive:src/service/theme-grab.js:assertPublicUrl/isBlockedIp/resolveRedirectChain/grabUrlToPdf",
+    "wicked-interactive:docs/adr/0024-playwright-url-renderer.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.theme.learned-readback-write",
+   "title": "Read, write (grammar-checked), apply and delete a doc's learned theme",
+   "surface": "api",
+   "user_path": "API: GET …/d/:doc/api/theme/learned (404 fresh); PUT {tokens, apply:true}; GET again; PUT tokens with a value like 'red;}body{…'; DELETE. Terminal state: valid PUT 200 {written:true, version, kind:'theme'} landing one re-themed version (version.created kind 'theme'); GET returns tokens verbatim + learned_at; injected value -> 400 'theme tokens refused' with nothing written; DELETE 200 then GET 404.",
+   "deps": [
+    "interactive.doc.create-html"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "theme"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "theme/learned.theme.json",
+    "assert": "absent",
+    "complete": false,
+    "untyped": [
+     "status codes",
+     "GET tokens deep-equal PUT tokens",
+     "versions.json head +1 on apply",
+     "theme/learned.theme.json absent after DELETE"
+    ]
+   },
+   "oracle_text": "status codes; GET tokens deep-equal PUT tokens; versions.json head +1 on apply; theme/learned.theme.json absent after DELETE",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/theme-readback.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/theme-grammar.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:e2e/interactive_wire_contract_test.py",
+     "name": "LIVE",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:GET/PUT/DELETE /api/theme/learned",
+    "wicked-interactive:src/core/theme-grammar.js:checkThemeTokens",
+    "wicked-interactive:src/service/workspace.js:rethemeHead",
+    "wicked-interactive:src/service/theme-source.js:resolveLearnedTheme"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.theme.source-upload",
+   "title": "Upload a brand source (PNG/JPEG/PDF bytes) for a theme learn",
+   "surface": "api",
+   "user_path": "API: PUT …/d/:doc/api/theme/source with raw body and Content-Type image/png; then post theme.requested {path:<answered path>}. Terminal state: 200 {path, format, bytes} with the file under <doc>/theme/source_*.png; wrong type -> 415 unsupported_type; magic mismatch -> 415 content_mismatch; over limit -> 413; concurrent -> 429; the learn emits theme.learned {path, format}.",
+   "deps": [
+    "interactive.doc.create-html",
+    "bridge >= 0.14.1 (crew INTERACTIVE_DEFAULT_RANGE ^0.14.1)"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "theme"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: status codes per case; stored file bytes sha256 === uploaded; theme.learned.render_path === path"
+   },
+   "oracle_text": "status codes per case; stored file bytes sha256 === uploaded; theme.learned.render_path === path",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/theme-source.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/server.js:PUT /api/theme/source (THEME_SOURCE_TYPES/THEME_SOURCE_LIMIT)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "interactive.theme.sticky-and-named",
+   "title": "Learned theme sticks to every later version; named themes; invalid learned file is ignored and said",
+   "surface": "background",
+   "user_path": "Background: with a learned theme written, apply a feedback edit and a draft; then corrupt learned.theme.json and edit again. Terminal state: each new version wears the learned tokens; with a corrupt file the named/default theme (corporate-light/midnight-purple/warm-dark) applies and status.posted error 'The learned theme was not applied…' is emitted.",
+   "deps": [
+    "interactive.theme.learned-readback-write"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "theme"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: new version HTML theme style block contains learned token values; after corruption it contains the default theme's values and a status.posted error event exists"
+   },
+   "oracle_text": "new version HTML theme style block contains learned token values; after corruption it contains the default theme's values and a status.posted error event exists",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:test/theme.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-interactive:test/theme-readback.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:src/service/handlers.js:themeOpts",
+    "wicked-interactive:src/core/theme.js",
+    "wicked-interactive:src/themes/*.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "sites.apex.home",
+   "title": "wickedagile.com apex renders the family page",
+   "surface": "ui",
+   "user_path": "Open https://wickedagile.com/ in a browser at 1440x700.",
+   "deps": [
+    "playwright-chromium",
+    "network"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "apex",
+    "site"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "https://wickedagile.com/",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "main",
+      "assert": "visible"
+     }
+    ],
+    "complete": true
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) wickedagile.com apex renders the family page",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "ecosystem CLAUDE.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "sites.crew.article",
+   "title": "wc.wickedagile.com/article renders (control-plane article)",
+   "surface": "ui",
+   "user_path": "Open https://wc.wickedagile.com/article in a browser at 1440x700.",
+   "deps": [
+    "playwright-chromium",
+    "network"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "crew",
+    "site"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "https://wc.wickedagile.com/article",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "main",
+      "assert": "visible"
+     }
+    ],
+    "complete": true
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) wc.wickedagile.com/article renders (control-plane article)",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:site/tests/e2e/copy.spec.ts",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-crew:site/"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "sites.crew.home",
+   "title": "wc.wickedagile.com home renders (crew site)",
+   "surface": "ui",
+   "user_path": "Open https://wc.wickedagile.com/ in a browser at 1440x700.",
+   "deps": [
+    "playwright-chromium",
+    "network"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "crew",
+    "site"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "https://wc.wickedagile.com/",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "main",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "the planes and sections fit the viewport (site/tests/e2e/sections-fit.spec.ts)"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) wc.wickedagile.com home renders (crew site)",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:site/tests/e2e/chrome.spec.ts",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-crew:site/tests/e2e/planes.spec.ts",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-crew:site/tests/e2e/sections-fit.spec.ts",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-crew:site/tests/e2e/mobile.spec.ts",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-crew:site/"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "sites.estate.pages",
+   "title": "The estate site's home, get-started and storage pages render",
+   "surface": "ui",
+   "user_path": "Open https://we.wickedagile.com/ in a browser at 1440x700.",
+   "deps": [
+    "playwright-chromium",
+    "network"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "estate",
+    "site"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "https://we.wickedagile.com/",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "main",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "the get-started and storage pages render as well as home"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) The estate site's home, get-started and storage pages render",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-estate:site/tests/e2e/home.spec.ts",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-estate:site/tests/e2e/get-started.spec.ts",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-estate:site/tests/e2e/storage.spec.ts",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-estate:site/"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "sites.interactive.redirect",
+   "title": "The interactive site redirects to its successor",
+   "surface": "ui",
+   "user_path": "Open https://wi.wickedagile.com/ in a browser at 1440x700.",
+   "deps": [
+    "playwright-chromium",
+    "network"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "interactive",
+    "site"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "https://wi.wickedagile.com/",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "the browser lands on the successor page (final URL is the successor)"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) The interactive site redirects to its successor",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-interactive:site/tests/e2e/redirect.spec.ts",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-interactive:site/"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "sites.studio.home",
+   "title": "The studio product site renders",
+   "surface": "ui",
+   "user_path": "Open https://ws.wickedagile.com/ in a browser at 1440x700.",
+   "deps": [
+    "playwright-chromium",
+    "network"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "studio",
+    "site"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "https://ws.wickedagile.com/",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "main",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "the hero and demo fit the viewport (site/tests/e2e/hero-fits.spec.ts)"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) The studio product site renders",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:site/tests/e2e/demo.spec.ts",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-studio:site/tests/e2e/hero-fits.spec.ts",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-studio:site/tests/e2e/prose.spec.ts",
+     "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-studio:site/tests/e2e/snap-layout.spec.ts",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-studio:site/"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "sites.wt.redirect",
+   "title": "wt.wickedagile.com redirects to garden's QE section",
+   "surface": "ui",
+   "user_path": "Open https://wt.wickedagile.com/ in a browser at 1440x700.",
+   "deps": [
+    "playwright-chromium",
+    "network"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "wt",
+    "qe",
+    "site"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "https://wt.wickedagile.com/",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "the browser lands on the successor page (final URL is the successor)"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) wt.wickedagile.com redirects to garden's QE section",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "ecosystem CLAUDE.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "studio.contract.interactive-wire",
+   "title": "Studio client URL shapes checked against a real bridge (no invented routes)",
+   "surface": "cli",
+   "user_path": "CLI: `python3 e2e/interactive_wire_contract_test.py` with WICKED_INTERACTIVE_DIR pointing at a wicked-interactive clone. Terminal state: every URL src/api/interactive.ts builds answers non-404; invented routes (GET /d/:id/api/demo/spec, GET /api/themes, POST /api/theme/learn) stay 404; learned-theme readback and retire contracts hold.",
+   "deps": [
+    "wicked-interactive checkout",
+    "python3 + requests"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "contract"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "python3 e2e/interactive_wire_contract_test.py",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "script JSON report all FATAL steps pass"
+    ]
+   },
+   "oracle_text": "script JSON report all FATAL steps pass; exit 0",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/interactive_wire_contract_test.py",
+     "name": "LIVE, not CI",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "related": [
+    "studio-ui.live.interactive-wire-contract"
+   ],
+   "sources": [
+    "wicked-studio:e2e/interactive_wire_contract_test.py",
+    "wicked-studio:src/api/interactive.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "studio.deck.edit",
+   "title": "Slide editor: filmstrip, navigation, move/duplicate/add/delete slides, notes and slide text, each one version with Undo",
+   "surface": "ui",
+   "user_path": "UI: open a deck in full screen; → / End / Home, '3 Enter' in the strip (deck-strip); Move up on slide 3 (deck-move-up) then Undo; ⌘D (deck-duplicate), Add slide ▾ 'like slide 4' (deck-add), Delete (deck-delete); type notes under slide 1 (deck-notes); click slide 1 title, Enter, new words, Enter. Terminal state: each act lands exactly one version with the host's words ('Moved slide 3 to after slide 1 — version 2.'); strip follows document order; notes stored in the notes aside of the version HTML.",
+   "deps": [
+    "studio.artifact.inline-card",
+    "interactive.deck.ops"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "deck",
+    "editors",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-strip]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-move-up]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-duplicate]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-add]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-delete]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-notes]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "network: one POST …/d/<deck>/api/deck with expect_head per structural act",
+     "slide order from version HTML data-slide-id",
+     "notes aside text"
+    ]
+   },
+   "oracle_text": "network: one POST …/d/<deck>/api/deck with expect_head per structural act; slide order from version HTML data-slide-id; notes aside text",
+   "covers": [
+    "studio:testid:deck-add",
+    "studio:testid:deck-add-like",
+    "studio:testid:deck-add-menu",
+    "studio:testid:deck-count",
+    "studio:testid:deck-cutoff",
+    "studio:testid:deck-delete",
+    "studio:testid:deck-duplicate",
+    "studio:testid:deck-edit-input",
+    "studio:testid:deck-editor",
+    "studio:testid:deck-fit",
+    "studio:testid:deck-frame",
+    "studio:testid:deck-fullscreen",
+    "studio:testid:deck-handle",
+    "studio:testid:deck-hint",
+    "studio:testid:deck-hover-box",
+    "studio:testid:deck-inline-count",
+    "studio:testid:deck-move-down",
+    "studio:testid:deck-move-up",
+    "studio:testid:deck-note",
+    "studio:testid:deck-notes",
+    "studio:testid:deck-notes-label",
+    "studio:testid:deck-notes-tab",
+    "studio:testid:deck-notes-toggle",
+    "studio:testid:deck-present",
+    "studio:testid:deck-present-bar",
+    "studio:testid:deck-selected-box",
+    "studio:testid:deck-stage",
+    "studio:testid:deck-strip",
+    "studio:testid:deck-style",
+    "studio:testid:deck-thumb",
+    "studio:testid:deck-tools",
+    "studio:testid:deck-zoom-100"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_deck_editor_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:tests/deckOps.test.ts",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:tests/wickedDeckPluginV2.test.ts",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "studio-ui.artifact.doc-slide-editors"
+   ],
+   "sources": [
+    "wicked-studio:src/plugins/wicked-deck/plugin.ts",
+    "wicked-studio:src/editors/interactiveDocAdapter.ts:writeDeckOp",
+    "wicked-studio:src/api/interactive.ts:postDeckOp"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "studio.deck.review-audience-present",
+   "title": "Deck review rail (approve / ask for changes), audience rewrite proposal (compare, keep, drop) and Present",
+   "surface": "ui",
+   "user_path": "UI: Options -> Review (deck-review): Approve slide 1 (deck-review-approve), ask for changes on slide 2 with a note (deck-review-ask); move a slide then edit slide 1's words; 'Rewrite it for them' Executives (deck-audience-adapt) -> wait -> deck-proposal-compare -> deck-proposal-keep; change to Customers -> deck-proposal-drop; press Present (deck-present), →, Esc. Terminal state: approvals kept on moves, 'approved on version N — changed since' after the edit; rail says approvals don't hold up delivery; Keep records the audience; Drop restores the adapted version (fork with expect_head); present hides chrome and Esc leaves it.",
+   "deps": [
+    "studio.deck.edit",
+    "crew.interactive.edit-seam (live) or fixture"
+   ],
+   "cost": "L",
+   "tags": [
+    "interactive-and-docs",
+    "deck",
+    "chat",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /d/{doc}/api/deck/decisions",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /d/{doc}/api/deck/proposal",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /d/{doc}/api/fork",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/d/{doc}/api/deck/review",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-review]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-review-approve]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-review-ask]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-audience-adapt]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-proposal-compare]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-proposal-keep]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-proposal-drop]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=deck-present]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "network: POST /api/deck/decisions, one structural feedback batch with expect_head, POST /api/deck/proposal, /proposal/close, POST /api/fork on drop",
+     "GET /api/deck/review state matches DOM badges"
+    ]
+   },
+   "oracle_text": "network: POST /api/deck/decisions, one structural feedback batch with expect_head, POST /api/deck/proposal, /proposal/close, POST /api/fork on drop; GET /api/deck/review state matches DOM badges",
+   "covers": [
+    "crew:mcp:ask",
+    "interactive:route:GET /d/:doc/api/deck/review",
+    "interactive:route:POST /d/:doc/api/deck/decisions",
+    "interactive:route:POST /d/:doc/api/deck/proposal",
+    "interactive:route:POST /d/:doc/api/fork",
+    "studio:testid-computed:testid",
+    "studio:testid:deck-audience",
+    "studio:testid:deck-audience-adapt",
+    "studio:testid:deck-audience-cancel",
+    "studio:testid:deck-audience-change",
+    "studio:testid:deck-audience-custom",
+    "studio:testid:deck-audience-form",
+    "studio:testid:deck-audience-keep-approved",
+    "studio:testid:deck-audience-label",
+    "studio:testid:deck-audience-length",
+    "studio:testid:deck-audience-preset",
+    "studio:testid:deck-audience-record",
+    "studio:testid:deck-compare",
+    "studio:testid:deck-compare-notes",
+    "studio:testid:deck-compare-row",
+    "studio:testid:deck-compare-summary",
+    "studio:testid:deck-compare-words",
+    "studio:testid:deck-present",
+    "studio:testid:deck-proposal",
+    "studio:testid:deck-proposal-compare",
+    "studio:testid:deck-proposal-drop",
+    "studio:testid:deck-proposal-keep",
+    "studio:testid:deck-proposal-retry",
+    "studio:testid:deck-proposal-stopped",
+    "studio:testid:deck-review",
+    "studio:testid:deck-review-approve",
+    "studio:testid:deck-review-ask",
+    "studio:testid:deck-review-badge",
+    "studio:testid:deck-review-clear",
+    "studio:testid:deck-review-line",
+    "studio:testid:deck-review-note",
+    "studio:testid:deck-review-reading",
+    "studio:testid:deck-review-row",
+    "studio:testid:deck-review-save-changes",
+    "studio:testid:deck-review-slides",
+    "studio:testid:deck-review-summary"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_deck_editor_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:tests/deckReview.test.tsx",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "studio-ui.artifact.doc-slide-editors"
+   ],
+   "sources": [
+    "wicked-studio:src/components/session/DeckReview.tsx",
+    "wicked-studio:src/editors/adapters/review.tsx",
+    "wicked-studio:src/board/deckReview.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "studio.demo.gates-script-retake",
+   "title": "Answer the demo plan gate (edit script, approve) and review gate (re-record a chapter)",
+   "surface": "ui",
+   "user_path": "UI: in the demo session at the plan gate: demo-script-edit, change text, demo-script-save, approve; at the review gate: demo-retake-chapter with demo-retake-note. Terminal state: PUT /runs/:id/demo/script then gate approve; request_changes note re-records that chapter; run completes with the MP4.",
+   "deps": [
+    "studio.demo.launch"
+   ],
+   "cost": "L",
+   "tags": [
+    "interactive-and-docs",
+    "demo",
+    "gates"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/runs/{runId}/gate",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-script-edit]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-script-save]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-retake-chapter]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=demo-retake-note]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "PUT /api/v1/runs/{runId}/demo/script",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "network: PUT …/demo/script body === edited text, POST /runs/:id/gate actions",
+     "run events show record unit re-run"
+    ]
+   },
+   "oracle_text": "network: PUT …/demo/script body === edited text, POST /runs/:id/gate actions; run events show record unit re-run",
+   "covers": [
+    "crew:route:POST /api/v1/runs/:id/gate",
+    "crew:route:PUT /api/v1/runs/:id/demo/script",
+    "studio:testid:demo-retake-chapter",
+    "studio:testid:demo-retake-note",
+    "studio:testid:demo-script",
+    "studio:testid:demo-script-actions",
+    "studio:testid:demo-script-box",
+    "studio:testid:demo-script-edit",
+    "studio:testid:demo-script-fixed",
+    "studio:testid:demo-script-note",
+    "studio:testid:demo-script-save",
+    "studio:testid:walkthrough",
+    "studio:testid:walkthrough-absent",
+    "studio:testid:walkthrough-actions",
+    "studio:testid:walkthrough-chapter",
+    "studio:testid:walkthrough-chapters",
+    "studio:testid:walkthrough-check",
+    "studio:testid:walkthrough-check-detail",
+    "studio:testid:walkthrough-check-time",
+    "studio:testid:walkthrough-checks",
+    "studio:testid:walkthrough-download-gif",
+    "studio:testid:walkthrough-download-poster",
+    "studio:testid:walkthrough-edit",
+    "studio:testid:walkthrough-edit-check",
+    "studio:testid:walkthrough-error",
+    "studio:testid:walkthrough-evidence",
+    "studio:testid:walkthrough-evidence-file",
+    "studio:testid:walkthrough-evidence-toggle",
+    "studio:testid:walkthrough-export",
+    "studio:testid:walkthrough-export-gif",
+    "studio:testid:walkthrough-export-menu",
+    "studio:testid:walkthrough-export-mp4",
+    "studio:testid:walkthrough-export-poster",
+    "studio:testid:walkthrough-export-poster-file",
+    "studio:testid:walkthrough-fail-mark",
+    "studio:testid:walkthrough-failed-frame",
+    "studio:testid:walkthrough-fix",
+    "studio:testid:walkthrough-loading",
+    "studio:testid:walkthrough-marker",
+    "studio:testid:walkthrough-narration",
+    "studio:testid:walkthrough-no-video",
+    "studio:testid:walkthrough-note",
+    "studio:testid:walkthrough-sealed",
+    "studio:testid:walkthrough-seats",
+    "studio:testid:walkthrough-state",
+    "studio:testid:walkthrough-storyline",
+    "studio:testid:walkthrough-storyline-cancel",
+    "studio:testid:walkthrough-storyline-save",
+    "studio:testid:walkthrough-timeline",
+    "studio:testid:walkthrough-underneath",
+    "studio:testid:walkthrough-video",
+    "studio:testid:walkthrough-watch"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/demo_mode_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/editorPorts/RecordingGateActions.tsx",
+    "wicked-studio:src/components/session/WalkthroughEditor.tsx",
+    "wicked-studio:src/api/demo.ts:putDemoScript/approveDemoGate/sendBackDemo"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "studio.doc.coverage-and-paragraph-edit",
+   "title": "Document editor: requirements coverage and long-paragraph edit with the stale guard",
+   "surface": "ui",
+   "user_path": "UI: open a style:'doc' doc bound to a run on a repo; Options -> Coverage; full screen Advanced click REQ-002; Enter on a >400-char paragraph, new text + Enter; Undo; pick a section container and type. Terminal state: coverage shows the repository read's ids/titles and '2 of 3 named in this document'; REQ click puts the paragraph's chip on the composer; edit lands version 2 ('Changed paragraph 2 — version 2.') sending one content-edit whose before is the whole text; Undo makes version 3; typing on a container opens no field.",
+   "deps": [
+    "studio.artifact.inline-card",
+    "registered repo with requirements read"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "doc",
+    "editors",
+    "artifacts",
+    "graph"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: DOM coverage rows equal requirements API rows; network one feedback batch with 1 item and before===full text; bridge manifest versions [1,2,3] with 3.parent===1"
+   },
+   "oracle_text": "DOM coverage rows equal requirements API rows; network one feedback batch with 1 item and before===full text; bridge manifest versions [1,2,3] with 3.parent===1",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_doc_editors_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "related": [
+    "studio-ui.artifact.doc-slide-editors"
+   ],
+   "sources": [
+    "wicked-studio:src/plugins/wicked-doc/plugin.ts",
+    "wicked-studio:src/editors/adapters/requirements.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "studio.editor.kind-routing",
+   "title": "Document opens in the editor its recorded style names (page, document, deck, video)",
+   "surface": "ui",
+   "user_path": "UI: open a style:'web' doc, a style:'doc' doc, a style:'ppt' deck and a demo video. Terminal state: wicked-page, wicked-doc, wicked-deck and wicked-video plugins respectively (registry on :7721 lists Slides/Document/Page/Video 0.11.4).",
+   "deps": [
+    "studio",
+    "crew editors registry"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "editor",
+    "editors",
+    "artifacts",
+    "demo"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plugin-card]",
+      "assert": "visible"
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/editors",
+      "expect": {
+       "status": 200
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "plugin-card data-editor/bundle id per doc equals editorKindOf(style) mapping",
+     "GET /api/v1/editors lists all four ids"
+    ]
+   },
+   "oracle_text": "plugin-card data-editor/bundle id per doc equals editorKindOf(style) mapping; GET /api/v1/editors lists all four ids",
+   "covers": [
+    "crew:route:GET /api/v1/editors",
+    "studio:testid:plugin-card"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_doc_editors_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:tests/wickedDocPlugin.test.ts",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:tests/wickedDeckPlugin.test.ts",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/board/artifactMorph.ts:editorKindOf",
+    "wicked-studio:src/editors/model.ts:resolveKind",
+    "wicked-studio:src/plugins/*/surfaces.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "studio.made.new-document-collision",
+   "title": "Creating a name that exists keeps the form and offers 'Open it'",
+   "surface": "ui",
+   "user_path": "UI: New document with an existing name -> Create. Terminal state: form stays, made-new-document-collision names the doc with made-new-document-open; nothing created.",
+   "deps": [
+    "studio.made.new-document"
+   ],
+   "cost": "S",
+   "tags": [
+    "interactive-and-docs",
+    "made",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=made-new-document-collision]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=made-new-document-open]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "one additional POST answered 409",
+     "DOM collision element visible",
+     "docs-index count unchanged"
+    ]
+   },
+   "oracle_text": "one additional POST answered 409; DOM collision element visible; docs-index count unchanged",
+   "covers": [
+    "studio:testid:made-new-document-brief",
+    "studio:testid:made-new-document-collision",
+    "studio:testid:made-new-document-council",
+    "studio:testid:made-new-document-create",
+    "studio:testid:made-new-document-error",
+    "studio:testid:made-new-document-form",
+    "studio:testid:made-new-document-name",
+    "studio:testid:made-new-document-open",
+    "studio:testid:made-new-document-project",
+    "studio:testid:made-new-document-seat",
+    "studio:testid:made-new-document-seats"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_made_doors_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "related": [
+    "studio-ui.everything.new-document"
+   ],
+   "sources": [
+    "wicked-studio:src/components/everything/NewDocument.tsx (made-new-document-collision)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "studio.video.cut-editor",
+   "title": "Video editor on an engine cut document: chapters, captions, theme, re-record (each a rendered version)",
+   "surface": "ui",
+   "user_path": "UI: open a demo cut doc (one with a docId, e.g. made by POST /runs/:id/demo/document) in wicked-video full screen: rename/trim a chapter (video-rename-input), toggle captions/burn/position, choose Colours, title/end cards; press Re-record on a chapter; Undo. Terminal state: each change POSTs /d/<doc>/api/demo/recut or PUTs /api/demo/style and a new version plays; Re-record POSTs /api/demo/takes; Undo re-saves the previous snapshot. Gap: no studio control creates the cut doc, so this path is reachable only after the API-only crew.demo.to-document.",
+   "deps": [
+    "crew.demo.to-document",
+    "interactive.demo.cut-edit",
+    "ffmpeg"
+   ],
+   "cost": "M",
+   "tags": [
+    "interactive-and-docs",
+    "video",
+    "editors",
+    "artifacts",
+    "demo",
+    "theme"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: network calls per act with rev; versions head increments; video element src points at …/api/demo/recording/_v<head>.mp4"
+   },
+   "oracle_text": "network calls per act with rev; versions head increments; video element src points at …/api/demo/recording/_v<head>.mp4",
+   "covers": [
+    "crew:route:POST /api/v1/runs/:id/demo/document"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:tests/demoCutAdapter.test.ts",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:tests/wickedVideoPlugin.test.ts",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:tests/chapterOps.test.ts",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/editors/demoCutAdapter.ts:save/retake/undo",
+    "wicked-studio:src/editors/demoCutModel.ts",
+    "wicked-studio:src/editors/adapters/recording.ts:DemoCutSurfaceAdapter",
+    "wicked-studio:src/plugins/wicked-video/surfaces.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  }
+ ]
+}

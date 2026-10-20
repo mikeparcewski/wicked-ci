@@ -1,0 +1,125 @@
+# e2e certification catalog (phase 1): the capability catalog, its typed oracles, the per-repo surface
+# manifests and the coverage validator under e2e/ (see e2e/README.md).
+#
+# - On PRs and pushes to main that touch e2e/: the unit tests on ubuntu/macos/windows; the committed
+#   surface manifests must reproduce byte-for-byte from their PINNED SHAs (e2e/surfaces/pins.json);
+#   `e2e validate` must pass against the coverage baseline (the ratchet: no new unmapped surface
+#   element, no stale baseline entry).
+# - On the schedule (and by hand): re-extract the surfaces from every repo's CURRENT main and the
+#   latest published wicked-crew, and report the drift against the pins. Report only: this job never
+#   fails, and it opens nothing (no issue, no PR, no comment).
+name: e2e-catalog
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'e2e/**'
+      - 'smoke/**'          # the catalog cites smoke steps as scenarios; a renamed step must fail here
+      - '.github/workflows/**'
+      - 'docs-lint/tests/**'
+  push:
+    branches: [main]
+    paths:
+      - 'e2e/**'
+      - 'smoke/**'          # the catalog cites smoke steps as scenarios; a renamed step must fail here
+      - '.github/workflows/**'
+      - 'docs-lint/tests/**'
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: unit tests (schema subset, selection language, ratchet, run-report contract, shipped catalog)
+        shell: bash
+        run: |
+          PY=python3
+          command -v python3 >/dev/null 2>&1 || PY=python
+          "$PY" -W error::ResourceWarning -m unittest discover -s e2e/tests -v
+
+  validate:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: surface manifests reproduce from their pinned SHAs
+        run: |
+          out="$RUNNER_TEMP/pinned"
+          mkdir -p "$out"
+          python3 e2e/bin/e2e surfaces --clone pinned --out "$out"
+          rc=0
+          committed=$(cd e2e/surfaces && ls wicked-*.json | sort)
+          produced=$(cd "$out" && ls wicked-*.json 2>/dev/null | sort)
+          if [ "$committed" != "$produced" ]; then
+            echo "::error::the manifest set differs: committed [$(echo $committed)] vs extracted [$(echo $produced)]"
+            rc=1
+          fi
+          for f in e2e/surfaces/wicked-*.json; do
+            if ! cmp -s "$f" "$out/$(basename "$f")"; then
+              echo "::error file=$f::does not reproduce from its pinned SHA; re-run: python3 e2e/bin/e2e surfaces --clone pinned"
+              diff "$f" "$out/$(basename "$f")" | head -40 || true
+              rc=1
+            fi
+          done
+          exit $rc
+      - name: e2e validate (catalog, coverage against the baseline, scenarios at the pins)
+        run: python3 e2e/bin/e2e validate --baseline e2e/coverage-baseline.json --out e2e-out
+      - name: coverage summary
+        if: always()
+        run: test -f e2e-out/coverage.md && cat e2e-out/coverage.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: e2e-coverage
+          path: e2e-out
+          if-no-files-found: ignore
+
+  drift:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: extract surfaces from current mains (+ the latest published wicked-crew CLI)
+        id: extract
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/main"
+          python3 e2e/bin/e2e surfaces --clone main --crew-npm latest --out "$RUNNER_TEMP/main"
+      - name: drift report (never fails)
+        run: |
+          mkdir -p drift-out
+          python3 e2e/bin/e2e drift --against "$RUNNER_TEMP/main" --out drift-out || true
+          python3 e2e/bin/e2e validate --surfaces "$RUNNER_TEMP/main" --baseline e2e/coverage-baseline.json \
+            --out drift-out/validate-against-main > drift-out/validate-against-main.txt 2>&1 || true
+          {
+            if [ "${{ steps.extract.outcome }}" != "success" ]; then
+              echo "> **Extraction did not finish cleanly** (outcome: ${{ steps.extract.outcome }}). Repos with no fresh"
+              echo "> manifest read \`unavailable\` below and are not compared; see the extract step's log."
+              echo
+            fi
+            cat drift-out/drift.md 2>/dev/null || echo "drift report unavailable (see the log)"
+            echo
+            echo "## validate against current mains"
+            echo
+            echo '```'
+            tail -n 60 drift-out/validate-against-main.txt 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: e2e-drift
+          path: drift-out
+          if-no-files-found: ignore

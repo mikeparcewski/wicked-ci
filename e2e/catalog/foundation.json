@@ -1,0 +1,4974 @@
+{
+ "version": 1,
+ "area": "foundation",
+ "description": "wicked-bus, wicked-vault, wicked-ledger, the shared wicked-ci tooling, and where the platform touches them.",
+ "capabilities": [
+  {
+   "id": "ci.docs-lint",
+   "title": "docs-lint: retired names outside historical markers fail; install commands parse against the registry",
+   "surface": "background",
+   "user_path": "A caller repo `uses: mikeparcewski/wicked-ci/.github/workflows/docs-lint.yml@v1`; the workflow runs on its event.",
+   "deps": [
+    "GitHub"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "install",
+    "ci"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "gh",
+    "target": "run",
+    "repo": "mikeparcewski/wicked-ci",
+    "assert": {
+     "path": "$.conclusion",
+     "op": "eq",
+     "value": "success"
+    },
+    "complete": false,
+    "untyped": [
+     "the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) docs-lint: retired names outside historical markers fail; install commands parse against the registry",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-ci:docs-lint/tests/test_docs_lint.py",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ci:.github/workflows/docs-lint.yml",
+    "wicked-ci:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "ci.node-ci.reusable",
+   "title": "node-ci.yml reusable workflow: matrix test on ubuntu/macos/windows",
+   "surface": "background",
+   "user_path": "A caller repo `uses: mikeparcewski/wicked-ci/.github/workflows/node-ci.yml@v1`; the workflow runs on its event.",
+   "deps": [
+    "GitHub"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "node-ci",
+    "ci"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "gh",
+    "target": "run",
+    "repo": "mikeparcewski/wicked-ci",
+    "assert": {
+     "path": "$.conclusion",
+     "op": "eq",
+     "value": "success"
+    },
+    "complete": false,
+    "untyped": [
+     "the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) node-ci.yml reusable workflow: matrix test on ubuntu/macos/windows",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-ci:.github/workflows/node-ci.yml",
+    "wicked-ci:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "ci.node-release.reusable",
+   "title": "node-release.yml: publish to npm + GitHub Packages, cut a release, catchup PR",
+   "surface": "background",
+   "user_path": "A caller repo `uses: mikeparcewski/wicked-ci/.github/workflows/node-release.yml@v1`; the workflow runs on its event.",
+   "deps": [
+    "GitHub"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "node-release",
+    "deliver",
+    "ci"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "gh",
+    "target": "run",
+    "repo": "mikeparcewski/wicked-ci",
+    "assert": {
+     "path": "$.conclusion",
+     "op": "eq",
+     "value": "success"
+    },
+    "complete": false,
+    "untyped": [
+     "the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) node-release.yml: publish to npm + GitHub Packages, cut a release, catchup PR",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-ci:.github/workflows/node-release.yml",
+    "wicked-ci:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "ci.rules-conformance.reusable",
+   "title": "rules-conformance.yml: one sticky advisory PR comment citing applicable rules",
+   "surface": "background",
+   "user_path": "A caller repo `uses: mikeparcewski/wicked-ci/.github/workflows/rules-conformance.yml@v1`; the workflow runs on its event.",
+   "deps": [
+    "GitHub"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "rules-conformance",
+    "deliver",
+    "governance",
+    "ci"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "gh",
+    "target": "run",
+    "repo": "mikeparcewski/wicked-ci",
+    "assert": {
+     "path": "$.conclusion",
+     "op": "eq",
+     "value": "success"
+    },
+    "complete": false,
+    "untyped": [
+     "the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) rules-conformance.yml: one sticky advisory PR comment citing applicable rules",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-ci:.github/workflows/rules-conformance-selftest.yml",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ci:.github/workflows/rules-conformance.yml",
+    "wicked-ci:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "ci.smoke.reusable",
+   "title": "smoke.yml: artifact-level seam smoke on the published set (S01-S10)",
+   "surface": "background",
+   "user_path": "A caller repo `uses: mikeparcewski/wicked-ci/.github/workflows/smoke.yml@v1`; the workflow runs on its event.",
+   "deps": [
+    "GitHub"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "smoke",
+    "artifacts",
+    "ci"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "gh",
+    "target": "run",
+    "repo": "mikeparcewski/wicked-ci",
+    "assert": {
+     "path": "$.conclusion",
+     "op": "eq",
+     "value": "success"
+    },
+    "complete": false,
+    "untyped": [
+     "the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) smoke.yml: artifact-level seam smoke on the published set (S01-S10)",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-ci:.github/workflows/smoke-selftest.yml",
+     "fidelity": "e2e-hermetic"
+    }
+   ],
+   "sources": [
+    "wicked-ci:.github/workflows/smoke.yml",
+    "wicked-ci:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.api.package-surface",
+   "title": "Programmatic API: ESM root exports, CJS shim, TS declarations",
+   "surface": "api",
+   "user_path": "API: `node -e \"import('wicked-bus').then(m=>console.log(Object.keys(m)))\"`, `node -e \"require('wicked-bus')\"`, `npm run typecheck`.",
+   "deps": [
+    "node>=20"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "node -e \"import('wicked-bus').then(m=>console.log(Object.keys(m)))\"",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "ESM keys include emit,poll,ack,register,subscribe,subscribePushOrPoll,listDeadLetters,replayDeadLetter,withContext,cas,pollResolve",
+     "CJS require resolves same names",
+     "deep import 'wicked-bus/lib/emit.js' throws ERR_PACKAGE_PATH_NOT_EXPORTED",
+     "tsc exit 0"
+    ]
+   },
+   "oracle_text": "ESM keys include emit,poll,ack,register,subscribe,subscribePushOrPoll,listDeadLetters,replayDeadLetter,withContext,cas,pollResolve; CJS require resolves same names; deep import 'wicked-bus/lib/emit.js' throws ERR_PACKAGE_PATH_NOT_EXPORTED; tsc exit 0",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/api/index-exports.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/api/cjs-shim.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:test/types/consumer.mts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/index.js",
+    "wicked-bus:lib/index.cjs",
+    "wicked-bus:package.json exports",
+    "wicked-bus:test/types/consumer.mts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.cas",
+   "title": "Content-addressed store for large payloads (put/get/gc)",
+   "surface": "api",
+   "user_path": "API: `cas.put(dataDir, buf)` -> sha; `cas.get(dataDir, sha)`; `cas.stats(dataDir)`; `cas.gc({...})` after the referencing event is swept past the grace window.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: get(sha) bytes == input and sha == sha256(input); stats.object_count increments by 1; gc removes unreferenced objects older than grace (7d default) and refuses with WB-010 on an incomplete bucket set"
+   },
+   "oracle_text": "get(sha) bytes == input and sha == sha256(input); stats.object_count increments by 1; gc removes unreferenced objects older than grace (7d default) and refuses with WB-010 on an incomplete bucket set",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/cas.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/integration/cas-gc-end-to-end.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/cas.js:put,get,exists,stats,gc"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.cas-gc-references",
+   "title": "Bus CAS GC honours DLQ and events_archive references",
+   "surface": "cli",
+   "user_path": "offload large payloads, dead-letter one, archive one, run wicked-bus cleanup.",
+   "deps": [
+    "node",
+    "temp WICKED_BUS_DATA_DIR"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "wicked-bus cleanup",
+      "code": 0
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "blobs referenced by the DLQ row or events_archive survive; unreferenced blobs are deleted"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) Bus CAS GC honours DLQ and events_archive references",
+   "covers": [
+    "bus:cli:cleanup"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/integration/cas-gc-end-to-end.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:CHANGELOG.md",
+    "wicked-bus:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.causality",
+   "title": "Causality tracing in-process and across subprocesses",
+   "surface": "api",
+   "user_path": "API: `withContext({correlation_id:'c1',session_id:'s1'}, ()=>{emit(A); emit(B)})`; spawn a child with WICKED_BUS_CORRELATION_ID/WICKED_BUS_PARENT_EVENT_ID that runs `wicked-bus emit`. Then `GET /api/trace/c1` on the UI server.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: rows A,B,child share correlation_id 'c1'; B.parent_event_id == A.event_id; child row parent_event_id == env value; /api/trace/c1 lists all three"
+   },
+   "oracle_text": "rows A,B,child share correlation_id 'c1'; B.parent_event_id == A.event_id; child row parent_event_id == env value; /api/trace/c1 lists all three",
+   "covers": [
+    "bus:cli:emit"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/causality.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/integration/cli-causality-propagation.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/causality.js:withContext,currentContext (ENV_KEYS)",
+    "wicked-bus:lib/ui-server.js:apiTrace"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.checkpoint-truncate",
+   "title": "Bus WAL TRUNCATE checkpoint",
+   "surface": "cli",
+   "user_path": "wicked-bus status after a burst of emits.",
+   "deps": [
+    "node",
+    "temp WICKED_BUS_DATA_DIR"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "wicked-bus status --json",
+      "code": 0
+     },
+     {
+      "kind": "file",
+      "path": "$WICKED_BUS_DATA_DIR/bus.db-wal",
+      "assert": "matches",
+      "value": "^$"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "after the checkpoint the WAL is truncated to zero bytes while readers stay consistent"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) Bus WAL TRUNCATE checkpoint",
+   "covers": [
+    "bus:cli:status"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/checkpoint.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:CHANGELOG.md",
+    "wicked-bus:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.cli.ack",
+   "title": "Bus `ack` CLI verb",
+   "surface": "cli",
+   "user_path": "register a cursor, emit, `wicked-bus ack --cursor-id <c> --event-id <n>`.",
+   "deps": [
+    "node",
+    "temp WICKED_BUS_DATA_DIR"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "wicked-bus ack --cursor-id {cursor} --event-id {event}",
+      "code": 0
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "the cursor's last_event_id equals the acked id"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) Bus `ack` CLI verb",
+   "covers": [
+    "bus:cli:ack"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-ack.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:CHANGELOG.md",
+    "wicked-bus:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.cli.version-usage",
+   "title": "Version probe and usage JSON",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus --version` then `wicked-bus` (no command). Terminal: version string on stdout exit 0; usage JSON listing 13 commands.",
+   "deps": [
+    "wicked-bus CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus --version",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "`--version` stdout == package.json .version (2.5.0 at HEAD 2b895a6), exit 0",
+     "bare invocation stdout JSON .commands has length 13 incl. 'dlq','daemon','ui'"
+    ]
+   },
+   "oracle_text": "`--version` stdout == package.json .version (2.5.0 at HEAD 2b895a6), exit 0; bare invocation stdout JSON .commands has length 13 incl. 'dlq','daemon','ui'",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-global.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cli.js:readVersion, printUsage"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.config.validation",
+   "title": "Config validation fails loud (dedup_ttl <= ttl, policy enum, intervals)",
+   "surface": "cli",
+   "user_path": "CLI: write config.json with dedup_ttl_hours 168 > ttl_hours 72, run `wicked-bus status`; then unacked_policy 'bogus'.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus",
+    "governance"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: non-zero exit with message 'Invalid config: dedup_ttl_hours (168) must be <= ttl_hours (72)'; policy error names allowed values"
+   },
+   "oracle_text": "non-zero exit with message 'Invalid config: dedup_ttl_hours (168) must be <= ttl_hours (72)'; policy error names allowed values",
+   "covers": [
+    "bus:cli:status"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/config.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/config.js:loadConfig validation"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: wicked-bus/tests/fixtures/malformed-config.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.crew-sidecars-example",
+   "title": "Bus crew sidecars example (smoke-verified)",
+   "surface": "cli",
+   "user_path": "node examples/crew-sidecars/smoke.js in a temp data dir.",
+   "deps": [
+    "node",
+    "temp WICKED_BUS_DATA_DIR"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "node examples/crew-sidecars/smoke.js",
+    "code": 0,
+    "complete": true
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) Bus crew sidecars example (smoke-verified)",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-bus:CHANGELOG.md",
+    "wicked-bus:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.cursor.reanchor",
+   "title": "A cursor behind the sweep self-recovers (WB-003 reanchor) or fails on request",
+   "surface": "cli",
+   "user_path": "CLI: create cursor at id 1, sweep away early events, `wicked-bus subscribe --cursor-id C --once` (default --on-stale recover) and again with `--on-stale fail`.",
+   "deps": [
+    "foundation.bus.retention.retain-default"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: recover: one WB-003 notice with reanchored_to == MIN(event_id) and swept_past, then events delivered, exit 0; fail: exit 3 with WB-003; `--on-stale` without value exits 1 WB-001"
+   },
+   "oracle_text": "recover: one WB-003 notice with reanchored_to == MIN(event_id) and swept_past, then events delivered, exit 0; fail: exit 3 with WB-003; `--on-stale` without value exits 1 WB-001",
+   "covers": [
+    "bus:cli:subscribe"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/subscribe-wb003-reanchor.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/cli/cli-subscribe.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-subscribe.js (on-stale)",
+    "wicked-bus:lib/poll.js:reanchorCursor"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.cursor.replay",
+   "title": "Operator resets a cursor to re-read history (WB-006/WB-003 guards)",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus replay --cursor-id C --from-event-id K`; also unknown cursor and K below oldest.",
+   "deps": [
+    "foundation.bus.delivery.at-least-once"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: cursor last_event_id == K-1 after replay; next subscribe yields first id K; unknown cursor exit 6 stderr WB-006; K < MIN(event_id) exit 3 stderr WB-003"
+   },
+   "oracle_text": "cursor last_event_id == K-1 after replay; next subscribe yields first id K; unknown cursor exit 6 stderr WB-006; K < MIN(event_id) exit 3 stderr WB-003",
+   "covers": [
+    "bus:cli:replay"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-replay.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-replay.js (--from-event-id)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.daemon.lifecycle",
+   "title": "Push daemon start / status / stop (singleton PID lock)",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus daemon start --detached`, `wicked-bus daemon status`, second `daemon start` (refused), `wicked-bus daemon stop`.",
+   "deps": [
+    "foundation.bus.init",
+    "unix socket support (macOS/Linux)"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "bus",
+    "deliver"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus daemon start --detached",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "start JSON has pid",
+     "status JSON shows socket path (<dataDir> socket from socketPath()) existing and pid alive",
+     "second start reports prior_pid lock conflict",
+     "after stop, pid not alive and status reports not running"
+    ]
+   },
+   "oracle_text": "start JSON has pid; status JSON shows socket path (<dataDir> socket from socketPath()) existing and pid alive; second start reports prior_pid lock conflict; after stop, pid not alive and status reports not running",
+   "covers": [
+    "bus:cli:daemon start",
+    "bus:cli:daemon status",
+    "bus:cli:daemon stop"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-daemon.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/daemon.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/daemon-singleton.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-daemon.js",
+    "wicked-bus:lib/daemon.js:startDaemon, socketPath",
+    "wicked-bus:lib/daemon-singleton.js:acquireDaemonLock"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.daemon.push-or-poll",
+   "title": "Push delivery with lossless fallback to durable poll",
+   "surface": "api",
+   "user_path": "API: start daemon; `for await (e of await subscribePushOrPoll({db,cursor_id,dataDir}))`; emit 5 events; stop daemon mid-stream; emit 5 more; restart daemon.",
+   "deps": [
+    "foundation.bus.daemon.lifecycle"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "bus",
+    "deliver"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: iterator .mode == 'push' initially, 'poll' after stop, back to 'push' after re-probe; received event_ids == emitted ids 1..10 with none missing (note: at-most-once semantics — acks before yield)"
+   },
+   "oracle_text": "iterator .mode == 'push' initially, 'poll' after stop, back to 'push' after re-probe; received event_ids == emitted ids 1..10 with none missing (note: at-most-once semantics — acks before yield)",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/subscribe-push-or-poll.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/daemon-client.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/daemon-notify.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/subscribe-push-or-poll.js",
+    "wicked-bus:lib/daemon-notify.js:notifyEmit",
+    "wicked-bus:lib/daemon-client.js:probeDaemon"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.delivery.at-least-once",
+   "title": "At-least-once: unacked events redeliver; cursor persists across restarts",
+   "surface": "cli",
+   "user_path": "CLI: register subscriber (`wicked-bus register --plugin p3 --role subscriber --filter 'wicked.e2e.**' --cursor-init oldest`), `subscribe --cursor-id C --no-ack --once` twice, then `wicked-bus ack --cursor-id C --last-event-id N`, then subscribe again.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus",
+    "deliver"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus register --plugin p3 --role subscriber --filter 'wicked.e2e.**' --cursor-init oldest",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "run1 and run2 both yield the same event_ids",
+     "after ack, `select last_event_id from cursors where cursor_id=C` == N and run3 yields only ids > N"
+    ]
+   },
+   "oracle_text": "run1 and run2 both yield the same event_ids; after ack, `select last_event_id from cursors where cursor_id=C` == N and run3 yields only ids > N",
+   "covers": [
+    "bus:cli:ack",
+    "bus:cli:register"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/integration/emit-poll-ack.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/cli/cli-ack.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/integration/lifecycle.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-register.js",
+    "wicked-bus:commands/cmd-ack.js",
+    "wicked-bus:lib/poll.js:poll/ack",
+    "wicked-bus:USERS_GUIDE.md#delivery-guarantees"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.dlq.drop",
+   "title": "Operator drops a dead letter",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus dlq drop --dl-id D`.",
+   "deps": [
+    "foundation.bus.retry.dead-letter"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: stdout {dropped:true,dl_id:D}; dead_letters row gone; second drop exits 6 WB-006; missing --dl-id exits 1 WB-001"
+   },
+   "oracle_text": "stdout {dropped:true,dl_id:D}; dead_letters row gone; second drop exits 6 WB-006; missing --dl-id exits 1 WB-001",
+   "covers": [
+    "bus:cli:dlq drop"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-dlq.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/dlq.js:dropDeadLetter",
+    "wicked-bus:commands/cmd-dlq.js:parseDlId"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.dlq.list",
+   "title": "Inspect dead letters (by plugin / cursor / limit)",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus dlq list`, `--plugin p4`, `--cursor-id C`, `--limit 1`.",
+   "deps": [
+    "foundation.bus.retry.dead-letter"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus",
+    "plugins"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus dlq list",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "JSON array rows with dl_id,event_id,event_type,attempts,last_error,dead_lettered_at",
+     "filters narrow exactly",
+     "ordered dead_lettered_at DESC"
+    ]
+   },
+   "oracle_text": "JSON array rows with dl_id,event_id,event_type,attempts,last_error,dead_lettered_at; filters narrow exactly; ordered dead_lettered_at DESC",
+   "covers": [
+    "bus:cli:dlq list"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-dlq.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-dlq.js",
+    "wicked-bus:lib/dlq.js:listDeadLetters"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.dlq.replay",
+   "title": "Operator replays a dead letter; the managed loop redelivers it",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus dlq replay --dl-id D --dry-run`, then `wicked-bus dlq replay --dl-id D`; restart the p4 subscribe() loop with a handler that now succeeds.",
+   "deps": [
+    "foundation.bus.retry.dead-letter"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus",
+    "deliver"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: dry-run JSON .dry_run==true and .would_replay.dl_id==D with dead_letters unchanged; replay JSON {replayed:true,dl_id:D}; replay_requested_at set; after next poll cycle handler receives event_id and dead_letters row D is deleted; unknown D exits 6 WB-006"
+   },
+   "oracle_text": "dry-run JSON .dry_run==true and .would_replay.dl_id==D with dead_letters unchanged; replay JSON {replayed:true,dl_id:D}; replay_requested_at set; after next poll cycle handler receives event_id and dead_letters row D is deleted; unknown D exits 6 WB-006",
+   "covers": [
+    "bus:cli:dlq replay"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-dlq.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/dlq.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-dlq.js (replay, dry-run)",
+    "wicked-bus:lib/dlq.js:replayDeadLetter",
+    "wicked-bus:lib/subscribe.js (replay drain ~L406)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.durability.contention",
+   "title": "Multi-process writers/readers without loss or duplication",
+   "surface": "api",
+   "user_path": "API: N child processes emit M events each concurrently while a subscriber polls+acks.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: count(events) == N*M; event_ids strictly unique and contiguous; subscriber received set == emitted set"
+   },
+   "oracle_text": "count(events) == N*M; event_ids strictly unique and contiguous; subscriber received set == emitted set",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/integration/multiprocess-contention.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/integration/concurrent.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/checkpoint.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/db.js:openDb (WAL)",
+    "wicked-bus:lib/checkpoint.js"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.durability.disk-full",
+   "title": "Disk-full rejection keeps the db intact (WB-004 = not accepted)",
+   "surface": "api",
+   "user_path": "API: fault-inject SQLITE_FULL during emit (test harness) then emit normally.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: emit throws WBError WB-004 with no row inserted; `PRAGMA integrity_check` == ok; subsequent emit succeeds"
+   },
+   "oracle_text": "emit throws WBError WB-004 with no row inserted; `PRAGMA integrity_check` == ok; subsequent emit succeeds",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/integration/fault-injection.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/emit.js",
+    "wicked-bus:README.md#delivery-and-retention-contract"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.emit.basic",
+   "title": "Publish an event (accepted = committed)",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus emit --type wicked.e2e.probe.created --domain e2e --subdomain probe.a --payload '{\"k\":1}'`. Terminal: stdout JSON with event_id; row present in events table.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus emit --type wicked.e2e.probe.created --domain e2e --subdomain probe.a --payload '{\"k\":1}'",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "stdout .event_id is integer N",
+     "`sqlite3 bus.db \"select event_type,domain,subdomain,json_extract(payload,'$.k') from events where event_id=N\"` == wicked.e2e.probe.created|e2e|probe.a|1",
+     "expires_at-emitted_at == 72h in ms"
+    ]
+   },
+   "oracle_text": "exit 0; stdout .event_id is integer N; `sqlite3 bus.db \"select event_type,domain,subdomain,json_extract(payload,'$.k') from events where event_id=N\"` == wicked.e2e.probe.created|e2e|probe.a|1; expires_at-emitted_at == 72h in ms",
+   "covers": [
+    "bus:cli:emit"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-emit.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/emit.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-emit.js",
+    "wicked-bus:lib/emit.js:emit",
+    "wicked-bus:README.md#delivery-and-retention-contract"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.emit.idempotency",
+   "title": "Emit-side idempotency rejects a duplicate key (WB-002)",
+   "surface": "cli",
+   "user_path": "CLI: emit twice with the same `--idempotency-key k1`. Terminal: second emit fails with WB-002, only one row stored.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: first exit 0; second exit 2 with stderr JSON .error=='WB-002' (DUPLICATE_EVENT); `select count(*) from events where idempotency_key='k1'` == 1"
+   },
+   "oracle_text": "first exit 0; second exit 2 with stderr JSON .error=='WB-002' (DUPLICATE_EVENT); `select count(*) from events where idempotency_key='k1'` == 1",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/emit.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/cli/cli-errors.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/emit.js",
+    "wicked-bus:lib/errors.js:ERROR_CODES WB-002, EXIT_CODES"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.emit.ttl-metadata",
+   "title": "Per-event TTL override and metadata column",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus emit --type wicked.e2e.probe.created --domain e2e --payload '{}' --ttl-hours 1 --metadata '{\"host\":\"h1\"}' --schema-version 1.0.0`.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus emit --type wicked.e2e.probe.created --domain e2e --payload '{}' --ttl-hours 1 --metadata '{\"host\":\"h1\"}' --schema-version 1.0.0",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "row expires_at-emitted_at == 3600000",
+     "json_extract(metadata,'$.host')=='h1'"
+    ]
+   },
+   "oracle_text": "row expires_at-emitted_at == 3600000; json_extract(metadata,'$.host')=='h1'",
+   "covers": [
+    "bus:cli:emit"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-emit.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-emit.js (ttl-hours, metadata, schema-version)",
+    "wicked-bus:USERS_GUIDE.md#metadata"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.emit.validation",
+   "title": "Invalid emits are rejected and nothing is accepted (WB-001)",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus emit --domain e2e --payload '{}'` (no --type) and `--payload 'not-json'`. Terminal: WB-001 errors, no rows added.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus emit --domain e2e --payload '{}'",
+    "code": 1,
+    "complete": false,
+    "untyped": [
+     "exit 1",
+     "stderr JSON .error=='WB-001'",
+     "`select count(*) from events` unchanged before/after"
+    ]
+   },
+   "oracle_text": "exit 1; stderr JSON .error=='WB-001'; `select count(*) from events` unchanged before/after",
+   "covers": [
+    "bus:cli:emit"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/validate.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/cli/cli-errors.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/validate.js",
+    "wicked-bus:commands/cmd-emit.js"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.init",
+   "title": "Initialize an isolated bus (data dir + WAL SQLite db + default config)",
+   "surface": "cli",
+   "user_path": "CLI: `WICKED_BUS_DATA_DIR=$T wicked-bus init` (re-run with `--force` to rewrite config). Terminal state: stdout `{initialized:true,data_dir:$T,db_path:$T/bus.db}`, exit 0.",
+   "deps": [
+    "node>=20",
+    "better-sqlite3 peer",
+    "wicked-bus CLI on PATH"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "$T/bus.db",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "exit code 0",
+     "stdout JSON .initialized==true and .db_path==\"$T/bus.db\"",
+     "file $T/bus.db exists",
+     "`sqlite3 $T/bus.db 'PRAGMA journal_mode'` == wal",
+     "$T/config.json parses with ttl_hours==72, unacked_policy==\"retain\""
+    ]
+   },
+   "oracle_text": "exit code 0; stdout JSON .initialized==true and .db_path==\"$T/bus.db\"; file $T/bus.db exists; `sqlite3 $T/bus.db 'PRAGMA journal_mode'` == wal; $T/config.json parses with ttl_hours==72, unacked_policy==\"retain\"",
+   "covers": [
+    "bus:cli:init"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-init.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/paths.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/config.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-init.js:cmdInit",
+    "wicked-bus:lib/paths.js:resolveDbPath (bus.db), resolveDataDir (WICKED_BUS_DATA_DIR)",
+    "wicked-bus:lib/config.js:DEFAULTS"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.migrate-older-db",
+   "title": "Bus schema migration of an older bus.db",
+   "surface": "cli",
+   "user_path": "copy a v2.3 bus.db into a temp data dir, run wicked-bus status.",
+   "deps": [
+    "node",
+    "temp WICKED_BUS_DATA_DIR"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "wicked-bus status --json",
+      "code": 0
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "the schema version reads current and every pre-existing event is still readable"
+    ]
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) Bus schema migration of an older bus.db",
+   "covers": [
+    "bus:cli:status"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/migrate.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:CHANGELOG.md",
+    "wicked-bus:README.md"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.plugin.skills-install",
+   "title": "Install bus skills into detected AI CLIs (plugin)",
+   "surface": "plugin",
+   "user_path": "CLI: `HOME=$H wicked-bus-install --path=$H/.claude` (and `--cli=codex`); then list skills dirs.",
+   "deps": [
+    "wicked-bus package installed"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "update}/SKILL.md",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "$H/.claude/skills contains wicked-bus-{init,emit,subscribe,naming,query,status,update}/SKILL.md",
+     "each frontmatter parses (---…---) with name matching dir",
+     "`--cli` with no value exits 1"
+    ]
+   },
+   "oracle_text": "$H/.claude/skills contains wicked-bus-{init,emit,subscribe,naming,query,status,update}/SKILL.md; each frontmatter parses (---…---) with name matching dir; `--cli` with no value exits 1",
+   "covers": [
+    "bus:cli:wicked-bus-install"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-bus:install.mjs",
+    "wicked-bus:skills/wicked-bus/*/SKILL.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.registry.list-deregister",
+   "title": "Register / list / soft-deregister providers and subscribers",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus register --plugin prov --role provider`, `wicked-bus list`, `wicked-bus list --role subscriber`, `wicked-bus deregister --plugin prov`, `wicked-bus list --include-deregistered`.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: list JSON contains prov before deregister, absent after; --include-deregistered shows it with non-null deregistered_at; `deregister --role` with no value exits 1"
+   },
+   "oracle_text": "list JSON contains prov before deregister, absent after; --include-deregistered shows it with non-null deregistered_at; `deregister --role` with no value exits 1",
+   "covers": [
+    "bus:cli:deregister",
+    "bus:cli:list",
+    "bus:cli:register"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-register.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/cli/cli-list.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/cli/cli-deregister.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/register.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-register.js",
+    "wicked-bus:commands/cmd-list.js",
+    "wicked-bus:commands/cmd-deregister.js",
+    "wicked-bus:lib/register.js"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.retention.archive-discard-cap",
+   "title": "Unacked policy archive / discard and the retention cap",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus cleanup --unacked-policy archive`, `--unacked-policy discard`, `--retention-days 0.00001` under retain, `--archive`.",
+   "deps": [
+    "foundation.bus.retention.retain-default"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus",
+    "governance"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: archive: owed expired row moved to events_archive (count +1) and gone from events; discard: deleted, not archived; retain+cap: archived with reason 'retention_cap' in .unacked report; invalid policy string exits non-zero"
+   },
+   "oracle_text": "archive: owed expired row moved to events_archive (count +1) and gone from events; discard: deleted, not archived; retain+cap: archived with reason 'retention_cap' in .unacked report; invalid policy string exits non-zero",
+   "covers": [
+    "bus:cli:cleanup"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/integration/retention-policy.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/sweep-retention-key.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/retention.js:UNACKED_POLICIES, owedPairsWithCap",
+    "wicked-bus:lib/config.js (unacked_retention_days validation)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.retention.retain-default",
+   "title": "Sweep never drops an expired event an active cursor still owes (unacked_policy retain)",
+   "surface": "cli",
+   "user_path": "CLI: emit with `--ttl-hours 0.0003` (or config ttl small), register cursor that has not acked, wait past expiry, `wicked-bus cleanup --dry-run` then `wicked-bus cleanup`.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus",
+    "governance"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus cleanup --dry-run",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "cleanup JSON .unacked report names cursor C with the event",
+     "event row still exists in events after cleanup",
+     "an expired event owed by nobody is deleted"
+    ]
+   },
+   "oracle_text": "cleanup JSON .unacked report names cursor C with the event; event row still exists in events after cleanup; an expired event owed by nobody is deleted",
+   "covers": [
+    "bus:cli:cleanup"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/sweep.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/integration/retention-policy.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/cli/cli-cleanup.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-cleanup.js",
+    "wicked-bus:lib/sweep.js:runSweep",
+    "wicked-bus:lib/retention.js:collectOwedExpired, buildUnackedReport"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.retry.dead-letter",
+   "title": "Restart-durable retry then dead-letter on exhaustion (managed subscribe)",
+   "surface": "api",
+   "user_path": "API (node script): `subscribe({db, plugin:'p4', filter:'wicked.e2e.**', maxRetries:2, backoffMs:10, handler:()=>{throw new Error('boom')}, onDeadLetter})`; kill the process after attempt 1, restart, let it exhaust. Then `wicked-bus dlq list --plugin p4`.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: delivery_attempts row persists across restart (attempts counter continues, not reset); after exhaustion dead_letters row with attempts==3, last_error=='boom', cursor acked past the event; `dlq list` JSON has that event_id"
+   },
+   "oracle_text": "delivery_attempts row persists across restart (attempts counter continues, not reset); after exhaustion dead_letters row with attempts==3, last_error=='boom', cursor acked past the event; `dlq list` JSON has that event_id",
+   "covers": [
+    "bus:cli:dlq list"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/subscribe.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/dlq.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/integration/fault-injection.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/subscribe.js:subscribe (maxRetries, delivery_attempts, dead_letters)",
+    "wicked-bus:lib/dlq.js:listDeadLetters"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.schema-registry",
+   "title": "Per-event-type payload policy: warn / cas-auto offload / strict (WB-008) and schema check (WB-009)",
+   "surface": "api",
+   "user_path": "API/SQL: insert a `schemas` row for wicked.e2e.big.created (payload_max_bytes=100, payload_oversize='cas-auto'), emit a 1KB payload via CLI; switch to 'strict' and emit again; register a JSON schema with required field and emit without it in strict mode. (No CLI/API registers schemas.)",
+   "deps": [
+    "foundation.bus.init",
+    "foundation.bus.cas"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus",
+    "governance"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: cas-auto: stored payload == {\"$cas\":\"<sha>\"} and payload_cas_sha set, CAS object exists; strict: exit 8 WB-008, no row; schema strict: exit 9 WB-009; no schemas row => v1 behavior"
+   },
+   "oracle_text": "cas-auto: stored payload == {\"$cas\":\"<sha>\"} and payload_cas_sha set, CAS object exists; strict: exit 8 WB-008, no row; schema strict: exit 9 WB-009; no schemas row => v1 behavior",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/schema-registry.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/integration/emit-with-registry.test.js",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-bus:tests/integration/cli-cas-auto-offload.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/schema-registry.js:getSchema, applyOnEmit, validateAgainst",
+    "wicked-bus:lib/emit.js (payload_cas_sha)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.status",
+   "title": "Bus health: totals, events by type, subscriber lag, providers",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus status` after emitting 3 events and acking 1.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus status",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "stdout JSON .total_events==3",
+     ".events_by_type keys match",
+     ".subscribers[cursor C].lag == newest_event_id - last_event_id"
+    ]
+   },
+   "oracle_text": "stdout JSON .total_events==3; .events_by_type keys match; .subscribers[cursor C].lag == newest_event_id - last_event_id",
+   "covers": [
+    "bus:cli:status"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-status.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-status.js"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.subscribe.drain",
+   "title": "Drain mode exits when caught up (--once/--drain, --idle-timeout)",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus subscribe --plugin p2 --filter 'wicked.**' --cursor-init oldest --once` and `--idle-timeout 500`. Terminal: process exits on its own after delivering backlog.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus subscribe --plugin p2 --filter 'wicked.**' --cursor-init oldest --once",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "process exits 0 within idle-timeout+poll interval",
+     "NDJSON line count == events matching filter",
+     "invalid `--idle-timeout -1` exits 1 with WB-001"
+    ]
+   },
+   "oracle_text": "process exits 0 within idle-timeout+poll interval; NDJSON line count == events matching filter; invalid `--idle-timeout -1` exits 1 with WB-001",
+   "covers": [
+    "bus:cli:subscribe"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/cli/cli-subscribe.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:commands/cmd-subscribe.js (drainMode, idle-timeout)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.subscribe.filter-grammar",
+   "title": "Subscribe filter grammar: exact, * (one segment), ** (one-or-more), @domain",
+   "surface": "cli",
+   "user_path": "CLI: emit wicked.e2e.task.created@e2e, wicked.e2e.task.step.completed@e2e, wicked.e2e.task.created@other; then `wicked-bus subscribe --plugin p1 --cursor-init oldest --filter 'wicked.e2e.task.*' --once`, repeat with `wicked.e2e.task.**`, `*@other`, `wicked.e2e.task.*@e2e`.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus subscribe --plugin p1 --cursor-init oldest --filter 'wicked.e2e.task.*' --once",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "NDJSON event_type sets per filter: '*' -> {task.created x2}",
+     "'**' -> all 3 wicked.e2e.task.*",
+     "'*@other' -> only domain other",
+     "'*@e2e' -> 1 row. Also library matchesFilter() truth table"
+    ]
+   },
+   "oracle_text": "NDJSON event_type sets per filter: '*' -> {task.created x2}; '**' -> all 3 wicked.e2e.task.*; '*@other' -> only domain other; '*@e2e' -> 1 row. Also library matchesFilter() truth table",
+   "covers": [
+    "bus:cli:subscribe"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/filter.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/cli/cli-subscribe.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/poll.js:matchesFilter",
+    "wicked-bus:USERS_GUIDE.md#filter-patterns",
+    "wicked-bus:commands/cmd-subscribe.js"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.subscriber.db-unusable",
+   "title": "Managed subscriber surfaces an unusable db (WB-014) instead of spinning silently",
+   "surface": "api",
+   "user_path": "API: start subscribe(), then make the db file unreadable/closed underneath; observe onError and getHealth().",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: after consecutive connection-fatal polls, onError receives WBError WB-014; getHealth() reports the unusable state; no ghost close corrupts other handles"
+   },
+   "oracle_text": "after consecutive connection-fatal polls, onError receives WBError WB-014; getHealth() reports the unusable state; no ghost close corrupts other handles",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/subscribe-db-unusable.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/subscribe-ghost-close-corrupts.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/subscribe.js (consecutiveUnusablePolls, WB-014)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.tiered.archive-read",
+   "title": "Tiered monthly warm buckets with transparent cross-tier reads",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-bus cleanup --tiered` on a db with expired events; then library `pollResolve(liveDb, archDir, {...})` for a range spanning swept ids; `GET /api/buckets` on the UI server.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-bus cleanup --tiered",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "bucket .db file(s) appear under <dataDir>/archive with min/max event_id metadata (getBucketMeta)",
+     "pollResolve returns swept ids from warm tier deduped vs live (dedupePreferLive)",
+     "WB-013 when a bucket is locked (lockBucketForTesting)"
+    ]
+   },
+   "oracle_text": "bucket .db file(s) appear under <dataDir>/archive with min/max event_id metadata (getBucketMeta); pollResolve returns swept ids from warm tier deduped vs live (dedupePreferLive); WB-013 when a bucket is locked (lockBucketForTesting)",
+   "covers": [
+    "bus:cli:cleanup"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/sweep-v2.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/unit/query.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/sweep-v2.js:runSweepV2",
+    "wicked-bus:lib/archive.js",
+    "wicked-bus:lib/query.js:pollResolve"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.ui.auth",
+   "title": "Read-only bus UI server: loopback bind, bearer token, GET-only",
+   "surface": "api",
+   "user_path": "CLI: `wicked-bus ui --port 0` (or default 7842); curl `/healthz` (no auth), `/api/info` without and with `Authorization: Bearer $(cat <dataDir>/ui-token)`, a POST, and a request with a foreign Origin; `--rotate-token`.",
+   "deps": [
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: /healthz 200 {ok:true}; /api/info 401 without token, 200 with; POST -> 405; foreign Origin refused; ui-token file mode 0600; --rotate-token changes token bytes; wrong-UID token -> WB-011"
+   },
+   "oracle_text": "/healthz 200 {ok:true}; /api/info 401 without token, 200 with; POST -> 405; foreign Origin refused; ui-token file mode 0600; --rotate-token changes token bytes; wrong-UID token -> WB-011",
+   "covers": [
+    "bus:cli:ui"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/ui-server.test.js",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-bus:tests/cli/cli-ui.test.js",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/ui-server.js:startUiServer, ensureToken, DEFAULT_PORT=7842",
+    "wicked-bus:commands/cmd-ui.js"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.bus.ui.query",
+   "title": "Query events, CAS stats and warm buckets over the UI API",
+   "surface": "api",
+   "user_path": "API: authenticated GET `/api/events?event_type=...&domain=...&correlation_id=...&since_event_id=0&limit=2`, `/api/cas/stats`, `/api/buckets`.",
+   "deps": [
+    "foundation.bus.ui.auth"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: /api/events returns only matching rows, <=limit, ascending event_id paginated by since_event_id; limit clamped 1..1000; /api/cas/stats {object_count,total_bytes} equals cas.stats(); /api/buckets equals listBuckets()"
+   },
+   "oracle_text": "/api/events returns only matching rows, <=limit, ascending event_id paginated by since_event_id; limit clamped 1..1000; /api/cas/stats {object_count,total_bytes} equals cas.stats(); /api/buckets equals listBuckets()",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-bus:tests/unit/ui-server.test.js",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-bus:lib/ui-server.js:apiEvents, apiCasStats, apiBuckets"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.bus-events",
+   "title": "Ledger lifecycle events on the bus (wicked.test.*, domain qe)",
+   "surface": "api",
+   "user_path": "API: with wicked-bus CLI on PATH and WICKED_BUS_DATA_DIR=$T, create strategy, scenario, run, verdict (with vault_payload_sha), update run finished_at.",
+   "deps": [
+    "foundation.bus.init",
+    "foundation.ledger.store.crud"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger",
+    "qe",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: bus events: wicked.test.strategy.generated, .scenario.authored, .run.started, .verdict.created, .evidence.captured (only when vault_payload_sha present), .run.completed; all domain 'qe' with payload.qe_version; absent bus CLI -> emitBusEvent returns false, CRUD unaffected"
+   },
+   "oracle_text": "bus events: wicked.test.strategy.generated, .scenario.authored, .run.started, .verdict.created, .evidence.captured (only when vault_payload_sha present), .run.completed; all domain 'qe' with payload.qe_version; absent bus CLI -> emitBusEvent returns false, CRUD unaffected",
+   "covers": [
+    "ledger:export:emitBusEvent"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-ledger:lib/bus-emit.mjs:emitBusEvent, domainEventToBusEvent"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.manifest",
+   "title": "Reviewer-side manifest validation (schema-fail grades INCONCLUSIVE)",
+   "surface": "api",
+   "user_path": "API: `validateManifest(m)` on a valid 2.1 manifest and on one missing environment.qe_version.",
+   "deps": [
+    "node>=22"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: valid -> ok; invalid -> errors list non-empty; MANIFEST_VERSION=='2.1.0' equal to wicked-vault twin"
+   },
+   "oracle_text": "valid -> ok; invalid -> errors list non-empty; MANIFEST_VERSION=='2.1.0' equal to wicked-vault twin",
+   "covers": [
+    "ledger:export:MANIFEST_VERSION",
+    "ledger:export:validateManifest"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-ledger:test/smoke.mjs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:test/manifest.spec.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/manifest.mjs",
+    "wicked-ledger:docs/SCHEMA-CONTRACT.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.migrations",
+   "title": "Additive versioned migrations (schema v3) via schema_migrations",
+   "surface": "api",
+   "user_path": "API: `applyMigrations(db, dir)` on an empty db and on a v1 db; `listMigrations(dir)`.",
+   "deps": [
+    "better-sqlite3"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: schema_migrations max(version)==3; files 001..003 ordered; verdicts has vault_payload_sha column (003) and verdict CHECK (002); re-run is a no-op"
+   },
+   "oracle_text": "schema_migrations max(version)==3; files 001..003 ordered; verdicts has vault_payload_sha column (003) and verdict CHECK (002); re-run is a no-op",
+   "covers": [
+    "ledger:export:applyMigrations",
+    "ledger:export:listMigrations"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-ledger:test/smoke.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/migrate.mjs",
+    "wicked-ledger:lib/migrations/001_initial.sql",
+    "wicked-ledger:lib/migrations/002_verdict_check_and_equivalence.sql",
+    "wicked-ledger:lib/migrations/003_vault_evidence_sha.sql"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.oracle-queries",
+   "title": "13 fixed auditable oracle queries + keyword router",
+   "surface": "api",
+   "user_path": "API: `buildOracleQuery('last_verdict_for_scenario',{scenario_name})`, run sql/params on the index; `routeQuestion('what scenarios exist for my project?')`; `QUERY_NAMES`.",
+   "deps": [
+    "foundation.ledger.store.crud"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: QUERY_NAMES length 13; returned sql starts with SELECT; executing returns the verdict just written; routeQuestion returns 'scenarios_for_project'; unknown name throws"
+   },
+   "oracle_text": "QUERY_NAMES length 13; returned sql starts with SELECT; executing returns the verdict just written; routeQuestion returns 'scenarios_for_project'; unknown name throws",
+   "covers": [
+    "ledger:export:QUERY_NAMES",
+    "ledger:export:buildOracleQuery",
+    "ledger:export:routeQuestion"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-ledger:test/smoke.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/oracle-queries.mjs:QUERIES, routeQuestion, buildOracleQuery"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.root-resolution",
+   "title": "Ledger root dual-read (.wicked-qe preferred, legacy .wicked-testing honored, env pin)",
+   "surface": "api",
+   "user_path": "API: resolveLedgerRoot(base) with (a) neither dir, (b) only .wicked-testing, (c) both, (d) WICKED_QE_LEDGER_DIR=/abs.",
+   "deps": [
+    "node>=22"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger",
+    "qe"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: (a) <base>/.wicked-qe; (b) <base>/.wicked-testing and index file stays wicked-testing.db; (c) .wicked-qe; (d) exactly /abs"
+   },
+   "oracle_text": "(a) <base>/.wicked-qe; (b) <base>/.wicked-testing and index file stays wicked-testing.db; (c) .wicked-qe; (d) exactly /abs",
+   "covers": [
+    "ledger:export:resolveLedgerRoot"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/qe/test_qe_ledger_root.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/qe-ledger.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/domain-store.mjs:resolveLedgerRoot, LEDGER_DIR_ENV"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.runtime-profile",
+   "title": "Ledger refuses WICKED_RUNTIME=team",
+   "surface": "api",
+   "user_path": "API: `createDomainStore` with env WICKED_RUNTIME=team.",
+   "deps": [
+    "node>=22"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: throws code ERR_WICKED_RUNTIME_TEAM_UNSUPPORTED; root dir not created"
+   },
+   "oracle_text": "throws code ERR_WICKED_RUNTIME_TEAM_UNSUPPORTED; root dir not created",
+   "covers": [
+    "ledger:export:createDomainStore"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-ledger:test/smoke.mjs",
+     "name": "WICKED_RUNTIME seam",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/runtime.mjs",
+    "wicked-ledger:docs/runtime-profile.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.stale-run-reclaim",
+   "title": "Stale 'running' runs (>60 min) reclaimed as errored on open",
+   "surface": "api",
+   "user_path": "API: create run status 'running' with started_at 2h ago; reopen store.",
+   "deps": [
+    "foundation.ledger.store.crud"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "ledger-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: get('runs',id).status=='errored' and finished_at set; stderr '[wicked-ledger] reclaimed 1 stale running run(s)'"
+   },
+   "oracle_text": "get('runs',id).status=='errored' and finished_at set; stderr '[wicked-ledger] reclaimed 1 stale running run(s)'",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-ledger:lib/domain-store.mjs:_sweepStaleRunningRuns (STALE_RUN_CUTOFF_MS)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.store.coherence",
+   "title": "Index drift detected, canonical JSON served, reconciled on reopen",
+   "surface": "api",
+   "user_path": "API: fault-inject an index write failure on update (PASS->FAIL), then get/list/stats; reopen store.",
+   "deps": [
+    "foundation.ledger.store.crud"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger",
+    "graph"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "{root}/index-drift.json",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "get/list return canonical 'FAIL'",
+     "stats().index_coherent==false, drift_count==1",
+     "<root>/index-drift.json exists",
+     "stale .index-intent files counted",
+     "after reopen index_coherent==true and marker removed"
+    ]
+   },
+   "oracle_text": "get/list return canonical 'FAIL'; stats().index_coherent==false, drift_count==1; <root>/index-drift.json exists; stale .index-intent files counted; after reopen index_coherent==true and marker removed",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-ledger:test/coherence.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/domain-store.mjs (DRIFT_MARKER, INTENT_DIR, rebuildIndex, stats)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.store.crud",
+   "title": "DomainStore create/get/list/update along the FK chain",
+   "surface": "api",
+   "user_path": "API: `createDomainStore({root:$T/.wicked-qe})`; create projects -> scenarios -> runs -> verdicts; get/list/update runs status.",
+   "deps": [
+    "node>=22",
+    "better-sqlite3 ^13"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: each create returns id; get('verdicts',id).verdict=='PASS'; list('verdicts',{run_id}) length 1; canonical JSON file exists per record under root; schemaVersion()==3"
+   },
+   "oracle_text": "each create returns id; get('verdicts',id).verdict=='PASS'; list('verdicts',{run_id}) length 1; canonical JSON file exists per record under root; schemaVersion()==3",
+   "covers": [
+    "ledger:export:DomainStore",
+    "ledger:export:createDomainStore"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-ledger:test/smoke.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/domain-store.mjs:createDomainStore, DomainStore",
+    "wicked-ledger:README.md#quick-start"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.store.json-fallback",
+   "title": "JSON-only mode when the native index cannot load",
+   "surface": "api",
+   "user_path": "API: run under a Node ABI that cannot load better-sqlite3 (or stub require failure) and do CRUD.",
+   "deps": [
+    "node>=22"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger",
+    "graph"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "ledger-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: CRUD succeeds; no wicked-qe.db created; stats() reports json-only mode"
+   },
+   "oracle_text": "CRUD succeeds; no wicked-qe.db created; stats() reports json-only mode",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-ledger:test/coherence.mjs",
+     "name": "Node floor",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/domain-store.mjs (abiMismatch handling)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.store.newer-index",
+   "title": "Writes refused against an index written by a newer ledger",
+   "surface": "api",
+   "user_path": "API: bump schema_migrations version in the index beyond SCHEMA_VERSION, then create().",
+   "deps": [
+    "foundation.ledger.store.crud"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger",
+    "graph"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: create throws code ERR_INDEX_NEWER_VERSION; get/list still serve from JSON"
+   },
+   "oracle_text": "create throws code ERR_INDEX_NEWER_VERSION; get/list still serve from JSON",
+   "covers": [
+    "ledger:export:SCHEMA_VERSION"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-ledger:test/coherence.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/domain-store.mjs (ERR_INDEX_NEWER_VERSION)",
+    "wicked-ledger:docs/SCHEMA-CONTRACT.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.ledger.store.validation",
+   "title": "Pre-write validation: verdict enum, required fields, FKs, unique keys",
+   "surface": "api",
+   "user_path": "API: create verdict 'MAYBE'; verdict missing reviewer; verdict with dangling run_id; duplicate project name; update nulling verdict or rewriting id/created_at.",
+   "deps": [
+    "foundation.ledger.store.crud"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "ledger"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: throws code ERR_INVALID_VERDICT / ERR_INVALID_RECORD; nothing written to JSON or index (file counts and get() unchanged)"
+   },
+   "oracle_text": "throws code ERR_INVALID_VERDICT / ERR_INVALID_RECORD; nothing written to JSON or index (file counts and get() unchanged)",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-ledger:test/coherence.mjs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-ledger:test/smoke.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-ledger:lib/domain-store.mjs (ERR_INVALID_RECORD, ERR_INVALID_VERDICT)",
+    "wicked-ledger:lib/manifest.mjs:VERDICT_VALUES"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.acceptance.attribution",
+   "title": "Acceptance counts only verdicts attributed to this run and its deliverable tree",
+   "surface": "api",
+   "user_path": "API: ledger with a PASS stamped crew_run_id=other, a QE run inside this run's lifetime, and a verdict for a different verified_tree; GET /runs/:id/acceptance.",
+   "deps": [
+    "foundation.platform.acceptance.read",
+    "daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "platform",
+    "deliver",
+    "qe"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{runId}/acceptance",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "foreign crew_run_id PASS ignored (deny 'not attributed')",
+     "lifetime-linked verdict cited as inferred in reason",
+     "verdict on other tree not counted",
+     "one non-PASS among this run's QE runs denies even with a later PASS"
+    ]
+   },
+   "oracle_text": "foreign crew_run_id PASS ignored (deny 'not attributed'); lifetime-linked verdict cited as inferred in reason; verdict on other tree not counted; one non-PASS among this run's QE runs denies even with a later PASS",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id/acceptance"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/qe-verdict-per-tree.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-garden:tests/qe/test_crew_run_stamp.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/qe-run-ledger.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/qe-ledger.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "aliases": [
+    "crew-api.qe.verdict-attribution"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/qe/ledger.ts (CREW_RUN_ID_FIELD, ReadSubject)",
+    "wicked-crew:packages/crew/src/qe/acceptance.ts:runWindowFromEvents, qeAttemptsFromEvents",
+    "wicked-crew:packages/crew/src/qe/ledger.ts",
+    "wicked-crew:packages/crew/src/qe/acceptance.ts"
+   ],
+   "notes": [
+    "merged duplicate crew-api.qe.verdict-attribution (crew-api area); its oracle: acceptance.attribution != 'stamped'/'pinned' for foreign verdict; gate.satisfied false"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.acceptance.campaign-chips",
+   "title": "Campaign scoreboard loads per-run verdict chips on demand",
+   "surface": "ui",
+   "user_path": "UI: open the campaign scoreboard, click [data-testid=campaign-load-verdicts]; inspect [data-testid=campaign-verdict-chip] and [data-testid=campaign-evidence-link].",
+   "deps": [
+    "studio",
+    "crew daemon"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "platform",
+    "qe",
+    "campaigns"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/runs/{runId}/acceptance",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=campaign-load-verdicts]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=campaign-verdict-chip]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=campaign-evidence-link]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "exactly N GET /runs/:id/acceptance requests after click (none before)",
+     "each chip text equals that run's gate verdict",
+     "second click issues no new requests (cached)"
+    ]
+   },
+   "oracle_text": "exactly N GET /runs/:id/acceptance requests after click (none before); each chip text equals that run's gate verdict; second click issues no new requests (cached)",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id/acceptance",
+    "studio:testid-computed:testid",
+    "studio:testid:campaign-delivery-rollup",
+    "studio:testid:campaign-evidence-link",
+    "studio:testid:campaign-ladder",
+    "studio:testid:campaign-ladder-row",
+    "studio:testid:campaign-live-status",
+    "studio:testid:campaign-load-failed",
+    "studio:testid:campaign-load-verdicts",
+    "studio:testid:campaign-loading",
+    "studio:testid:campaign-node-status",
+    "studio:testid:campaign-notfound",
+    "studio:testid:campaign-progress",
+    "studio:testid:campaign-run-brief",
+    "studio:testid:campaign-run-delivery",
+    "studio:testid:campaign-run-link",
+    "studio:testid:campaign-scoreboard",
+    "studio:testid:campaign-stranded-chip",
+    "studio:testid:campaign-verdict-chip"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "related": [
+    "studio-ui.testing.campaign-scoreboard"
+   ],
+   "sources": [
+    "wicked-studio:src/components/CampaignScoreboard.tsx",
+    "wicked-studio:src/store/acceptance.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.acceptance.read",
+   "title": "Crew acceptance route re-derives the QE gate from the ledger (deny-dominates)",
+   "surface": "api",
+   "user_path": "API (read-only): `curl http://127.0.0.1:7721/api/v1/runs/<id>/acceptance` (and `?qeRun=<qe-run-id>`) for runs whose repo ledger holds: none, no verdict, unattributed verdict, PASS, FAIL, PARTIAL, out-of-enum.",
+   "deps": [
+    "crew daemon :7721",
+    "registered repo with .wicked-qe ledger",
+    "daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "platform",
+    "gates",
+    "qe",
+    "ledger",
+    "smoke"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{runId}/acceptance",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "HTTP 200 for known run, 404 unknown",
+     ".gate.satisfied true only for attributed PASS",
+     ".gate.reason prefixes: 'workflow declares no acceptance requirement', 'records no verdict (missing ⇒ deny)', 'holds no verdict attributed to this run', 'PASS — ', 'FAIL — ', 'PARTIAL —', 'out-of-enum value'",
+     "keys runId,repo,requirement,acceptance,gate,summary,conformance (confirmed live on crew 0.15.4)",
+     "always 200 for a known run",
+     "gate.satisfied true only when attributed verdict == PASS",
+     "no ledger -> deny with reason",
+     "unknown run 404"
+    ]
+   },
+   "oracle_text": "HTTP 200 for known run, 404 unknown; .gate.satisfied true only for attributed PASS; .gate.reason prefixes: 'workflow declares no acceptance requirement', 'records no verdict (missing ⇒ deny)', 'holds no verdict attributed to this run', 'PASS — ', 'FAIL — ', 'PARTIAL —', 'out-of-enum value'; keys runId,repo,requirement,acceptance,gate,summary,conformance (confirmed live on crew 0.15.4)",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id/acceptance"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/qe-acceptance.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/qe-ledger.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/qe-run-ledger.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/qe-acceptance-functional.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/acceptance-route.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/acceptance-readonly.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "fidelity": "e2e-hermetic"
+    }
+   ],
+   "aliases": [
+    "crew-api.qe.acceptance-read"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/routes.ts:GET ${V}/runs/:id/acceptance, acceptanceViewOf",
+    "wicked-crew:packages/crew/src/qe/acceptance.ts:resolveAcceptanceGate, buildAcceptanceView",
+    "wicked-crew:packages/crew/src/qe/ledger.ts",
+    "wicked-crew:packages/crew/src/api/routes.ts:4327",
+    "wicked-crew:packages/crew/src/qe/acceptance.ts:390 AcceptanceView"
+   ],
+   "notes": [
+    "critic 2026-10-20: the acceptance body's conformance section is asserted by crew-api.qe.acceptance-conformance",
+    "merged duplicate crew-api.qe.acceptance-read (crew-api area); its oracle: always 200 for a known run; gate.satisfied true only when attributed verdict == PASS; no ledger -> deny with reason; unknown run 404"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.acceptance.read-only",
+   "title": "Acceptance read leaves the repository byte-identical",
+   "surface": "api",
+   "user_path": "API: hash the repo tree (incl .wicked-qe) before and after GET /runs/:id/acceptance.",
+   "deps": [
+    "foundation.platform.acceptance.read"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "platform",
+    "qe",
+    "repos"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "file-hash",
+    "ledger-entry"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{runId}/acceptance",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "tree hash identical",
+     "no wicked-qe.db / -wal / -shm created",
+     "no .tmp files reaped"
+    ]
+   },
+   "oracle_text": "tree hash identical; no wicked-qe.db / -wal / -shm created; no .tmp files reaped",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id/acceptance"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/qe-ledger.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/qe/ledger.ts (F-E2E-013 header)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.acceptance.studio",
+   "title": "Studio shows the acceptance verdict on the run (tab, receipt, gate row, hand-over line)",
+   "surface": "ui",
+   "user_path": "UI: open studio /s/run:<id> for runs with PASS / FAIL / no verdict; open Run tab (data-testid=run-tab-acceptance), assurance receipt (qe-acceptance, assurance-qe), gate row (session-gate-qe, session-gate-qe-why), final message (chat-final-acceptance). Terminal: words match crew's acceptance summary.",
+   "deps": [
+    "studio dist served by crew",
+    "crew daemon",
+    "fixture or real ledger"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "platform",
+    "gates",
+    "qe"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=chat-final-acceptance]",
+      "assert": "visible"
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/runs/{runId}/acceptance",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=session-gate-qe-why]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "DOM text of [data-testid=chat-final-acceptance] == GET /runs/:id/acceptance .summary line",
+     "[data-testid=session-gate-qe-why] contains .gate.reason (path-stripped)",
+     "no 'checked' word when gate unsatisfied"
+    ]
+   },
+   "oracle_text": "DOM text of [data-testid=chat-final-acceptance] == GET /runs/:id/acceptance .summary line; [data-testid=session-gate-qe-why] contains .gate.reason (path-stripped); no 'checked' word when gate unsatisfied",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id/acceptance",
+    "studio:route:/s/:id",
+    "studio:testid-computed:testId",
+    "studio:testid-pattern:*-disclosure",
+    "studio:testid-pattern:*-force",
+    "studio:testid-pattern:*-force-disclosure",
+    "studio:testid-pattern:*-qe",
+    "studio:testid-pattern:*-skip",
+    "studio:testid-pattern:*-skip-disclosure",
+    "studio:testid-pattern:*-skip-reason",
+    "studio:testid-pattern:*-toggle",
+    "studio:testid-pattern:*-unverified",
+    "studio:testid:assurance-kind",
+    "studio:testid:assurance-qe",
+    "studio:testid:assurance-receipt",
+    "studio:testid:assurance-reduced",
+    "studio:testid:assurance-skipped",
+    "studio:testid:assurance-where",
+    "studio:testid:assurance-who",
+    "studio:testid:chat-artifacts",
+    "studio:testid:chat-final",
+    "studio:testid:chat-final-acceptance",
+    "studio:testid:chat-final-changes",
+    "studio:testid:chat-final-evidence",
+    "studio:testid:chat-final-pr",
+    "studio:testid:chat-final-text",
+    "studio:testid:chat-gate",
+    "studio:testid:chat-plan",
+    "studio:testid:chat-plan-steps",
+    "studio:testid:chat-run-details",
+    "studio:testid:chat-run-title",
+    "studio:testid:chat-step",
+    "studio:testid:chat-step-check",
+    "studio:testid:chat-step-more",
+    "studio:testid:chat-step-none",
+    "studio:testid:chat-step-open",
+    "studio:testid:chat-step-verdict",
+    "studio:testid:chat-you-decision",
+    "studio:testid:gate-diff-drift",
+    "studio:testid:launch-qe",
+    "studio:testid:launch-reduced-assurance",
+    "studio:testid:qe-acceptance",
+    "studio:testid:run-tab-acceptance",
+    "studio:testid:session-failed-resume",
+    "studio:testid:session-failed-resume-asked",
+    "studio:testid:session-failed-resume-button",
+    "studio:testid:session-failed-resume-error",
+    "studio:testid:session-failed-resume-error-detail",
+    "studio:testid:session-gate-assurance",
+    "studio:testid:session-gate-assurance-tech",
+    "studio:testid:session-gate-choice",
+    "studio:testid:session-gate-choice-consequence",
+    "studio:testid:session-gate-choice-default",
+    "studio:testid:session-gate-choices",
+    "studio:testid:session-gate-chosen",
+    "studio:testid:session-gate-consent-missing",
+    "studio:testid:session-gate-consent-write",
+    "studio:testid:session-gate-consent-writes",
+    "studio:testid:session-gate-consequence",
+    "studio:testid:session-gate-creator-seat",
+    "studio:testid:session-gate-creator-seat-disclosure",
+    "studio:testid:session-gate-creator-seat-nocap",
+    "studio:testid:session-gate-dead-seat",
+    "studio:testid:session-gate-dead-seat-signin",
+    "studio:testid:session-gate-deliver-consent",
+    "studio:testid:session-gate-detail",
+    "studio:testid:session-gate-error",
+    "studio:testid:session-gate-events-error",
+    "studio:testid:session-gate-events-retry",
+    "studio:testid:session-gate-judge-signin",
+    "studio:testid:session-gate-judge-wait",
+    "studio:testid:session-gate-note",
+    "studio:testid:session-gate-qe",
+    "studio:testid:session-gate-qe-refused",
+    "studio:testid:session-gate-qe-why",
+    "studio:testid:session-gate-question",
+    "studio:testid:session-gate-raw-prompt",
+    "studio:testid:session-gate-reduced",
+    "studio:testid:session-gate-reduced-relaunch",
+    "studio:testid:session-gate-refusal",
+    "studio:testid:session-gate-rerun",
+    "studio:testid:session-gate-rerun-confirm",
+    "studio:testid:session-gate-rerun-consequence",
+    "studio:testid:session-gate-row",
+    "studio:testid:session-gate-send",
+    "studio:testid:session-gate-track-record",
+    "studio:testid:session-orphaned",
+    "studio:testid:session-orphaned-asked",
+    "studio:testid:session-orphaned-error",
+    "studio:testid:session-orphaned-error-detail",
+    "studio:testid:session-orphaned-resume",
+    "studio:testid:session-run",
+    "studio:testid:session-run-archived",
+    "studio:testid:session-run-helper",
+    "studio:testid:session-run-helpers",
+    "studio:testid:session-run-look",
+    "studio:testid:session-run-qe",
+    "studio:testid:session-run-reduced",
+    "studio:testid:session-run-retry",
+    "studio:testid:session-status-sentence",
+    "studio:testid:session-step-added",
+    "studio:testid:session-step-queued",
+    "studio:testid:session-step-undo",
+    "studio:testid:tech-session-run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_checks_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_qe_warning_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_qe_escalation_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:tests/qeAcceptance.test.tsx",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:tests/runAcceptance.store.test.ts",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/hooks/useRunAcceptance.ts",
+    "wicked-studio:src/components/session/AssuranceReceipt.tsx",
+    "wicked-studio:src/components/session/GateRow.tsx",
+    "wicked-studio:src/components/session/RunConversation.tsx",
+    "wicked-studio:src/board/checkState.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.bus.engine-handoff",
+   "title": "One daemon, one bus: engine holds the bus; unavailable bus is disclosed",
+   "surface": "api",
+   "user_path": "API: start a throwaway `wicked-crew serve` (default, `--bus-db X`, unopenable bus); GET /api/v1/health.",
+   "deps": [
+    "crew daemon (throwaway)",
+    "wicked-core-ts"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "platform",
+    "bus"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "bus",
+      "type": "wicked.crew.project.created",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "file",
+      "path": "db>.bus/bus.db",
+      "assert": "exists"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "default: engine bus at <core db>.bus/bus.db and wicked.crew.project.created lands there",
+     "--bus-db X: no sidecar bus file created",
+     "unopenable: /health.warnings[] kind 'bus.unavailable' and daemon still serves 200"
+    ]
+   },
+   "oracle_text": "default: engine bus at <core db>.bus/bus.db and wicked.crew.project.created lands there; --bus-db X: no sidecar bus file created; unopenable: /health.warnings[] kind 'bus.unavailable' and daemon still serves 200",
+   "covers": [
+    "crew:cli:serve",
+    "crew:route:GET /api/v1/health"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/bus-handoff-e2e.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/bus-no-write.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/engine-bus.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/bus.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.bg.bus-handoff"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/core/bus.ts:attachEngineBus, requireEngineBus, emitOnBus, readBus, tapBus",
+    "wicked-crew:packages/crew/src/api/routes.ts (busUnavailableWarning, busSeamsOffWarning)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.bus.project-events-activity",
+   "title": "Project events on the bus and the merged project activity feed",
+   "surface": "api",
+   "user_path": "API: create/attach in a project (via studio), then read-only GET /api/v1/projects/:id/activity; emit a wicked.interactive.version.created with that project_id.",
+   "deps": [
+    "crew daemon",
+    "project"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "platform",
+    "bus",
+    "projects"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "bus",
+      "type": "wicked.crew.project.created",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "bus",
+      "type": "wicked.crew.membership.attached",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "bus rows wicked.crew.project.created/updated, wicked.crew.membership.attached (domain wicked-crew, type-inclusive idempotency keys)",
+     "activity entries newest-first include id 'bus:<event_id>' source 'interactive' and 'crew:<run>:<seq>'",
+     "nextCursor paginates"
+    ]
+   },
+   "oracle_text": "bus rows wicked.crew.project.created/updated, wicked.crew.membership.attached (domain wicked-crew, type-inclusive idempotency keys); activity entries newest-first include id 'bus:<event_id>' source 'interactive' and 'crew:<run>:<seq>'; nextCursor paginates",
+   "covers": [
+    "crew:route:GET /api/v1/projects/:id/activity"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/project-activity-bus-locks.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:e2e/project_model_e2e.mjs",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/projects/events.ts",
+    "wicked-crew:packages/crew/src/projects/activity.ts",
+    "wicked-crew:packages/crew/src/projects/routes.ts:GET ${V}/projects/:id/activity"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.bus.run-requested",
+   "title": "Launch a run by bus event (wicked.crew.run.requested -> wicked.crew.run.launched)",
+   "surface": "background",
+   "user_path": "CLI: against a throwaway stub daemon's bus: `WICKED_BUS_DATA_DIR=... wicked-bus --db-path <core db>.bus/bus.db emit --type wicked.crew.run.requested --domain e2e --payload '{\"workflow\":\"...\",\"problem\":\"...\"}'`.",
+   "deps": [
+    "throwaway crew daemon with --stub engine (never the operator daemon)",
+    "bus db"
+   ],
+   "cost": "L",
+   "tags": [
+    "foundation",
+    "platform",
+    "launch",
+    "bus"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "bus",
+      "type": "wicked.crew.run.launched",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/runs",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "event",
+      "source": "core-event",
+      "type": "sessionStarted",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "bus gains wicked.crew.run.launched (domain wicked-core) referencing the request",
+     "GET /api/v1/runs lists the new run",
+     "busBridgeState()=={state:'armed', floor}",
+     "run.launched row",
+     "sessionStarted for requested id"
+    ]
+   },
+   "oracle_text": "bus gains wicked.crew.run.launched (domain wicked-core) referencing the request; GET /api/v1/runs lists the new run",
+   "covers": [
+    "crew:route:GET /api/v1/runs"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/bus-handoff-e2e.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-core:tests/bus_bridge.rs",
+     "name": "run_requested_event_launches_a_run",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-core:tests/bus_handoff.rs",
+     "name": "6 tests",
+     "fidelity": "integration"
+    }
+   ],
+   "aliases": [
+    "core.bus.run-requested"
+   ],
+   "sources": [
+    "wicked-core:src/bus.rs:RUN_REQUESTED, RUN_LAUNCHED, arm_run_requested_bridge",
+    "wicked-crew:packages/crew/tests/integration/bus-handoff-e2e.test.ts (A)",
+    "wicked-core:src/bus.rs",
+    "wicked-core:crates/wicked-core-ts/index.d.ts:busBridgeState"
+   ],
+   "notes": [
+    "merged duplicate core.bus.run-requested (core-engine area); its oracle: busBridgeState()=={state:'armed', floor}; run.launched row; sessionStarted for requested id"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.bus.team-relay-studio",
+   "title": "Team bus events relayed to /ws and folded live in studio",
+   "surface": "ui",
+   "user_path": "UI: during a team run, open studio Watchtower / run thread; a wicked.team.finding.raised then .settled arrives as /ws teamEvent frames.",
+   "deps": [
+    "crew daemon with bus",
+    "team run (L) or fixture"
+   ],
+   "cost": "L",
+   "tags": [
+    "foundation",
+    "platform",
+    "bus"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "ws",
+    "type": "teamEvent",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "/ws carries {type:'teamEvent', event:<bus row>} for each wicked.team.** row",
+     "studio watch row sentence 'A reviewer raised a … problem in <path>' appears without reload",
+     "after settled(held) stateLine 'The reviewer stands by it'",
+     "withdrawn -> dismissed"
+    ]
+   },
+   "oracle_text": "/ws carries {type:'teamEvent', event:<bus row>} for each wicked.team.** row; studio watch row sentence 'A reviewer raised a … problem in <path>' appears without reload; after settled(held) stateLine 'The reviewer stands by it'; withdrawn -> dismissed",
+   "covers": [
+    "crew:route:GET /ws",
+    "crew:ws:/ws",
+    "studio:testid:watchtower",
+    "studio:testid:watchtower-checking",
+    "studio:testid:watchtower-empty",
+    "studio:testid:watchtower-error",
+    "studio:testid:watchtower-gate-feed",
+    "studio:testid:watchtower-jump",
+    "studio:testid:watchtower-kind",
+    "studio:testid:watchtower-ledger-failed",
+    "studio:testid:watchtower-no-registry",
+    "studio:testid:watchtower-open",
+    "studio:testid:watchtower-orphaned",
+    "studio:testid:watchtower-row",
+    "studio:testid:watchtower-row-clock",
+    "studio:testid:watchtower-row-detail",
+    "studio:testid:watchtower-row-kind",
+    "studio:testid:watchtower-row-note",
+    "studio:testid:watchtower-row-step",
+    "studio:testid:watchtower-row-verb",
+    "studio:testid:watchtower-row-work",
+    "studio:testid:watchtower-runs-failed",
+    "studio:testid:watchtower-sentence",
+    "studio:testid:watchtower-show-all",
+    "studio:testid:watchtower-undated"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/team-relay.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_watch_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_watchtower_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "related": [
+    "crew-api.bg.team-relay"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/team/ws-relay.ts (RELAY_FILTER 'wicked.team.**', TEAM_EVENT_FRAME)",
+    "wicked-studio:src/store/watch.ts:257-293",
+    "wicked-studio:src/components/watch/WatchtowerPage.tsx"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.bus.watch-source",
+   "title": "Watch registry pulls the bus and reports bus health",
+   "surface": "api",
+   "user_path": "API (read-only): `curl :7721/api/v1/watch/health`.",
+   "deps": [
+    "crew daemon",
+    "daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "platform",
+    "bus",
+    "repos"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: JSON .armed==true and .sources.bus=='ok' (confirmed live); with bus down sources.bus=='down'; .emit.failed counter"
+   },
+   "oracle_text": "JSON .armed==true and .sources.bus=='ok' (confirmed live); with bus down sources.bus=='down'; .emit.failed counter",
+   "covers": [
+    "crew:route:GET /api/v1/watch/health"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/watch-registry.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/watch-routes.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "aliases": [
+    "crew-api.watch.health"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/watch/sources.ts (BUS_PULL_FILTER 'wicked.**')",
+    "wicked-crew:packages/crew/src/api/watch-routes.ts",
+    "wicked-crew:packages/crew/src/api/watch-routes.ts:104"
+   ],
+   "notes": [
+    "merged duplicate crew-api.watch.health (crew-api area); its oracle: 200; armed boolean; entries.loaded == number of watch/entries/*.json not refused"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.compile-gate",
+   "title": "Compiled repo-native build gate backed by vault cross-check",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-garden run scripts/compiler/compile.py <repo> --trigger hook,ci`; run the emitted gate with failing then passing tests.",
+   "deps": [
+    "wicked-garden CLI",
+    "wicked-vault CLI",
+    "git repo",
+    "python3",
+    "wicked-vault via npx"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "platform",
+    "gates",
+    "vault",
+    "repos"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: emitted gate files exist in repo; gate exits non-zero when latest artifact fails (REJECT) and 0 when passing (PASS); contract source_pin == detected test command"
+   },
+   "oracle_text": "emitted gate files exist in repo; gate exits non-zero when latest artifact fails (REJECT) and 0 when passing (PASS); contract source_pin == detected test command",
+   "covers": [
+    "garden:cli:run",
+    "garden:skill:docs",
+    "garden:skill:prove"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/compiler/test_compile.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/compiler/test_compile.py",
+     "name": "test_emits_four_files_and_pins_detected_command",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/compiler/test_compile.py",
+     "name": "test_emitted_gate_is_self_contained_no_garden_imports",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/compiler/test_compile.py",
+     "name": "test_passing_repo_gate_passes",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/compiler/test_compile.py",
+     "name": "test_lint_failure_rejects_even_when_tests_pass",
+     "fidelity": "unit"
+    }
+   ],
+   "aliases": [
+    "garden.compile.emit",
+    "garden.compile.gate-run"
+   ],
+   "sources": [
+    "wicked-garden:scripts/compiler/compile.py",
+    "wicked-garden:scripts/compiler/phase0/wire_vault.py",
+    "wicked-garden:docs/compiler.md",
+    "wicked-garden:scripts/compiler/compile.py (gate template)"
+   ],
+   "notes": [
+    "merged duplicate garden.compile.emit (garden area); its oracle: <repo>/.wicked/{bindings.json,contract.json,gate.py,README.md} exist; manifest JSON lists claims (tests-pass/lint-clean/build-clean) and needs_review; gate.py imports nothing from wicked-garden",
+    "merged duplicate garden.compile.gate-run (garden area); its oracle: exit 0 on passing repo; nonzero on failing tests or lint; killswitch fails closed"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.prove",
+   "title": "One-line prove: run a command, freeze it in the vault, gate on re-derivation",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-garden run scripts/qe/prove.py tests-pass --by \"node -e 'process.exit(0)'\"`, then with exit 1, then with wicked-vault unresolvable.",
+   "deps": [
+    "wicked-garden CLI",
+    "wicked-vault CLI",
+    "wicked-vault>=0.8.0",
+    "python3"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "platform",
+    "gates",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: pass: exit 0 and vault cross-check overall PASS for the claim; fail: exit 1 REJECT; unresolvable: exit 3 JSON gate 'unavailable' (fail-closed)"
+   },
+   "oracle_text": "pass: exit 0 and vault cross-check overall PASS for the claim; fail: exit 1 REJECT; unresolvable: exit 3 JSON gate 'unavailable' (fail-closed)",
+   "covers": [
+    "garden:cli:run",
+    "garden:skill:prove"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/qe/test_prove.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/qe/test_vault_gate.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/qe/test_prove.py",
+     "name": "test_true_command_proves_PASS",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/qe/test_prove.py",
+     "name": "test_false_command_is_REJECTED",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/e2e/test_e2e_gate_cli.py",
+     "name": "test_claimed_but_false_done_is_REJECTED",
+     "fidelity": "integration"
+    }
+   ],
+   "aliases": [
+    "garden.prove.exit-code"
+   ],
+   "related": [
+    "garden.prove.fail-closed"
+   ],
+   "sources": [
+    "wicked-garden:scripts/qe/prove.py",
+    "wicked-garden:scripts/qe/vault_gate.py",
+    "wicked-garden:skills/prove/SKILL.md"
+   ],
+   "notes": [
+    "merged duplicate garden.prove.exit-code (garden area); its oracle: passing cmd → exit 0, JSON satisfied:true re_derived:true; failing cmd → exit 1 satisfied:false; vault entry in .wicked-vault/entries"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.qe-gate.manifest-exclusions",
+   "title": "Nonconforming manifest downgrades to SYSTEM_ERROR; flake exclusions carried with reason",
+   "surface": "cli",
+   "user_path": "CLI: gate.mjs PASS with an invalid manifest.json in the bundle; gate.mjs with `--exclusions-from scoreboard.json` (valid, and missing owner).",
+   "deps": [
+    "foundation.platform.qe-gate.record-and-emit"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "platform",
+    "gates",
+    "qe"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log",
+    "ledger-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: invalid manifest -> recorded verdict INCONCLUSIVE, event wicked.qe.gate.conditional, exit 3; valid exclusions -> verdict_summary contains 'quarantined excluded-with-reason (' with id/cause/owner/deadline; missing field -> exit 3, nothing recorded"
+   },
+   "oracle_text": "invalid manifest -> recorded verdict INCONCLUSIVE, event wicked.qe.gate.conditional, exit 3; valid exclusions -> verdict_summary contains 'quarantined excluded-with-reason (' with id/cause/owner/deadline; missing field -> exit 3, nothing recorded",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/qe/test_campaign_flake_policy.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:scripts/qe/runner/test/th6-gate-wiring.test.mjs",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.qe.accept"
+   ],
+   "sources": [
+    "wicked-garden:scripts/qe/lib/gate.mjs (TH-5, TH-21)",
+    "wicked-garden:scripts/qe/lib/flake-policy.mjs"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.qe-gate.record-and-emit",
+   "title": "Garden QE gate records the verdict in the ledger and announces wicked.qe.gate.*",
+   "surface": "cli",
+   "user_path": "CLI (in target repo): `WICKED_BUS_DATA_DIR=$T wicked-garden run scripts/qe/lib/gate.mjs --project-id P --run-id R --verdict PASS --verdict-summary 'ok' --mode manual`; repeat FAIL / CONDITIONAL / SYSTEM_ERROR; `--dry-run`.",
+   "deps": [
+    "wicked-garden CLI",
+    "wicked-ledger resolvable from repo",
+    "foundation.bus.init"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "platform",
+    "gates",
+    "qe",
+    "ledger"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log",
+    "file-hash",
+    "ledger-entry"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.qe.deploy.completed",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "exit 0/1/2/3 per verdict",
+     "ledger verdicts row for run R with mapped enum (SYSTEM_ERROR->INCONCLUSIVE)",
+     "bus rows wicked.qe.gate.passed|failed|conditional domain 'qe' with 8-field payload (run_id,context,gate_verdict,exit_code,verdict_summary,mode,completed_at,scenario_count) and idempotency_key 'qe:gate.result:{context}:{sha256(run_id)[0:16]}:0'",
+     "PASS also emits wicked.qe.deploy.completed",
+     "--dry-run writes nothing"
+    ]
+   },
+   "oracle_text": "exit 0/1/2/3 per verdict; ledger verdicts row for run R with mapped enum (SYSTEM_ERROR->INCONCLUSIVE); bus rows wicked.qe.gate.passed|failed|conditional domain 'qe' with 8-field payload (run_id,context,gate_verdict,exit_code,verdict_summary,mode,completed_at,scenario_count) and idempotency_key 'qe:gate.result:{context}:{sha256(run_id)[0:16]}:0'; PASS also emits wicked.qe.deploy.completed; --dry-run writes nothing",
+   "covers": [
+    "garden:cli:run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:scripts/qe/runner/test/th6-gate-wiring.test.mjs",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.qe.accept"
+   ],
+   "sources": [
+    "wicked-garden:scripts/qe/lib/gate.mjs",
+    "wicked-garden:scripts/qe/lib/ledger-pkg.mjs",
+    "wicked-bus:USERS_GUIDE.md#gate-events"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.qe-gate.vault-backed",
+   "title": "QE gate freezes the redacted evidence bundle in the vault and attests the verdict",
+   "surface": "cli",
+   "user_path": "CLI: `gate.mjs ... --vault-record` on a bundle carrying the TH-19 redaction marker; again on an unredacted bundle; `--vault-entry <id>` linking earlier evidence (then tamper it).",
+   "deps": [
+    "foundation.platform.qe-gate.record-and-emit",
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "platform",
+    "gates",
+    "qe",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log",
+    "ledger-entry",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.test.evidence.captured",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "verdicts row has vault_payload_sha == vault payload sha",
+     "vault attestation recorded with the final verdict",
+     "bus wicked.test.evidence.captured",
+     "unredacted bundle refused (non-zero, no vault entry)",
+     "tampered --vault-entry fails closed"
+    ]
+   },
+   "oracle_text": "verdicts row has vault_payload_sha == vault payload sha; vault attestation recorded with the final verdict; bus wicked.test.evidence.captured; unredacted bundle refused (non-zero, no vault entry); tampered --vault-entry fails closed",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:scripts/qe/runner/test/th17-vault-evidence.test.mjs",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:scripts/qe/runner/test/evidence-redaction.test.mjs",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.qe.accept"
+   ],
+   "sources": [
+    "wicked-garden:scripts/qe/lib/vault-evidence.mjs",
+    "wicked-garden:scripts/qe/lib/gate.mjs (TH-17)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.vault.bin-posture",
+   "title": "Crew hands the engine a wicked-vault CLI and discloses its posture",
+   "surface": "api",
+   "user_path": "API (read-only): `curl :7721/api/v1/diagnostics | jq .vault` and `curl :7721/api/v1/health | jq .warnings`; restart a throwaway daemon with `WICKED_VAULT_BIN=` (empty) and with an unresolvable package.",
+   "deps": [
+    "crew daemon (throwaway instance for off/unresolvable)",
+    "daemon"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "platform",
+    "vault"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: default: .vault.source=='shipped', .vault.bin absolute path to wicked-vault/bin/wicked-vault.mjs, .finding==null (confirmed live); empty: source 'off' and /health.warnings[] has kind 'vault.off'; unresolvable: kind 'vault.unresolvable' with remedy; operator path kept as source 'operator'"
+   },
+   "oracle_text": "default: .vault.source=='shipped', .vault.bin absolute path to wicked-vault/bin/wicked-vault.mjs, .finding==null (confirmed live); empty: source 'off' and /health.warnings[] has kind 'vault.off'; unresolvable: kind 'vault.unresolvable' with remedy; operator path kept as source 'operator'",
+   "covers": [
+    "crew:route:GET /api/v1/diagnostics"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/vault-bin.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/integration/vault-bin-e2e.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "aliases": [
+    "crew-api.diagnostics.vault-memory"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/core/vault-bin.ts:applyVaultBinEnv, vaultDiagnostics, vaultBinWarning",
+    "wicked-crew:packages/crew-api-types/index.d.ts:DiagnosticsVault",
+    "wicked-crew:packages/crew/src/core/vault-bin.ts",
+    "wicked-crew:packages/crew/src/api/routes.ts:1759 vault/memoryStore"
+   ],
+   "notes": [
+    "merged duplicate crew-api.diagnostics.vault-memory (crew-api area); its oracle: diagnostics.vault.bin resolves to an existing file (or remedy present when null); diagnostics.memoryStore.path is the estate store path the daemon uses"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.vault.held-finding",
+   "title": "A team finding held for the operator is vaulted as evidence",
+   "surface": "background",
+   "user_path": "Governed team run where a monitor raises a boundary-circumvention finding that is then held (withdrawal request or evidence gone). Inspect bus event wicked.team.finding.settled and <evidence_root>/team/vault.",
+   "deps": [
+    "signed-in seats (team run)",
+    "crew daemon",
+    "wicked-vault shipped bin",
+    "wicked-vault CLI",
+    "evidence root"
+   ],
+   "cost": "L",
+   "tags": [
+    "foundation",
+    "platform",
+    "vault"
+   ],
+   "required_evidence": [
+    "screenshot",
+    "event-log",
+    "file-hash",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: bus row wicked.team.finding.settled payload status=='held' with vault_entry non-null (or vault_error naming why); `wicked-vault --cwd <evidence_root>/team/vault list --scope run:<run>` has entry claim 'finding:<finding_id>', phase 'team:<ord>', kind 'team-finding-withdrawal-request|team-finding-evid"
+   },
+   "oracle_text": "bus row wicked.team.finding.settled payload status=='held' with vault_entry non-null (or vault_error naming why); `wicked-vault --cwd <evidence_root>/team/vault list --scope run:<run>` has entry claim 'finding:<finding_id>', phase 'team:<ord>', kind 'team-finding-withdrawal-request|team-finding-evidence-gone', created_by == monitor seat; `wicked-vault verify <vault_entry>` exit 0",
+   "covers": [
+    "vault:cli:record",
+    "vault:cli:verify"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-core:src/team/supervisor_tests.rs",
+     "name": "vaulted_harness",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-core:src/team/tests.rs",
+     "fidelity": "unit"
+    }
+   ],
+   "aliases": [
+    "core.team.held-finding-vault"
+   ],
+   "sources": [
+    "wicked-core:src/team/vault.rs:CliVault, record_hold, team_vault_dir",
+    "wicked-core:src/team/supervisor.rs:vault_hold, settle_held",
+    "wicked-core:src/team/events.rs:FINDING_SETTLED",
+    "wicked-core:src/team/vault.rs (core#959)"
+   ],
+   "notes": [
+    "merged duplicate core.team.held-finding-vault (core-engine area); its oracle: wicked-vault record exists in <evidence root>/team/vault; finding.settled row references it; WICKED_VAULT_BIN empty → reason recorded"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.platform.vault.walkthrough-entries",
+   "title": "Walkthrough checks link their vault entries in studio",
+   "surface": "ui",
+   "user_path": "UI: open a run's walkthrough artifact ([data-testid=walkthrough]), expand checks ([data-testid=walkthrough-checks] > walkthrough-check), read the 'vault <id>' line.",
+   "deps": [
+    "walkthrough run (L) or fixture corpus",
+    "studio"
+   ],
+   "cost": "L",
+   "tags": [
+    "foundation",
+    "platform",
+    "qe",
+    "vault"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/runs/{runId}/walkthrough",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=walkthrough-checks]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=walkthrough-check]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "every check with vault_entry in result.json renders 'vault <id>'",
+     "`wicked-vault verify <id>` in the proof root exits 0",
+     "GET /runs/:id/walkthrough check.vaultEntry equals DOM id"
+    ]
+   },
+   "oracle_text": "every check with vault_entry in result.json renders 'vault <id>'; `wicked-vault verify <id>` in the proof root exits 0; GET /runs/:id/walkthrough check.vaultEntry equals DOM id",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id/walkthrough",
+    "studio:testid:demo-script",
+    "studio:testid:demo-script-box",
+    "studio:testid:demo-script-fixed",
+    "studio:testid:demo-script-save",
+    "studio:testid:walkthrough",
+    "studio:testid:walkthrough-absent",
+    "studio:testid:walkthrough-actions",
+    "studio:testid:walkthrough-chapter",
+    "studio:testid:walkthrough-chapters",
+    "studio:testid:walkthrough-check",
+    "studio:testid:walkthrough-check-detail",
+    "studio:testid:walkthrough-check-time",
+    "studio:testid:walkthrough-checks",
+    "studio:testid:walkthrough-download-gif",
+    "studio:testid:walkthrough-download-poster",
+    "studio:testid:walkthrough-error",
+    "studio:testid:walkthrough-evidence",
+    "studio:testid:walkthrough-evidence-file",
+    "studio:testid:walkthrough-evidence-toggle",
+    "studio:testid:walkthrough-export",
+    "studio:testid:walkthrough-export-gif",
+    "studio:testid:walkthrough-export-menu",
+    "studio:testid:walkthrough-export-mp4",
+    "studio:testid:walkthrough-export-poster",
+    "studio:testid:walkthrough-export-poster-file",
+    "studio:testid:walkthrough-fail-mark",
+    "studio:testid:walkthrough-failed-frame",
+    "studio:testid:walkthrough-loading",
+    "studio:testid:walkthrough-marker",
+    "studio:testid:walkthrough-narration",
+    "studio:testid:walkthrough-no-video",
+    "studio:testid:walkthrough-note",
+    "studio:testid:walkthrough-sealed",
+    "studio:testid:walkthrough-seats",
+    "studio:testid:walkthrough-state",
+    "studio:testid:walkthrough-timeline",
+    "studio:testid:walkthrough-underneath",
+    "studio:testid:walkthrough-video",
+    "studio:testid:walkthrough-watch",
+    "vault:cli:verify"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_walkthrough_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:e2e/live_walkthrough_deliver_test.py",
+     "fidelity": "e2e-live"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/recording.ts (vault_entry -> vaultEntry)",
+    "wicked-studio:src/components/session/WalkthroughEditor.tsx:365",
+    "wicked-crew:packages/crew-api-types/index.d.ts:WalkthroughCheck"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.atomic-writes",
+   "title": "Crash-safe atomic writes, no tmp litter, dedup of identical payloads",
+   "surface": "cli",
+   "user_path": "CLI: record the same file twice; supersede; inspect vault tree for .*.tmp files.",
+   "deps": [
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: no '.*.tmp' files under .wicked-vault; identical payload stored once (one payloads/<sha>); all entries still verify"
+   },
+   "oracle_text": "no '.*.tmp' files under .wicked-vault; identical payload stored once (one payloads/<sha>); all entries still verify",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/atomic-write.sh",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:.github/workflows/ci.yml",
+     "name": "cli-smoke (windows)",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs (atomic write helper)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.attest.independent",
+   "title": "Record an independent judgment; self-grade and ambient identities refused",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-vault attest <id> --opinion pass --rationale r --evaluator gemini-reviewer --model gemini/2.5-pro`; also --evaluator worker-a (== creator), artifact recorded with ambient $USER, tampered artifact, `--allow-weak-worker-identity`.",
+   "deps": [
+    "foundation.vault.record.run"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: independent: exit 0 JSON attestation_id, opinion 'pass'; evaluator==created_by: exit 1 'attest refused (G10/D4)… equals the artifact creator'; ambient worker: exit 1 unless --allow-weak-worker-identity, then attestation.worker_identity_weak==true; tampered: exit 1 'integrity check failed'; invalid o"
+   },
+   "oracle_text": "independent: exit 0 JSON attestation_id, opinion 'pass'; evaluator==created_by: exit 1 'attest refused (G10/D4)… equals the artifact creator'; ambient worker: exit 1 unless --allow-weak-worker-identity, then attestation.worker_identity_weak==true; tampered: exit 1 'integrity check failed'; invalid opinion exit 1",
+   "covers": [
+    "vault:cli:attest"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/attestation.sh",
+     "name": "3,4,6",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:attest (G10/D4)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.attestations.log",
+   "title": "Append-only opinion log; corrupt record detected",
+   "surface": "cli",
+   "user_path": "CLI: two attests on <id>, `wicked-vault attestations <id>`; then mutate one attestation file without rehash and list/verify.",
+   "deps": [
+    "foundation.vault.attest.independent"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-vault attestations {id}",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "list returns both in order",
+     "verify surfaces latest opinion",
+     "mutated record appears in corrupt list (cross-check with require_attestation -> claim result 'ERROR')"
+    ]
+   },
+   "oracle_text": "list returns both in order; verify surfaces latest opinion; mutated record appears in corrupt list (cross-check with require_attestation -> claim result 'ERROR')",
+   "covers": [
+    "vault:cli:attestations"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/attestation.sh",
+     "name": "5",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:test/contract-integrity.sh",
+     "name": "FND-VLT-02",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:listAttestations, readAttestationLog"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.bus-events",
+   "title": "Vault publishes evidence events fire-and-forget (domain qe); disabled cleanly",
+   "surface": "cli",
+   "user_path": "CLI: with wicked-bus resolvable from cwd and WICKED_BUS_DATA_DIR=$T, run record, declare-contract, cross-check, attest, supersede; then repeat with WICKED_VAULT_NO_BUS=1 and with bus unresolvable.",
+   "deps": [
+    "foundation.bus.init",
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault",
+    "qe",
+    "bus"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "event",
+      "source": "bus",
+      "type": "wicked.test.evidence.recorded",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "bus",
+      "type": "wicked.contract.published",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "bus",
+      "type": "wicked.contract.checked",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "bus",
+      "type": "wicked.evidence.attested",
+      "count": {
+       "min": 1
+      }
+     },
+     {
+      "kind": "event",
+      "source": "bus",
+      "type": "wicked.evidence.superseded",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "bus events table gains wicked.test.evidence.recorded, wicked.contract.published, wicked.contract.checked, wicked.evidence.attested, wicked.evidence.superseded with domain 'qe'",
+     "NO_BUS / unresolvable: zero new rows and identical stdout+exit codes"
+    ]
+   },
+   "oracle_text": "bus events table gains wicked.test.evidence.recorded, wicked.contract.published, wicked.contract.checked, wicked.evidence.attested, wicked.evidence.superseded with domain 'qe'; NO_BUS / unresolvable: zero new rows and identical stdout+exit codes",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/bus-integration.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/bus.mjs:initBus",
+    "wicked-vault:bin/wicked-vault.mjs (publish calls)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.cli.help-version",
+   "title": "Vault help/version work outside any repo",
+   "surface": "cli",
+   "user_path": "CLI: in an empty temp dir `wicked-vault --help`, `wicked-vault --version`.",
+   "deps": [
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault",
+    "repos"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-vault --help",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "exit 0 both",
+     "version == package.json version (0.8.0 at f611e00)",
+     "help contains 'COMMANDS'",
+     "no .wicked-vault created"
+    ]
+   },
+   "oracle_text": "exit 0 both; version == package.json version (0.8.0 at f611e00); help contains 'COMMANDS'; no .wicked-vault created",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/cli-baseline.sh",
+     "name": "1",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:bin/wicked-vault.mjs (HELP)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.contract.declare",
+   "title": "Declare a consumer-authored contract (+ wicked.contract.published)",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-vault declare-contract --scope s --phase build --spec contract.json` where spec.required_evidence=[{claim_id:'tests-pass',kind:'test-run',verifier:'exit_code_eq:0'}].",
+   "deps": [
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-vault declare-contract --scope s --phase build --spec contract.json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "exit 0 JSON contract_version",
+     "contracts/ file exists",
+     "bus row event_type 'wicked.contract.published' when bus resolvable"
+    ]
+   },
+   "oracle_text": "exit 0 JSON contract_version; contracts/ file exists; bus row event_type 'wicked.contract.published' when bus resolvable",
+   "covers": [
+    "vault:cli:declare-contract"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/contract-integrity.sh",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:test/attestation.sh",
+     "name": "7",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:declareContract",
+    "wicked-vault:docs/CONTRACTS.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.contract.record-pin",
+   "title": "Record refuses evidence that violates a contract pin (G8)",
+   "surface": "cli",
+   "user_path": "CLI: with contract pinning kind/source_pin/criteria/verifier, record with a different kind, or `--verifier exit_code_eq:1`.",
+   "deps": [
+    "foundation.vault.contract.declare"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 1 JSON .error starts 'G8 pin violation:' naming kind|source|verifier|acceptance_criteria; no new entries/ file"
+   },
+   "oracle_text": "exit 1 JSON .error starts 'G8 pin violation:' naming kind|source|verifier|acceptance_criteria; no new entries/ file",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/contract-integrity.sh",
+     "name": "FND-VLT-01a/b/b2",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:record (G8), verifierPinMatches"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.cross-check.attestations",
+   "title": "Judgment tier: require_attestation with --with-attestations (UNATTESTED / REJECT / stale)",
+   "surface": "cli",
+   "user_path": "CLI: contract claim with require_attestation:true; cross-check --with-attestations before attest, after a reject opinion, after a pass opinion, after supersede (stale).",
+   "deps": [
+    "foundation.vault.attest.independent"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.claim.evaluated",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "no opinion -> 'UNATTESTED'",
+     "reject -> 'REJECT'",
+     "pass -> 'PASS' judgment 'satisfied'",
+     "stale (evidence/criteria sha changed) -> REJECT with '(stale)'",
+     "integrity-only mode -> judgment 'not_evaluated'",
+     "bus 'wicked.claim.evaluated' per consulted claim"
+    ]
+   },
+   "oracle_text": "no opinion -> 'UNATTESTED'; reject -> 'REJECT'; pass -> 'PASS' judgment 'satisfied'; stale (evidence/criteria sha changed) -> REJECT with '(stale)'; integrity-only mode -> judgment 'not_evaluated'; bus 'wicked.claim.evaluated' per consulted claim",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/attestation.sh",
+     "name": "7",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:crossCheck (withAttestations)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.cross-check.integrity",
+   "title": "Mechanical contract verdict: PASS / REJECT / ERROR / MISSING",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-vault cross-check --scope s --phase build` with (a) passing artifact, (b) failing artifact, (c) no artifact, (d) no contract declared.",
+   "deps": [
+    "foundation.vault.contract.declare"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.contract.checked",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "(a) overall 'PASS' exit 0",
+     "(b) 'REJECT' exit 1 claim result 'FAIL'",
+     "(c) claim 'MISSING', overall 'REJECT'",
+     "(d) overall 'ERROR' detail 'no contract declared (fail-closed)'",
+     "mode integrity-only",
+     "bus 'wicked.contract.checked'"
+    ]
+   },
+   "oracle_text": "(a) overall 'PASS' exit 0; (b) 'REJECT' exit 1 claim result 'FAIL'; (c) claim 'MISSING', overall 'REJECT'; (d) overall 'ERROR' detail 'no contract declared (fail-closed)'; mode integrity-only; bus 'wicked.contract.checked'",
+   "covers": [
+    "vault:cli:cross-check"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/prove-on-memos.sh",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:test/contract-integrity.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:crossCheck"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.cross-check.pin-after-capture",
+   "title": "A stricter contract declared after capture still binds old evidence (FND-VLT-01)",
+   "surface": "cli",
+   "user_path": "CLI: record artifact, then declare-contract tightening criteria/verifier, cross-check.",
+   "deps": [
+    "foundation.vault.cross-check.integrity"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: claim result 'ERROR' detail contains 'contract pin mismatch'; overall 'ERROR'; exit 1; never falls back to an older matching artifact"
+   },
+   "oracle_text": "claim result 'ERROR' detail contains 'contract pin mismatch'; overall 'ERROR'; exit 1; never falls back to an older matching artifact",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/contract-integrity.sh",
+     "name": "FND-VLT-01c",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:pinMismatch, crossCheck"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.cross-check.typed-obligations",
+   "title": "contract_satisfied summary is true only when every stated obligation was evaluated and met (FND-VLT-04)",
+   "surface": "cli",
+   "user_path": "CLI: cross-check integrity-only on a contract with require_attestation; vacuous contract (no required_evidence).",
+   "deps": [
+    "foundation.vault.cross-check.integrity"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: integrity-only with required judgment: overall PASS but contract_satisfied==false; vacuous: integrity=='vacuous' and contract_satisfied==false"
+   },
+   "oracle_text": "integrity-only with required judgment: overall PASS but contract_satisfied==false; vacuous: integrity=='vacuous' and contract_satisfied==false",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/contract-integrity.sh",
+     "name": "FND-VLT-04",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:crossCheck (FND-VLT-04)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.init",
+   "title": "Optional explicit vault init",
+   "surface": "cli",
+   "user_path": "CLI: `cd $R && wicked-vault init`.",
+   "deps": [
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 0; $R/.wicked-vault/{entries,payloads,contracts,attestations}/ and vault.json exist"
+   },
+   "oracle_text": "exit 0; $R/.wicked-vault/{entries,payloads,contracts,attestations}/ and vault.json exist",
+   "covers": [
+    "vault:cli:init"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/prove-on-memos.sh",
+     "name": "0",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:initVault"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.inspect",
+   "title": "Inspect: frozen criteria + evidence + integrity for a judge",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-vault inspect <id>`.",
+   "deps": [
+    "foundation.vault.record.run"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-vault inspect {id}",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "JSON includes acceptance_criteria identical to recorded, payload content/hash, integrity block with hash_ok"
+    ]
+   },
+   "oracle_text": "exit 0; JSON includes acceptance_criteria identical to recorded, payload content/hash, integrity block with hash_ok",
+   "covers": [
+    "vault:cli:inspect"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/attestation.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:inspect"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.list-and-not-found",
+   "title": "List entries; truthful answers with no vault (VAULT_NOT_FOUND, gate FAIL)",
+   "surface": "cli",
+   "user_path": "CLI: in a dir with no vault: `wicked-vault list --scope s`, `wicked-vault verify x`, `wicked-vault cross-check --scope s --phase p`; in a vault: `list --scope s --phase build`.",
+   "deps": [
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault",
+    "gates"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: no vault: list -> [] exit 0; verify -> exit 1 code 'VAULT_NOT_FOUND'; cross-check -> overall 'FAIL' code VAULT_NOT_FOUND exit 1; in vault list filters by scope/phase"
+   },
+   "oracle_text": "no vault: list -> [] exit 0; verify -> exit 1 code 'VAULT_NOT_FOUND'; cross-check -> overall 'FAIL' code VAULT_NOT_FOUND exit 1; in vault list filters by scope/phase",
+   "covers": [
+    "vault:cli:cross-check",
+    "vault:cli:list",
+    "vault:cli:verify"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/cli-baseline.sh",
+     "name": "3,4,5",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:bin/wicked-vault.mjs (findRoot/VAULT_NOT_FOUND)",
+    "wicked-vault:src/vault/vault.mjs:listEntries"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.manifest",
+   "title": "Evidence manifest 2.1 build/validate with claim-level honest cap",
+   "surface": "api",
+   "user_path": "API: `import {buildManifest, validateManifest, CLAIM_LEVELS, VERDICT_VALUES} from 'wicked-vault'`; build a manifest with a scenario whose legs are certified+machinery-verified and claim_level 'certified'.",
+   "deps": [
+    "node>=20"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "api-transcript",
+    "ledger-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: MANIFEST_VERSION=='2.1.0'; validateManifest flags scenario claim stronger than weakest leg; artifact kinds classified (.png screenshot, .webm video); verdict outside VERDICT_VALUES rejected; output identical to wicked-ledger twin"
+   },
+   "oracle_text": "MANIFEST_VERSION=='2.1.0'; validateManifest flags scenario claim stronger than weakest leg; artifact kinds classified (.png screenshot, .webm video); verdict outside VERDICT_VALUES rejected; output identical to wicked-ledger twin",
+   "covers": [
+    "ledger:export:CLAIM_LEVELS",
+    "ledger:export:MANIFEST_VERSION",
+    "ledger:export:VERDICT_VALUES",
+    "ledger:export:buildManifest",
+    "ledger:export:validateManifest"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/manifest.sh",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:test/manifest.spec.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:lib/manifest.mjs",
+    "wicked-vault:schemas/evidence.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.plugin.skills",
+   "title": "Install vault skills into AI CLIs; skill-driven record/verify/cross-check/analyze",
+   "surface": "plugin",
+   "user_path": "CLI: `HOME=$H npx wicked-vault-install --path=$H/.claude`; then in a Claude seat invoke skill wicked-vault-analyze-evidence on an artifact id.",
+   "deps": [
+    "wicked-vault package",
+    "signed-in seat (analyze only)"
+   ],
+   "cost": "M",
+   "tags": [
+    "foundation",
+    "vault",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: $H/.claude/skills has wicked-vault-{init,record-evidence,verify-evidence,analyze-evidence,cross-check-evidence,update}/SKILL.md with parseable frontmatter; analyze-evidence run leaves a new attestations/<id> record whose evaluator != created_by"
+   },
+   "oracle_text": "$H/.claude/skills has wicked-vault-{init,record-evidence,verify-evidence,analyze-evidence,cross-check-evidence,update}/SKILL.md with parseable frontmatter; analyze-evidence run leaves a new attestations/<id> record whose evaluator != created_by",
+   "covers": [
+    "vault:cli:wicked-vault-install"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-vault:install.mjs",
+    "wicked-vault:skills/wicked-vault/*/SKILL.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.record.artifact",
+   "title": "Record an existing file as evidence (--artifact)",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-vault record --scope s --phase build --claim log-clean --kind log --source build.log --artifact build.log --criteria @criteria.md --verifier 'not_contains:ERROR'`.",
+   "deps": [
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-vault record --scope s --phase build --claim log-clean --kind log --source build.log --artifact build.log --criteria @criteria.md --verifier 'not_contains:ERROR'",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "payload_sha256 == sha256(build.log)",
+     "acceptance_criteria in entry == contents of criteria.md (@file resolved)"
+    ]
+   },
+   "oracle_text": "exit 0; payload_sha256 == sha256(build.log); acceptance_criteria in entry == contents of criteria.md (@file resolved)",
+   "covers": [
+    "vault:cli:record"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/atomic-write.sh",
+     "name": "2",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:test/verifiers.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:bin/wicked-vault.mjs:resolveCriteria",
+    "wicked-vault:src/vault/vault.mjs:record"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.record.criteria-mandatory",
+   "title": "Acceptance criteria are mandatory and hash-bound into the envelope",
+   "surface": "cli",
+   "user_path": "CLI: record without --criteria; record with criteria then edit criteria in entry JSON and verify.",
+   "deps": [
+    "foundation.vault.record.run"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault",
+    "qe"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: missing criteria: exit 1 JSON .error mentions criteria; edited criteria: verify hash_ok==false (envelope mismatch), exit 1"
+   },
+   "oracle_text": "missing criteria: exit 1 JSON .error mentions criteria; edited criteria: verify hash_ok==false (envelope mismatch), exit 1",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/attestation.sh",
+     "name": "1,2",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:docs/adr/0002-independent-evaluation-and-criteria-binding.md",
+    "wicked-vault:src/vault/vault.mjs:record, verify"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.record.run",
+   "title": "Record --run evidence: vault runs the command, freezes exit code, mints id",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-vault record --scope s --phase build --claim tests-pass --kind test-run --source 'node -e \"process.exit(0)\"' --criteria 'tests exit 0' --run --verifier exit_code_eq:0 --actor worker-a` (auto-creates vault).",
+   "deps": [
+    "wicked-vault CLI",
+    "git repo (temp)"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "wicked-vault record --scope s --phase build --claim tests-pass --kind test-run --source 'node -e \"process.exit(0)\"' --criteria 'tests exit 0' --run --verifier exit_code_eq:0 --actor worker-a",
+      "code": 0
+     },
+     {
+      "kind": "file",
+      "path": "entries/{id}.json",
+      "assert": "exists"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "JSON has id, envelope_hash, payload_sha256, status_at_record=='pass'",
+     "entries/<id>.json exists with created_by=='worker-a'",
+     "payload JSON exit_code==0",
+     "sha256(payload file)==payload_sha256"
+    ]
+   },
+   "oracle_text": "exit 0; JSON has id, envelope_hash, payload_sha256, status_at_record=='pass'; entries/<id>.json exists with created_by=='worker-a'; payload JSON exit_code==0; sha256(payload file)==payload_sha256",
+   "covers": [
+    "vault:cli:record"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/cli-baseline.sh",
+     "name": "2",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:test/prove-on-memos.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:record",
+    "wicked-vault:src/vault/hash.mjs:envelopeHash"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.runtime-profile",
+   "title": "WICKED_RUNTIME=team refused before any vault I/O",
+   "surface": "cli",
+   "user_path": "CLI: `WICKED_RUNTIME=team wicked-vault record ...`; `WICKED_RUNTIME=bogus wicked-vault list`; `WICKED_RUNTIME=team wicked-vault --help`.",
+   "deps": [
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: team: exit 1 code ERR_WICKED_RUNTIME_TEAM_UNSUPPORTED and no .wicked-vault created; bogus: ERR_WICKED_RUNTIME_INVALID; --help exit 0"
+   },
+   "oracle_text": "team: exit 1 code ERR_WICKED_RUNTIME_TEAM_UNSUPPORTED and no .wicked-vault created; bogus: ERR_WICKED_RUNTIME_INVALID; --help exit 0",
+   "covers": [
+    "vault:cli:list",
+    "vault:cli:record"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/runtime-profile.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/runtime.mjs:assertRuntimeSupported",
+    "wicked-vault:docs/runtime-profile.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.supersede",
+   "title": "Append-only supersede; latest active artifact wins",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-vault supersede <old-id> --scope s --phase build --claim tests-pass ... --run`; list; cross-check.",
+   "deps": [
+    "foundation.vault.record.run"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.evidence.superseded",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "JSON {old_id,new_id}",
+     "old entry state 'superseded' (file kept), new 'active'",
+     "cross-check selects new_id",
+     "bus 'wicked.evidence.superseded'"
+    ]
+   },
+   "oracle_text": "JSON {old_id,new_id}; old entry state 'superseded' (file kept), new 'active'; cross-check selects new_id; bus 'wicked.evidence.superseded'",
+   "covers": [
+    "vault:cli:supersede"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/atomic-write.sh",
+     "name": "4",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:test/prove-on-memos.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:supersede"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.verifier.exit-code-eq",
+   "title": "exit_code_eq verifier (PASS and FAIL)",
+   "surface": "cli",
+   "user_path": "CLI: record --run of `sh -c 'exit 1'` with --verifier exit_code_eq:0, then verify.",
+   "deps": [
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: verify JSON status=='fail' detail 'exit_code=1 != 0', exit 1; passing command -> status 'pass', exit 0; an --artifact capture -> 'payload carries no exit_code'"
+   },
+   "oracle_text": "verify JSON status=='fail' detail 'exit_code=1 != 0', exit 1; passing command -> status 'pass', exit 0; an --artifact capture -> 'payload carries no exit_code'",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/prove-on-memos.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/verifiers.mjs:VERIFIERS.exit_code_eq"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.verifier.external",
+   "title": "jq_pred and commit_exists verifiers (external binaries)",
+   "surface": "cli",
+   "user_path": "CLI: record JSON artifact with `--verifier 'jq_pred:.ok==true'`; record a sha with `--verifier commit_exists`; verify; repeat with jq/git absent from PATH.",
+   "deps": [
+    "jq",
+    "git"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: jq truthy -> pass, false -> fail; existing commit -> pass, unknown sha -> fail; missing binary -> status 'error' detail 'jq binary not available'/'git binary not available', verify exit 1"
+   },
+   "oracle_text": "jq truthy -> pass, false -> fail; existing commit -> pass, unknown sha -> fail; missing binary -> status 'error' detail 'jq binary not available'/'git binary not available', verify exit 1",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/verifiers.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/verifiers.mjs:jq_pred, commit_exists"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.verifier.text",
+   "title": "regex_match / not_contains verifiers over stdout+stderr",
+   "surface": "cli",
+   "user_path": "CLI: record --run `echo 'ok 5 passed'` with `--verifier 'regex_match:passed'`; record build log with `not_contains:ERROR` (clean and dirty variants); verify each.",
+   "deps": [
+    "wicked-vault CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "echo 'ok 5 passed'",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "regex present -> pass/exit0, absent -> fail/exit1",
+     "not_contains clean -> pass, dirty -> fail detail 'forbidden /ERROR/ is present'"
+    ]
+   },
+   "oracle_text": "regex present -> pass/exit0, absent -> fail/exit1; not_contains clean -> pass, dirty -> fail detail 'forbidden /ERROR/ is present'",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/verifiers.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/verifiers.mjs:regex_match, not_contains, verifiableText"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.verify.intact",
+   "title": "Verify re-derives integrity, never trusts cached status",
+   "surface": "cli",
+   "user_path": "CLI: `wicked-vault verify <id>`; then hand-edit entry status_at_record to 'pass' on a failing artifact and verify again.",
+   "deps": [
+    "foundation.vault.record.run"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-vault verify {id}",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "intact+pass: hash_ok==true, status=='pass', exit 0",
+     "after editing cached status the re-derived status stays 'fail' (exit 1) — cached field ignored"
+    ]
+   },
+   "oracle_text": "intact+pass: hash_ok==true, status=='pass', exit 0; after editing cached status the re-derived status stays 'fail' (exit 1) — cached field ignored",
+   "covers": [
+    "vault:cli:verify"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/prove-on-memos.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:src/vault/vault.mjs:verify"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "foundation.vault.verify.tamper",
+   "title": "Tamper detection on payload/envelope (+ wicked.evidence.tampered event)",
+   "surface": "cli",
+   "user_path": "CLI: rewrite payloads/<sha> bytes, `wicked-vault verify <id>` with a stub or real bus resolvable from cwd.",
+   "deps": [
+    "foundation.vault.record.run",
+    "foundation.bus.init (optional)"
+   ],
+   "cost": "S",
+   "tags": [
+    "foundation",
+    "vault"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log",
+    "file-hash",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.evidence.tampered",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "verify JSON hash_ok==false with payload_ok false, exit 1",
+     "bus events table gains event_type 'wicked.evidence.tampered' domain 'qe' subdomain 'vault.tamper' payload.id==<id>"
+    ]
+   },
+   "oracle_text": "verify JSON hash_ok==false with payload_ok false, exit 1; bus events table gains event_type 'wicked.evidence.tampered' domain 'qe' subdomain 'vault.tamper' payload.id==<id>",
+   "covers": [
+    "vault:cli:verify"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-vault:test/prove-on-memos.sh",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-vault:test/bus-integration.sh",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-vault:bin/wicked-vault.mjs (verify publish)",
+    "wicked-vault:src/vault/bus.mjs (DOMAIN='qe')"
+   ],
+   "origin": "inventory-2026-10-20"
+  }
+ ]
+}

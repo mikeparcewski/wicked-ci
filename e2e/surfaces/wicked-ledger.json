@@ -1,0 +1,40 @@
+{
+ "version": 1,
+ "repo": "wicked-ledger",
+ "prefix": "ledger",
+ "sha": "86cd9cf015366f47973e0947e2b897f7b4435319",
+ "meta": {},
+ "counts": {"export": 23},
+ "elements": [
+  {"files": ["lib/index.mjs"], "key": "ledger:export:CLAIM_LEVELS", "kind": "export", "name": "CLAIM_LEVELS"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:DomainStore", "kind": "export", "name": "DomainStore"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:LEDGER_DIRNAME", "kind": "export", "name": "LEDGER_DIRNAME"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:LEDGER_DIR_ENV", "kind": "export", "name": "LEDGER_DIR_ENV"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:LEGACY_LEDGER_DIRNAME", "kind": "export", "name": "LEGACY_LEDGER_DIRNAME"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:MANIFEST_VERSION", "kind": "export", "name": "MANIFEST_VERSION"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:QUERIES", "kind": "export", "name": "QUERIES"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:QUERY_NAMES", "kind": "export", "name": "QUERY_NAMES"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:SCHEMA_VERSION", "kind": "export", "name": "SCHEMA_VERSION"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:VERDICT_VALUES", "kind": "export", "name": "VERDICT_VALUES"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:applyMigrations", "kind": "export", "name": "applyMigrations"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:assertRuntimeSupported", "kind": "export", "name": "assertRuntimeSupported"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:buildManifest", "kind": "export", "name": "buildManifest"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:buildOracleQuery", "kind": "export", "name": "buildOracleQuery"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:createDomainStore", "kind": "export", "name": "createDomainStore"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:domainEventToBusEvent", "kind": "export", "name": "domainEventToBusEvent"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:emitBusEvent", "kind": "export", "name": "emitBusEvent"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:listMigrations", "kind": "export", "name": "listMigrations"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:resolveLedgerRoot", "kind": "export", "name": "resolveLedgerRoot"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:resolveRuntimeProfile", "kind": "export", "name": "resolveRuntimeProfile"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:routeQuestion", "kind": "export", "name": "routeQuestion"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:supportedPatterns", "kind": "export", "name": "supportedPatterns"},
+  {"files": ["lib/index.mjs"], "key": "ledger:export:validateManifest", "kind": "export", "name": "validateManifest"}
+ ],
+ "tests": [
+  ".github/workflows/ci.yml",
+  ".github/workflows/release.yml",
+  "test/coherence.mjs",
+  "test/smoke.mjs",
+  "test/types/consumer.mts"
+ ]
+}
