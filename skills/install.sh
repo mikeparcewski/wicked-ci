@@ -41,13 +41,21 @@ if [ ! -f "$root/e2e/bin/e2e" ]; then echo "install.sh: $root has no e2e/bin/e2e
 
 run() { if [ "$dry" = 1 ]; then echo "would: $*"; else "$@"; fi; }
 
-# Never install into the sources themselves (or below them): replacing a skill there deletes it.
-if [ -d "$dest" ]; then
-  cdest=$(cd "$dest" && pwd -P)
-  case "$cdest/" in
-    "$here"/*) echo "install.sh: $dest is inside this checkout's skills/ ($here); choose another directory" >&2; exit 2 ;;
-  esac
-fi
+# Never install into the sources themselves (or below them): replacing a skill there deletes it. The
+# destination is resolved before anything is created: no `..` component, and the nearest existing
+# ancestor canonicalised with the not-yet-created rest appended.
+case "/$dest/" in
+  */../*) echo "install.sh: give the destination without a .. component" >&2; exit 2 ;;
+esac
+p="$dest"; rest=""
+while [ ! -d "$p" ]; do
+  rest="/$(basename "$p")$rest"
+  p=$(dirname "$p")
+done
+cdest="$(cd "$p" && pwd -P)$rest"
+case "$cdest/" in
+  "$here"/*) echo "install.sh: $dest is inside this checkout's skills/ ($here); choose another directory" >&2; exit 2 ;;
+esac
 
 run mkdir -p "$dest"
 n=0

@@ -335,11 +335,12 @@ class Install(unittest.TestCase):
             fh.write("# stub\n")
         msk = os.path.join(mock, "skills")
         before = sorted(os.listdir(msk))
-        for dest in (msk, os.path.join(msk, "wicked-e2e")):
+        for dest in (msk, os.path.join(msk, "wicked-e2e"), os.path.join(msk, "new") + "/..",
+                     os.path.join(msk, "not", "yet")):
             r = subprocess.run([shutil.which("sh"), os.path.join(msk, "install.sh"), "--force", dest],
                                capture_output=True, text=True, timeout=60)
             self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
-        self.assertEqual(sorted(os.listdir(msk)), before)
+        self.assertEqual(sorted(os.listdir(msk)), before, "nothing was created or removed in the sources")
         for d in EXPECTED:
             self.assertFalse(os.path.islink(os.path.join(msk, d)))
             self.assertTrue(os.path.isfile(os.path.join(msk, d, "SKILL.md")))

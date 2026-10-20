@@ -40,6 +40,8 @@
   {"request": "test the live daemon", "expect": {"target": "live", "status": "needs-input"}},
   {"request": "is crew-api.health certified", "expect": {"action": "report", "status": "needs-input", "selection": "id:crew-api.health.*"}},
   {"request": "which capabilities cover crew-api.health", "expect": {"action": "select", "status": "resolved", "ask_before_running": false, "commands": ["e2e select 'id:crew-api.health.*'"]}},
+  {"request": "what tests cover crew health", "expect": {"action": "select", "status": "resolved", "commands": ["e2e select 'area:crew-api tag:health'"]}},
+  {"request": "how many tests cover crew health", "expect": {"action": "select", "status": "resolved", "ask_before_running": false}},
   {"request": "list the capabilities about sign-in", "expect": {"action": "select", "status": "resolved", "selection": "tag:sign-in,signin"}},
   {"request": "test studio-ui.launch.plan-preview", "expect": {"action": "run", "status": "resolved", "selection": "id:studio-ui.launch.plan-preview"}},
   {"request": "test studio http://127.0.0.1:7801/${IFS}--live-journeys;#", "expect": {"status": "refused", "commands": [], "studio": null}},

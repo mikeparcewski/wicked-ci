@@ -75,7 +75,8 @@ INTENTS = [
     ("evidence", re.compile(r"\bevidence\b|\bvideos?\b|\bscreenshots?\b|\btraces?\b|\btamper\w*\b|\bhash(es)?\b|"
                             r"\btranscripts?\b")),
     ("validate-report", re.compile(r"\bvalidate\b.*\b(run|report)\b|\b(run|report)\b.*\b(complete|intact|valid)\b")),
-    ("select", re.compile(r"\bwhich (capabilit\w*|tests?|scenarios?)\b|\bwhat (capabilit\w* )?covers?\b|"
+    ("select", re.compile(r"\b(which|what|how many|list|show( me)?)( the| all)? (capabilit\w*|tests?|scenarios?)\b|"
+                          r"\b(does|do) (anything|any \w+) cover\b|\bwhich (capabilit\w*|tests?|scenarios?)\b|\bwhat (capabilit\w* )?covers?\b|"
                           r"\blist (the |all )?capabilit\w*\b|\bshow (me )?(the )?capabilities\b|"
                           r"\bhow many capabilit\w*\b|\bwhat is in\b")),
     ("plan", re.compile(r"\bplan\b|\bwhat would run\b|\bwhat will run\b|\bdry[- ]?run\b|\bhow long\b|\bestimate\b|"
