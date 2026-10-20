@@ -17,7 +17,7 @@
 - **`e2e report`** gains "What blocks a pass". **`e2e evidence <run-dir> <cap-id>`** lists one
   capability's evidence with per-file integrity against the vault.
 - CI: skill lint (frontmatter, real subcommands and flags from `e2e --help`, portability, honesty
-  guards), the install script and 27 router evals on ubuntu, macOS and Windows; the refs check.
+  guards), the install script and 28 router evals on ubuntu, macOS and Windows; the refs check.
 
 ### e2e — phase 1 of the platform certification suite: catalog, typed oracles, surface manifests, coverage validator
 

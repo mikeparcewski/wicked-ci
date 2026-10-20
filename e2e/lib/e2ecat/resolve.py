@@ -10,7 +10,7 @@ terms), with one fixed precedence, and prints how each word was read. Nothing he
 
 Precedence, per position in the request (longest phrase first, up to 4 words):
   1. a literal selection term (`tag:x`, `id:a.b.*`, `cost<=S`, ...) is kept as written
-  2. a full capability id, or an id glob
+  2. a full capability id, an id glob, or an id prefix (`crew-api.health` -> `id:crew-api.health.*`)
   3. an area name or alias ("plugins" -> area:plugins-and-installs, "studio" -> area:studio-ui)
   4. a tag (hyphen-insensitive: "sign in", "sign-in" and "signin" are one group)
   5. an id segment no tag carries (`id:*.<seg>.*,*.<seg>`)
@@ -118,6 +118,8 @@ def _match_span(vocab, span, segments=False):
         tok = span[0]
         if tok in vocab.ids or any(ch in tok for ch in "*?["):
             return ("id", [tok], "capability id")
+        if any(i.startswith(tok + ".") for i in vocab.ids):
+            return ("id", [tok + ".*"], "capability id prefix")
     if raw in PHRASES:
         return ("tag", [PHRASES[raw]], "phrase")
     key = _norm("".join(span))

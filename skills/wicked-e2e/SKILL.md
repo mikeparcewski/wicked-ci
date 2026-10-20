@@ -45,9 +45,9 @@ in them (`e2e/coverage-baseline.json`) resolve.
 
 - **A verdict exists only in the CLI's files.** Say a capability passed only when its `verdict`
   in the run's `report.json` (or `<cap-id>/result.json`) is `pass` and
-  `e2e validate --report <run-dir> --baseline e2e/coverage-baseline.json` exited 0. `partial`, `skipped`, `manual` and `error` are not passes, and "nothing
-  failed" is not "it passed". `e2e run` exiting 0 means the run is complete, not that anything
-  passed.
+  `e2e validate --report <run-dir> --baseline e2e/coverage-baseline.json` exited 0.
+  `partial`, `skipped`, `manual` and `error` are not passes, and "nothing failed" is not "it
+  passed". `e2e run` exiting 0 means the run is complete, not that anything passed.
 - **Ask before anything costly or live.** When `e2e resolve` or the plan prints
   `ask before running`, show the plan and get an explicit yes before `e2e run`. That covers any
   selected capability at cost `M` (a live seat turn) or `L` (a governed run), and every live
