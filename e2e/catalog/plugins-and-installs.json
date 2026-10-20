@@ -71,6 +71,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /api/v1/editors lists every dist/editors/<id> with sha256 == sha256(index.html)",
      "a symlinked dir/manifest/entry is skipped with a reason in the daemon log",
      "no studio bundle => no editors and no daemon-editors.json written"
     ]
@@ -171,7 +172,8 @@
     },
     "complete": false,
     "untyped": [
-     "health carries a blocking skills.garden finding naming found vs required"
+     "health carries a blocking skills.garden finding naming found vs required",
+     "POST /repos and launch answer 422 garden_required / base_skill_refused (assert only on a proof daemon)"
     ]
    },
    "oracle_text": "health carries a blocking skills.garden finding naming found vs required; POST /repos and launch answer 422 garden_required / base_skill_refused (assert only on a proof daemon)",
@@ -275,6 +277,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /api/v1/skills .installed.source {kind, path, plugin_version}: kind cache when <config>/plugins/cache/wicked-garden/wicked-garden/<highest semver> exists (wins over any copy), 'installer-copy' only as last resort with a skills.source WARNING in GET /api/v1/diagnostics .skills.findings",
      "WICKED_CREW_SKILLS_SOURCE overrides",
      "symlinked levels skipped"
     ]
@@ -332,6 +335,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /api/v1/skills .installed.baseline != .manifest baseline while behind",
      "after Refresh + Publish (proof daemon) they match and the banner is gone",
      "on restart with no user edits the finding clears automatically"
     ]
@@ -414,27 +418,15 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/editor/conformance.py --pack <dir> --host-url <crew URL> --json",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/editor/conformance.py --pack <dir> --host-url <crew URL> --json",
-      "code": 1
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/editor/conformance.py --pack <dir> --host-url <crew URL> --json",
-      "code": 3
-     }
-    ],
+    "kind": "exit",
+    "cmd": "wicked-garden run scripts/editor/conformance.py --pack <dir> --host-url <crew URL> --json",
+    "code": 0,
     "complete": false,
     "untyped": [
+     "exit 0 iff cases 0-6 and 8-12 pass (plus 13-16 for protocol 2, 17 for protocol 1) for every editor",
      "report sha256 == manifest",
+     "exit 1 names the failed case",
+     "exit 3 when no headless browser (fail closed)",
      "report lists known gaps (case 7, axe, WebRTC)"
     ]
    },
@@ -537,9 +529,14 @@
     ],
     "complete": false,
     "untyped": [
+     "~/.wicked/editors/<name>/current/wicked-pack.json exists and installed.json printed",
      "GET <crew>/api/v1/editors .editors[] has {id, version, sha256 == manifest, first_party:false, enabled:true}",
+     "GET /api/v1/editors/<id>/<version>/entry 200 text/html whose sha256 == pinned",
+     "DELETE /api/v1/editors/<id> 200 {removed:true}",
+     "GET /api/v1/editors no longer lists it",
      "EDITOR-GRANTS ledger holds no editor:<id>@ token",
-     "~/.wicked/editors/<name> removed"
+     "~/.wicked/editors/<name> removed",
+     "a first-party id (wicked-page) answers 409 'ships with studio and cannot be removed'"
     ]
    },
    "oracle_text": "exit 0; ~/.wicked/editors/<name>/current/wicked-pack.json exists and installed.json printed; GET <crew>/api/v1/editors .editors[] has {id, version, sha256 == manifest, first_party:false, enabled:true}; GET /api/v1/editors/<id>/<version>/entry 200 text/html whose sha256 == pinned",
@@ -661,6 +658,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /api/v1/editors entry enabled:false",
      "GET .../entry => 404 '<id> is disabled'",
      "/plugins row [data-editor=<id>] has testid editor-plugin-off and text 'Turned off, so it opens nowhere.' and no editor-plugin-open link"
     ]
@@ -778,7 +776,9 @@
     "complete": false,
     "untyped": [
      "install.py exit 1 with the daemon's message",
-     "previous/ swapped back to current/ (or current/ removed on first install)"
+     "POST /editors answered 422 (failed check/conformance, report attached), 501 pack_ships_skills_or_blocks, or 409 id conflict",
+     "previous/ swapped back to current/ (or current/ removed on first install)",
+     "GET /api/v1/editors unchanged"
     ]
    },
    "oracle_text": "install.py exit 1 with the daemon's message; POST /editors answered 422 (failed check/conformance, report attached), 501 pack_ships_skills_or_blocks, or 409 id conflict; previous/ swapped back to current/ (or current/ removed on first install); GET /api/v1/editors unchanged",
@@ -835,6 +835,7 @@
     "complete": false,
     "untyped": [
      "~/.wicked/editors/<name>/previous holds the prior copy and current the new",
+     "GET /api/v1/editors shows the new version/sha256 and keeps the operator's enabled flag",
      "crew log '(update)'"
     ]
    },
@@ -977,6 +978,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "doctor prints JSON with ok:true and root/source/python/node/uv, exit 0",
      "root resolution WICKED_GARDEN_ROOT -> CLAUDE_PLUGIN_ROOT -> package",
      "path prints an existing absolute file under root",
      "run propagates the script's exit code"
@@ -1294,15 +1296,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden copy (or a v1 install-claude marker naming garden), then run an install with Claude Code selected",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "stdout contains the legacy line naming the path",
-     "the legacy tree hash is unchanged after install",
-     "marker garden record carried forward"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: stdout contains the legacy line naming the path; the legacy tree hash is unchanged after install; marker garden record carried forward"
    },
    "oracle_text": "stdout contains the legacy line naming the path; the legacy tree hash is unchanged after install; marker garden record carried forward",
    "covers": [
@@ -1397,16 +1393,13 @@
       "kind": "file",
       "path": "~/.claude/plugins/wicked-garden/.claude-plugin/plugin.json",
       "assert": "exists"
-     },
-     {
-      "kind": "exit",
-      "cmd": "npx wicked-installer install wicked-garden",
-      "code": 1
      }
     ],
     "complete": false,
     "untyped": [
-     "(b) delivery 'manual', no copy written"
+     "(a) exit 0, delivery 'copied', ~/.claude/plugins/wicked-garden/.claude-plugin/plugin.json exists",
+     "(b) delivery 'manual', no copy written",
+     "(c) exit 1 and config dir byte-identical"
     ]
    },
    "oracle_text": "(a) exit 0, delivery 'copied', ~/.claude/plugins/wicked-garden/.claude-plugin/plugin.json exists; (b) delivery 'manual', no copy written; (c) exit 1 and config dir byte-identical",
@@ -1452,22 +1445,14 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "npx wicked-installer install wicked-garden",
-      "code": 1
-     },
-     {
-      "kind": "exit",
-      "cmd": "npx wicked-installer install wicked-garden",
-      "code": 0
-     }
-    ],
+    "kind": "exit",
+    "cmd": "npx wicked-installer install wicked-garden",
+    "code": 0,
     "complete": false,
     "untyped": [
-     "the run spawns `claude plugin install` (not update)"
+     "before: status verdict 'partially registered (...)' exit 1",
+     "the run spawns `claude plugin install` (not update)",
+     "after: status 'registered' exit 0"
     ]
    },
    "oracle_text": "before: status verdict 'partially registered (...)' exit 1; the run spawns `claude plugin install` (not update); after: status 'registered' exit 0",
@@ -1512,9 +1497,10 @@
    "oracle": {
     "kind": "exit",
     "cmd": "claude plugin install",
-    "code": 1,
+    "code": 0,
     "complete": false,
     "untyped": [
+     "exit 1",
      "spawn log shows `claude plugin marketplace remove wicked-garden` after the failed install",
      "known_marketplaces.json byte-identical to before",
      "a marketplace that pre-existed this run is NOT removed"
@@ -1564,6 +1550,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "exit 0 both runs",
      "<dir>/wicked-installer/claude-install.json markerVersion==2 with per-product version, lastResult 'installed', files[]",
      "second run actions all skipped/ok with no writes (tree hash unchanged)",
      "report contract=='1.1'",
@@ -1619,6 +1606,7 @@
      "state 'current' iff lastResult installed and all files[] exist and json-key hashes match",
      "delete a recorded dir => 'stale'",
      "edit .claude.json key => 'stale' with modified-externally",
+     "exit 0 on query success, 2 when neither home nor marker exists, 1 on unparseable marker",
      "plugins not reported"
     ]
    },
@@ -1723,11 +1711,13 @@
    "oracle": {
     "kind": "exit",
     "cmd": "npx wicked-installer install wicked-garden --source-root <dir>",
-    "code": 1,
+    "code": 0,
     "complete": false,
     "untyped": [
      "known_marketplaces.json wicked-garden source points at <dir>/wicked-garden",
-     "install record present"
+     "install record present",
+     "invalid --source-root (no .claude-plugin/marketplace.json) exits 1 before any dependency install",
+     "--source-root without Claude Code exits 1 (no npx fallback)"
     ]
    },
    "oracle_text": "known_marketplaces.json wicked-garden source points at <dir>/wicked-garden; install record present; invalid --source-root (no .claude-plugin/marketplace.json) exits 1 before any dependency install; --source-root without Claude Code exits 1 (no npx fallback)",
@@ -1882,6 +1872,7 @@
     "complete": false,
     "untyped": [
      "report delivery 'copied'",
+     "$CODEX_HOME/skills/<name>/SKILL.md exists for every garden skill",
      "marker products[].skills lists the copied directory names",
      "on a later version a skill dropped upstream is removed"
     ]
@@ -1986,6 +1977,7 @@
     "complete": false,
     "untyped": [
      "none present and no plugin serving it: `codex mcp add wicked-estate -- <bin>` spawned",
+     "stale direct-binary entry: only its `command = ...` line in $CODEX_HOME/config.toml changes, a backup exists, file mode preserved, `codex mcp get wicked-estate --json` reads back the new command with other fields unchanged",
      "dotted-key/inline/repeated forms untouched and reported",
      "launcher entries (`wicked-garden run scripts/estate_mcp.mjs`) never repointed"
     ]
@@ -2037,9 +2029,10 @@
    "oracle": {
     "kind": "exit",
     "cmd": "codex plugin add",
-    "code": 1,
+    "code": 0,
     "complete": false,
     "untyped": [
+     "exit 1",
      "marketplace this run added is removed",
      "marker keeps the earlier product entry with lastFailure {at, message}",
      "--dry-run never removes a marketplace"
@@ -2355,16 +2348,13 @@
       "kind": "exit",
       "cmd": "wicked-vault --version",
       "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "install bogus-id",
-      "code": 1,
-      "stderr_matches": "Unknown"
      }
     ],
     "complete": false,
     "untyped": [
+     "exit 0 iff every product result success",
+     "`wicked-vault --version` exits 0 afterwards",
+     "`install bogus-id` -> stderr 'Unknown products: bogus-id' exit 1",
      "`install` with no ids -> 'Specify at least one product id' exit 1"
     ]
    },
@@ -2470,9 +2460,10 @@
    "oracle": {
     "kind": "exit",
     "cmd": "npx wicked-installer install wicked-testing",
-    "code": 1,
+    "code": 0,
     "complete": false,
     "untyped": [
+     "exit 1",
      "output names successors from registry.json .successors (wicked-garden, wicked-crew / wicked-estate)",
      "`--all --dry-run --json` reports[].productId contains no product with status retired or design",
      "no npm/cargo spawn"
@@ -2538,6 +2529,7 @@
     ],
     "complete": false,
     "untyped": [
+     "for each selected CLI the marker <home>/wicked-installer/<cli>-install.json exists and lists every bundle product (registry.json .bundles[id].products plus resolved requires, e.g. garden->wicked-vault)",
      "summary grid has one row per product with no 'failed' cell"
     ]
    },
@@ -2738,6 +2730,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "exit 0 (or 1 if any product failed)",
      "stdout shows per-product results from installer.installProduct",
      "with no `claude` on PATH, garden line says manual step and <home>/.claude/plugins/wicked-garden does not exist"
     ]
@@ -3139,6 +3132,7 @@
     ],
     "complete": false,
     "untyped": [
+     "opencode.jsonc/opencode.json contains the acme-notes entry after upsert (re-read confirm)",
      "a numeric-looking --arg (e.g. 3000) or a home whose basename is not 'opencode' => result 'manual' with the JSON to add",
      "remove => result 'manual' naming entry and file"
     ]
@@ -3196,6 +3190,8 @@
     ],
     "complete": false,
     "untyped": [
+     "<dir>/skills/<skill>/SKILL.md exists per garden skill",
+     "<dir>/opencode.jsonc (or opencode.json) .skills.paths contains <dir>/skills exactly once (idempotent)",
      "an unparseable config left byte-identical with a note",
      "report notes 'no OpenCode plugin (hooks/opencode-plugin.ts) in package",
      "skills-only install' for garden",
@@ -3261,6 +3257,7 @@
     ],
     "complete": false,
     "untyped": [
+     "~/.something-wicked/wicked-garden/packs/installed/<manifest name>/wicked-pack.json exists",
      "each pack skill copied to ~/.claude/skills/<skill>/SKILL.md (skipped when the pack is itself a Claude Code plugin)",
      "`npx wicked-garden pack list --json` includes the pack with provenance hashes"
     ]
@@ -3369,9 +3366,10 @@
    "oracle": {
     "kind": "exit",
     "cmd": "npx wicked-installer pack add ./acme-broken",
-    "code": 1,
+    "code": 0,
     "complete": false,
     "untyped": [
+     "without --force: exit 1, PK error codes printed, nothing under packs/installed or ~/.claude/skills",
      "with --force: installed",
      "traversal-shaped manifest names refused"
     ]
@@ -3532,6 +3530,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "capability ready iff every need met: launcher `wicked-garden doctor` prints {\"ok\": true} and exits 0",
      "python>=3.10",
      "backend bin on PATH",
      "an npx fallback is never 'ready'",
@@ -3627,6 +3626,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "exit 0 iff garden 'registered' in every active config dir else 1",
      "verdict derived from plugins/known_marketplaces.json + installed_plugins.json + plugins/cache/wicked-garden/wicked-garden/<v>/.claude-plugin/plugin.json version match",
      "no `claude plugin` command spawned",
      "a symlinked state file => 'unreadable' exit 1"
@@ -3681,6 +3681,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "exit 0 for both",
      "`--version` stdout == wicked-installer/package.json .version (0.8.0 at f3a8ed6)",
      "`--help` stdout contains 'mcp upsert|remove' and '--offline'"
     ]
@@ -3729,7 +3730,10 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=plugin-coming-soon][data-plugin=vibe][aria-disabled=true] with [data-testid=plugin-coming-soon-tag] 'Coming soon' and no link/button inside"
+    ]
    },
    "oracle_text": "[data-testid=plugin-coming-soon][data-plugin=vibe][aria-disabled=true] with [data-testid=plugin-coming-soon-tag] 'Coming soon' and no link/button inside",
    "covers": [
@@ -3800,7 +3804,8 @@
     },
     "complete": false,
     "untyped": [
-     "launch wizard visible with workflowId 'editor-plugin'"
+     "launch wizard visible with workflowId 'editor-plugin'",
+     "after Launch, GET /api/v1/runs newest run has workflow 'editor-plugin' (proof daemon only — launching POSTs)"
     ]
    },
    "oracle_text": "launch wizard visible with workflowId 'editor-plugin'; after Launch, GET /api/v1/runs newest run has workflow 'editor-plugin' (proof daemon only — launching POSTs)",
@@ -3933,7 +3938,8 @@
     ],
     "complete": false,
     "untyped": [
-     "compact rows each with an 'Open' link"
+     "compact rows each with an 'Open' link",
+     "editor-host-back navigates to /plugins"
     ]
    },
    "oracle_text": "[data-testid=editor-host-pick] visible; compact rows each with an 'Open' link; editor-host-back navigates to /plugins",
@@ -4066,7 +4072,9 @@
     ],
     "complete": false,
     "untyped": [
-     "the card's frame loads /api/v1/editors/<id>/<v>/entry for the editor chosen by editorFor(editors, kind) (enabled, protocol-compatible, claims kind)"
+     "the card's frame loads /api/v1/editors/<id>/<v>/entry for the editor chosen by editorFor(editors, kind) (enabled, protocol-compatible, claims kind)",
+     "a kind no editor claims shows [data-testid=plugin-card-no-editor] / [data-testid=artifact-no-editor]",
+     "a card action is answered within 2 s (no plugin-torn)"
     ]
    },
    "oracle_text": "the card's frame loads /api/v1/editors/<id>/<v>/entry for the editor chosen by editorFor(editors, kind) (enabled, protocol-compatible, claims kind); a kind no editor claims shows [data-testid=plugin-card-no-editor] / [data-testid=artifact-no-editor]; a card action is answered within 2 s (no plugin-torn)",
@@ -4168,7 +4176,9 @@
     ],
     "complete": false,
     "untyped": [
-     "host replies {ok:false} for the ungranted request"
+     "host replies {ok:false} for the ungranted request",
+     "[data-testid=plugin-grants-note] (run) or [data-testid=editor-grants-note] (test page) visible",
+     "grants fetched from GET /api/v1/editors/<id>/grants before host.hello"
     ]
    },
    "oracle_text": "host replies {ok:false} for the ungranted request; [data-testid=plugin-grants-note] (run) or [data-testid=editor-grants-note] (test page) visible; grants fetched from GET /api/v1/editors/<id>/grants before host.hello",
@@ -4237,6 +4247,8 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=host-panel-frame] mounts per plugin tab, host-drawn [data-testid=host-controls] for controls tabs",
+     "full screen shows [data-testid=full-shell-head] and the same instance (no reload: frame element identity unchanged)",
      "mode echo within 2 s",
      "exit returns to the card"
     ]
@@ -4333,6 +4345,7 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=plugin-torn] (or editor-torn / host-panel-torn) visible with [data-testid=plugin-reload]",
      "clicking reload remounts a fresh frame"
     ]
    },
@@ -4389,7 +4402,8 @@
     "complete": false,
     "untyped": [
      "build unit output contains the scaffold JSON and a passing pack check",
-     "test unit output contains a conformance.py --json report with all required cases passed and sha256 == manifest"
+     "test unit output contains a conformance.py --json report with all required cases passed and sha256 == manifest",
+     "GET /api/v1/runs/:id/acceptance verdict PASS attributed"
     ]
    },
    "oracle_text": "build unit output contains the scaffold JSON and a passing pack check; test unit output contains a conformance.py --json report with all required cases passed and sha256 == manifest; GET /api/v1/runs/:id/acceptance verdict PASS attributed",
@@ -4465,6 +4479,9 @@
     "untyped": [
      "install unit command received WICKED_CONSENT_CHOICE == the chosen daemon_<d>",
      "unit exit 0",
+     "GET /api/v1/editors contains the pack's editor id enabled:true with sha256 == manifest",
+     "/plugins row [data-editor=<id>] editor-plugin-source 'Installed'",
+     "editor-plugin-open loads /editors/dev with matching sha",
      "'Install, turned off' variant gives enabled:false",
      "Decline cancels without running install"
     ]
@@ -4607,6 +4624,7 @@
     "complete": false,
     "untyped": [
      "wicked-installer mcp upsert <key> was invoked",
+     "~/.claude.json mcpServers.<key>, ~/.codex/config.toml [mcp_servers.<key>], opencode config contain the entry with no env/secret",
      "an installer without the mcp verb is reported, not failed (all homes sandboxed)"
     ]
    },
@@ -4707,6 +4725,7 @@
     "assert": "exists",
     "complete": false,
     "untyped": [
+     "~/.wicked/mcp-servers/<key>/current/dist/server.js exists",
      "GET <crew>/api/v1/mcp/servers lists <key> with command node <root>/<key>/current/dist/server.js and auth ref env:<SERVER>_TOKEN (no value)",
      "worker-home configs contain the key",
      "installed.json written",
@@ -4761,26 +4780,18 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/mcp/servers",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/mcp/install.py --uninstall <key> --crew-url <proof daemon> [--cli ...]",
-      "code": 1
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/mcp/servers",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
+     "GET /api/v1/mcp/servers no longer lists <key>",
      "CLI entries removed via wicked-installer mcp remove (opencode manual)",
-     "~/.wicked/mcp-servers/<key> removed"
+     "~/.wicked/mcp-servers/<key> removed",
+     "a same-key registry entry of a different server refuses install (exit 1)"
     ]
    },
    "oracle_text": "GET /api/v1/mcp/servers no longer lists <key>; CLI entries removed via wicked-installer mcp remove (opencode manual); ~/.wicked/mcp-servers/<key> removed; a same-key registry entry of a different server refuses install (exit 1)",

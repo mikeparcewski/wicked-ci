@@ -31,6 +31,7 @@
     },
     "complete": false,
     "untyped": [
+     "status 422 and body.code",
      "no chat.posted on the bus for that doc in the window"
     ]
    },
@@ -77,19 +78,13 @@
     "method": "GET",
     "path": "/api/v1/projects/{p}/interactive/api/health",
     "expect": {
-     "status": 503,
-     "json": [
-      {
-       "path": "$.body.code",
-       "op": "eq",
-       "value": "bridge_unavailable"
-      }
-     ]
+     "status": 503
     },
     "complete": false,
     "untyped": [
      "<root>/.wi-serve.json pid stable across two requests",
-     "proxied /api/health.root === resolved root"
+     "proxied /api/health.root === resolved root",
+     "503 body.code==='bridge_unavailable' when spawn fails"
     ]
    },
    "oracle_text": "<root>/.wi-serve.json pid stable across two requests; proxied /api/health.root === resolved root; 503 body.code==='bridge_unavailable' when spawn fails",
@@ -327,7 +322,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "status.posted messages contain the seated/returned fraction when unitDistributed.returned < seated",
+     "one line per unitPlanned"
+    ]
    },
    "oracle_text": "status.posted messages contain the seated/returned fraction when unitDistributed.returned < seated; one line per unitPlanned",
    "covers": [],
@@ -382,6 +381,7 @@
     },
     "complete": false,
     "untyped": [
+     "bridge 200 {event_id} with version defaulted to head",
      "review root ledger has N rows stamped crew_run_id",
      "N review.completed events",
      "run roster excludes draft-run creator seats",
@@ -530,7 +530,10 @@
     "expect": {
      "status": 200
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "200 JSON with fields ok, missing[], playwright.detected, recorder.ok, crew_available (boolean)"
+    ]
    },
    "oracle_text": "200 JSON with fields ok, missing[], playwright.detected, recorder.ok, crew_available (boolean)",
    "covers": [
@@ -661,6 +664,9 @@
     ],
     "complete": false,
     "untyped": [
+     "first GET: 200 text/html containing 'serves the API'",
+     "POST /api/studio-origin 200 {ok:true,studio_origin}",
+     "second GET: 302 with Location starting with recorded origin",
      "non-loopback POST -> 403",
      "invalid origin -> 400"
     ]
@@ -756,6 +762,7 @@
     ],
     "complete": false,
     "untyped": [
+     "crew GET /api/v1/projects/:id (members) lists each doc as interactive.doc",
      "second run reports already-registered and member count unchanged"
     ]
    },
@@ -812,14 +819,14 @@
       "kind": "file",
       "path": "{root}/{name}/versions.json",
       "assert": "exists"
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-interactive create --from-file content.json --out a.html",
-      "code": 1
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "output file parses and `wicked-interactive validate a.html` exits 0",
+     "with --project: <root>/<name>/versions.json and project.json exist",
+     "with WICKED_CREW_API unset + --project: exit 1 and no dir"
+    ]
    },
    "oracle_text": "exit 0; output file parses and `wicked-interactive validate a.html` exits 0; with --project: <root>/<name>/versions.json and project.json exist; with WICKED_CREW_API unset + --project: exit 1 and no dir",
    "covers": [
@@ -1017,20 +1024,14 @@
       "method": "GET",
       "path": "/api/health",
       "expect": {
-       "status": 200,
-       "json": [
-        {
-         "path": "$.body.ok",
-         "op": "eq",
-         "value": true
-        }
-       ]
+       "status": 200
       }
      }
     ],
     "complete": false,
     "untyped": [
-     "JSON-parse <root>/.wi-serve.json and assert pid alive + port integer >=4400"
+     "JSON-parse <root>/.wi-serve.json and assert pid alive + port integer >=4400",
+     "GET /api/health -> 200 with body.ok===true and body.root===resolve(root) and body.pid===lock.pid"
     ]
    },
    "oracle_text": "exit code 0; JSON-parse <root>/.wi-serve.json and assert pid alive + port integer >=4400; GET /api/health -> 200 with body.ok===true and body.root===resolve(root) and body.pid===lock.pid",
@@ -1127,6 +1128,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET / -> 200 text/html containing the frontend/dist index script tag (assets/index-*.js)",
      "without the flag the same GET returns the redirect/no-origin page"
     ]
    },
@@ -1171,6 +1173,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "exit code 0/1",
      "stdout/stderr JSON error code names the failing check"
     ]
    },
@@ -1255,6 +1258,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /api/deck/review audience/proposal fields",
      "events audience.changed states in order"
     ]
    },
@@ -1379,6 +1383,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /api/deck/review JSON decision state per slide",
      "deck-review.json",
      "event slide.decided {slide_id, version, decision}"
     ]
@@ -1470,7 +1475,8 @@
     "complete": false,
     "untyped": [
      "responses",
-     "demo-cut.json chapters ids === imported"
+     "demo-cut.json chapters ids === imported",
+     "recordings/_v<version>.mp4 exists"
     ]
    },
    "oracle_text": "responses; demo-cut.json chapters ids === imported; recordings/_v<version>.mp4 exists",
@@ -1660,7 +1666,8 @@
     },
     "complete": false,
     "untyped": [
-     "JSON active boolean flips true->false"
+     "JSON active boolean flips true->false",
+     "run.id equals the crew run id from GET /api/v1/runs?doc=<doc>"
     ]
    },
    "oracle_text": "JSON active boolean flips true->false; run.id equals the crew run id from GET /api/v1/runs?doc=<doc>",
@@ -1778,8 +1785,10 @@
     ],
     "complete": false,
     "untyped": [
+     "response 200 name/head",
      "versions.json.head===0 and .style===requested",
-     "_v0.html contains data-wid attributes"
+     "_v0.html contains data-wid attributes",
+     "bus/WS event wicked.interactive.doc.created with payload.document_id"
     ]
    },
    "oracle_text": "response 200 name/head; versions.json.head===0 and .style===requested; _v0.html contains data-wid attributes; bus/WS event wicked.interactive.doc.created with payload.document_id",
@@ -1833,6 +1842,7 @@
     "assert": "exists",
     "complete": false,
     "untyped": [
+     "<doc>/project.json exists with project id",
      "crew members include doc",
      "event payload.project_id===proj",
      "on refusal response 502 and existsSync(<root>/<name>)===false"
@@ -1905,7 +1915,9 @@
     ],
     "complete": false,
     "untyped": [
-     "<doc>/conversation.jsonl line 1 role 'user' text===brief"
+     "200 with generating===true",
+     "<doc>/conversation.jsonl line 1 role 'user' text===brief",
+     "400 'add at least one source path or a brief' for empty"
     ]
    },
    "oracle_text": "200 with generating===true; <doc>/conversation.jsonl line 1 role 'user' text===brief; 400 'add at least one source path or a brief' for empty",
@@ -2141,6 +2153,7 @@
     ],
     "complete": false,
     "untyped": [
+     "status codes 200/200/410/409",
      "event count of wicked.interactive.doc.retired for the doc ===1",
      "versions.json has retired_at",
      "_v*.html files still exist",
@@ -2247,6 +2260,7 @@
     },
     "complete": false,
     "untyped": [
+     "stream contains 'event: ready' then 'event: wicked.interactive.version.created' with data.payload.document_id",
      "ping within 16 s"
     ]
    },
@@ -2348,6 +2362,7 @@
     "assert": "exists",
     "complete": false,
     "untyped": [
+     "file exists at <doc>/exports/<doc>_v1.html",
      "Content-Disposition attachment",
      "event export.generated.file === response.file"
     ]
@@ -2721,6 +2736,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "check-version script exit 0",
      "JSON versions equal",
      "skills/serve/SKILL.md and skills/assist/SKILL.md frontmatter parse with name/description"
     ]
@@ -2810,6 +2826,7 @@
     "assert": "exists",
     "complete": false,
     "untyped": [
+     "<root>/.wi-serve.json present and /api/health ok after the skill turn",
      "transcript shows the assist subscription command"
     ]
    },
@@ -2908,6 +2925,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /api/sources.sources length 0->1->1(updated)->0",
      "requests/sources.json matches"
     ]
    },
@@ -3009,7 +3027,8 @@
     "untyped": [
      "status codes",
      "GET tokens deep-equal PUT tokens",
-     "versions.json head +1 on apply"
+     "versions.json head +1 on apply",
+     "theme/learned.theme.json absent after DELETE"
     ]
    },
    "oracle_text": "status codes; GET tokens deep-equal PUT tokens; versions.json head +1 on apply; theme/learned.theme.json absent after DELETE",
@@ -3727,7 +3746,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "network: POST /api/deck/decisions, one structural feedback batch with expect_head, POST /api/deck/proposal, /proposal/close, POST /api/fork on drop",
+     "GET /api/deck/review state matches DOM badges"
+    ]
    },
    "oracle_text": "network: POST /api/deck/decisions, one structural feedback batch with expect_head, POST /api/deck/proposal, /proposal/close, POST /api/fork on drop; GET /api/deck/review state matches DOM badges",
    "covers": [
@@ -3815,18 +3838,36 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/runs/{id}/gate",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "PUT",
+      "path": "/api/v1/projects/{projectId}/demo/script",
+      "expect": {
+       "status": [
+        200,
+        201,
+        202
+       ]
+      }
+     },
+     {
+      "kind": "api",
+      "method": "POST",
+      "path": "/api/v1/runs/{id}/gate",
+      "expect": {
+       "status": [
+        200,
+        201,
+        202
+       ]
+      }
+     }
+    ],
     "complete": false,
     "untyped": [
+     "network: PUT …/demo/script body === edited text, POST /runs/:id/gate actions",
      "run events show record unit re-run"
     ]
    },
@@ -3984,7 +4025,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "plugin-card data-editor/bundle id per doc equals editorKindOf(style) mapping",
+     "GET /api/v1/editors lists all four ids"
+    ]
    },
    "oracle_text": "plugin-card data-editor/bundle id per doc equals editorKindOf(style) mapping; GET /api/v1/editors lists all four ids",
    "covers": [

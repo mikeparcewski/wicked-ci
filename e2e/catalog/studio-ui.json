@@ -76,6 +76,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[role=tablist][data-testid=desk-tabs]",
      "aria-selected=true moves",
      "aria-controls/aria-labelledby pairs resolve",
      "URL search tab= matches"
@@ -179,7 +180,10 @@
     "kind": "exit",
     "cmd": "npx -y @axe-core/cli http://127.0.0.1:{port}/ --tags wcag2aa --exit",
     "code": 0,
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "run once per theme (light, dark, wicked-light, wicked-dark); every text/surface pair is at least WCAG AA"
+    ]
    },
    "oracle_text": "computed contrast ratio of --text vs --surface tokens >= 4.5 per theme (as in tests/tokens.contrast.test.ts)",
    "covers": [],
@@ -257,7 +261,14 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "GET /roster (probe) issued",
+     "[data-testid=agents-check-result] text 'Signed in' after switch",
+     "exactly one GET /roster?refresh=<key> per click",
+     "agents-check-result[data-state] final value reflects refresh outcome",
+     "agents-issue[data-code=signed_out] absent after success."
+    ]
    },
    "oracle_text": "GET /roster (probe) issued; [data-testid=agents-check-result] text 'Signed in' after switch",
    "covers": [
@@ -479,7 +490,10 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=agents-modal] name",
+     "agents-command text == fixture login line",
      "navigator.clipboard text equals",
+     "agents-issue data-code sequence == roster[key].issues[].code",
      "no absolute home path in dialog text",
      "?fix=<unknown> opens no modal."
     ]
@@ -596,8 +610,11 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=agents-setup-step-*] progression",
      "final navigation path",
-     "URL == /agents?setup=1 on first open"
+     "PUT /settings once",
+     "URL == /agents?setup=1 on first open",
+     "GET /settings -> settings['studio.setup'] has completedAt or skippedAt after."
     ]
    },
    "oracle_text": "[data-testid=agents-setup-step-*] progression; final navigation path; PUT /settings once",
@@ -688,14 +705,6 @@
       }
      },
      {
-      "kind": "event",
-      "source": "core-event",
-      "type": "terminalExited",
-      "count": {
-       "min": 1
-      }
-     },
-     {
       "kind": "dom",
       "selector": "[data-testid=signin-warning]",
       "assert": "visible"
@@ -704,8 +713,12 @@
     "complete": false,
     "untyped": [
      "fixture log 1 POST seat logout",
+     "agents-row state 'Signed out'",
+     "POST /seats/claude/logout -> 201 with terminalId",
      "/ws/terminals/:id streams",
-     "seat-login status signed_out"
+     "after terminalExited roster[claude].signed_in false. copilot/pi/agy -> 404 'has no logout command'. Logout commands: claude auth logout, codex logout, opencode auth logout, each prefixed with the seat root.",
+     "seat-login status signed_out",
+     "studio signin-warning visible"
     ]
    },
    "oracle_text": "fixture log 1 POST seat logout; agents-row state 'Signed out'",
@@ -817,7 +830,10 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=agents-row] count == roster agents (folded)",
+     "agents-tile-ready number",
      "every non-GET aborted count == 0",
+     "count(agents-row) == roster seats after folding reviewer-only seats",
      "each row's data-ready word matches agentsModel for its roster entry",
      "no non-GET requests issued (page is read-only)."
     ]
@@ -937,8 +953,11 @@
     ],
     "complete": false,
     "untyped": [
+     "fixture log PUT /api/v1/settings body includes clis default",
+     "composer-seat chip state reflects it on next composer",
      "localStorage['wicked_default_clis'] JSON array adds/removes <key>",
-     "a storage event fires"
+     "a storage event fires",
+     "next composer-seat set equals stored list (intersected with admitted seats)."
     ]
    },
    "oracle_text": "fixture log PUT /api/v1/settings body includes clis default; composer-seat chip state reflects it on next composer",
@@ -1041,6 +1060,7 @@
     "untyped": [
      "location regex",
      "after Back pathname == session address",
+     "fresh load shows full-shell",
      "location per step",
      "frame element identity unchanged across morph (same node)",
      "DOM text for unknown key"
@@ -1049,6 +1069,7 @@
    "oracle_text": "location regex; after Back pathname == session address; fresh load shows full-shell",
    "covers": [
     "studio:route:/s/:id",
+    "studio:route:/s/:id/a/:key",
     "studio:testid:artifact",
     "studio:testid:artifact-grow",
     "studio:testid:artifact-head",
@@ -1133,6 +1154,8 @@
     ],
     "complete": false,
     "untyped": [
+     "bridge log POST /d/<doc>/api/deck per op",
+     "deck-compare-row count",
      "review approve write"
     ]
    },
@@ -1253,9 +1276,12 @@
     ],
     "complete": false,
     "untyped": [
+     "<video> readyState>=1 and elementFromPoint(center) is the video",
      "state line boundingBox inside card",
      "video.readyState>=1, currentTime equals chapter start ±0.5s after pick",
-     "element identity across morph"
+     "element identity across morph",
+     "network POST /runs/:id/demo/export",
+     "download 200"
     ]
    },
    "oracle_text": "<video> readyState>=1 and elementFromPoint(center) is the video; state line boundingBox inside card",
@@ -1368,6 +1394,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "plugin-card kind wicked-doc / wicked-deck",
      "edit op hits bridge once"
     ]
    },
@@ -1473,7 +1500,10 @@
       "value": "{head_before_plus_1}"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the answer appears in the document's thread in studio"
+    ]
    },
    "oracle_text": "(critic 2026-10-20: added; no inventory oracle) Chat on a document's thread from studio (wicked.interactive.chat.posted)",
    "covers": [
@@ -1540,6 +1570,7 @@
      "filename ext matches format",
      "export request 200",
      "network: POST …/d/<doc>/api/export {version, format}",
+     "download link href = …/api/export/file/<doc>_v<n>.pptx returning 200 attachment",
      "DOM ready text"
     ]
    },
@@ -1654,7 +1685,11 @@
     ],
     "complete": false,
     "untyped": [
-     "Esc returns"
+     "[data-testid=chat-artifacts] descendant of agent bubble",
+     "full-shell visible after Full",
+     "Esc returns",
+     "DOM: [data-testid=plugin-card] present, nested iframe text contains the doc headline",
+     "plugin-card-pill 'Version N' equals versions head"
     ]
    },
    "oracle_text": "[data-testid=chat-artifacts] descendant of agent bubble; full-shell visible after Full; Esc returns",
@@ -1798,6 +1833,8 @@
      "one style-edit / remove item per act in network",
      "versions count deltas",
      "nested frame window.innerWidth values",
+     "network: GET /api/v1/projects/<p>/interactive/docs/<doc>/checks?version=<head>",
+     "DOM artifact-check count === checks length",
      "chip present"
     ]
    },
@@ -1920,8 +1957,10 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=plugin-card] data kind wicked-page",
      "frame src from crew editor bundle route",
      "fixture bridge log 1 op per edit",
+     "page-undo reverts",
      "network: feedback.submitted content-edit per edit, fork per undo, 409 on refused",
      "versions.json entries count",
      "nested frame DOM headline textContent and querySelector('b')===null"
@@ -2067,6 +2106,7 @@
     ],
     "complete": false,
     "untyped": [
+     "fixture log 1 PUT /runs/:id/walkthrough/storyline",
      "cancel → 0",
      "network PUT body",
      "response sha256",
@@ -2170,6 +2210,7 @@
     "complete": false,
     "untyped": [
      "artifact-version-row count==2 newest first with working mark",
+     "artifact-lens-line 'Looking at version 1'",
      "bridge log 1 fork POST",
      "network: exactly one POST …/d/<doc>/api/fork with body {from:1, expect_head:2}",
      "versions.json head 3 parent 1",
@@ -2251,6 +2292,18 @@
       "assert": "visible"
      },
      {
+      "kind": "api",
+      "method": "POST",
+      "path": "/api/v1/projects/{projectId}/demo/export",
+      "expect": {
+       "status": [
+        200,
+        201,
+        202
+       ]
+      }
+     },
+     {
       "kind": "dom",
       "selector": "[data-testid=walkthrough-check]",
       "assert": "visible"
@@ -2258,7 +2311,13 @@
     ],
     "complete": false,
     "untyped": [
-     "fixture log POST …/demo/export"
+     "walkthrough-state text",
+     "walkthrough-fail-mark time 0:41",
+     "<video> currentTime ≈41",
+     "fixture log POST …/demo/export",
+     "DOM walkthrough-state text transitions",
+     "walkthrough-fail-mark time equals result.json failed_at_sec",
+     "walkthrough-check count equals checks"
     ]
    },
    "oracle_text": "walkthrough-state text; walkthrough-fail-mark time 0:41; <video> currentTime ≈41; fixture log POST …/demo/export",
@@ -2380,6 +2439,7 @@
     ],
     "complete": false,
     "untyped": [
+     "fixture log 1 POST /api/v1/chats body.clis",
      "location /s/<chatId>"
     ]
    },
@@ -2549,11 +2609,16 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=considered-line] text exact",
+     "considered-row-open href /rules/<id>"
+    ]
    },
    "oracle_text": "[data-testid=considered-line] text exact; considered-row-open href /rules/<id>",
    "covers": [
     "studio:route:/rules",
+    "studio:route:/rules/:id",
     "studio:testid:considered-line",
     "studio:testid:considered-note",
     "studio:testid:considered-row",
@@ -2631,7 +2696,8 @@
     ],
     "complete": false,
     "untyped": [
-     "[data-testid=session-ask-proposal] count==1"
+     "[data-testid=session-ask-proposal] count==1",
+     "after continue fixture log 1 POST /runs body.chatId==<chat>"
     ]
    },
    "oracle_text": "[data-testid=session-ask-proposal] count==1; after continue fixture log 1 POST /runs body.chatId==<chat>; [data-testid=chain-line] visible",
@@ -2731,7 +2797,9 @@
     ],
     "complete": false,
     "untyped": [
-     "POST verbs on /decisions recorded once per action"
+     "[data-testid=decision-line] text",
+     "POST verbs on /decisions recorded once per action",
+     "desk-rule-line in Needs you"
     ]
    },
    "oracle_text": "[data-testid=decision-line] text; POST verbs on /decisions recorded once per action; desk-rule-line in Needs you",
@@ -2799,7 +2867,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=session-sources] chip count == citations confirmed (3)",
+     "session-passage text non-empty"
+    ]
    },
    "oracle_text": "[data-testid=session-sources] chip count == citations confirmed (3); session-passage text non-empty",
    "covers": [
@@ -2860,7 +2932,12 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "count([data-testid=seat-bubble])==1",
+     "[data-testid=ask-line] for reviewer",
+     "ask-typing visible before reply"
+    ]
    },
    "oracle_text": "count([data-testid=seat-bubble])==1; [data-testid=ask-line] for reviewer; ask-typing visible before reply",
    "covers": [
@@ -2914,20 +2991,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/runs/*/gate",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
-    "complete": false,
-    "untyped": [
-     "document.activeElement is ask input/composer with value 'approve this'"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: document.activeElement is ask input/composer with value 'approve this'; fixture log 0 POST /runs/*/gate"
    },
    "oracle_text": "document.activeElement is ask input/composer with value 'approve this'; fixture log 0 POST /runs/*/gate",
    "covers": [
@@ -3055,7 +3121,9 @@
     ],
     "complete": false,
     "untyped": [
-     "body.requestId present"
+     "fixture log POST /runs/r-team/plan count 0 then 1",
+     "body.requestId present",
+     "session-step-added text 'Added Test'"
     ]
    },
    "oracle_text": "fixture log POST /runs/r-team/plan count 0 then 1; body.requestId present; session-step-added text 'Added Test'",
@@ -3146,7 +3214,10 @@
     ],
     "complete": false,
     "untyped": [
-     "next POST message body.clis equals selection"
+     "next POST message body.clis equals selection",
+     "[data-testid=composer-seats-refused] when all off",
+     "POST /chats or /chats/:id/seats body clis == selected chips",
+     "composer-seats-refused text names each refused cliKey from the response."
     ]
    },
    "oracle_text": "next POST message body.clis equals selection; [data-testid=composer-seats-refused] when all off",
@@ -3280,6 +3351,8 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=connection-status] visible while ws closed",
+     "[data-testid=connection-remedy] non-empty",
      "banner absent after reconnect"
     ]
    },
@@ -3339,6 +3412,7 @@
     },
     "complete": false,
     "untyped": [
+     "fixture log: POST /runs/g1/gate and /runs/g2/gate each once {approve:true}",
      "undo leg 0 POSTs",
      "reject leg {approve:false, amend:'<typed>'}"
     ]
@@ -3408,7 +3482,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "fixture log PUT/POST /standing-orders/away",
+     "[data-testid=standing-orders-away] state flips"
+    ]
    },
    "oracle_text": "fixture log PUT/POST /standing-orders/away; [data-testid=standing-orders-away] state flips",
    "covers": [
@@ -3482,7 +3560,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=home-calm] or inbox subtitle text 'Nothing needs you.'",
+     "desk-rail-badge absent or 0"
+    ]
    },
    "oracle_text": "[data-testid=home-calm] or inbox subtitle text 'Nothing needs you.'; desk-rail-badge absent or 0",
    "covers": [
@@ -3572,6 +3654,8 @@
     ],
     "complete": false,
     "untyped": [
+     "fixture log: 1 POST /projects/<id>/capture",
+     "capture-status-line shows run",
      "Needs you proposals row counts 1 intent, 2 decisions, 1 memory, 1 rule"
     ]
    },
@@ -3678,6 +3762,7 @@
     ],
     "complete": false,
     "untyped": [
+     "fixture log: POST /governance/deadletters/replay {dryRun:true} then exactly one {dryRun:false} after confirm",
      "dry-run: POST body {dryRun:true} moves nothing (outbox bytes unchanged)",
      "confirm: result text 'Replayed N events: X landed · Y still quarantined'",
      "afterwards /diagnostics.governance.deadletters.count == Y",
@@ -3792,7 +3877,10 @@
     "kind": "dom",
     "selector": "[data-testid=need-why-line]",
     "assert": "visible",
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=need-why-line] text equals failure reason from fixture run"
+    ]
    },
    "oracle_text": "[data-testid=need-why-line] text equals failure reason from fixture run",
    "covers": [
@@ -3849,6 +3937,7 @@
     ],
     "complete": false,
     "untyped": [
+     "count([data-testid=need-row])==1 and need-focus-note text includes hidden count",
      "off → count equals original"
     ]
    },
@@ -3939,6 +4028,7 @@
     ],
     "complete": false,
     "untyped": [
+     "fixture log: POST /api/v1/deliveries/freeze {frozen:true, reason:'<typed>'}",
      "thaw → banner absent"
     ]
    },
@@ -4004,7 +4094,12 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=handover-panel] height constant",
+     "handover-chip count per kind",
+     "handover-dismiss removes strip"
+    ]
    },
    "oracle_text": "[data-testid=handover-panel] height constant; handover-chip count per kind; handover-dismiss removes strip",
    "covers": [
@@ -4076,6 +4171,8 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=desk-stream-item] count>0 with live corpus",
+     "desk-stream-quiet when empty",
      "retry re-requests feed"
     ]
    },
@@ -4210,7 +4307,12 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid^=desk-inbox-folder-] aria-pressed/selected moves",
+     "[data-testid=desk-inbox-row] all have the folder kind",
+     "desk-inbox-pane visible after click"
+    ]
    },
    "oracle_text": "[data-testid^=desk-inbox-folder-] aria-pressed/selected moves; [data-testid=desk-inbox-row] all have the folder kind; desk-inbox-pane visible after click",
    "covers": [
@@ -4385,7 +4487,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=desk-as-of] text 'Reading…' while request pending",
+     "no empty-state copy before GET /runs resolves"
+    ]
    },
    "oracle_text": "[data-testid=desk-as-of] text 'Reading…' while request pending; no empty-state copy before GET /runs resolves",
    "covers": [
@@ -4528,6 +4634,7 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=sheet-studio],[data-testid=sheet-computer],[data-testid=sheet-signins],[data-testid=sheet-helpers],[data-testid=sheet-hold] visible",
      "Esc → sheet absent"
     ]
    },
@@ -4673,6 +4780,7 @@
     "complete": false,
     "untyped": [
      "aria-selected/data-selected moves per key",
+     "group need-members visible after Enter",
      "URL changes on row Enter"
     ]
    },
@@ -4730,7 +4838,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "ordered [data-testid=need-row] kinds == ['group','question','failure']",
+     "need-members first == g1"
+    ]
    },
    "oracle_text": "ordered [data-testid=need-row] kinds == ['group','question','failure']; need-members first == g1",
    "covers": [
@@ -4813,7 +4925,8 @@
     "complete": false,
     "untyped": [
      "preview names 5 memory ids, 0 POST",
-     "undo leg 0 POST"
+     "undo leg 0 POST",
+     "final: 5 POST /proposals/:id/approve (memory only)"
     ]
    },
    "oracle_text": "preview names 5 memory ids, 0 POST; undo leg 0 POST; final: 5 POST /proposals/:id/approve (memory only)",
@@ -4905,7 +5018,10 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "POST /chats (or ask) body text == REPORTS question"
+    ]
    },
    "oracle_text": "[data-testid=ask-panel] visible; POST /chats (or ask) body text == REPORTS question",
    "covers": [
@@ -5017,7 +5133,9 @@
     ],
     "complete": false,
     "untyped": [
-     "after more all shown"
+     "[data-testid=desk-callout] count<=3 initially",
+     "after more all shown",
+     "evidence href resolves (not not-found)"
     ]
    },
    "oracle_text": "[data-testid=desk-callout] count<=3 initially; after more all shown; evidence href resolves (not not-found)",
@@ -5123,6 +5241,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "desk-stats numbers recomputed from fixture runs in window",
      "chart aria-label contains 'last N days, by <group>'",
      "reset clears filters"
     ]
@@ -5242,7 +5361,8 @@
     ],
     "complete": false,
     "untyped": [
-     "no 'Index all' / 'Nothing has been started yet'"
+     "no 'Index all' / 'Nothing has been started yet'",
+     "after retry banner absent and desk-inbox present"
     ]
    },
    "oracle_text": "[data-testid=desk-runs-failed] visible; no 'Index all' / 'Nothing has been started yet'; after retry banner absent and desk-inbox present",
@@ -5357,6 +5477,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=desk-runs-row] count matches filter on fixture runs",
      "desk-runs-stat-* numbers equal fixture counts"
     ]
    },
@@ -5433,6 +5554,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=desk-setup][data-setup=agents|memory|...] present",
      "after state fix (fixture switch) and reload they are absent"
     ]
    },
@@ -5551,8 +5673,10 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=agents-modal] visible with codex name",
      "location.pathname=='/'",
-     "Desk row text contains the seat key"
+     "Desk row text contains the seat key",
+     "clicking opens agents-modal[data-agent=<key>] without URL path change."
     ]
    },
    "oracle_text": "[data-testid=agents-modal] visible with codex name; location.pathname=='/'",
@@ -5731,13 +5855,19 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "POST /standing-orders/parse then POST /standing-orders",
+     "[data-testid=standing-order-row] count +1",
+     "gate.decided actor == order id in GET /runs/:id/events"
+    ]
    },
    "oracle_text": "POST /standing-orders/parse then POST /standing-orders; [data-testid=standing-order-row] count +1; gate.decided actor == order id in GET /runs/:id/events",
    "covers": [
     "crew:route:GET /api/v1/runs/:id/events",
     "crew:route:POST /api/v1/standing-orders",
     "crew:route:POST /api/v1/standing-orders/parse",
+    "studio:route:/runs/:id/events",
     "studio:testid:standing-order-cancel",
     "studio:testid:standing-order-confirm",
     "studio:testid:standing-order-input",
@@ -5826,7 +5956,9 @@
     ],
     "complete": false,
     "untyped": [
-     "fixture log: one launch/ask POST on confirm, none before"
+     "fixture log: one launch/ask POST on confirm, none before",
+     "[data-testid=desk-analyze-done] or desk-insights-done visible",
+     "desk-compare-card count"
     ]
    },
    "oracle_text": "fixture log: one launch/ask POST on confirm, none before; [data-testid=desk-analyze-done] or desk-insights-done visible; desk-compare-card count",
@@ -5916,7 +6048,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=desk-block-running] number == count of executing runs in fixture",
+     "desk-block-failed == failed count"
+    ]
    },
    "oracle_text": "[data-testid=desk-block-running] number == count of executing runs in fixture; desk-block-failed == failed count",
    "covers": [
@@ -6158,7 +6294,12 @@
     ],
     "complete": false,
     "untyped": [
-     "URL /editors/dev?editor=<id>&version=<v>&sha=<sha256> matching the API"
+     "host-panel-tab count == declared",
+     "full-shell → [data-nav-collapsed=true] then false on exit",
+     "URL /editors/dev?editor=<id>&version=<v>&sha=<sha256> matching the API",
+     "[data-testid=editor-surfaces] present",
+     "toggling [data-testid=editor-protocol-toggle] reveals [data-testid=editor-artifact-frame] with size buttons editor-size-inline/pane/full",
+     "no editor-torn"
     ]
    },
    "oracle_text": "[data-testid=editor-host-page]; host-panel-tab count == declared; full-shell → [data-nav-collapsed=true] then false on exit",
@@ -6276,6 +6417,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=eval-history-row] count == fixture evals",
      "detail summary text"
     ]
    },
@@ -6493,6 +6635,7 @@
     "complete": false,
     "untyped": [
      "every row's verdict equals the API result for the seeded corpus; a gap row links its nearest rule",
+     "GET /api/v1/testing/evals/:id verdict counts equal per-sample results",
      "read-only on rules store"
     ]
    },
@@ -6502,7 +6645,9 @@
     "crew:route:POST /api/v1/testing/corpora/import",
     "crew:route:POST /api/v1/testing/evals/run",
     "studio:route:/rules",
+    "studio:route:/rules/:id",
     "studio:route:/testing",
+    "studio:route:/testing/evals",
     "studio:testid:evaluate-all-gaps",
     "studio:testid:evaluate-caveat",
     "studio:testid:evaluate-coverage",
@@ -6615,6 +6760,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "evaluate-stat-caught/gaps/fp numbers equal latest eval fixture",
      "gap rows filter by type"
     ]
    },
@@ -6622,6 +6768,7 @@
    "covers": [
     "studio:route:/",
     "studio:route:/testing",
+    "studio:route:/testing/evals",
     "studio:testid:evaluate-all-gaps",
     "studio:testid:evaluate-caveat",
     "studio:testid:evaluate-coverage",
@@ -6720,16 +6867,15 @@
     "method": "POST",
     "path": "/api/v1/runs/{id}/archive",
     "expect": {
-     "json": [
-      {
-       "path": "$.body.archived",
-       "op": "eq",
-       "value": false
-      }
+     "status": [
+      200,
+      201,
+      202
      ]
     },
     "complete": false,
     "untyped": [
+     "fixture log 1 POST /runs/<id>/archive body.archived==false",
      "row moves out of archived",
      "titles 'Onboard repository: <name>'"
     ]
@@ -6832,9 +6978,16 @@
     "kind": "all",
     "of": [
      {
-      "kind": "dom",
-      "selector": "[data-testid=doc-delete-go]",
-      "assert": "visible"
+      "kind": "api",
+      "method": "DELETE",
+      "path": "/api/v1/projects/{projectId}/interactive/api/docs/{id}",
+      "expect": {
+       "status": [
+        200,
+        201,
+        202
+       ]
+      }
      },
      {
       "kind": "dom",
@@ -6940,7 +7093,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=made-draft-line] text",
+     "made-draft-run href /s/run%3A<id>"
+    ]
    },
    "oracle_text": "[data-testid=made-draft-line] text; made-draft-run href /s/run%3A<id>",
    "covers": [
@@ -6988,7 +7145,10 @@
     "kind": "dom",
     "selector": "[data-testid=everything-checking]",
     "assert": "visible",
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=everything-checking] visible during delay"
+    ]
    },
    "oracle_text": "[data-testid=everything-checking] visible during delay",
    "covers": [
@@ -7101,7 +7261,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=everything-handed-row] count == delivered runs",
+     "everything-handed-pr href equals fixture prUrl"
+    ]
    },
    "oracle_text": "[data-testid=everything-handed-row] count == delivered runs; everything-handed-pr href equals fixture prUrl",
    "covers": [
@@ -7201,7 +7365,8 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
-     "fixture log 1 DELETE/POST end chat"
+     "fixture log 1 DELETE/POST end chat",
+     "everything-live-chat count -1"
     ]
    },
    "oracle_text": "fixture log 1 DELETE/POST end chat; everything-live-chat count -1",
@@ -7302,7 +7467,8 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
-     "fixture log: per-project docs GETs stop after cancel (no further project asked)"
+     "fixture log: per-project docs GETs stop after cancel (no further project asked)",
+     "everything-made-census progress text"
     ]
    },
    "oracle_text": "fixture log: per-project docs GETs stop after cancel (no further project asked); everything-made-census progress text",
@@ -7433,8 +7599,12 @@
     "complete": false,
     "untyped": [
      "location matches ^/s/[^/]+/a/[^?]+\\?size=full",
+     "plugin-card/full-shell visible",
      "unbound doc opens via open=<name> in place",
+     "DOM: count of [data-testid=everything-made-row] per kind equals docs-index rows of that kind",
+     "network: GET /api/v1/interactive/docs issued, no per-project bridge GET on mount",
      "location.pathname/search per step",
+     "DOM everything-made-open / plugin-card",
      "NotFound text for legacy route"
     ]
    },
@@ -7443,6 +7613,7 @@
     "crew:route:GET /api/v1/interactive/docs",
     "studio:route:/everything",
     "studio:route:/s/:id",
+    "studio:route:/s/:id/a/:key",
     "studio:testid:command-palette",
     "studio:testid:everything",
     "studio:testid:everything-archived",
@@ -7631,6 +7802,8 @@
     "complete": false,
     "untyped": [
      "collision keeps the form with 'Open it'",
+     "network: one POST /api/v1/projects/<p>/interactive/api/docs with kind 'source', repo_refs, clisJson of 2 seats",
+     "DOM made-draft-status visible then plugin-card frame",
      "GET versions head>=1",
      "disabled attribute on create with 1 seat"
     ]
@@ -7748,7 +7921,8 @@
     ],
     "complete": false,
     "untyped": [
-     "opening writes nothing"
+     "opening writes nothing",
+     "save → 1 PUT /presets/tidy-upload body.steps length 3"
     ]
    },
    "oracle_text": "opening writes nothing; save → 1 PUT /presets/tidy-upload body.steps length 3; [data-testid=run-reuse-saved]",
@@ -7800,6 +7974,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=everything-session] includes target id only while search non-empty",
      "filter param kept after clear"
     ]
    },
@@ -7901,7 +8076,8 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
-     "location.search tab==sessions|made|handed|projects"
+     "location.search tab==sessions|made|handed|projects",
+     "[data-testid=everything-group] per project in sessions"
     ]
    },
    "oracle_text": "location.search tab==sessions|made|handed|projects; [data-testid=everything-group] per project in sessions",
@@ -8005,7 +8181,8 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
-     "row text lacks '<home-prefix>' and 'BRIEF.md'"
+     "row text lacks '<home-prefix>' and 'BRIEF.md'",
+     "click → /s/run%3A<id> with walkthrough-video"
     ]
    },
    "oracle_text": "row text lacks '<home-prefix>' and 'BRIEF.md'; click → /s/run%3A<id> with walkthrough-video",
@@ -8116,27 +8293,14 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/b1/gate",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
-     },
-     {
-      "kind": "dom",
-      "selector": "[data-testid=undo-result]",
-      "assert": "visible"
-     }
-    ],
-    "complete": true
+    "kind": "dom",
+    "selector": "[data-testid=undo-result]",
+    "assert": "visible",
+    "complete": false,
+    "untyped": [
+     "fixture log 0 POST /runs/b1/gate",
+     "undo-result text contains 'answered elsewhere'"
+    ]
    },
    "oracle_text": "fixture log 0 POST /runs/b1/gate; undo-result text contains 'answered elsewhere'",
    "covers": [
@@ -8215,6 +8379,8 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=assurance-receipt] with assurance-who/assurance-kind texts from gate DTO",
+     "each gateEvaluated and deliverLiftEvaluated has assurance{mode,required,ran,skipped,creator,evaluator,judge,tree,attempt}",
      "workflow-declared required instruments match the def"
     ]
    },
@@ -8314,6 +8480,11 @@
       "assert": "visible"
      },
      {
+      "kind": "dom",
+      "selector": "[data-testid=session-gate-consent-writes]",
+      "assert": "visible"
+     },
+     {
       "kind": "event",
       "source": "core-event",
       "type": "awaitingHuman",
@@ -8324,10 +8495,14 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=session-gate-consent-missing] until checked",
      "POST body consent fields",
+     "awaitingHuman{gateKind:'consent', consent{choices,recommended,writeTargets,writePlanOrd}} or writeTargetsMissing when no plan ran",
      "chosen id reaches the unit env",
+     "rendered choices == awaitingHuman frame choices (consent:<id> tokens + reject)",
      "per-choice write items == the plan's writes[]",
-     "no choice selected on open"
+     "no choice selected on open",
+     "without a plan, [data-testid=session-gate-consent-missing] shows the engine's sentence"
     ]
    },
    "oracle_text": "[data-testid=session-gate-consent-missing] until checked; POST body consent fields",
@@ -8438,7 +8613,8 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
-     "testids visible"
+     "testids visible",
+     "click → agents-modal for that seat"
     ]
    },
    "oracle_text": "testids visible; click → agents-modal for that seat",
@@ -8537,13 +8713,14 @@
     ],
     "complete": false,
     "untyped": [
+     "4 [data-testid=session-gate-choice]",
+     "steer → session-gate-note visible, 0 POST",
      "approve → 1 POST body.approve true"
     ]
    },
    "oracle_text": "4 [data-testid=session-gate-choice]; steer → session-gate-note visible, 0 POST; approve → 1 POST body.approve true",
    "covers": [
     "crew:route:POST /api/v1/runs/:id/gate",
-    "garden:hook:Stop",
     "studio:route:/s/:id",
     "studio:testid:gate-diff-drift",
     "studio:testid:session-gate-assurance",
@@ -8668,7 +8845,11 @@
     ],
     "complete": false,
     "untyped": [
+     "session-gate-choice-consequence text per hovered arm",
+     "fixture log POST /runs/r-timeout/gate body.action in {extend,targeted,accept_partial}",
+     "confirmGate action extend → new repoChecksEvaluated under doubled bound",
      "accept_partial → receipt discloses waived checks",
+     "retry on unchanged tree → floorRecheck{previousOutcome,outcome,reason:'operator retry'}",
      "arms refused at other gate kinds"
     ]
    },
@@ -8775,6 +8956,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=gate-notification] boundingBox above page content (pushes down)",
      "absent for viewed run ids",
      "dismiss removes"
     ]
@@ -8833,6 +9015,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "session-gate-question text exact",
      "body text lacks 'floor failed'"
     ]
    },
@@ -8967,7 +9150,15 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=plan-step-fixed] on scope and deliver",
+     "fixture log POST /runs/r-plan-gate/plan body order",
+     "409 gate_changed handled",
+     "wicked.team.plan.revised row with new rev",
+     "plan-edit-floor-added shows added floor steps",
+     "refusal → wicked.team.plan.refused and new gate id"
+    ]
    },
    "oracle_text": "[data-testid=plan-step-fixed] on scope and deliver; fixture log POST /runs/r-plan-gate/plan body order; 409 gate_changed handled",
    "covers": [
@@ -9075,6 +9266,8 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=session-gate-question] text",
+     "session-gate-choice-default text 'Retry the QE review'",
      "no uuid in gate text"
     ]
    },
@@ -9162,6 +9355,7 @@
     "complete": false,
     "untyped": [
      "fixture log 1 POST reassign, 0 POST gate",
+     "refusal → steering-reassign-error + 'Not moved' notice",
      "reassign_refused seat absent from options"
     ]
    },
@@ -9225,6 +9419,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "session-gate-rerun-consequence text 'Keeps understand, redoes build → review → deliver, ~9 min'",
      "1 POST with action request_changes"
     ]
    },
@@ -9289,12 +9484,12 @@
     "complete": false,
     "untyped": [
      "[data-testid=session-gate-choice-default] == 'Send back'",
+     "session-gate-note value contains reviewer's failing lines",
      "Stop is last"
     ]
    },
    "oracle_text": "[data-testid=session-gate-choice-default] == 'Send back'; session-gate-note value contains reviewer's failing lines; Stop is last",
    "covers": [
-    "garden:hook:Stop",
     "studio:route:/s/:id",
     "studio:testid:gate-diff-drift",
     "studio:testid:gate-verdict",
@@ -9419,7 +9614,12 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=session-gate-track-record] text per seat ('claude: 8/10 approvals held')",
+     "session-gate-rule-make → 1 POST rule",
+     "trust-receipt-in-force visible"
+    ]
    },
    "oracle_text": "[data-testid=session-gate-track-record] text per seat ('claude: 8/10 approvals held'); session-gate-rule-make → 1 POST rule; trust-receipt-in-force visible",
    "covers": [
@@ -9484,18 +9684,6 @@
     "kind": "all",
     "of": [
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs/b1/gate",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      }
-     },
-     {
       "kind": "dom",
       "selector": "[data-testid=undo-toast]",
       "assert": "visible"
@@ -9508,8 +9696,12 @@
     ],
     "complete": false,
     "untyped": [
+     "browser tap + fixture server log both show 0 POST /runs/b1/gate before 10s",
+     "[data-testid=undo-toast] headline names the gate",
+     "fixture log: 0 POST /runs/b1/gate during 10s",
      "Undo → 0 POST",
-     "second pass → exactly 1 POST body.approve==true"
+     "second pass → exactly 1 POST body.approve==true",
+     "need-chosen-line text"
     ]
    },
    "oracle_text": "browser tap + fixture server log both show 0 POST /runs/b1/gate before 10s; [data-testid=undo-toast] headline names the gate",
@@ -9588,6 +9780,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "session-gate-choice texts include exact string",
      "exclude the wrong string"
     ]
    },
@@ -9659,7 +9852,10 @@
     "untyped": [
      "four card testids visible",
      "seat rows == roster",
-     "governance rows == diagnostics.governance"
+     "governance rows == diagnostics.governance",
+     "count(rail-seat-row) == roster seats",
+     "rail-seat-quota present iff recent_bench kind quota",
+     "rail-seat-signin present iff auth signed_out."
     ]
    },
    "oracle_text": "four card testids visible; seat rows == roster; governance rows == diagnostics.governance",
@@ -9771,6 +9967,7 @@
     },
     "complete": false,
     "untyped": [
+     "new GET /roster?probe / /diagnostics request after click",
      "checked timestamp changes"
     ]
    },
@@ -9887,8 +10084,11 @@
     ],
     "complete": false,
     "untyped": [
+     "each rail-seat-row has exactly one rail-seat-move",
      "codex move text",
      "fixture log 1 POST governance rule (operations)",
+     "rail-seat-week-line numbers equal /roster/record for the seat",
+     "route move -> POST /governance/rules with id 'seat-coach:<seat>:<phase>' and rail-seat-move-result shows what landed",
      "idempotent on repeat."
     ]
    },
@@ -10000,7 +10200,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=launch-base-skill-refused] when GET /health baseSkill.present false & policy require",
+     "launch-submit disabled"
+    ]
    },
    "oracle_text": "[data-testid=launch-base-skill-refused] when GET /health baseSkill.present false & policy require; launch-submit disabled",
    "covers": [
@@ -10126,12 +10330,28 @@
       "kind": "dom",
       "selector": "[data-testid=run-artifacts]",
       "assert": "visible"
+     },
+     {
+      "kind": "api",
+      "method": "POST",
+      "path": "/api/v1/projects/{projectId}/demo",
+      "expect": {
+       "status": [
+        200,
+        201,
+        202
+       ]
+      },
+      "capture": {
+       "runId": "$.runId"
+      }
      }
     ],
     "complete": false,
     "untyped": [
      "network one POST …/demo with the entered url",
-     "location /s/run:<runId>"
+     "location /s/run:<runId>",
+     "DOM run-artifacts demo card"
     ]
    },
    "oracle_text": "fixture log 1 POST /projects/<id>/demo; location /s/run%3A<id>; walkthrough state progresses on fixture clock",
@@ -10275,11 +10495,18 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "launch-submit disabled initially",
+     "fixture log 1 POST /runs body.problem",
+     "launch-preview-error text when /plans/preview held",
+     "launch-started-open link"
+    ]
    },
    "oracle_text": "launch-submit disabled initially; fixture log 1 POST /runs body.problem; launch-preview-error text when /plans/preview held; launch-started-open link",
    "covers": [
     "crew:route:POST /api/v1/runs",
+    "studio:route:/runs/new",
     "studio:testid:deliver-notice",
     "studio:testid:deliver-toggle",
     "studio:testid:deliver-toggle-row",
@@ -10539,7 +10766,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "fixture log POST /linked-issues/preview",
+     "POST /runs body includes/excludes issue per launch-linked-issue-include"
+    ]
    },
    "oracle_text": "fixture log POST /linked-issues/preview; POST /runs body includes/excludes issue per launch-linked-issue-include",
    "covers": [
@@ -10637,7 +10868,11 @@
     ],
     "complete": false,
     "untyped": [
-     "response fields score/band/highRisk/floorAdded"
+     "phase-option list == GET /catalog order (incl. domain_coverage)",
+     "preview-score text == POST /plans/preview score",
+     "preview-pending-scope when no touch",
+     "response fields score/band/highRisk/floorAdded",
+     "no session created (GET /runs unchanged)"
     ]
    },
    "oracle_text": "phase-option list == GET /catalog order (incl. domain_coverage); preview-score text == POST /plans/preview score; preview-pending-scope when no touch",
@@ -10645,6 +10880,7 @@
     "crew:route:GET /api/v1/catalog",
     "crew:route:GET /api/v1/runs",
     "crew:route:POST /api/v1/plans/preview",
+    "studio:route:/runs/new",
     "studio:testid:floor-marker",
     "studio:testid:launch-preview",
     "studio:testid:launch-preview-error",
@@ -10740,6 +10976,7 @@
     ],
     "complete": false,
     "untyped": [
+     "link href /system (anchor qe-acceptance)",
      "no navigation away from wizard"
     ]
    },
@@ -10873,6 +11110,9 @@
     ],
     "complete": false,
     "untyped": [
+     "POST /runs body qeAcceptance override + reason",
+     "[data-testid=session-run-qe] text",
+     "sessionStarted.assurance.qe {status:'skipped', basis:'operator', reason}",
      "receipts say 'QE acceptance skipped by operator: <reason>'",
      "reasonless skip, both together, or on a non-requiring workflow refused"
     ]
@@ -10984,12 +11224,10 @@
       "method": "POST",
       "path": "/api/v1/runs",
       "expect": {
-       "json": [
-        {
-         "path": "$.body.reducedAssurance",
-         "op": "eq",
-         "value": true
-        }
+       "status": [
+        200,
+        201,
+        202
        ]
       }
      },
@@ -11040,7 +11278,14 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "POST /runs body.reducedAssurance==true",
+     "[data-testid=assurance-reduced] on session-run and gate row",
+     "sessionStarted.assurance.mode=='reduced'",
+     "every gateEvaluated.assurance.mode=='reduced' with skipped instruments listing distinct_evaluator/judge",
+     "GET /health.capabilities.reducedAssurance==true"
+    ]
    },
    "oracle_text": "POST /runs body.reducedAssurance==true; [data-testid=assurance-reduced] on session-run and gate row",
    "covers": [
@@ -11267,17 +11512,19 @@
       "method": "POST",
       "path": "/api/v1/runs",
       "expect": {
-       "json": [
-        {
-         "path": "$.body.workflow",
-         "op": "eq",
-         "value": "feature"
-        }
+       "status": [
+        200,
+        201,
+        202
        ]
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "composer-menu-item texts == GET /workflows ordinary defs with step lines",
+     "fixture log 1 POST /runs body.workflow=='feature'"
+    ]
    },
    "oracle_text": "composer-menu-item texts == GET /workflows ordinary defs with step lines; fixture log 1 POST /runs body.workflow=='feature'",
    "covers": [
@@ -11406,7 +11653,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "PUT /api/v1/settings view.startInChat true/false",
+     "after reload New job lands on /s/<id> vs shows launch-wizard"
+    ]
    },
    "oracle_text": "PUT /api/v1/settings view.startInChat true/false; after reload New job lands on /s/<id> vs shows launch-wizard",
    "covers": [
@@ -11539,7 +11790,9 @@
     ],
     "complete": false,
     "untyped": [
-     "location.pathname matches ^/s/"
+     "location.pathname matches ^/s/",
+     "[data-testid=session-composer-input] focused",
+     "[data-testid=ask-panel] absent"
     ]
    },
    "oracle_text": "location.pathname matches ^/s/; [data-testid=session-composer-input] focused; [data-testid=ask-panel] absent",
@@ -11640,6 +11893,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "launch-wizard-cards computed grid columns",
      "row height == 1/3 room",
      "every card svg[aria-hidden=true]",
      "modal boundingBox within viewport"
@@ -11757,7 +12011,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=ask-helper] all checked",
+     "POST /chats body.clis length == roster eligible"
+    ]
    },
    "oracle_text": "[data-testid=ask-helper] all checked; POST /chats body.clis length == roster eligible",
    "covers": [
@@ -11865,6 +12123,8 @@
     ],
     "complete": false,
     "untyped": [
+     "launch-wizard-demo-show value restored",
+     "launch-wizard-draft-instructions empty first, then restored",
      "POST count 0"
     ]
    },
@@ -12123,13 +12383,14 @@
     "untyped": [
      "fixture/route log: PUT body {enabled:true, everyHours:720}",
      "POST run-now",
-     "DELETE"
+     "DELETE",
+     "learn-write-error on failure",
+     "launch-wizard-chosen 'learn'"
     ]
    },
    "oracle_text": "fixture/route log: PUT body {enabled:true, everyHours:720}; POST run-now; DELETE; learn-write-error on failure; launch-wizard-chosen 'learn'",
    "covers": [
     "crew:route:PUT /api/v1/learn/schedules/:id",
-    "garden:hook:Stop",
     "studio:route:/learn",
     "studio:testid-pattern:learn-auto-*",
     "studio:testid-pattern:learn-custom-*",
@@ -12201,6 +12462,7 @@
     "complete": false,
     "untyped": [
      "script exit 0",
+     "GET /api/v1/chats/:id transcript has a reply turn from the primary",
      "DOM seat-bubble count==1"
     ]
    },
@@ -12238,13 +12500,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-interactive bridge",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "per-route status codes match contract table"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: script exit 0; per-route status codes match contract table"
    },
    "oracle_text": "script exit 0; per-route status codes match contract table",
    "covers": [],
@@ -12286,23 +12544,17 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-crew (no --stub) in a temp state dir, seeds projects/repos/rules/campaigns/evals through the UI, reloads",
-      "code": 0
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/*",
-      "expect": {
-       "status": 200
-      }
-     }
-    ],
-    "complete": true
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/*",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "script exit 0",
+     "DB rows via GET /api/v1/* match seeded content after reload"
+    ]
    },
    "oracle_text": "script exit 0; DB rows via GET /api/v1/* match seeded content after reload",
    "covers": [],
@@ -12413,13 +12665,16 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /runs/:id/events contains gateDecided entries",
+     "GET /runs/:id/acceptance verdict",
      "walkthrough file hash matches"
     ]
    },
    "oracle_text": "GET /runs/:id/events contains gateDecided entries; GET /runs/:id/acceptance verdict; walkthrough file hash matches",
    "covers": [
     "crew:route:GET /api/v1/runs/:id/acceptance",
-    "crew:route:GET /api/v1/runs/:id/events"
+    "crew:route:GET /api/v1/runs/:id/events",
+    "studio:route:/runs/:id/events"
    ],
    "scenarios": [
     {
@@ -12513,7 +12768,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "route log POST /mcp/servers/preview, POST /mcp/servers, POST /mcp/approvals in order",
+     "secrets never echoed (mcp-add-replace-secret)"
+    ]
    },
    "oracle_text": "route log POST /mcp/servers/preview, POST /mcp/servers, POST /mcp/approvals in order; secrets never echoed (mcp-add-replace-secret)",
    "covers": [
@@ -12671,8 +12930,12 @@
     "complete": false,
     "untyped": [
      "location /mcp/inspect?server=<name>",
+     "mcp-inspect-ready",
+     "mcp-inspect-calls rows == calls made",
      "boom shows error",
-     "URL path /mcp/inspect"
+     "POST /mcp-inspect/sessions once",
+     "URL path /mcp/inspect",
+     "mcp-inspect-no-plugin visible iff no enabled editor with kind 'mcp-server' in GET /api/v1/editors"
     ]
    },
    "oracle_text": "location /mcp/inspect?server=<name>; mcp-inspect-ready; mcp-inspect-calls rows == calls made; boom shows error; POST /mcp-inspect/sessions once",
@@ -12956,6 +13219,7 @@
     ],
     "complete": false,
     "untyped": [
+     "mcp-cell-decision text per cell equals POST /mcp/policies/preview answer",
      "response [{subject, cells[{role,seat,mode,decision,class,ruleIds}]}] matches evaluateMcpCall for same inputs"
     ]
    },
@@ -13094,6 +13358,7 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=mcp-server-health] count == GET /mcp/servers",
      "posture text per server"
     ]
    },
@@ -13212,6 +13477,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "mcp-usage-calls/p50/p95 numbers == GET usage response",
      "run link href /s/run%3A<id>"
     ]
    },
@@ -13311,6 +13577,8 @@
     ],
     "complete": false,
     "untyped": [
+     "fixture log 1 POST /api/v1/memory with text",
+     "memory-row count +1",
      "cancel posts nothing"
     ]
    },
@@ -13422,7 +13690,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "fixture log 1 POST /memory/edit",
+     "[data-testid=memory-content] text == edited"
+    ]
    },
    "oracle_text": "fixture log 1 POST /memory/edit; [data-testid=memory-content] text == edited",
    "covers": [
@@ -13533,7 +13805,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=memory-stat-total] == coverage total",
+     "memory-row order by date desc",
+     "search issues GET /memory?q="
+    ]
    },
    "oracle_text": "[data-testid=memory-stat-total] == coverage total; memory-row order by date desc; search issues GET /memory?q=",
    "covers": [
@@ -13672,7 +13949,11 @@
     "complete": false,
     "untyped": [
      "[data-testid=proposal-card] count==1 kind memory",
+     "fixture log POST /proposals/:id/approve body content==edited",
+     "after approve, GET /api/v1/proposals no longer lists it as pending and estate memory.list contains the promoted active_id",
      "after reject, state rejected and content never recallable",
+     "[data-testid=proposal-card] all kind policy",
+     "fixture log POST /proposals/:id/approve with edited body",
      "reject POST"
     ]
    },
@@ -13685,6 +13966,7 @@
     "studio:route:/memory",
     "studio:route:/proposals",
     "studio:route:/steering",
+    "studio:route:/steering/proposals",
     "studio:testid-computed:testId",
     "studio:testid:memories-clear",
     "studio:testid:memories-count",
@@ -13847,7 +14129,12 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "fixture log 1 POST /memory/retire-item {id}",
+     "memory-row count -1",
+     "memory-retire-cancel posts nothing"
+    ]
    },
    "oracle_text": "fixture log 1 POST /memory/retire-item {id}; memory-row count -1; memory-retire-cancel posts nothing",
    "covers": [
@@ -13950,6 +14237,7 @@
     },
     "complete": false,
     "untyped": [
+     "fixture log 1 POST /runs/<id>/cancel",
      "no-op when run terminal"
     ]
    },
@@ -14010,7 +14298,8 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
-     "for each DESTINATIONS entry: location.pathname+search == href"
+     "for each DESTINATIONS entry: location.pathname+search == href",
+     "[data-testid=not-found] absent"
     ]
    },
    "oracle_text": "for each DESTINATIONS entry: location.pathname+search == href; [data-testid=not-found] absent",
@@ -14074,7 +14363,10 @@
     "kind": "dom",
     "selector": "[data-testid=palette-row]",
     "assert": "visible",
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=palette-row] first rows belong to objectCommands for the pointed object"
+    ]
    },
    "oracle_text": "[data-testid=palette-row] first rows belong to objectCommands for the pointed object",
    "covers": [
@@ -14116,7 +14408,10 @@
     "kind": "dom",
     "selector": "[data-testid=command-palette]",
     "assert": "visible",
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=command-palette] visible then absent"
+    ]
    },
    "oracle_text": "[data-testid=command-palette] visible then absent",
    "covers": [
@@ -14200,7 +14495,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=terminal] and terminal-governed visible",
+     "POST /terminals once"
+    ]
    },
    "oracle_text": "[data-testid=terminal] and terminal-governed visible; POST /terminals once",
    "covers": [
@@ -14283,12 +14582,16 @@
     ],
     "complete": false,
     "untyped": [
-     "location /runs/r1/events"
+     "location /runs/r1/events",
+     "[data-testid=raw-events] JSON equals GET /runs/r1/events",
+     "/runs/r1/files shows file-viewer"
     ]
    },
    "oracle_text": "location /runs/r1/events; [data-testid=raw-events] JSON equals GET /runs/r1/events; /runs/r1/files shows file-viewer",
    "covers": [
     "crew:route:GET /api/v1/runs/:id/events",
+    "studio:route:/runs/:id/events",
+    "studio:route:/runs/:id/files",
     "studio:testid-computed:DIFF_TESTID[l.kind]",
     "studio:testid-pattern:run-raw-*",
     "studio:testid:diff-baseline-note",
@@ -14350,7 +14653,10 @@
     "kind": "dom",
     "selector": "[data-testid=alt-peek]",
     "assert": "visible",
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=alt-peek] visible while Alt down, absent after up"
+    ]
    },
    "oracle_text": "[data-testid=alt-peek] visible while Alt down, absent after up",
    "covers": [
@@ -14394,6 +14700,7 @@
     "complete": false,
     "untyped": [
      "location.href unchanged after peek",
+     "[data-testid=peek-card] prompt == b1 gate",
      "after back href and scrollTop equal original"
     ]
    },
@@ -14450,7 +14757,10 @@
     "kind": "dom",
     "selector": "[data-testid=phone-needs-badge]",
     "assert": "visible",
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=phone-needs-badge] text == needs decision+failure count"
+    ]
    },
    "oracle_text": "[data-testid=phone-needs-badge] text == needs decision+failure count",
    "covers": [
@@ -14511,7 +14821,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=command-palette] visible after topbar-search",
+     "[data-testid=launch-wizard] visible after topbar-new-job"
+    ]
    },
    "oracle_text": "[data-testid=command-palette] visible after topbar-search; [data-testid=launch-wizard] visible after topbar-new-job",
    "covers": [
@@ -14564,6 +14878,7 @@
     "complete": false,
     "untyped": [
      "matchMedia('(max-width: 767px)') true",
+     "[data-testid=rail-drawer] visible after toggle, hidden after scrim click",
      "document.scrollingElement.scrollWidth<=390"
     ]
    },
@@ -14679,9 +14994,18 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=editor-plugin-row] == GET /editors",
+     "plugin-documents lists launch-page & loose-notes not q4-brief",
+     "Create → launch-wizard-chosen 'editor-plugin'",
+     "plugin-coming-soon-tag present",
+     "one [data-testid=editor-plugin-row] per GET /api/v1/editors entry with data-editor==id",
+     "[data-testid=editor-plugin-source] text 'Built in' iff first_party else 'Installed'",
      "row text 'Version <v> · opens <kinds in words>'",
+     "[data-testid=editor-plugin-permissions] starts 'Can:' with plain words (never raw ids)",
+     "states editor-plugins-loading / -error (retry) / -unsupported / -empty render for the matching API answer",
      "DOM rows equal docs-index rows with style web/none",
      "location search open=launch-page",
+     "plugin-coming-soon has no a/button descendants",
      "row lists only page/document-kind docs",
      "after click the plugin frame src is the /api/v1/editors/wicked-page/<v>/entry bundle and the URL carries open=",
      "Esc sequence returns to /plugins",
@@ -14917,7 +15241,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=project-coverage-row] count == members",
+     "project-domain-totals numbers == stub"
+    ]
    },
    "oracle_text": "[data-testid=project-coverage-row] count == members; project-domain-totals numbers == stub",
    "covers": [
@@ -14978,6 +15306,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=project-title] == project name",
      "desk-tab hrefs start with /projects/<id>?tab=",
      "default project renders the same dashboard"
     ]
@@ -15127,8 +15456,11 @@
     ],
     "complete": false,
     "untyped": [
+     "fixture log PATCH /projects/:id documentsRoot",
      "value text equals input",
-     "network PATCH bodies"
+     "error → project-docs-root-error",
+     "network PATCH bodies",
+     "GET /api/v1/projects row interactiveRoot equals value / null"
     ]
    },
    "oracle_text": "fixture log PATCH /projects/:id documentsRoot; value text equals input; error → project-docs-root-error",
@@ -15196,7 +15528,8 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
-     "fixture log PATCH run(s) projectId"
+     "fixture log PATCH run(s) projectId",
+     "rail-session under new project group"
     ]
    },
    "oracle_text": "fixture log PATCH run(s) projectId; rail-session under new project group",
@@ -15265,7 +15598,10 @@
     ],
     "complete": false,
     "untyped": [
-     "location.pathname=='/projects/<id>'"
+     "fixture log 1 POST /api/v1/projects",
+     "location.pathname=='/projects/<id>'",
+     "invalid name → new-project-name-invalid",
+     "attach failure → new-project-attach-retry"
     ]
    },
    "oracle_text": "fixture log 1 POST /api/v1/projects; location.pathname=='/projects/<id>'; invalid name → new-project-name-invalid; attach failure → new-project-attach-retry",
@@ -15333,6 +15669,7 @@
     "complete": false,
     "untyped": [
      "fixture log POST attach member / DELETE member",
+     "[data-testid=project-repo-row] count changes",
      "detach-cancel → 0 writes"
     ]
    },
@@ -15525,7 +15862,12 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "fixture log PATCH /projects/:id with name / archived flag",
+     "projects-row count/state",
+     "projects-unfiled-open → /projects/default"
+    ]
    },
    "oracle_text": "fixture log PATCH /projects/:id with name / archived flag; projects-row count/state; projects-unfiled-open → /projects/default",
    "covers": [
@@ -15596,7 +15938,10 @@
     "kind": "dom",
     "selector": "[data-testid=desk-rail-actions]",
     "assert": "visible",
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "each route: all 4 testids visible inside [data-testid=desk-rail-actions]"
+    ]
    },
    "oracle_text": "each route: all 4 testids visible inside [data-testid=desk-rail-actions]",
    "covers": [
@@ -15686,7 +16031,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "int([data-testid=desk-rail-badge].innerText) == count of decision+failure rows in [data-testid=desk-inbox-list]",
+     "equals number in watchtower-sentence"
+    ]
    },
    "oracle_text": "int([data-testid=desk-rail-badge].innerText) == count of decision+failure rows in [data-testid=desk-inbox-list]; equals number in watchtower-sentence",
    "covers": [
@@ -15776,7 +16125,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=rail-group-toggle] aria-expanded toggles",
+     "rail-session count inside group changes accordingly"
+    ]
    },
    "oracle_text": "[data-testid=rail-group-toggle] aria-expanded toggles; rail-session count inside group changes accordingly",
    "covers": [
@@ -15857,6 +16210,7 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=rail-health-state] text",
      "after click location.pathname=='/health' and [data-testid=health-page] visible"
     ]
    },
@@ -16049,7 +16403,9 @@
     ],
     "complete": false,
     "untyped": [
-     "location.pathname=='/s/chat-pay'"
+     "location.pathname=='/s/chat-pay'",
+     "count([data-testid=session-run])==2",
+     "r-solo is its own rail-session 'run:r-solo'"
     ]
    },
    "oracle_text": "location.pathname=='/s/chat-pay'; count([data-testid=session-run])==2; r-solo is its own rail-session 'run:r-solo'",
@@ -16145,7 +16501,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=desk-rail-brand] innerText matches saved name",
+     "PUT /api/v1/settings body carries the name"
+    ]
    },
    "oracle_text": "[data-testid=desk-rail-brand] innerText matches saved name; PUT /api/v1/settings body carries the name",
    "covers": [
@@ -16267,7 +16627,11 @@
     ],
     "complete": false,
     "untyped": [
-     "modal visible"
+     "modal visible",
+     "[data-testid=graph-node-stats] shows node name",
+     "GET /repos/:id/graph requested once",
+     "DOM graph-node-stats shows node/edge counts equal to the crew /repos/:id/graph payload",
+     "language-segment count > 0 and widths sum to 100% (+/-1)"
     ]
    },
    "oracle_text": "modal visible; [data-testid=graph-node-stats] shows node name; GET /repos/:id/graph requested once",
@@ -16344,7 +16708,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "markdown-only: repo-hotspots-empty text, no 'run onboarding'",
+     "failure: Try again then hotspots-excerpt present"
+    ]
    },
    "oracle_text": "[data-testid=repo-detail-page] visible; markdown-only: repo-hotspots-empty text, no 'run onboarding'; failure: Try again then hotspots-excerpt present",
    "covers": [
@@ -16410,7 +16778,10 @@
     "expect": {
      "status": 200
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "modal shows requirement rows from GET /repos/:id requirements fixture"
+    ]
    },
    "oracle_text": "modal shows requirement rows from GET /repos/:id requirements fixture",
    "covers": [
@@ -16489,7 +16860,9 @@
     ],
     "complete": false,
     "untyped": [
-     "fixture log 1 POST onboard"
+     "fixture log 1 POST onboard",
+     "[data-testid=run-link] href /s/run%3A<id>",
+     "repo-onboard-error on refusal"
     ]
    },
    "oracle_text": "fixture log 1 POST onboard; [data-testid=run-link] href /s/run%3A<id>; repo-onboard-error on refusal",
@@ -16790,7 +17163,12 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=repo-card] count matches filter over GET /repos fixture",
+     "repos-empty-filter on no match",
+     "repos-clear-filters restores"
+    ]
    },
    "oracle_text": "[data-testid=repo-card] count matches filter over GET /repos fixture; repos-empty-filter on no match; repos-clear-filters restores",
    "covers": [
@@ -16888,7 +17266,8 @@
     "complete": false,
     "untyped": [
      "[data-testid=state-banner] count==1",
-     "body text lacks 'Failed to fetch'"
+     "body text lacks 'Failed to fetch'",
+     "[data-testid=repos-add] disabled"
     ]
    },
    "oracle_text": "[data-testid=state-banner] count==1; body text lacks 'Failed to fetch'; [data-testid=repos-add] disabled",
@@ -17222,6 +17601,7 @@
     "complete": false,
     "untyped": [
      "location.pathname=='/'",
+     "[data-testid=command-palette] absent",
      "scrollTop equals pre-navigation value ±2px"
     ]
    },
@@ -17273,6 +17653,7 @@
     "studio:route:/",
     "studio:route:/agents",
     "studio:route:/campaigns",
+    "studio:route:/campaigns/:id",
     "studio:route:/coverage",
     "studio:route:/domain",
     "studio:route:/everything",
@@ -17283,8 +17664,11 @@
     "studio:route:/repos",
     "studio:route:/settings",
     "studio:route:/steering",
+    "studio:route:/steering/dashboard",
+    "studio:route:/steering/memories",
     "studio:route:/system",
     "studio:route:/testing",
+    "studio:route:/testing/evals",
     "studio:route:/wiki",
     "studio:testid-pattern:desk-*",
     "studio:testid-pattern:desk-groupby-*",
@@ -17408,6 +17792,7 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=not-found-path] text == typed pathname",
      "location.pathname unchanged",
      "fixture POST count 0"
     ]
@@ -17875,6 +18260,7 @@
    },
    "oracle_text": "(critic 2026-10-20: added; no inventory oracle) Run worktree file and diff viewer (diff tab, binary, truncation, named cause)",
    "covers": [
+    "studio:route:/runs/:id/files",
     "studio:testid-computed:DIFF_TESTID[l.kind]",
     "studio:testid:diff-baseline-note",
     "studio:testid:diff-cause-remediation",
@@ -18142,6 +18528,9 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /api/v1/search?q=upload once per debounce",
+     "[data-testid=search-tab-count] per tab == response",
+     "search-snippet has <mark>",
      "Enter navigates to row href"
     ]
    },
@@ -18220,7 +18609,10 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=chain-step-check] text 'checked at 0:30'",
+     "derived from GET /runs/:id/acceptance (walkthrough block)",
      "absent when acceptance absent",
+     "chip text derived from GET /runs/:id/acceptance",
      "video.currentTime ≈ 30 after click"
     ]
    },
@@ -18320,7 +18712,8 @@
     },
     "complete": false,
     "untyped": [
-     "Playwright download event filename endswith .zip"
+     "Playwright download event filename endswith .zip",
+     "request GET /runs/:id/…zip 200"
     ]
    },
    "oracle_text": "Playwright download event filename endswith .zip; request GET /runs/:id/…zip 200",
@@ -18375,7 +18768,8 @@
     "complete": false,
     "untyped": [
      "deliver card shows repo/branch/diffstat from fixture",
-     "1 POST gate approve after confirm"
+     "1 POST gate approve after confirm",
+     "session-proposal-pr href"
     ]
    },
    "oracle_text": "deliver card shows repo/branch/diffstat from fixture; 1 POST gate approve after confirm; session-proposal-pr href",
@@ -18500,7 +18894,9 @@
     ],
     "complete": false,
     "untyped": [
-     "first attempt: refusal visible and no PR/branch push (deliver unit not completed)"
+     "[data-testid=session-stranded-qe-refused] (or run-deliver-qe-refused) visible with link /system",
+     "first attempt: refusal visible and no PR/branch push (deliver unit not completed)",
+     "after PASS: GET /runs/:id/acceptance .gate.satisfied==true and delivery proceeds to deliver gate"
     ]
    },
    "oracle_text": "[data-testid=session-stranded-qe-refused] (or run-deliver-qe-refused) visible with link /system",
@@ -18608,7 +19004,8 @@
     ],
     "complete": false,
     "untyped": [
-     "fixture log 1 POST resume"
+     "fixture log 1 POST resume",
+     "error → session-failed-resume-error-detail"
     ]
    },
    "oracle_text": "fixture log 1 POST resume; [data-testid=session-failed-resume-asked]; error → session-failed-resume-error-detail",
@@ -18697,6 +19094,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=session-jump-latest] visible when not at end, click → scrollTop at max",
      "stopped status class danger"
     ]
    },
@@ -18799,7 +19197,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "hover → session-needs-overview items == open asks",
+     "jump → session-gate-row in viewport/focused"
+    ]
    },
    "oracle_text": "[data-testid=session-needs-banner] visible; hover → session-needs-overview items == open asks; jump → session-gate-row in viewport/focused",
    "covers": [
@@ -18856,7 +19258,8 @@
     "untyped": [
      "one line text match",
      "disclosure closed",
-     "after open 8 entries"
+     "after open 8 entries",
+     "chain-sentence ends with '· nothing checked'"
     ]
    },
    "oracle_text": "one line text match; disclosure closed; after open 8 entries; chain-sentence ends with '· nothing checked'",
@@ -18945,7 +19348,12 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=session-orphaned] text",
+     "fixture log 1 POST /runs/r-orphan/resume",
+     "/watch watchtower-orphaned visible"
+    ]
    },
    "oracle_text": "[data-testid=session-orphaned] text; fixture log 1 POST /runs/r-orphan/resume; /watch watchtower-orphaned visible",
    "covers": [
@@ -19078,7 +19486,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=session-proposal-text] matches pattern",
+     "fixture log 1 POST /runs/r-ship-plan/gate {approve:true}"
+    ]
    },
    "oracle_text": "[data-testid=session-proposal-text] matches pattern; fixture log 1 POST /runs/r-ship-plan/gate {approve:true}",
    "covers": [
@@ -19180,6 +19592,8 @@
     ],
     "complete": false,
     "untyped": [
+     "location hash #gate and elicitation-prompt focused",
+     "fixture log 1 POST /runs/e1/elicitation",
      "no gate card in docks"
     ]
    },
@@ -19264,6 +19678,8 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=chat-step] count == finished steps",
+     "[data-testid=chat-final] last",
      "scroll at bottom on load"
     ]
    },
@@ -19372,7 +19788,9 @@
     ],
     "complete": false,
     "untyped": [
-     "[data-testid=run-panel-section] count==6"
+     "[data-testid=run-panel-section] count==6",
+     "host-panel width 400±1",
+     "phone → host-panel-ribbon visible"
     ]
    },
    "oracle_text": "[data-testid=run-panel-section] count==6; host-panel width 400±1; phone → host-panel-ribbon visible",
@@ -19499,7 +19917,12 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=run-tab-team-lead] text",
+     "run-tab-team-watch text",
+     "run-tab-team-member-error present with reason"
+    ]
    },
    "oracle_text": "[data-testid=run-tab-team-lead] text; run-tab-team-watch text; run-tab-team-member-error present with reason",
    "covers": [
@@ -19566,12 +19989,15 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "fixture log 1 POST /runs/<id>/cancel after confirm",
+     "0 on session-stop-keep"
+    ]
    },
    "oracle_text": "fixture log 1 POST /runs/<id>/cancel after confirm; 0 on session-stop-keep",
    "covers": [
     "crew:route:POST /api/v1/runs/:id/cancel",
-    "garden:hook:Stop",
     "studio:testid:run-chat-drawer",
     "studio:testid:run-chat-turn",
     "studio:testid:run-panel-item",
@@ -19719,7 +20145,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "fixture/route log 1 POST /runs/r-strand/deliver",
+     "error → session-stranded-error"
+    ]
    },
    "oracle_text": "[data-testid=session-stranded] visible; fixture/route log 1 POST /runs/r-strand/deliver; error → session-stranded-error",
    "covers": [
@@ -19789,7 +20219,8 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
-     "element handle identity preserved and innerText changed after frame"
+     "element handle identity preserved and innerText changed after frame",
+     "[data-testid=chain-step-now] moves to next phase"
     ]
    },
    "oracle_text": "element handle identity preserved and innerText changed after frame; [data-testid=chain-step-now] moves to next phase",
@@ -19942,7 +20373,8 @@
     ],
     "complete": false,
     "untyped": [
-     "[data-testid=watch-gate-line] count==1 (0 when registry 404)"
+     "[data-testid=watch-gate-line] count==1 (0 when registry 404)",
+     "[data-testid=watch-coverage] text"
     ]
    },
    "oracle_text": "[data-testid=watch-gate-line] count==1 (0 when registry 404); [data-testid=watch-coverage] text",
@@ -19995,6 +20427,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "system-base-skill text equals /health baseSkill",
      "fix → 1 write"
     ]
    },
@@ -20079,7 +20512,8 @@
     "complete": false,
     "untyped": [
      "PUT body councilSize == chosen",
-     "PUT councilSize 10 -> 400 'councilSize must be an integer between 1 and 9'"
+     "PUT councilSize 10 -> 400 'councilSize must be an integer between 1 and 9'",
+     "valid -> next councilConvened.clis length == min(size, eligible)."
     ]
    },
    "oracle_text": "PUT body councilSize == chosen",
@@ -20293,6 +20727,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=notif-permission] visible before and after",
      "preference saved"
     ]
    },
@@ -20379,7 +20814,10 @@
     ],
     "complete": false,
     "untyped": [
+     "PUT /settings body qe field",
+     "[data-testid=qe-acceptance-setting] state",
      "qeAcceptanceOff() returns reason",
+     "campaign node / bus run sessionStarted.assurance.qe skipped with host basis",
      "node relaunched on resume reads current setting"
     ]
    },
@@ -20477,7 +20915,8 @@
     "complete": false,
     "untyped": [
      "default: no run handles in session head",
-     "after toggle PUT body"
+     "after toggle PUT body",
+     "[data-testid=tech-details] visible on run head"
     ]
    },
    "oracle_text": "default: no run handles in session head; after toggle PUT body; [data-testid=tech-details] visible on run head",
@@ -20568,6 +21007,8 @@
     "untyped": [
      "PUT body path",
      "error testids on invalid",
+     "PUT relative path -> 400 'worker_config_root must be an absolute path, or \"\" for the default (~/.wicked-worker)' (worker-root-error/invalid shown)",
+     "valid -> GET /roster login_invocation contains the new root",
      "next roster read re-probes."
     ]
    },
@@ -20705,6 +21146,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=outbound-text] value",
      "navigator.clipboard.readText()==value"
     ]
    },
@@ -20864,7 +21306,8 @@
     ],
     "complete": false,
     "untyped": [
-     "fixture log 1 POST to the run's message route"
+     "fixture log 1 POST to the run's message route",
+     "error → sheet-message-error"
     ]
    },
    "oracle_text": "fixture log 1 POST to the run's message route; [data-testid=sheet-message-sent]; error → sheet-message-error",
@@ -20961,6 +21404,8 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=sheet-section] tabs render content",
+     "sheet-step-why text",
      "Esc closes one layer"
     ]
    },
@@ -21076,6 +21521,8 @@
     ],
     "complete": false,
     "untyped": [
+     "DOM: document.querySelector('[data-shell=desk]') present",
+     "[data-testid=desk] data-tab=='work'",
      "rail boundingBox.width==236",
      "0 pageerror events"
     ]
@@ -21258,6 +21705,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=shortcut-overlay] visible with shortcut-group-* incl. palette, panels, triage, navigate",
      "Esc → absent"
     ]
    },
@@ -21402,7 +21850,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=skills-row] count == GET /skills filtered",
+     "skills-engine text in SKILLS_ENGINE_STATE_COPY"
+    ]
    },
    "oracle_text": "[data-testid=skills-row] count == GET /skills filtered; skills-engine text in SKILLS_ENGINE_STATE_COPY",
    "covers": [
@@ -21514,7 +21966,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=skills-drawer] skill name",
+     "or skills-deep-link-missing visible"
+    ]
    },
    "oracle_text": "[data-testid=skills-drawer] skill name; or skills-deep-link-missing visible",
    "covers": [
@@ -21611,7 +22067,9 @@
     ],
     "complete": false,
     "untyped": [
-     "fixture log 1 PUT skill file with content"
+     "fixture log 1 PUT skill file with content",
+     "skills-drawer-edited visible",
+     "stale write → skills-file-conflict"
     ]
    },
    "oracle_text": "fixture log 1 PUT skill file with content; skills-drawer-edited visible; stale write → skills-file-conflict",
@@ -21715,6 +22173,7 @@
     "complete": false,
     "untyped": [
      "fixture log 1 POST",
+     "skills-recovery-state text changes",
      "findings listed"
     ]
    },
@@ -21809,6 +22268,7 @@
     },
     "complete": false,
     "untyped": [
+     "fixture log 1 POST /skills/<name>/<enabled|disabled>",
      "toggle aria-checked flips"
     ]
    },
@@ -22161,7 +22621,10 @@
     ],
     "complete": false,
     "untyped": [
-     "response JSON rows per rule matching governanceScoreboard()"
+     "[data-testid=steering-stat-rules] equals rule count",
+     "steering-usage-runs equals fixture governed runs",
+     "response JSON rows per rule matching governanceScoreboard()",
+     "studio steering-health non-error"
     ]
    },
    "oracle_text": "[data-testid=steering-stat-rules] equals rule count; steering-usage-runs equals fixture governed runs",
@@ -22283,8 +22746,11 @@
     ],
     "complete": false,
     "untyped": [
+     "fixture log 1 POST /governance/steering/import with file content",
      "dialog shows imported count",
+     "steer-import-cancel posts nothing",
      "steeringImport result rows",
+     "GET /api/v1/governance/rules?type=... contains ids",
      "retired absent from /governance/rules/preview"
     ]
    },
@@ -22412,12 +22878,14 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "[data-testid=steering-mcp-compiled] text equals expected compiled statement",
      "save → policy POST"
     ]
    },
    "oracle_text": "[data-testid=steering-mcp-compiled] text equals expected compiled statement; save → policy POST",
    "covers": [
     "studio:route:/steering",
+    "studio:route:/steering/policies",
     "studio:testid:steering-mcp-add-subject",
     "studio:testid:steering-mcp-args",
     "studio:testid:steering-mcp-builder",
@@ -22482,12 +22950,14 @@
     "complete": false,
     "untyped": [
      "fixture log PUT/POST for draft",
+     "steering-grid-row count",
      "?type=<t> filters rows to that steering_type"
     ]
    },
    "oracle_text": "fixture log PUT/POST for draft; steering-grid-row count; ?type=<t> filters rows to that steering_type",
    "covers": [
     "studio:route:/steering",
+    "studio:route:/steering/policies",
     "studio:testid-computed:testid",
     "studio:testid-pattern:*-editor",
     "studio:testid-pattern:*-input",
@@ -22591,6 +23061,7 @@
     "complete": false,
     "untyped": [
      "fixture log 1 retire POST with reason",
+     "[data-testid=steering-rule-retired-chip] when steering-filter-retired on",
      "cancel posts nothing"
     ]
    },
@@ -22706,11 +23177,16 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=rule-origin-words] equals operator words from decisions fixture",
+     "rule-where-row count == /considered entries"
+    ]
    },
    "oracle_text": "[data-testid=rule-origin-words] equals operator words from decisions fixture; rule-where-row count == /considered entries",
    "covers": [
     "studio:route:/rules",
+    "studio:route:/rules/:id",
     "studio:testid:rule-history",
     "studio:testid:rule-history-row",
     "studio:testid:rule-origin",
@@ -22795,12 +23271,15 @@
     ],
     "complete": false,
     "untyped": [
-     "hold confirm sends one write"
+     "[data-testid=steering-rule-drawer] visible with steering-rule-statement text",
+     "hold confirm sends one write",
+     "steering-rule-hold-error on refusal"
     ]
    },
    "oracle_text": "[data-testid=steering-rule-drawer] visible with steering-rule-statement text; hold confirm sends one write; steering-rule-hold-error on refusal",
    "covers": [
     "studio:route:/steering",
+    "studio:route:/steering/policies",
     "studio:testid-computed:testid",
     "studio:testid:rule-sentence",
     "studio:testid:steering-drawer-close",
@@ -22938,7 +23417,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=rules-row] count equals GET /governance/rules filtered",
+     "steer-stat-rules number == total"
+    ]
    },
    "oracle_text": "[data-testid=rules-row] count equals GET /governance/rules filtered; steer-stat-rules number == total",
    "covers": [
@@ -23204,11 +23687,18 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "[data-testid=campaign-ladder-row] count == campaign units",
+     "campaign-verdict-chip texts",
+     "campaign-notfound for missing id"
+    ]
    },
    "oracle_text": "[data-testid=campaign-ladder-row] count == campaign units; campaign-verdict-chip texts; campaign-notfound for missing id",
    "covers": [
     "studio:route:/testing",
+    "studio:route:/testing/campaigns",
+    "studio:route:/testing/campaigns/:id",
     "studio:testid-computed:testid",
     "studio:testid:campaign-delivery-rollup",
     "studio:testid:campaign-evidence-link",
@@ -23289,12 +23779,15 @@
     "complete": false,
     "untyped": [
      "location.pathname=='/'",
+     "[data-testid=launch-wizard-chosen] names test workflow",
+     "launch-wizard-project == pid",
      "POST count 0"
     ]
    },
    "oracle_text": "location.pathname=='/'; [data-testid=launch-wizard-chosen] names test workflow; launch-wizard-project == pid; POST count 0",
    "covers": [
     "studio:route:/testing",
+    "studio:route:/testing/campaigns",
     "studio:testid-pattern:launch-wizard-workflow-*",
     "studio:testid:launch-wizard",
     "studio:testid:launch-wizard-back",
@@ -23636,7 +24129,10 @@
     "untyped": [
      "0 learn requests before click",
      "then POST …/api/events (theme.requested) and GET …/theme/learned",
+     "learn-status done",
      "applied tokens",
+     "learn-file-name/learn-file-preview visible",
+     "bridge log PUT …/d/brand-learn/api/… with PNG bytes length == file size",
      "network sequence and bodies",
      "computed --accent CSS var changes on preview",
      "appearance PUT on apply",
@@ -23754,6 +24250,8 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=logo-thumb] src set",
+     "desk-rail-logo src equal",
      "settings write once"
     ]
    },
@@ -23857,6 +24355,7 @@
     "untyped": [
      "one bridge request",
      "line text",
+     "network sequence POST /api/events (theme.requested) -> GET /api/theme/learned 200 -> PUT /api/theme/learned",
      "versions head +1 kind theme"
     ]
    },
@@ -24230,7 +24729,10 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "regexes for uuid, '|||', '<home-prefix>' match nothing in chain-line / session-status-sentence / deliver card texts"
+    ]
    },
    "oracle_text": "regexes for uuid, '|||', '<home-prefix>' match nothing in chain-line / session-status-sentence / deliver card texts",
    "covers": [
@@ -24386,7 +24888,9 @@
     ],
     "complete": false,
     "untyped": [
+     "[data-testid=watchtower-row] sorted desc by clock",
      "kind filter rows all of kind",
+     "watchtower-sentence number == desk-rail-badge",
      "jump → /s/run%3A<id>"
     ]
    },
@@ -24462,7 +24966,8 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
-     "fixture log 1 save write with steps"
+     "fixture log 1 save write with steps",
+     "builder-save-blocker lists blockers when invalid and save disabled"
     ]
    },
    "oracle_text": "fixture log 1 save write with steps; builder-save-blocker lists blockers when invalid and save disabled",
@@ -24540,7 +25045,11 @@
       "assert": "visible"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "rows == union(GET /workflows, GET /presets) by name",
+     "[data-testid=workflows-refused-row] count == refused"
+    ]
    },
    "oracle_text": "rows == union(GET /workflows, GET /presets) by name; [data-testid=workflows-refused-row] count == refused",
    "covers": [

@@ -521,7 +521,6 @@
      "enum": [
       "model-output",
       "human-gui",
-      "timing",
       "dead-path",
       "host-dependent",
       "stub-only",

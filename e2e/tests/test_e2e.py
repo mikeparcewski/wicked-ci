@@ -127,6 +127,39 @@ class CatalogChecks(unittest.TestCase):
         fails, _ = self.run_check(cap(oracle=o))
         self.assertTrue(any("marked complete" in f for f in fails), fails)
 
+    def test_comparisons_need_values_and_checks_are_not_vacuous(self):
+        api = {"kind": "api", "method": "GET", "path": "/api/v1/health", "complete": True}
+        cases = [
+            (dict(api, expect={"json": [{"path": "$.status", "op": "eq"}]}), "needs a value"),
+            (dict(api, expect={}), "expects nothing"),
+            (dict(api, expect={"json": []}), "empty json expectation"),
+            ({"kind": "event", "type": "sessionCompleted", "count": {"min": 0}, "complete": True}, "vacuous"),
+            ({"kind": "gh", "target": "run", "assert": {"path": "$.conclusion", "op": "eq"}, "complete": True}, "needs a value"),
+            ({"kind": "dom", "selector": "x", "assert": "attr", "value": "v", "complete": True}, "attribute name"),
+        ]
+        for oracle, want in cases:
+            fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=oracle))
+            self.assertTrue(any(want in f for f in fails), (oracle, fails))
+        ok = dict(api, expect={"json": [{"path": "$.status", "op": "exists"}]})
+        fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=ok))
+        self.assertEqual(fails, [])
+
+    def test_manual_precheck_is_checked_too(self):
+        o = {"kind": "manual", "category": "model-output", "reason": "model output only",
+             "precheck": {"kind": "api", "method": "GET", "path": "/x", "expect": {}}}
+        fails, _ = self.run_check(cap(oracle=o))
+        self.assertTrue(any("precheck" in f and "expects nothing" in f for f in fails), fails)
+
+    def test_complete_flag_contract(self):
+        base = {"kind": "dom", "selector": "x", "assert": "visible"}
+        fails, _ = self.run_check(cap(oracle=dict(base)))
+        self.assertTrue(any("must say whether it is complete" in f for f in fails), fails)
+        fails, _ = self.run_check(cap(oracle=dict(base, complete=False)))
+        self.assertTrue(any("must list its untyped clauses" in f for f in fails), fails)
+        o = {"kind": "api", "method": "GET", "path": "/x", "expect": {"status": 200}, "complete": True}
+        fails, _ = self.run_check(cap(oracle=o))
+        self.assertTrue(any("without a dom check cannot be complete" in f for f in fails), fails)
+
     def test_unmapped_elements_by_repo_and_ratchet(self):
         _, caps = self.run_check(cap(covers=["studio:testid:desk"]))
         un = v.unmapped_elements(caps, self.surf)
@@ -248,6 +281,17 @@ class RunReport(unittest.TestCase):
         self.edit("crew-api.c.d", evidence={"api-transcript": ["../outside.json"]})
         self.assertTrue(any("escapes the run dir" in f for f in self.check()))
 
+    @unittest.skipIf(not hasattr(os, "symlink") or os.name == "nt", "symlinks need privileges on Windows")
+    def test_symlink_out_of_the_run_dir_escapes(self):
+        outside = tempfile.mkdtemp(prefix="e2e-outside-")
+        try:
+            write_text(os.path.join(outside, "secret.json"), "x")
+            os.symlink(os.path.join(outside, "secret.json"), os.path.join(self.d, "ev", "link.json"))
+            self.edit("crew-api.c.d", evidence={"api-transcript": ["ev/link.json"]})
+            self.assertTrue(any("escapes the run dir" in f for f in self.check()))
+        finally:
+            shutil.rmtree(outside, ignore_errors=True)
+
     def test_skipped_is_not_a_verdict_for_a_selected_capability(self):
         self.edit("crew-api.c.d", verdict="skipped")
         self.assertTrue(any("skipped" in f for f in self.check()))
@@ -284,6 +328,64 @@ class Extractors(unittest.TestCase):
             files = ["src/a.rs", "src/b.rs", "tests/x.ts", "pkg/y.test.ts", ".github/workflows/ci.yml", "README.md",
                      "tests/fixtures/f.ts", "tests/data.json", "scenarios/a.md"]
             self.assertEqual(surfaces.test_index(d, files), ["src/a.rs", "tests/x.ts", "pkg/y.test.ts", ".github/workflows/ci.yml"])
+        finally:
+            shutil.rmtree(d)
+
+
+class StudioRoutes(unittest.TestCase):
+    SRC = """function parse(pathname: string): Route {
+  if (first === '') {
+    return route({ panel: 'home' });
+  }
+  if (first === 'rules') {
+    if (third) return route({ panel: 'not-found' });
+    return route({ panel: 'rules', ruleId: second ? safeDecode(second) : null });
+  }
+  if (first === 'testing') {
+    if (second === 'campaigns' && third) {
+      return route({ panel: 'testing' });
+    }
+    return isTestingSubPage(second) ? route({ panel: 'testing' }) : route({ panel: 'not-found' });
+  }
+  if (first === 's' && second) {
+    if (third === 'a' && fourth !== '' && restEmpty(5)) {
+      return route({ panel: 'session' });
+    }
+    return route({ panel: 'session' });
+  }
+  if (first === 'projects' && second && third === 'requirements' && restEmpty(4)) {
+    return route({ panel: 'project-requirements' });
+  }
+  if (first === 'mcp' && second === 'inspect' && !third) {
+    return route({ panel: 'mcp' });
+  }
+  if (first === 'runs') {
+    if (second === 'new') return route({ panel: 'runs', showLaunch: true });
+    if (second && third === 'events') return route({ panel: 'run-events' });
+    return route({ panel: 'not-found' });
+  }
+  return route({ panel: 'not-found' });
+}
+"""
+
+    def test_nested_routes_are_extracted(self):
+        got = surfaces.route_shapes(self.SRC, lambda name: ["campaigns", "evals"])
+        for r in ("/", "/rules", "/rules/:id", "/testing", "/testing/campaigns", "/testing/evals",
+                  "/testing/campaigns/:id", "/s/:id", "/s/:id/a/:key", "/projects/:id/requirements",
+                  "/mcp/inspect", "/runs", "/runs/new", "/runs/:id/events"):
+            self.assertIn(r, got)
+
+
+class Drift(unittest.TestCase):
+    def test_missing_fresh_manifest_is_unavailable_not_removed(self):
+        d = tempfile.mkdtemp(prefix="e2e-drift-")
+        try:
+            with redirect_stdout(io.StringIO()) as buf:
+                rc = cli.main(["drift", "--against", d, "--out", d])
+            self.assertEqual(rc, 0)
+            out = read_json(os.path.join(d, "drift.json"))
+            self.assertTrue(all(v.get("unavailable") for v in out.values()), out)
+            self.assertNotIn("removed:", buf.getvalue())
         finally:
             shutil.rmtree(d)
 

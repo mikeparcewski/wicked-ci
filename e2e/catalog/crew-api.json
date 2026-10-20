@@ -31,6 +31,7 @@
     "complete": false,
     "untyped": [
      "colours derive from settings studio.appearance (change appearance -> palette changes)",
+     "200 JSON with palette hex colours",
      "GET …/d/:doc/api/demo/cut skin.palette equals it"
     ]
    },
@@ -144,6 +145,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /runs 200 with no Authorization header",
      "/whoami.authMode=='off'",
      "WICKED_CREW_READY.auth=='off'"
     ]
@@ -286,7 +288,8 @@
     },
     "complete": false,
     "untyped": [
-     "mutating route -> 403"
+     "mutating route -> 403",
+     "GET /audit -> 200 with same token"
     ]
    },
    "oracle_text": "mutating route -> 403; GET /audit -> 200 with same token",
@@ -469,35 +472,16 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "chatDelta",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "chatReply",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/decisions",
-      "expect": {
-       "status": 200
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/decisions",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
+     "no '```wicked-decisions' substring in any chatDelta/chatReply/transcript",
+     "GET /decisions contains labelled decision",
      "diagnostics.decisions compliance per CLI"
     ]
    },
@@ -589,6 +573,7 @@
     },
     "complete": false,
     "untyped": [
+     "teamEvent frames with event.event_type starting 'wicked.team.'",
      "bus has no team rows produced by wicked-crew"
     ]
    },
@@ -731,6 +716,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 {campaignId,status}",
      "cancel terminal -> 409",
      "audit campaign.cancelled/resumed"
     ]
@@ -801,6 +787,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /campaigns/<id> status 'running'",
      "campaignNode* frames",
      "bad DAG -> 400",
      "unsupported -> 501"
@@ -907,15 +894,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "node cancelled with node-timeout exclusion",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "campaignNodeExcluded frame reason 'node-timeout'",
-     "awaiting-human time not counted",
-     "campaignBudgetExceeded emitted once"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: campaignNodeExcluded frame reason 'node-timeout'; awaiting-human time not counted; campaignBudgetExceeded emitted once"
    },
    "oracle_text": "campaignNodeExcluded frame reason 'node-timeout'; awaiting-human time not counted; campaignBudgetExceeded emitted once",
    "covers": [],
@@ -1114,7 +1095,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "chatClosed frame reason=='closed'",
+     "GET /runs/<askRun> status=='cancelled'",
+     "GET /chats omits it"
+    ]
    },
    "oracle_text": "200; chatClosed frame reason=='closed'; GET /runs/<askRun> status=='cancelled'; GET /chats omits it",
    "covers": [
@@ -1165,6 +1151,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 for an answered turn",
      "unknown -> 404",
      "not permitted -> 403"
     ]
@@ -1250,6 +1237,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 contains chatId from open",
      "after DELETE absent"
     ]
    },
@@ -1320,7 +1308,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "202 turnId",
+     "exactly one chatReply frame with turn_id==turnId and run_id==ask run",
+     "GET /runs/<run_id> unit ids 'answer-1','answer-2'"
+    ]
    },
    "oracle_text": "202 turnId; exactly one chatReply frame with turn_id==turnId and run_id==ask run; GET /runs/<run_id> unit ids 'answer-1','answer-2'",
    "covers": [
@@ -1521,6 +1514,7 @@
     },
     "complete": false,
     "untyped": [
+     "chatSeatRefused frame with cli",
      "ChatOpenResponse.refused[].cli matches"
     ]
    },
@@ -1592,8 +1586,12 @@
     ],
     "complete": false,
     "untyped": [
+     "200 ChatSeatsResponse seats",
      "during a turn -> 409 turn_in_flight",
-     "invalid body (0 or >8 clis, extra keys) -> 400"
+     "unknown chat 404",
+     "200/201 with seats[].ok",
+     "invalid body (0 or >8 clis, extra keys) -> 400",
+     "a later message is answered by the new seat (chatReply.cli_key)."
     ]
    },
    "oracle_text": "200 ChatSeatsResponse seats; during a turn -> 409 turn_in_flight; unknown chat 404",
@@ -1743,6 +1741,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "exit 0 + stdout line",
      "run leaves awaiting_human",
      "no --run -> usage exit 1",
      "no daemon -> one remedy line, exit 1"
@@ -1786,6 +1785,8 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "dry-run exit 0 with count and store unchanged",
+     "real run exit 0 and diagnostics governance.records increased by count",
      ":memory: target refused",
      "missing file -> usage error exit 2"
     ]
@@ -2013,19 +2014,13 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-crew status --port <port>",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "stderr exactly one line starting 'wicked-crew: no daemon answering'",
-     "no 'TypeError' in output"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit code 1; stderr exactly one line starting 'wicked-crew: no daemon answering'; no 'TypeError' in output"
    },
    "oracle_text": "exit code 1; stderr exactly one line starting 'wicked-crew: no daemon answering'; no 'TypeError' in output",
    "covers": [
-    "crew:cli:status",
-    "garden:hook:Stop"
+    "crew:cli:status"
    ],
    "scenarios": [
     {
@@ -2067,6 +2062,7 @@
     "complete": false,
     "untyped": [
      "require.resolve of platform package succeeds with version == pin",
+     "dist/studio/index.html exists",
      "every roster headless_invocation/login_invocation/binary path under temp root"
     ]
    },
@@ -2161,10 +2157,11 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-crew resume --session <id>",
-    "code": 1,
+    "code": 0,
     "complete": false,
     "untyped": [
-     "ready line status present"
+     "ready line status present",
+     "without --session exit 1 and usage on stderr"
     ]
    },
    "oracle_text": "ready line status present; without --session exit 1 and usage on stderr",
@@ -2209,6 +2206,7 @@
      "ready line JSON parses",
      "port == --port",
      "stages sum ~= startupMs",
+     "GET /health 200",
      "URL-form WICKED_ESTATE_DB without --governance-db refuses boot"
     ]
    },
@@ -2297,14 +2295,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "kill -TERM <daemon pid>",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "sqlite3 bus.db 'PRAGMA integrity_check' == 'ok'",
-     "ps shows no child with ppid 1 from this daemon"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: sqlite3 bus.db 'PRAGMA integrity_check' == 'ok'; ps shows no child with ppid 1 from this daemon"
    },
    "oracle_text": "sqlite3 bus.db 'PRAGMA integrity_check' == 'ok'; ps shows no child with ppid 1 from this daemon",
    "covers": [],
@@ -2360,11 +2353,6 @@
       }
      },
      {
-      "kind": "exit",
-      "cmd": "wicked-crew start --problem 'x' --workflow bug --repo <id> [--human-confirm before:1] [--reduced-assurance]",
-      "code": 1
-     },
-     {
       "kind": "api",
       "method": "GET",
       "path": "/api/v1/runs/{runId}",
@@ -2394,7 +2382,9 @@
     "complete": false,
     "untyped": [
      "ready line has run id",
+     "GET /runs/<id> exists",
      "launch audit channel=='cli'",
+     "--workflow without value exits 1",
      "stdout ready line with run id",
      "audit run.launched channel=='cli'",
      "no unit on a signed-out seat."
@@ -2447,15 +2437,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-crew start --skip-qe-acceptance (no reason)",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "no reason -> exit 1 stderr '--skip-qe-acceptance requires a reason'",
-     "both -> exit 1 'mutually exclusive'",
-     "valid -> run with skip label"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: no reason -> exit 1 stderr '--skip-qe-acceptance requires a reason'; both -> exit 1 'mutually exclusive'; valid -> run with skip label"
    },
    "oracle_text": "no reason -> exit 1 stderr '--skip-qe-acceptance requires a reason'; both -> exit 1 'mutually exclusive'; valid -> run with skip label",
    "covers": [
@@ -2513,8 +2497,11 @@
     ],
     "complete": false,
     "untyped": [
+     "stdout parses as JSON equal to GET /runs (or /runs/:id)",
      "stderr lines 'wicked-crew: <warning message>' for each health warning",
-     "stderr lines == health.warnings count"
+     "exit 0 with daemon up",
+     "stderr lines == health.warnings count",
+     "daemon down -> exit 1 and message contains 'start it with `wicked-crew serve`'."
     ]
    },
    "oracle_text": "stdout parses as JSON equal to GET /runs (or /runs/:id); stderr lines 'wicked-crew: <warning message>' for each health warning",
@@ -2558,9 +2545,10 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-crew frobnicate",
-    "code": 1,
+    "code": 0,
     "complete": false,
     "untyped": [
+     "exit 1",
      "stderr contains 'Usage: wicked-crew serve|start|resume|gate|status|mcp|governance|version'"
     ]
    },
@@ -2655,7 +2643,8 @@
     },
     "complete": false,
     "untyped": [
-     "json.port == port from WICKED_CREW_READY line"
+     "json.port == port from WICKED_CREW_READY line",
+     "json.host == '127.0.0.1'"
     ]
    },
    "oracle_text": "json.port == port from WICKED_CREW_READY line; json.host == '127.0.0.1'",
@@ -2760,6 +2749,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /decisions shows state 'dismissed'",
      "already decided -> 409"
     ]
    },
@@ -2867,6 +2857,8 @@
     ],
     "complete": false,
     "untyped": [
+     "200 with proposal_id",
+     "GET /proposals contains it",
      "repeat -> 409"
     ]
    },
@@ -2932,7 +2924,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "200 {rule_id?}",
+     "bad body 400",
+     "unknown 404"
+    ]
    },
    "oracle_text": "200 {rule_id?}; bad body 400; unknown 404",
    "covers": [
@@ -2975,6 +2972,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 ok",
      "decision state back to pending",
      "estate failure -> 502"
     ]
@@ -3019,7 +3017,10 @@
     "expect": {
      "status": 200
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "200 rule_id present in GET /governance/rules"
+    ]
    },
    "oracle_text": "200 rule_id present in GET /governance/rules",
    "covers": [
@@ -3288,7 +3289,8 @@
     "complete": false,
     "untyped": [
      "session delivery prUrl set",
-     "gh pr view <prUrl> --json headRefName == 'wicked/<runId>'"
+     "gh pr view <prUrl> --json headRefName == 'wicked/<runId>'",
+     "deliverLiftEvaluated frame"
     ]
    },
    "oracle_text": "session delivery prUrl set; gh pr view <prUrl> --json headRefName == 'wicked/<runId>'; deliverLiftEvaluated frame",
@@ -3344,6 +3346,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 json.prUrl non-empty",
      "assurance.via=='post_hoc'",
      "already delivered/not eligible -> 409",
      "unknown -> 404"
@@ -3399,6 +3402,7 @@
     },
     "complete": false,
     "untyped": [
+     "gateEscalated on deliver unit",
      "worktree dir exists",
      "second approve after fixing auth yields prUrl"
     ]
@@ -3465,7 +3469,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "200 with origin equal to git remote get-url --push origin",
+     "unknown repo 404"
+    ]
    },
    "oracle_text": "200 with origin equal to git remote get-url --push origin; unknown repo 404",
    "covers": [
@@ -3513,7 +3521,8 @@
     "complete": false,
     "untyped": [
      "worktree dir absent after delivered",
-     "git worktree list has no entry"
+     "git worktree list has no entry",
+     "GET /runs/:id/diff still 200"
     ]
    },
    "oracle_text": "worktree dir absent after delivered; git worktree list has no entry; GET /runs/:id/diff still 200",
@@ -3574,9 +3583,11 @@
     ],
     "complete": false,
     "untyped": [
+     "200 with doc id",
      "bridge down -> 503",
      "unknown -> 404",
      "response fields",
+     "bridge GET /d/<docId>/api/demo/cut chapters ids === chapters.json keys",
      "second call created===false"
     ]
    },
@@ -3644,9 +3655,12 @@
     ],
     "complete": false,
     "untyped": [
+     "200 {format,path,bytes>0}",
      "no MP4 -> 409",
      "ffmpeg timeout -> 504",
-     "GIF8 / JPEG magic bytes"
+     "200 response naming the file",
+     "GIF8 / JPEG magic bytes",
+     "concurrent GET /api/v1/health answers during encode"
     ]
    },
    "oracle_text": "200 {format,path,bytes>0}; no MP4 -> 409; ffmpeg timeout -> 504",
@@ -3754,8 +3768,11 @@
     ],
     "complete": false,
     "untyped": [
+     "201 runId",
      "run workflow 'demo'",
      "demo root created with brief",
+     "201 body.runId",
+     "GET /api/v1/runs/:id session.workflow_id/preset 'demo'",
      "BRIEF.md exists under the demo root"
     ]
    },
@@ -3814,6 +3831,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 {bytes}",
      "plan gate not open -> 409",
      ">cap -> 413"
     ]
@@ -3876,8 +3894,11 @@
     ],
     "complete": false,
     "untyped": [
+     "view 200 with chapters[]",
+     "file 206 Content-Range",
      "ffprobe of downloaded mp4 duration > 0",
      "view fields",
+     "206 with Content-Range",
      "script.md bytes === PUT content",
      "4xx outside the gate",
      "'../' path -> 4xx"
@@ -4350,6 +4371,9 @@
     ],
     "complete": false,
     "untyped": [
+     "200 enabled matches",
+     "unknown 404",
+     "200 EditorView with enabled flag",
      "persisted in <state home>/daemon-editors.json across daemon restart",
      "disabled => GET .../entry 404",
      "studio /plugins row shows editor-plugin-off"
@@ -4423,7 +4447,10 @@
     ],
     "complete": false,
     "untyped": [
+     "200 with Content-Security-Policy header",
      "modify file on disk -> 409 code 'bundle_hash_mismatch'",
+     "first GET 200 text/html with the §8.2 CSP headers (bundleHeaders) and body sha256 == pinned",
+     "after modification 409 {code:'bundle_hash_mismatch'}",
      "an entry swapped for a symlink => 404",
      "changed entry skipped at next boot"
     ]
@@ -4521,6 +4548,10 @@
     ],
     "complete": false,
     "untyped": [
+     "200 grants list",
+     "unknown 404",
+     "unsupported 501",
+     "200 EditorGrantsResponse from evaluate_editor_grants for editor:<id>@<version>#<sha256>/<permission>",
      "third-party defaults allow artifact.read/selection.chip/checks.contribute/ui.fullscreen and ask for the rest",
      "mcp.session only via install consent",
      "core-ts < 0.7.35 => 501"
@@ -4611,6 +4642,7 @@
     ],
     "complete": false,
     "untyped": [
+     "200 installed true and conformance all pass",
      "daemon-editors.json contains editor at pinned hash",
      "failed case -> 422",
      "pack_ships_skills_or_blocks -> 501",
@@ -4692,7 +4724,9 @@
     "untyped": [
      "installed editor ids present",
      "non-human -> 403",
-     "no file paths in the wire view"
+     "200 {installs:'conformance_required', editors:[...]} containing first-party wicked-deck, wicked-doc, wicked-page, wicked-video with first_party:true and protocol [1,2] (confirmed on :7721 at crew 0.15.4)",
+     "no file paths in the wire view",
+     "non-operator 403"
     ]
    },
    "oracle_text": "200; installed editor ids present; non-human -> 403",
@@ -4763,6 +4797,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /editors omits id",
      "in use -> 409"
     ]
    },
@@ -4864,7 +4899,9 @@
     ],
     "complete": false,
     "untyped": [
-     "/audit action 'gate.decided'"
+     "200 GateDecisionResult.status != 'awaiting_human' (or next gate)",
+     "/audit action 'gate.decided'",
+     "next unitDispatched frame"
     ]
    },
    "oracle_text": "200 GateDecisionResult.status != 'awaiting_human' (or next gate); /audit action 'gate.decided'; next unitDispatched frame",
@@ -4921,6 +4958,7 @@
     "complete": false,
     "untyped": [
      "200",
+     "next creator unit's context contains amend text (unitContextInjected / unit output)",
      "amendScope with approve:false -> 400"
     ]
    },
@@ -5017,6 +5055,7 @@
     },
     "complete": false,
     "untyped": [
+     "awaitingHuman frame has choices[] and writeTargets",
      "POST with an id not in choices -> 409",
      "valid -> 200 and install unit dispatched"
     ]
@@ -5163,6 +5202,7 @@
     "complete": false,
     "untyped": [
      "200",
+     "subsequent unitPlanned ids match edited plan",
      "plan without approve -> 400"
     ]
    },
@@ -5260,6 +5300,7 @@
     "count": 200,
     "complete": false,
     "untyped": [
+     "200 and repoChecksEvaluated frame follows",
      "arm at a non-matching gate -> 409 naming the gate",
      "with amend -> 400"
     ]
@@ -5302,28 +5343,19 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "gateEscalated",
-      "where": {
-       "condition": "judge_unavailable"
-      },
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitDispatched",
-      "count": 0
-     }
-    ],
+    "kind": "event",
+    "source": "core-event",
+    "type": "gateEscalated",
+    "where": {
+     "condition": "judge_unavailable"
+    },
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
+     "events contain gateEscalated with condition=='judge_unavailable'",
+     "no unitDispatched for deliver unit",
      "status awaiting_human"
     ]
    },
@@ -5439,7 +5471,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "409 json.code=='gate_changed'",
+     "GET /runs/:id/gate unchanged"
+    ]
    },
    "oracle_text": "409 json.code=='gate_changed'; GET /runs/:id/gate unchanged",
    "covers": [
@@ -5483,6 +5519,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 {runId,prompt,ord,gateKind,receivedAt,assurance}",
      "after restart same ord+prompt (durable log fallback)",
      "no open gate -> 404"
     ]
@@ -5600,7 +5637,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "GET /runs/:id session.status=='cancelled'",
+     "runCancelled frame"
+    ]
    },
    "oracle_text": "GET /runs/:id session.status=='cancelled'; runCancelled frame",
    "covers": [
@@ -5650,6 +5691,7 @@
     "complete": false,
     "untyped": [
      "200",
+     "unitReworkAmended or creator re-dispatch frame",
      "status not 'cancelled'",
      "action/approve disagreement -> 400"
     ]
@@ -5711,7 +5753,8 @@
     ],
     "complete": false,
     "untyped": [
-     "claims for a governed run cite rule ids present in /governance/rules"
+     "claims for a governed run cite rule ids present in /governance/rules",
+     "GET /api/v1/governance/claims lists claims for the run with rule ids"
     ]
    },
    "oracle_text": "200; claims for a governed run cite rule ids present in /governance/rules",
@@ -5823,6 +5866,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 replayed count == outbox lines",
      "diagnostics governance.deadletters drops to 0",
      "concurrent -> 409",
      "unsupported -> 501"
@@ -5989,7 +6033,9 @@
     },
     "complete": false,
     "untyped": [
-     "steering engine -> 410"
+     "steering engine -> 410",
+     "older engine POST 200 + audit governance.policy.upserted",
+     "DELETE 200 + governance.policy.retired, record still readable"
     ]
    },
    "oracle_text": "steering engine -> 410; older engine POST 200 + audit governance.policy.upserted; DELETE 200 + governance.policy.retired, record still readable",
@@ -6217,6 +6263,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /governance/rules contains rule id with sent fields",
      "invalid -> 400"
     ]
    },
@@ -6471,6 +6518,9 @@
     ],
     "complete": false,
     "untyped": [
+     "200 after an interactive-review run lists reviewer entries",
+     "bad doc 400",
+     "unknown 404",
      "checks[].reviewer unique",
      "verdict rows equal the wicked-ledger rows under the doc's review root"
     ]
@@ -6761,8 +6811,12 @@
     ],
     "complete": false,
     "untyped": [
+     "200 array",
      "bridge down -> 503",
-     "every row.projectId === p"
+     "unknown project 404",
+     "every row.projectId === p",
+     "row count equals bridge GET /api/docs",
+     "502 on malformed"
     ]
    },
    "oracle_text": "200 array; bridge down -> 503; unknown project 404",
@@ -6843,7 +6897,8 @@
     "untyped": [
      "docs include retired when flag set",
      "no new .wi-serve.json pid appears during the call",
-     "each row corresponds to a <root>/<name>/versions.json"
+     "each row corresponds to a <root>/<name>/versions.json",
+     "runs[] ids match GET /api/v1/runs?doc=<name>"
     ]
    },
    "oracle_text": "docs include retired when flag set",
@@ -6921,6 +6976,7 @@
      "non-interactive type -> 400",
      "bus down -> 503",
      "WS frame type and nested event_type",
+     "202/400 bodies",
      "bus event payload.project_id===p and actor===server actor"
     ]
    },
@@ -7011,7 +7067,8 @@
      "response body equals direct bridge response",
      "bridge request log has no authorization header",
      "Location startsWith '/api/v1/projects/<p>/interactive'",
-     "SSE first byte before stream end"
+     "SSE first byte before stream end",
+     "404 'Project … not found'"
     ]
    },
    "oracle_text": "responses equal bridge's; ps shows one bridge pid per project root across calls; bridge unavailable -> 503 bridge_unavailable",
@@ -7153,8 +7210,10 @@
     "complete": false,
     "untyped": [
      "run with workflow 'interactive-draft' bound to doc",
+     "bus has wicked.interactive.draft.completed",
      "--no-interactive-draft-events disables",
      "stub engine refuses arming",
+     "GET /api/v1/runs?doc=<doc> returns exactly 1 run reaching completed",
      "versions.json head===1",
      "bus has draft.completed with that key",
      "status.posted gaps <= 15 s",
@@ -7230,6 +7289,7 @@
     "complete": false,
     "untyped": [
      "run workflow 'interactive-edit'",
+     "bus wicked.interactive.edit.completed with doc id",
      "flag disables"
     ]
    },
@@ -7555,8 +7615,11 @@
     ],
     "complete": false,
     "untyped": [
+     "PUT 200 LearnSchedule",
      "GET contains",
-     "audit learn.schedule.saved/deleted"
+     "DELETE 200 {deleted:true}",
+     "audit learn.schedule.saved/deleted",
+     "non-human 403"
     ]
    },
    "oracle_text": "PUT 200 LearnSchedule; GET contains; DELETE 200 {deleted:true}; audit learn.schedule.saved/deleted; non-human 403",
@@ -7616,7 +7679,8 @@
     ],
     "complete": false,
     "untyped": [
-     "topic past 2 intervals unverified has staleActive true"
+     "topic past 2 intervals unverified has staleActive true",
+     "unknown repo 404"
     ]
    },
    "oracle_text": "200; topic past 2 intervals unverified has staleActive true; unknown repo 404",
@@ -7718,7 +7782,8 @@
     "complete": false,
     "untyped": [
      "result has status",
-     "run leaves awaiting_human"
+     "run leaves awaiting_human",
+     "equals POST /runs/:id/gate semantics"
     ]
    },
    "oracle_text": "result has status; run leaves awaiting_human; equals POST /runs/:id/gate semantics",
@@ -7768,7 +7833,10 @@
       }
      ]
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "GET /runs/<id> status=='cancelled'"
+    ]
    },
    "oracle_text": "GET /runs/<id> status=='cancelled'",
    "covers": [
@@ -7840,7 +7908,8 @@
     ],
     "complete": false,
     "untyped": [
-     "JSON-RPC result content includes runId"
+     "JSON-RPC result content includes runId",
+     "GET /runs/<runId> 200"
     ]
    },
    "oracle_text": "JSON-RPC result content includes runId; GET /runs/<runId> 200",
@@ -7888,7 +7957,10 @@
     "expect": {
      "status": 200
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "result equals GET /runs"
+    ]
    },
    "oracle_text": "result equals GET /runs",
    "covers": [
@@ -7931,7 +8003,10 @@
     "expect": {
      "status": 200
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "result workflow ids == GET /workflows ids"
+    ]
    },
    "oracle_text": "result workflow ids == GET /workflows ids",
    "covers": [
@@ -7979,7 +8054,10 @@
     "expect": {
      "status": 200
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "result equals GET /runs/<id>/events[?type]"
+    ]
    },
    "oracle_text": "result equals GET /runs/<id>/events[?type]",
    "covers": [
@@ -8020,7 +8098,10 @@
     "expect": {
      "status": 200
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "result equals GET /runs/<id> body"
+    ]
    },
    "oracle_text": "result equals GET /runs/<id> body",
    "covers": [
@@ -8077,6 +8158,8 @@
     ],
     "complete": false,
     "untyped": [
+     "201 with serverInfo/capabilities",
+     "rpc 200 result",
      "disallowed method -> 400 method_not_allowed",
      "delete 204 then 404 no_session",
      "too many -> 429"
@@ -8128,7 +8211,9 @@
     },
     "complete": false,
     "untyped": [
+     "POST 200 rulesChanged",
      "GET contains subject",
+     "DELETE 200",
      "audit mcp.approval.granted/revoked + governance.rule.upserted"
     ]
    },
@@ -8180,6 +8265,7 @@
     },
     "complete": false,
     "untyped": [
+     "POST 200 JSON-RPC result",
      "GET -> 405 method_not_allowed",
      "no token -> 401",
      "ask unsupported addon -> 503 ask_unsupported"
@@ -8297,7 +8383,13 @@
     ],
     "complete": false,
     "untyped": [
+     "200 McpCallResponse",
      "calls.ndjson +1 line with spanId",
+     "mcpCallCompleted frame",
+     "bad token 401 invalid_token",
+     "denied 403",
+     "budget exceeded 429",
+     "upstream timeout 504",
      "verdict JSON {decision, subject, class, ruleIds, claimId, unit}",
      "claim present in decisions log",
      "invalid token → invalid_token rejection"
@@ -8400,17 +8492,16 @@
       "kind": "exit",
       "cmd": "wicked-garden run scripts/mcp/shim.py list",
       "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/mcp/shim.py list",
-      "code": 2
      }
     ],
     "complete": false,
     "untyped": [
+     "200 tools[] == approved tools for unit",
+     "bad token 401",
      "response tools[] excludes certain-deny subjects",
-     "decisions log unchanged"
+     "decisions log unchanged",
+     "exit 0 JSON tools[]",
+     "outside a governed unit (no WICKED_MCP_TOKEN/WICKED_CREW_URL) exit 2 no_mcp_channel and nothing sent"
     ]
    },
    "oracle_text": "200 tools[] == approved tools for unit; bad token 401",
@@ -8501,7 +8592,9 @@
     ],
     "complete": false,
     "untyped": [
-     "/audit?runId contains 'estate.proposal.submitted' with seat and proposalId"
+     "call 200",
+     "/audit?runId contains 'estate.proposal.submitted' with seat and proposalId",
+     "GET /proposals contains it"
     ]
    },
    "oracle_text": "call 200; /audit?runId contains 'estate.proposal.submitted' with seat and proposalId; GET /proposals contains it",
@@ -8564,7 +8657,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "200 with allow/ask/deny arrays matching rules",
+     "bad body 400"
+    ]
    },
    "oracle_text": "200 with allow/ask/deny arrays matching rules; bad body 400",
    "covers": [
@@ -8673,7 +8770,10 @@
     ],
     "complete": false,
     "untyped": [
-     "audit mcp.server.removed + mcp.approval.withdrawn"
+     "PATCH 200",
+     "DELETE 200 {removed:name}",
+     "audit mcp.server.removed + mcp.approval.withdrawn",
+     "unknown 404"
     ]
    },
    "oracle_text": "PATCH 200; DELETE 200 {removed:name}; audit mcp.server.removed + mcp.approval.withdrawn; unknown 404",
@@ -8737,7 +8837,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "200 tools[] and previewHash",
+     "bad config 400",
+     "probe failure 502"
+    ]
    },
    "oracle_text": "200 tools[] and previewHash; bad config 400; probe failure 502",
    "covers": [
@@ -8861,6 +8966,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /mcp/servers contains it",
      "stale hash -> 409",
      "audit 'mcp.server.saved'"
     ]
@@ -8911,6 +9017,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 set true",
      "response/log contain no secret value",
      "server not referencing keychain -> 400/404"
     ]
@@ -8969,7 +9076,9 @@
     ],
     "complete": false,
     "untyped": [
-     "diff lists added/removed tools vs stored"
+     "200 ok true for healthy server",
+     "diff lists added/removed tools vs stored",
+     "unknown 404"
     ]
    },
    "oracle_text": "200 ok true for healthy server; diff lists added/removed tools vs stored; unknown 404",
@@ -9074,6 +9183,8 @@
     ],
     "complete": false,
     "untyped": [
+     "200 calls count == lines in <state home>/mcp/calls.ndjson matching filter",
+     "bad query 400",
      "unreadable -> 503 records_unreadable"
     ]
    },
@@ -9176,6 +9287,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /memory has new content under same tier/scope/facets and no old id",
      "unknown -> 404",
      "old estate -> 501"
     ]
@@ -9267,6 +9379,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 erased 1",
      "unknown id -> 404",
      "old estate -> 501 code 'estate_upgrade_required'"
     ]
@@ -9326,7 +9439,9 @@
     ],
     "complete": false,
     "untyped": [
-     "empty -> 400 before any spawn"
+     "200 {erased>=0}",
+     "empty -> 400 before any spawn",
+     "GET /memory?scope_prefix returns none after"
     ]
    },
    "oracle_text": "200 {erased>=0}; empty -> 400 before any spawn; GET /memory?scope_prefix returns none after",
@@ -9720,7 +9835,12 @@
     ],
     "complete": false,
     "untyped": [
+     "PUT 200 + audit preset.saved",
      "GET contains",
+     "POST /runs {workflow:name} 201",
+     "DELETE 204 + preset.deleted",
+     "unknown 404",
+     "bad name 400",
      "PUT of non-composing steps or bad names refused",
      "DELETE of builtin refused",
      "listPresets(project) shows the shadow"
@@ -9803,6 +9923,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 items[]",
      "daemon log has no 'database disk image is malformed'",
      "PRAGMA integrity_check ok"
     ]
@@ -9874,7 +9995,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "200 each",
+     "unknown project 404",
+     "engine unsupported 501"
+    ]
    },
    "oracle_text": "200 each; unknown project 404; engine unsupported 501",
    "covers": [
@@ -9955,8 +10081,10 @@
     ],
     "complete": false,
     "untyped": [
+     "201 runId",
      "run workflow 'capture-learnings'",
-     "oversize -> 413"
+     "oversize -> 413",
+     "GET /proposals gains pending items after completion"
     ]
    },
    "oracle_text": "201 runId; run workflow 'capture-learnings'; oversize -> 413; GET /proposals gains pending items after completion",
@@ -10026,8 +10154,11 @@
     ],
     "complete": false,
     "untyped": [
+     "POST 201 id",
      "GET list contains it",
-     "audit project.created/project.archived"
+     "PATCH 200 status 'archived'",
+     "audit project.created/project.archived",
+     "bad body 400"
     ]
    },
    "oracle_text": "POST 201 id; GET list contains it; PATCH 200 status 'archived'; audit project.created/project.archived; bad body 400",
@@ -10094,8 +10225,10 @@
     ],
     "complete": false,
     "untyped": [
+     "POST 201/200",
      "GET contains {kind,ref}",
-     "bad kind -> 400"
+     "bad kind -> 400",
+     "DELETE 200 then absent"
     ]
    },
    "oracle_text": "POST 201/200; GET contains {kind,ref}; bad kind -> 400; DELETE 200 then absent",
@@ -10184,6 +10317,8 @@
     ],
     "complete": false,
     "untyped": [
+     "202 json.runId",
+     "invalid body 400",
      "concurrent -> 409"
     ]
    },
@@ -10231,6 +10366,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 list includes the problem text of a run filed in the project",
      "unsupported -> 501"
     ]
    },
@@ -10375,6 +10511,8 @@
     ],
     "complete": false,
     "untyped": [
+     "200 outcome",
+     "GET /memory finds content",
      "already decided -> 409"
     ]
    },
@@ -10432,6 +10570,7 @@
     },
     "complete": false,
     "untyped": [
+     "landing.outcome=='landed' and GET /governance/rules contains rule",
      "on forced failure landing.outcome=='failed' and proposal state 'pending'",
      "audit governance.steering.landing_failed"
     ]
@@ -10496,6 +10635,8 @@
     ],
     "complete": false,
     "untyped": [
+     "201 id",
+     "GET /proposals?state=pending contains id with kind memory",
      "extra fields -> 400"
     ]
    },
@@ -10564,7 +10705,9 @@
     ],
     "complete": false,
     "untyped": [
-     "filter by state returns only that state"
+     "filter by state returns only that state",
+     "bad query 400",
+     "estate down 502"
     ]
    },
    "oracle_text": "200; filter by state returns only that state; bad query 400; estate down 502",
@@ -10621,6 +10764,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /proposals?state=rejected contains id",
      "second -> 409"
     ]
    },
@@ -10664,16 +10808,9 @@
     "ledger-entry"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "qeAcceptanceDecided",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "with fixture PASS ledger -> deliver proceeds"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: approve without PASS -> refusal (GateDecisionResult.delivery.qeAcceptance.satisfied false / qeAcceptanceDecided deny); with fixture PASS ledger -> deliver proceeds"
    },
    "oracle_text": "approve without PASS -> refusal (GateDecisionResult.delivery.qeAcceptance.satisfied false / qeAcceptanceDecided deny); with fixture PASS ledger -> deliver proceeds",
    "covers": [],
@@ -10904,10 +11041,13 @@
     ],
     "complete": false,
     "untyped": [
+     "GET 200 storyline",
+     "PUT 200 with edited_by",
      "PUT with no open escalation -> 409 'no_open_escalation'",
      "oversize -> 413",
      "response sha256 === sha256(storyline)",
-     "audit log entry"
+     "audit log entry",
+     "409 code"
     ]
    },
    "oracle_text": "GET 200 storyline; PUT 200 with edited_by; PUT with no open escalation -> 409 'no_open_escalation'; oversize -> 413",
@@ -10994,9 +11134,13 @@
     ],
     "complete": false,
     "untyped": [
+     "view 200 with sealed boolean",
+     "file 206 with Content-Range for Range request",
      "bad range -> 416",
      "path outside root -> 400",
+     "200 view",
      "chapters/verdicts equal result.json in the proof root",
+     "206 for Range",
      "symlinked step dir refused"
     ]
    },
@@ -11069,7 +11213,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "200 with domains/requirements after a domain-extraction run",
+     "unknown repo 404"
+    ]
    },
    "oracle_text": "200 with domains/requirements after a domain-extraction run; unknown repo 404",
    "covers": [
@@ -11118,7 +11266,8 @@
     "complete": false,
     "untyped": [
      "git-history[0].sha == git rev-parse HEAD of repo",
-     "contributors names match git shortlog"
+     "contributors names match git shortlog",
+     "unknown 404"
     ]
    },
    "oracle_text": "git-history[0].sha == git rev-parse HEAD of repo; contributors names match git shortlog; unknown 404",
@@ -11216,6 +11365,8 @@
     ],
     "complete": false,
     "untyped": [
+     "GET 200 {runId}",
+     "POST 201 with runId",
      "unknown -> 404"
     ]
    },
@@ -11409,6 +11560,7 @@
     },
     "complete": false,
     "untyped": [
+     "201 repo.root_path exists with .git",
      "failed clone -> 400 and no leftover dir"
     ]
    },
@@ -11472,7 +11624,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "PATCH 200 then GET key reflects change",
+     "bad body 400",
+     "unknown key 404"
+    ]
    },
    "oracle_text": "PATCH 200 then GET key reflects change; bad body 400; unknown key 404",
    "covers": [
@@ -11531,7 +11688,8 @@
     ],
     "complete": false,
     "untyped": [
-     "json.error mentions the unknown key or JSON parse"
+     "json.error mentions the unknown key or JSON parse",
+     "GET /runs count unchanged"
     ]
    },
    "oracle_text": "HTTP 400; json.error mentions the unknown key or JSON parse; GET /runs count unchanged",
@@ -11605,6 +11763,7 @@
     ],
     "complete": false,
     "untyped": [
+     "200 refresh.key=='claude' and outcome in set",
      "probed_at newer than before",
      "unknown key -> 400",
      "container floor reads seat's own last step",
@@ -11776,9 +11935,11 @@
      "units count per seat equals units dispatched to that seat in runs within window",
      "days=0 or 100 -> 400",
      "project echoed",
+     "200 with records",
      "days outside 1..90 -> 400",
      "?project echoes 'project'",
      "cost == sum(costUsd) over the window",
+     "reads capped at 200 runs with a cap flag",
      "addon without event-log binding -> 503."
     ]
    },
@@ -11853,8 +12014,11 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /runs omits archived ids (default view)",
+     "GET /runs/:id still 200",
      "archiving an active run -> 409",
      "archiveRun result",
+     "GET /runs excludes/flags archived",
      "executing run refused"
     ]
    },
@@ -11912,38 +12076,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "runOrphaned",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitDispatched",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "crashRecoveryRedrive",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "status progresses",
-     "resume of completed run is a no-op"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: after restart, /runs/:id/events has runOrphaned then a new unitDispatched without any /audit resume by a person; status progresses"
    },
    "oracle_text": "after restart, /runs/:id/events has runOrphaned then a new unitDispatched without any /audit resume by a person; status progresses",
    "covers": [
@@ -12045,6 +12180,8 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /runs/:id status=='cancelled'",
+     "runCancelled frame",
      "terminal run -> 409",
      "unknown -> 404"
     ]
@@ -12118,7 +12255,9 @@
     ],
     "complete": false,
     "untyped": [
+     "200 Content-Type application/zip",
      "unzip -l has no .env*, no .git",
+     "GET /runs/:id session.codebase_archive matches size/hash",
      "no archive -> 404"
     ]
    },
@@ -12178,8 +12317,10 @@
     ],
     "complete": false,
     "untyped": [
+     "200 text/plain",
      "split('\\n')[1]==''",
-     "body contains each unit phase id"
+     "body contains each unit phase id",
+     "unknown run 404"
     ]
    },
    "oracle_text": "200 text/plain; split('\\n')[1]==''; body contains each unit phase id; unknown run 404",
@@ -12232,6 +12373,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 json.diff string ('' for clean tree)",
      "?base=--flag -> 400",
      "run with no workdir -> 409",
      "concurrent heavy -> 409 diff_busy"
@@ -12295,6 +12437,8 @@
     },
     "complete": false,
     "untyped": [
+     "GET 200 with options[] and recommended index",
+     "POST 200",
      "second POST -> 409",
      "audit 'elicitation.resolved'"
     ]
@@ -12374,6 +12518,8 @@
     ],
     "complete": false,
     "untyped": [
+     "every returned event.type=='gateEvaluated'",
+     "unfiltered list contains sessionStarted",
      "unknown run -> 404",
      "addon without binding -> 503"
     ]
@@ -12442,6 +12588,7 @@
     ],
     "complete": false,
     "untyped": [
+     "json.events[] equals GET /runs/:id/events (same length/types)",
      "units[].output present for finished units"
     ]
    },
@@ -12493,6 +12640,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 content equals file bytes (<=512KB)",
      ">512KB truncated:true",
      "NUL in first 8KB binary:true content ''",
      "path outside roots -> 400/404"
@@ -12539,6 +12687,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 with run.session.id==id and created_at/ended_at present when terminal",
      "unknown -> 404"
     ]
    },
@@ -12649,7 +12798,12 @@
     ],
     "complete": false,
     "untyped": [
-     "run does not deliver"
+     "gateEvaluated frame with allow:false citing rule id",
+     "run does not deliver",
+     "governanceHookFired{decision:'deny', denyingPolicy}",
+     "unitDenied",
+     "awaitingHuman.gateKind=='escalation' or sessionFailed",
+     "after retire sessionCompleted"
     ]
    },
    "oracle_text": "gateEvaluated frame with allow:false citing rule id; run does not deliver",
@@ -12732,6 +12886,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /runs/:id shows guidance text",
      ">8192 bytes -> 400 naming limit",
      "/audit action 'guidance.set' with full text"
     ]
@@ -12793,6 +12948,7 @@
     ],
     "complete": false,
     "untyped": [
+     "workerMessageInjected frame with session==id",
      "not executing -> 409",
      "empty message -> 400"
     ]
@@ -12846,7 +13002,8 @@
     "complete": false,
     "untyped": [
      "complete true only when >=1 unit claimed and every claim 'full'",
-     "readable false when adapter keeps no output"
+     "readable false when adapter keeps no output",
+     "unknown run 404"
     ]
    },
    "oracle_text": "complete true only when >=1 unit claimed and every claim 'full'; readable false when adapter keeps no output; unknown run 404",
@@ -12897,6 +13054,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /runs/:id session.chat_id == chat",
      "health.capabilities.runChatId true",
      "invalid chatId chars -> 400"
     ]
@@ -12951,6 +13109,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /runs/:id units has no phase 'deliver'",
      "session.delivery reports none",
      "no prUrl"
     ]
@@ -13023,7 +13182,9 @@
     ],
     "complete": false,
     "untyped": [
-     "gateKind 'deliver' gate observed"
+     "GET /runs/:id units contains a unit with phase 'deliver'",
+     "gateKind 'deliver' gate observed",
+     "invalid combos 400 with the refine message"
     ]
    },
    "oracle_text": "GET /runs/:id units contains a unit with phase 'deliver'; gateKind 'deliver' gate observed; invalid combos 400 with the refine message",
@@ -13140,7 +13301,11 @@
     ],
     "complete": false,
     "untyped": [
-     "json.freeText.notice is a non-empty string"
+     "json.freeText.notice is a non-empty string",
+     "GET /runs/:id session.workflow_id reflects the engine's free-text pick",
+     "events: sessionStarted.workflowId=null",
+     "exactly one unitPlanned whose description == problem",
+     "sessionCompleted"
     ]
    },
    "oracle_text": "201; json.freeText.notice is a non-empty string; GET /runs/:id session.workflow_id reflects the engine's free-text pick",
@@ -13214,6 +13379,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /runs/:id group label == sent value (or GET /campaigns/:id lists runId)",
      "both fields -> 400 'mutually exclusive'"
     ]
    },
@@ -13289,15 +13455,14 @@
         }
        ]
       }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitDispatched",
-      "count": 0
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "poll GET /runs/:id until session.status=='awaiting_human'",
+     "GET /runs/:id/gate 200 with ord==1",
+     "no unitDispatched for ord>=1 before approval"
+    ]
    },
    "oracle_text": "poll GET /runs/:id until session.status=='awaiting_human'; GET /runs/:id/gate 200 with ord==1; no unitDispatched for ord>=1 before approval",
    "covers": [
@@ -13407,6 +13572,7 @@
     },
     "complete": false,
     "untyped": [
+     "201 and GET /runs/:id units ids match plan step ids",
      "plan+workflow -> 400 with message 'plan and workflow are mutually exclusive'"
     ]
    },
@@ -13479,7 +13645,9 @@
     ],
     "complete": false,
     "untyped": [
+     "first creator unitDispatched frame cli=='codex'",
      "unknown/benched primary -> 4xx with reason",
+     "wicked.team.path.started{primary, selection}",
      "path.repicked on PA failure",
      "unknown primary rejects launch (primaryRefusal)"
     ]
@@ -13571,7 +13739,9 @@
     "complete": false,
     "untyped": [
      "members[] contains {kind:'crew.run', ref:runId}",
-     "run DTO session.project_id == projectId"
+     "run DTO session.project_id == projectId",
+     "GET /projects/:id/members includes member_kind crew.run ref=<runId>",
+     "invalid project → error and no session in GET /runs"
     ]
    },
    "oracle_text": "members[] contains {kind:'crew.run', ref:runId}; run DTO session.project_id == projectId",
@@ -13643,6 +13813,7 @@
     },
     "complete": false,
     "untyped": [
+     "skip: GET /runs/:id/acceptance gate.satisfied true with reason citing skip",
      "force: acceptance required regardless of score",
      "both -> 400 'mutually exclusive'"
     ]
@@ -13701,7 +13872,8 @@
     },
     "complete": false,
     "untyped": [
-     "flagged: session.reduced_assurance true and GateDecisionResult.assurance labels reduced"
+     "flagged: session.reduced_assurance true and GateDecisionResult.assurance labels reduced",
+     "unflagged: 201 json.assuranceNotice.message non-empty and run parks at a gate"
     ]
    },
    "oracle_text": "flagged: session.reduced_assurance true and GateDecisionResult.assurance labels reduced; unflagged: 201 json.assuranceNotice.message non-empty and run parks at a gate",
@@ -13760,7 +13932,8 @@
      "base skill missing -> 422 code 'base_skill_refused'",
      "no eligible seat -> 409",
      "unknown repo -> 404",
-     "unknown workflow -> 400"
+     "unknown workflow -> 400",
+     "GET /runs count unchanged"
     ]
    },
    "oracle_text": "base skill missing -> 422 code 'base_skill_refused'; no eligible seat -> 409; unknown repo -> 404; unknown workflow -> 400; GET /runs count unchanged",
@@ -13832,7 +14005,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "GET /runs/<new> session lineage/retry_of == oldRunId",
+     "GET /runs/<old> lists the retry"
+    ]
    },
    "oracle_text": "GET /runs/<new> session lineage/retry_of == oldRunId; GET /runs/<old> lists the retry",
    "covers": [
@@ -13909,6 +14086,9 @@
     "untyped": [
      "DeliverRunResult.prUrl ends with /pull/<N>",
      "no new PR created",
+     "invalid combos 400 with refine messages",
+     "runBaseResolved.baseRef == origin/<head>",
+     "unresolvable → sessionFailed naming the ref",
      "deliver pushes to refs/heads/<head> (no second PR)"
     ]
    },
@@ -13973,20 +14153,29 @@
      {
       "kind": "event",
       "source": "core-event",
-      "type": "unitDispatched",
-      "count": 0
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
       "type": "unitDistributed",
       "count": {
        "min": 1
+      }
+     },
+     {
+      "kind": "api",
+      "method": "POST",
+      "path": "/api/v1/runs",
+      "expect": {
+       "status": [
+        200,
+        201,
+        202
+       ]
       }
      }
     ],
     "complete": false,
     "untyped": [
+     "no unitDispatched/judge frame with cli == benched seat",
+     "unitDistributed lists it as benched/degraded",
+     "No unitDistributed with cli==<signed-out key>",
      "degraded_reason contains '(signed out'; session.benched_seats includes it with source 'launcher'."
     ]
    },
@@ -14113,6 +14302,7 @@
     "complete": false,
     "untyped": [
      "json.runId non-empty",
+     "GET /runs/<runId> 200 with session.workflow_id=='bug' and session.status in SessionStatus",
      "/audit?runId=<runId> contains a launch entry"
     ]
    },
@@ -14222,6 +14412,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 {status, proposal_id, band}",
      "duplicate requestId -> duplicate:true",
      "audit 'plan.edit.proposed'"
     ]
@@ -14291,6 +14482,7 @@
     ],
     "complete": false,
     "untyped": [
+     "unitReassigned frame cli=='codex'",
      "non-executing -> 409",
      "unknown cli -> 400"
     ]
@@ -14364,6 +14556,7 @@
     ],
     "complete": false,
     "untyped": [
+     "200 and new unitDispatched frame",
      "terminal run -> 409",
      "vacuous resume (nothing to do) reports so"
     ]
@@ -14426,19 +14619,13 @@
       "expect": {
        "status": 200
       }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "workerStalled",
-      "count": {
-       "min": 1
-      }
      }
     ],
     "complete": false,
     "untyped": [
-     "awaiting_human runs never alert"
+     "exactly one workerStalled frame per quiet period",
+     "awaiting_human runs never alert",
+     "frame also in GET /runs/:id/events"
     ]
    },
    "oracle_text": "exactly one workerStalled frame per quiet period; awaiting_human runs never alert; frame also in GET /runs/:id/events",
@@ -14546,7 +14733,10 @@
     ],
     "complete": false,
     "untyped": [
+     "workerStallEscalated frame followed by unitReassigned",
      "workerStallEscalateMinutes=0 disarms (no reassign)",
+     "PUT /settings rejects invalid values with 400 and the documented messages",
+     "events contain workerStalled followed by unitReassigned for that ord when action=='reassign'",
      "none when 'notify' or escalate minutes 0."
     ]
    },
@@ -14617,6 +14807,8 @@
     ],
     "complete": false,
     "untyped": [
+     "200 with per-step seats",
+     "unknown run 404",
      "engine without team -> 501"
     ]
    },
@@ -14666,6 +14858,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 with consideration rules[] for a finished governed unit",
      "bad key -> 400/404",
      "non-visible -> 403"
     ]
@@ -14713,6 +14906,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 with output string or outputUnavailable.reason",
      "never {output:null} bare",
      "unknown key -> 404 whose body lists the run's unit keys"
     ]
@@ -14859,31 +15053,19 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/roster",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitDistributed",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
      "opt-in seat present with optIn marker and absent from default launch roster",
      "roster[key=opencode].optIn === true && optInNote === 'opt-in: known to stall'",
      "issues[].code includes 'opt_in'",
-     "defaultLaunchRoster(roster) excludes opencode when another seat is eligible"
+     "defaultLaunchRoster(roster) excludes opencode when another seat is eligible",
+     "a default-seated run's unitDistributed.cli never equals 'opencode'."
     ]
    },
    "oracle_text": "opt-in seat present with optIn marker and absent from default launch roster",
@@ -14967,7 +15149,9 @@
     ],
     "complete": false,
     "untyped": [
+     "201 {terminalId, action:'sign_in'}",
      "second concurrent -> 409",
+     "GET outcome 200 after exit",
      "non-container floor -> 404",
      "seat-login failure -> 502"
     ]
@@ -15062,7 +15246,10 @@
     "untyped": [
      "GET container-login -> 404 afterwards",
      "roster signed_in false",
-     "roster[cli].signed_in false after refresh"
+     "POST 200 {cli, action:'sign_out'}",
+     "GET /seats/:cli/container-login -> 404 afterwards",
+     "roster[cli].signed_in false after refresh",
+     "a login terminal that exits later does not ingest (generation bump, 409 'superseded')."
     ]
    },
    "oracle_text": "200; GET container-login -> 404 afterwards; roster signed_in false",
@@ -15121,7 +15308,8 @@
     "complete": false,
     "untyped": [
      "roster seat.health reports refusal",
-     "work_eligible false"
+     "work_eligible false",
+     "next launch's unitDistributed excludes it"
     ]
    },
    "oracle_text": "roster seat.health reports refusal; work_eligible false; next launch's unitDistributed excludes it",
@@ -15195,6 +15383,7 @@
     "complete": false,
     "untyped": [
      "terminal exits",
+     "GET /roster seat signed_in false",
      "seat without logout_invocation -> 404"
     ]
    },
@@ -15475,6 +15664,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 verdict ok",
      "GET files shows new content",
      "injected write failure -> old files unchanged (hash)"
     ]
@@ -15525,6 +15715,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 findings[]",
      "fixture with non-portable skill yields a finding naming it"
     ]
    },
@@ -15573,6 +15764,7 @@
     },
     "complete": false,
     "untyped": [
+     "after boot GET /skills current.gen >= 1",
      "~/.codex/skills and ~/.claude/skills unchanged (hash)",
      "diagnostics.skills.state=='published'"
     ]
@@ -15746,7 +15938,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "200 SkillPublishResult gen = previous+1",
+     "GET /skills current.gen updated",
+     "portability findings block publish (409)"
+    ]
    },
    "oracle_text": "200 SkillPublishResult gen = previous+1; GET /skills current.gen updated; portability findings block publish (409)",
    "covers": [
@@ -15801,7 +15998,8 @@
     "untyped": [
      "tree lists SKILL.md",
      "file content equals on-disk bytes",
-     "traversal ('..') -> 400"
+     "traversal ('..') -> 400",
+     "unknown 404"
     ]
    },
    "oracle_text": "tree lists SKILL.md; file content equals on-disk bytes; traversal ('..') -> 400; unknown 404",
@@ -15908,6 +16106,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 SkillMutationResult revision+1",
      "stale expectedRevision -> 409",
      "audit skills.updated"
     ]
@@ -15970,6 +16169,8 @@
     ],
     "complete": false,
     "untyped": [
+     "200 away true awaySince set",
+     "bad body 400",
      "matching open phase-review gate gets decided by order (gates/decided actor byOrder)"
     ]
    },
@@ -16013,6 +16214,7 @@
     },
     "complete": false,
     "untyped": [
+     "201 {order}",
      "deliver/escalation approve rule -> 400 code 'order_refused'"
     ]
    },
@@ -16070,7 +16272,8 @@
     ],
     "complete": false,
     "untyped": [
-     "GET omits id"
+     "GET omits id",
+     "unknown 404"
     ]
    },
    "oracle_text": "200; GET omits id; unknown 404",
@@ -16115,6 +16318,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /gates/decided entry actor is the order",
      "deliver gate remains open",
      "standing-orders outbox gains notify message",
      "hold keeps gate open (standing-order.held)"
@@ -16304,7 +16508,9 @@
     ],
     "complete": false,
     "untyped": [
+     "201 {runId}",
      "run parks at propose gate",
+     "after approve GateDecisionResult.landing lists rule ids found in GET /governance/rules",
      "reject lands nothing"
     ]
    },
@@ -16374,7 +16580,9 @@
     ],
     "complete": false,
     "untyped": [
+     "200 even with rejects",
      "imported+rejected == entries.length",
+     "imported ids appear in GET /governance/rules",
      "malformed batch -> 400",
      "pre-steering engine -> 501"
     ]
@@ -16536,6 +16744,8 @@
     ],
     "complete": false,
     "untyped": [
+     "GET / -> 200 text/html containing the studio root element",
+     "GET /some/deep/route -> 200 same index.html",
      "/api/* 404s stay JSON",
      "studio bundle marker == diagnostics.components.studioBundle"
     ]
@@ -16605,6 +16815,7 @@
     ],
     "complete": false,
     "untyped": [
+     "200 report counts",
      "concurrent replay -> 409",
      "unsupported engine -> 501",
      "replay result counts {published, invalid}",
@@ -16665,6 +16876,7 @@
     },
     "complete": false,
     "untyped": [
+     "201 id",
      "bad cwd -> 400",
      "governed defaults true"
     ]
@@ -16727,7 +16939,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "resize 200 (stty size in PTY matches)",
+     "close 200",
+     "second close 404"
+    ]
    },
    "oracle_text": "resize 200 (stty size in PTY matches); close 200; second close 404",
    "covers": [
@@ -16809,6 +17026,7 @@
     ],
     "complete": false,
     "untyped": [
+     "201 with plan phases incl. deliver",
      "unscoped -> 400",
      "run group label 'qe-tests-<repo>'"
     ]
@@ -16866,6 +17084,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 imported count == samples.length",
      "subsequent evals run {corpus:name} uses them"
     ]
    },
@@ -16911,6 +17130,7 @@
     "untyped": [
      "list contains the run just made",
      "detail results deep-equal POST report",
+     "unknown id 404",
      "empty history {runs:[]}"
     ]
    },
@@ -16977,7 +17197,8 @@
     "complete": false,
     "untyped": [
      "summary counts == results.length partitioned by verdict",
-     "degraded null on full fidelity"
+     "degraded null on full fidelity",
+     "bad body 400"
     ]
    },
    "oracle_text": "200; summary counts == results.length partitioned by verdict; degraded null on full fidelity; bad body 400",
@@ -17060,6 +17281,8 @@
     "complete": false,
     "untyped": [
      "campaignRegistered true",
+     "GET /campaigns/<campaign> lists runIds",
+     "each run status 'awaiting_human' before any unitDispatched",
      "audit campaign.launched"
     ]
    },
@@ -17204,7 +17427,8 @@
     "untyped": [
      "feed shows item dismissed",
      "non-human actor -> 403",
-     "already dismissed -> 409"
+     "already dismissed -> 409",
+     "unknown 404"
     ]
    },
    "oracle_text": "200; feed shows item dismissed; non-human actor -> 403; already dismissed -> 409; unknown 404",
@@ -17313,7 +17537,8 @@
     "complete": false,
     "untyped": [
      "items ordered newest first",
-     "with run= coverage present"
+     "with run= coverage present",
+     "bad limit 400"
     ]
    },
    "oracle_text": "200; items ordered newest first; with run= coverage present; bad limit 400",
@@ -17479,7 +17704,8 @@
     },
     "complete": false,
     "untyped": [
-     "phases == [churn,hotspots,capture]"
+     "phases == [churn,hotspots,capture]",
+     "GET /proposals?state=pending count increases"
     ]
    },
    "oracle_text": "phases == [churn,hotspots,capture]; GET /proposals?state=pending count increases",
@@ -17601,7 +17827,9 @@
     "complete": false,
     "untyped": [
      "phases == [plan,record,review]",
-     "run event log shows gate decisions and unit rewind"
+     "demo-video/*.mp4 exists with ffprobe duration > 0",
+     "run event log shows gate decisions and unit rewind",
+     "final GET /runs/:id/demo stage done and MP4 size > 0"
     ]
    },
    "oracle_text": "phases == [plan,record,review]; demo-video/*.mp4 exists with ffprobe duration > 0",
@@ -17686,9 +17914,11 @@
     "complete": false,
     "untyped": [
      "phases == [survey,analyze,extract,coverage,domain-graph]",
+     "GET /repos/:id/domain-graph non-empty",
      "coverage-report.json exists",
      "artifacts exist and validate",
-     "domain_coverage gate denial on hole"
+     "domain_coverage gate denial on hole",
+     "sessionFailed on policy violation"
     ]
    },
    "oracle_text": "phases == [survey,analyze,extract,coverage,domain-graph]; GET /repos/:id/domain-graph non-empty; coverage-report.json exists",
@@ -17757,7 +17987,8 @@
     },
     "complete": false,
     "untyped": [
-     "phases == [scope,design,build,test,security-review,install-plan,install]"
+     "phases == [scope,design,build,test,security-review,install-plan,install]",
+     "editor in GET /editors after approval"
     ]
    },
    "oracle_text": "phases == [scope,design,build,test,security-review,install-plan,install]; editor in GET /editors after approval",
@@ -17979,7 +18210,8 @@
     "complete": false,
     "untyped": [
      "phases == [scope,source-discovery,design,build,test,security-review,observability-review,install-plan,install]",
-     "consent gate with choices"
+     "consent gate with choices",
+     "GET /mcp/servers contains new server after install"
     ]
    },
    "oracle_text": "phases == [scope,source-discovery,design,build,test,security-review,observability-review,install-plan,install]; consent gate with choices; GET /mcp/servers contains new server after install",
@@ -18089,7 +18321,8 @@
     "complete": false,
     "untyped": [
      "units phases == [index,annotate]",
-     "all executors Tool"
+     "all executors Tool",
+     "GET /repos/:id/graph totals > 0"
     ]
    },
    "oracle_text": "units phases == [index,annotate]; all executors Tool; GET /repos/:id/graph totals > 0",
@@ -18310,6 +18543,7 @@
     },
     "complete": false,
     "untyped": [
+     "200 phases ids == preset steps",
      "unknown -> 404"
     ]
    },
@@ -18429,6 +18663,7 @@
     ],
     "complete": false,
     "untyped": [
+     "collected frames include type 'sessionStarted' with session==runId and a terminal frame in {sessionCompleted,sessionFailed,runCancelled}",
      "a socket opened after launch receives no earlier frames"
     ]
    },

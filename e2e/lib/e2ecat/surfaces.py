@@ -101,44 +101,82 @@ def studio(root, _ctx):
         els.append(_el("studio", "testid-computed", t["expression"], t["files"]))
     src = _read(root, "src/hooks/useRoute.ts")
     rf = ["src/hooks/useRoute.ts"]
-    routes = {"/"}
-    for line in src.splitlines():
-        m = re.search(r"if \(\(?first === '([a-z0-9-]*)'", line)
-        if not m:
-            continue
-        heads = re.findall(r"first === '([a-z0-9-]*)'", line)
-        for head in heads:
-            if head == "":
-                continue
-            seconds = re.findall(r"second === '([a-z0-9-]+)'", line)
-            if seconds:
-                for s in seconds:
-                    routes.add("/%s/%s" % (head, s))
-                if re.search(r"second === '[a-z0-9-]+' && third\b", line):
-                    routes.add("/%s/%s/:id" % (head, seconds[0]))
-                continue
-            if re.search(r"third === 'requirements'", line):
-                routes.add("/%s/:id/requirements" % head)
-            elif re.search(r"&& second\)|&& second &&", line):
-                routes.add("/%s/:id" % head)
-            else:
-                routes.add("/" + head)
+    routes = route_shapes(src, lambda name: _predicate_values(root, name))
     m = re.search(r"const PANELS: Panel\[\] = \[([^\]]*)\]", src)
     if not m:
         raise ExtractError("wicked-studio: PANELS list not found in src/hooks/useRoute.ts")
     for p in re.findall(r"'([a-z-]+)'", m.group(1)):
-        if p != "runs":  # '/runs' is a retired address (RETIRED_ADDRESSES)
-            routes.add("/" + p)
+        routes.add("/" + p)
     m = re.search(r"RETIRED_ADDRESSES: readonly string\[\] = \[(.*?)\];", src, re.S)
     if not m:
         raise ExtractError("wicked-studio: RETIRED_ADDRESSES not found")
     retired = re.findall(r"'([^']+)'", m.group(1))
     routes -= set(retired)
+    if not {"/runs/new", "/runs/:id/events", "/testing/campaigns/:id", "/rules/:id"} <= routes:
+        raise ExtractError("wicked-studio: route extraction lost a known nested route; the parse() shape changed")
     for r in sorted(routes):
         els.append(_el("studio", "route", r, rf))
     for r in retired:
         els.append(_el("studio", "retired-route", r, rf))
     return els, {"studioVersion": inv.get("studioVersion")}
+
+
+def _predicate_values(root, name):
+    """`isTestingSubPage` -> the values of the const array its body tests membership in."""
+    for f in sorted(os.listdir(os.path.join(root, "src", "api"))):
+        if not f.endswith(".ts"):
+            continue
+        txt = _read(root, "src/api/" + f)
+        m = re.search(r"export function %s\([^)]*\)[^{]*\{(.*?)\n\}" % re.escape(name), txt, re.S)
+        if not m:
+            continue
+        c = re.search(r"\(?([A-Z][A-Z_]+)\b", m.group(1))
+        if c:
+            arr = re.search(r"export const %s\b[^=]*=\s*\[([^\]]*)\]" % c.group(1), txt)
+            if arr:
+                return re.findall(r"'([a-z0-9-]+)'", arr.group(1))
+    raise ExtractError("wicked-studio: cannot resolve the values of %s()" % name)
+
+
+def route_shapes(src, predicate_values):
+    """Address shapes from useRoute.ts parse(): each `if (first === ...)` block read whole."""
+    body = src[src.index("function parse(pathname"):]
+    body = body[:body.index("\n}\n")]
+    lines = body.splitlines()
+    starts = [i for i, ln in enumerate(lines) if re.match(r"  if \(\(?first === '", ln)]
+    routes = {"/"}
+    for n, i in enumerate(starts):
+        block = "\n".join(lines[i:starts[n + 1] if n + 1 < len(starts) else len(lines)])
+        head = lines[i]
+        for first in re.findall(r"first === '([a-z0-9-]*)'", head):
+            if not first:
+                continue
+            base = "/" + first
+            seconds = re.findall(r"second === '([a-z0-9-]+)'", head)
+            if seconds:
+                for sec in seconds:
+                    routes.add("%s/%s" % (base, sec))
+                continue
+            if re.search(r"third === '([a-z]+)'", head):
+                routes.add("%s/:id/%s" % (base, re.search(r"third === '([a-z]+)'", head).group(1)))
+                continue
+            if re.search(r"&& second(\)| &&)", head):
+                routes.add(base + "/:id")
+                if re.search(r"third === 'a' && fourth", block):
+                    routes.add(base + "/:id/a/:key")
+                continue
+            routes.add(base)
+            inner = block[len(head):]
+            for sec, rest in re.findall(r"second === '([a-z0-9-]+)'( && third)?", inner):
+                routes.add("%s/%s%s" % (base, sec, "/:id" if rest else ""))
+            for third in re.findall(r"second && third === '([a-z0-9-]+)'", inner):
+                routes.add("%s/:id/%s" % (base, third))
+            for pred in re.findall(r"\b(is[A-Z]\w+)\(second\)", inner):
+                for val in predicate_values(pred):
+                    routes.add("%s/%s" % (base, val))
+            if re.search(r"second \? safeDecode\(second\)", inner):
+                routes.add(base + "/:id")
+    return routes
 
 
 # ── crew ──────────────────────────────────────────────────────────────────────────────────────

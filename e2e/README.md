@@ -154,10 +154,15 @@ evidence is complete. It does not judge the results.
 | wicked-ledger | `ledger` | `export` (the public exports of `lib/index.mjs`; it has no CLI) |
 | wicked-installer | `installer` | `cli`, `agent` (one per `src/install-<cli>.ts`), `product`, `bundle` |
 
-- **Test index**: each manifest also lists the repo's test files: tracked files under a
-  test, e2e, spec, scenarios, smoke, evidence or fixtures directory, files with a test-style
-  name, CI workflows, and Rust files that contain `#[test]`. `validate` checks every scenario
-  reference against that list, offline.
+- **Test index**: each manifest also lists the repo's test files. These are tracked, executable
+  files (code, shell scripts, CI workflows) outside any `fixtures/` directory that sit under a
+  test, e2e, spec, smoke or evidence directory or carry a test-style name, plus Rust files that
+  contain `#[test]`. Markdown scenario write-ups and fixture data are not tests. `validate` checks
+  every scenario reference against that list, offline.
+- **Studio routes** are read block by block from `parse()`, including nested `second`/`third`
+  branches and sub-page predicates resolved to their source lists. Extraction fails loudly if a
+  known nested route (`/runs/new`, `/runs/:id/events`, `/testing/campaigns/:id`, `/rules/:id`)
+  disappears.
 - **Refreshing**: `e2e surfaces --clone main --write-pins` re-pins every repo to its current
   main. `e2e surfaces --clone pinned` reproduces the committed manifests byte for byte. CI checks
   that on every PR.
@@ -167,9 +172,14 @@ evidence is complete. It does not judge the results.
 `e2e validate` exits non-zero on any failure:
 
 - **(a) Catalog.** Every area file is schema-valid, ids and aliases are unique, and `related`
-  points at real ids. Value-taking asserts carry a value. A UI capability requires video,
-  screenshot and trace. Every `covers` key is a real surface element. Every scenario names a test
-  file that exists at the pin (wicked-ci references are checked in this checkout).
+  points at real ids. A UI capability requires video, screenshot and trace. Every `covers` key is
+  a real surface element. Every scenario names a test file that exists at the pin (wicked-ci
+  references are checked in this checkout).
+  - Oracle semantics, including inside a manual `precheck`, cover what the schema subset cannot
+    say: every comparison other than `exists`/`absent` carries a `value`; an `api` check expects
+    something; an event `count` is not vacuous; `attr` names its attribute.
+  - Every typed oracle states `complete`. A partial one lists `untyped`, and a complete one lists
+    none. A UI oracle with no `dom` check cannot be complete.
 - **(b) Surface coverage.** Every surface element is covered by at least one capability. Unmapped
   elements fail and are listed by repo.
   - With `--baseline coverage-baseline.json`, the known gaps are tolerated. Any new unmapped
@@ -209,9 +219,9 @@ e2e select --profile release
 
 | profile | selection | count (2026-10-20 pins) |
 |---|---|---:|
-| `smoke` | `tag:smoke cost<=M !oracle=manual` | 36 |
-| `daily` | `cost<=M !oracle=manual` | 981 |
-| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 417 |
+| `smoke` | `tag:smoke cost<=M !oracle=manual` | 34 |
+| `daily` | `cost<=M !oracle=manual` | 941 |
+| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 400 |
 | `full` | everything (manual capabilities report `manual`) | 1410 |
 
 ## How the catalog was built
@@ -266,13 +276,18 @@ From now on the catalog files are the source.
   versions).
   - When a clause names nothing typeable, the capability's own request, command, tool or terminal
     control is its necessary check, and the clause is listed in `untyped`.
-  - 156 oracles are complete, 968 partial, 176 untyped and 110 manual.
+  - A clause counts as typed only when it has one of the simple shapes a check captures whole: a
+    bare status, `exit 0`, a testid that must be visible, or a request and its status. Every other
+    clause (comparisons, counts, negations, request-body fields, prose) stays in `untyped`, even
+    when it also produced a check. A negated clause yields no check. A non-zero exit binds only to
+    a command named in its own clause.
+  - 32 oracles are complete, 1044 partial, 224 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.
   - Source-file association: a UI capability that cites a studio component covers the testids
     that component declares.
-  - At the 2026-10-20 pins, 2493 of 2728 studio elements are mapped. About 820 of them are named
+  - At the 2026-10-20 pins, 2506 of 2749 studio elements are mapped. About 835 of them are named
     explicitly. The rest are mapped only by file association, which is a claim about which
     component the path drives, not about what it asserts. Phase 2 tightens it from the traces.
 

@@ -82,6 +82,14 @@
    "ledger:export:supportedPatterns"
   ],
   "wicked-studio": [
+   "studio:route:/steering/architecture",
+   "studio:route:/steering/compliance",
+   "studio:route:/steering/design-ux",
+   "studio:route:/steering/development",
+   "studio:route:/steering/operations",
+   "studio:route:/steering/security",
+   "studio:route:/steering/testing",
+   "studio:route:/testing/harness",
    "studio:testid-computed:o.testId",
    "studio:testid-computed:tabTestId",
    "studio:testid-computed:testId = 'combobox'",

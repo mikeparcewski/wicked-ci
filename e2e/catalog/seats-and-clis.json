@@ -50,7 +50,9 @@
     ],
     "complete": false,
     "untyped": [
-     "stderr line contains 'wicked-crew start --reduced-assurance'"
+     "POST /runs 2xx body.assuranceNotice.message present",
+     "stderr line contains 'wicked-crew start --reduced-assurance'",
+     "with --reduced-assurance unitDistributed.distinctness_fallback=='creator_seat' disclosed."
     ]
    },
    "oracle_text": "POST /runs 2xx body.assuranceNotice.message present; stderr line contains 'wicked-crew start --reduced-assurance'; with --reduced-assurance unitDistributed.distinctness_fallback=='creator_seat' disclosed.",
@@ -94,24 +96,17 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{id}",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "sessionFailed",
-      "count": 0
-     }
-    ],
-    "complete": true
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{id}",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "run state awaiting human with gate kind 'dead_seat' in GET /runs/:id",
+     "no sessionFailed."
+    ]
    },
    "oracle_text": "run state awaiting human with gate kind 'dead_seat' in GET /runs/:id; no sessionFailed.",
    "covers": [
@@ -179,17 +174,15 @@
       "expect": {
        "status": 200
       }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitDistributed",
-      "count": 0
      }
     ],
     "complete": false,
     "untyped": [
+     "run events contain {type:'seatBenched', cli, reason, source}",
+     "GET /roster -> recent_bench.kind == reason prefix, lifts_at == at+30min",
      "a new launch's engine roster gives the seat health.usable false.",
+     "seatBenched{cli, cause} once",
+     "no later unitDistributed.cli == benched seat",
      "session.benched_seats contains it"
     ]
    },
@@ -259,14 +252,7 @@
       "method": "POST",
       "path": "/api/v1/runs",
       "expect": {
-       "status": 409,
-       "json": [
-        {
-         "path": "$.body.code",
-         "op": "eq",
-         "value": "no_eligible_seat"
-        }
-       ]
+       "status": 409
       }
      },
      {
@@ -278,7 +264,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "HTTP 409 and body.code=='no_eligible_seat'",
+     "GET /runs does not list the runId."
+    ]
    },
    "oracle_text": "HTTP 409 and body.code=='no_eligible_seat'; GET /runs does not list the runId.",
    "covers": [
@@ -323,6 +313,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /api/v1/audit?action=seat.benched -> entries with detail.{cli,at,reason,source,runs}",
      "after restart roster[cli].recent_bench present until lifts_at."
     ]
    },
@@ -361,24 +352,17 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/chats/{id}/messages",
-      "expect": {
-       "status": 409
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "chatReply",
-      "count": 0
-     }
-    ],
-    "complete": true
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/chats/{id}/messages",
+    "expect": {
+     "status": 409
+    },
+    "complete": false,
+    "untyped": [
+     "HTTP 409 with that error text",
+     "no chatReply emitted."
+    ]
    },
    "oracle_text": "HTTP 409 with that error text; no chatReply emitted.",
    "covers": [
@@ -447,6 +431,7 @@
     ],
     "complete": false,
     "untyped": [
+     "POST /runs with primary:<key> -> the run's first lead unit unitDistributed.cli==<key>",
      "primary not eligible -> 400",
      "health.capabilities.launchPrimary==true."
     ]
@@ -557,6 +542,7 @@
     },
     "complete": false,
     "untyped": [
+     "chatReply event usage object (input/output tokens, cost) or null",
      "ChatThread usageLabel renders exactly from it",
      "no footer cost for usage null."
     ]
@@ -614,6 +600,7 @@
     },
     "complete": false,
     "untyped": [
+     "stepFailed / deliver refusal text names a path or commit and the credential kind",
      "no push occurs",
      "the value is absent from events/logs."
     ]
@@ -653,24 +640,17 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "councilSeatFailed",
-      "count": 1
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "councilVoted",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
-    "complete": true
+    "kind": "event",
+    "source": "core-event",
+    "type": "councilVoted",
+    "count": {
+     "min": 1
+    },
+    "complete": false,
+    "untyped": [
+     "each convened seat without a vote has exactly one councilSeatFailed with kind non-empty",
+     "councilVoted.seated == number convened."
+    ]
    },
    "oracle_text": "each convened seat without a vote has exactly one councilSeatFailed with kind non-empty; councilVoted.seated == number convened.",
    "covers": [],
@@ -707,15 +687,7 @@
    "oracle": {
     "kind": "manual",
     "category": "dead-path",
-    "reason": "The oracle cites engine events that are no longer emitted (C5 removed ACP from the seats: AcpSessionStarted/AcpTurnSettled/EvaluatorToolCallDenied have no emitter), so a key-presence check passes vacuously. Retire the capability or restate it on the headless carrier.",
-    "precheck": {
-     "kind": "api",
-     "method": "GET",
-     "path": "/api/v1/diagnostics",
-     "expect": {
-      "status": 200
-     }
-    }
+    "reason": "The oracle cites engine events that are no longer emitted (C5 removed ACP from the seats: AcpSessionStarted/AcpTurnSettled/EvaluatorToolCallDenied have no emitter), so a key-presence check passes vacuously. Retire the capability or restate it on the headless carrier."
    },
    "oracle_text": "200 with keys components, daemon, stores, recentErrors, acp, skills, governance, decisions, stateHome, seatGovernance, memoryStore, vault (confirmed on 7721); acp.byCli keyed by cli.",
    "covers": [
@@ -764,6 +736,7 @@
     },
     "complete": false,
     "untyped": [
+     "stepFailed/refusal detail names the container reason",
      "no process for the seat CLI runs outside a container",
      "failover detail present."
     ]
@@ -820,6 +793,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /roster -> every seat in {claude,codex,pi,opencode,copilot} has sign_in == 'container' when floor unset",
      "with host floor no seat has sign_in and stderr contains the interim HOST floor warning."
     ]
    },
@@ -928,7 +902,8 @@
     },
     "complete": false,
     "untyped": [
-     "rosterWithStanding.ready() resolves before the engine roster is built"
+     "rosterWithStanding.ready() resolves before the engine roster is built",
+     "a seat whose fresh probe says signed out appears in the run as benched (unitDistributed.degradedReason names it) rather than receiving a unit."
     ]
    },
    "oracle_text": "rosterWithStanding.ready() resolves before the engine roster is built; a seat whose fresh probe says signed out appears in the run as benched (unitDistributed.degradedReason names it) rather than receiving a unit.",
@@ -1030,6 +1005,7 @@
     "complete": false,
     "untyped": [
      "each installed skill dir has SKILL.md whose name matches",
+     "`wicked-garden doctor` exit 0 naming the plugin root and interpreter",
      "skill text passes portability rules."
     ]
    },
@@ -1129,7 +1105,12 @@
     "complete": false,
     "untyped": [
      "POST returns {status, ord, cli}",
-     "reassign to a refused author seat -> refusal"
+     "events contain unitReassigned with previous_cli and new_cli==requested",
+     "reassign to a refused author seat -> refusal",
+     "studio shows steering-reassign-status / steering-reassign-withheld.",
+     "unitReassigned{ord, newCli}",
+     "new unitDispatched",
+     "late result → toolResultDiscarded{reason:'superseded'}"
     ]
    },
    "oracle_text": "POST returns {status, ord, cli}; events contain unitReassigned with previous_cli and new_cli==requested; reassign to a refused author seat -> refusal; studio shows steering-reassign-status / steering-reassign-withheld.",
@@ -1270,7 +1251,8 @@
     },
     "complete": false,
     "untyped": [
-     "roster contains the overlay key with the written binary/headless_invocation"
+     "roster contains the overlay key with the written binary/headless_invocation",
+     "GET /api/v1/diagnostics -> seatGovernance.rosterFile == overlay path. An override that omits [cli.acp] loses acp_input_governance (governance_mode.scoped_bound.mode != 'admitted')."
     ]
    },
    "oracle_text": "roster contains the overlay key with the written binary/headless_invocation; GET /api/v1/diagnostics -> seatGovernance.rosterFile == overlay path. An override that omits [cli.acp] loses acp_input_governance (governance_mode.scoped_bound.mode != 'admitted').",
@@ -1335,6 +1317,8 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /health -> warnings[] contains {kind:'seat.work_default'} naming the key",
+     "GET /diagnostics -> seatGovernance.roleFindings has the same entry",
      "built-in keys never produce it."
     ]
    },
@@ -1389,6 +1373,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /roster login_invocation for codex == 'codex login' (no CODEX_HOME=)",
      "signed_in mirrors the operator's own logins."
     ]
    },
@@ -2100,7 +2085,8 @@
     },
     "complete": false,
     "untyped": [
-     "plan/launch refusal names the seat and the skill"
+     "plan/launch refusal names the seat and the skill",
+     "unitDistributed.seat_constraint set when non-portable skills narrow to claude."
     ]
    },
    "oracle_text": "plan/launch refusal names the seat and the skill; unitDistributed.seat_constraint set when non-portable skills narrow to claude.",
@@ -2137,15 +2123,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "kill loads",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "spawn argv contains --plugin-dir <WICKED_SKILLS_SNAPSHOT>",
-     "unit output in role of the skill",
-     "skills_live test passes (#[ignore], run explicitly)."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: spawn argv contains --plugin-dir <WICKED_SKILLS_SNAPSHOT>; unit output in role of the skill; skills_live test passes (#[ignore], run explicitly)."
    },
    "oracle_text": "spawn argv contains --plugin-dir <WICKED_SKILLS_SNAPSHOT>; unit output in role of the skill; skills_live test passes (#[ignore], run explicitly).",
    "covers": [],
@@ -2190,6 +2170,7 @@
     "assert": "exists",
     "complete": false,
     "untyped": [
+     "file exists <snapshot>/views/copilot/.github/skills/<name>/SKILL.md for each portable skill and not for non-portable ones",
      "spawn argv has --add-dir .../views/copilot."
     ]
    },
@@ -2234,13 +2215,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "kill unit routed to opencode",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "spawn env OPENCODE_CONFIG_CONTENT parses as JSON with skills.paths pointing into the snapshot and the governance keys intact."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: spawn env OPENCODE_CONFIG_CONTENT parses as JSON with skills.paths pointing into the snapshot and the governance keys intact."
    },
    "oracle_text": "spawn env OPENCODE_CONFIG_CONTENT parses as JSON with skills.paths pointing into the snapshot and the governance keys intact.",
    "covers": [],
@@ -2275,14 +2252,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "kill <snapshot>/skills/<dir> per portable skill",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "spawn argv for pi contains '--no-skills' and '--skill' entries matching the snapshot's portable skills",
-     "a non-portable required skill refuses the seat by name."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: spawn argv for pi contains '--no-skills' and '--skill' entries matching the snapshot's portable skills; a non-portable required skill refuses the seat by name."
    },
    "oracle_text": "spawn argv for pi contains '--no-skills' and '--skill' entries matching the snapshot's portable skills; a non-portable required skill refuses the seat by name.",
    "covers": [],
@@ -2372,15 +2344,16 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "unitOutputCaptured",
-    "count": {
-     "min": 1
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster",
+    "expect": {
+     "status": 200
     },
     "complete": false,
     "untyped": [
-     "After the refusal frame: roster[key].auth == 'signed_out', council_eligible == false, issues[].code includes 'signed_out'"
+     "After the refusal frame: roster[key].auth == 'signed_out', council_eligible == false, issues[].code includes 'signed_out'",
+     "after an ok unitOutputCaptured on that seat (or a live check with signedIn true and probedAt later) auth returns to signed_in. Bare numbers like ':401:' in stack traces never trigger it (AUTH_REFUSAL_PATTERNS)."
     ]
    },
    "oracle_text": "After the refusal frame: roster[key].auth == 'signed_out', council_eligible == false, issues[].code includes 'signed_out'; after an ok unitOutputCaptured on that seat (or a live check with signedIn true and probedAt later) auth returns to signed_in. Bare numbers like ':401:' in stack traces never trigger it (AUTH_REFUSAL_PATTERNS).",
@@ -2430,7 +2403,8 @@
     },
     "complete": false,
     "untyped": [
-     "toEngineSeat(seat).health.usable == (council_eligible||work_eligible)"
+     "toEngineSeat(seat).health.usable == (council_eligible||work_eligible)",
+     "a both-false seat appears in the run's unitDistributed.degradedReason as '<key> (<short reason> — launcher)'."
     ]
    },
    "oracle_text": "toEngineSeat(seat).health.usable == (council_eligible||work_eligible); a both-false seat appears in the run's unitDistributed.degradedReason as '<key> (<short reason> — launcher)'.",
@@ -2644,13 +2618,14 @@
     ],
     "complete": false,
     "untyped": [
+     "agents-banner present with kind offline",
+     "agents-offline-how text contains 'npx wicked-crew serve'",
      "summary count hidden."
     ]
    },
    "oracle_text": "agents-banner present with kind offline; agents-offline-how text contains 'npx wicked-crew serve'; summary count hidden.",
    "covers": [
     "crew:cli:serve",
-    "garden:hook:Stop",
     "studio:route:/agents",
     "studio:testid-computed:testId",
     "studio:testid:agents-add",
@@ -2739,6 +2714,7 @@
     ],
     "complete": false,
     "untyped": [
+     "network shows GET /roster?refresh=<k> for each non-free agent then GET /roster",
      "button re-enabled at end."
     ]
    },
@@ -2818,6 +2794,7 @@
     "assert": "visible",
     "complete": false,
     "untyped": [
+     "request body clisJson keys == checked launch-wizard-seat keys",
      "opencode shows its opt-in note",
      "signed-out seats disabled or flagged."
     ]
@@ -2938,7 +2915,11 @@
       "count": 1
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "DOM burn totals equal the sum of the run's cliUsage events",
+     "burn-partial visible iff ≥1 cliUsageUnreported."
+    ]
    },
    "oracle_text": "DOM burn totals equal the sum of the run's cliUsage events; burn-partial visible iff ≥1 cliUsageUnreported.",
    "covers": [
@@ -3003,6 +2984,7 @@
     ],
     "complete": false,
     "untyped": [
+     "for each agent unit attempt exactly one of cliUsage | cliUsageUnreported exists",
      "cache tokens <= input_tokens",
      "claude wrapped seats report usage."
     ]
@@ -3142,21 +3124,13 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-core seat-image status",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "seat-image build claude",
-      "code": 0
-     }
-    ],
+    "kind": "exit",
+    "cmd": "wicked-core seat-image status",
+    "code": 0,
     "complete": false,
     "untyped": [
+     "`wicked-core seat-image status` exit 0 with one line per CLI '<cli>: <tag> present|missing'",
+     "`seat-image build claude` exit 0 'claude: built <tag>'",
      "no runtime -> exit 1 with reason."
     ]
    },

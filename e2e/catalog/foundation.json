@@ -251,7 +251,8 @@
     "untyped": [
      "ESM keys include emit,poll,ack,register,subscribe,subscribePushOrPoll,listDeadLetters,replayDeadLetter,withContext,cas,pollResolve",
      "CJS require resolves same names",
-     "deep import 'wicked-bus/lib/emit.js' throws ERR_PACKAGE_PATH_NOT_EXPORTED"
+     "deep import 'wicked-bus/lib/emit.js' throws ERR_PACKAGE_PATH_NOT_EXPORTED",
+     "tsc exit 0"
     ]
    },
    "oracle_text": "ESM keys include emit,poll,ack,register,subscribe,subscribePushOrPoll,listDeadLetters,replayDeadLetter,withContext,cas,pollResolve; CJS require resolves same names; deep import 'wicked-bus/lib/emit.js' throws ERR_PACKAGE_PATH_NOT_EXPORTED; tsc exit 0",
@@ -538,6 +539,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "`--version` stdout == package.json .version (2.5.0 at HEAD 2b895a6), exit 0",
      "bare invocation stdout JSON .commands has length 13 incl. 'dlq','daemon','ui'"
     ]
    },
@@ -651,25 +653,15 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-bus subscribe --cursor-id C --once",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-bus subscribe --cursor-id C --once",
-      "code": 3
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-bus subscribe --cursor-id C --once",
-      "code": 1
-     }
-    ],
-    "complete": true
+    "kind": "exit",
+    "cmd": "wicked-bus subscribe --cursor-id C --once",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "recover: one WB-003 notice with reanchored_to == MIN(event_id) and swept_past, then events delivered, exit 0",
+     "fail: exit 3 with WB-003",
+     "`--on-stale` without value exits 1 WB-001"
+    ]
    },
    "oracle_text": "recover: one WB-003 notice with reanchored_to == MIN(event_id) and swept_past, then events delivered, exit 0; fail: exit 3 with WB-003; `--on-stale` without value exits 1 WB-001",
    "covers": [
@@ -709,25 +701,15 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-bus replay --cursor-id C --from-event-id K",
-      "code": 6,
-      "stderr_matches": "WB\\-006"
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-bus replay --cursor-id C --from-event-id K",
-      "code": 3,
-      "stderr_matches": "WB\\-003"
-     }
-    ],
+    "kind": "exit",
+    "cmd": "wicked-bus replay --cursor-id C --from-event-id K",
+    "code": 0,
     "complete": false,
     "untyped": [
      "cursor last_event_id == K-1 after replay",
-     "next subscribe yields first id K"
+     "next subscribe yields first id K",
+     "unknown cursor exit 6 stderr WB-006",
+     "K < MIN(event_id) exit 3 stderr WB-003"
     ]
    },
    "oracle_text": "cursor last_event_id == K-1 after replay; next subscribe yields first id K; unknown cursor exit 6 stderr WB-006; K < MIN(event_id) exit 3 stderr WB-003",
@@ -921,23 +903,15 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-bus dlq drop --dl-id D",
-      "code": 6
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-bus dlq drop --dl-id D",
-      "code": 1
-     }
-    ],
+    "kind": "exit",
+    "cmd": "wicked-bus dlq drop --dl-id D",
+    "code": 0,
     "complete": false,
     "untyped": [
      "stdout {dropped:true,dl_id:D}",
-     "dead_letters row gone"
+     "dead_letters row gone",
+     "second drop exits 6 WB-006",
+     "missing --dl-id exits 1 WB-001"
     ]
    },
    "oracle_text": "stdout {dropped:true,dl_id:D}; dead_letters row gone; second drop exits 6 WB-006; missing --dl-id exits 1 WB-001",
@@ -1022,13 +996,14 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-bus dlq replay --dl-id D --dry-run",
-    "code": 6,
+    "code": 0,
     "complete": false,
     "untyped": [
      "dry-run JSON .dry_run==true and .would_replay.dl_id==D with dead_letters unchanged",
      "replay JSON {replayed:true,dl_id:D}",
      "replay_requested_at set",
-     "after next poll cycle handler receives event_id and dead_letters row D is deleted"
+     "after next poll cycle handler receives event_id and dead_letters row D is deleted",
+     "unknown D exits 6 WB-006"
     ]
    },
    "oracle_text": "dry-run JSON .dry_run==true and .would_replay.dl_id==D with dead_letters unchanged; replay JSON {replayed:true,dl_id:D}; replay_requested_at set; after next poll cycle handler receives event_id and dead_letters row D is deleted; unknown D exits 6 WB-006",
@@ -1283,9 +1258,10 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-bus emit --domain e2e --payload '{}'",
-    "code": 1,
+    "code": 0,
     "complete": false,
     "untyped": [
+     "exit 1",
      "stderr JSON .error=='WB-001'",
      "`select count(*) from events` unchanged before/after"
     ]
@@ -1347,6 +1323,7 @@
     "complete": false,
     "untyped": [
      "stdout JSON .initialized==true and .db_path==\"$T/bus.db\"",
+     "file $T/bus.db exists",
      "`sqlite3 $T/bus.db 'PRAGMA journal_mode'` == wal",
      "$T/config.json parses with ttl_hours==72, unacked_policy==\"retain\""
     ]
@@ -1449,6 +1426,7 @@
     "assert": "exists",
     "complete": false,
     "untyped": [
+     "$H/.claude/skills contains wicked-bus-{init,emit,subscribe,naming,query,status,update}/SKILL.md",
      "each frontmatter parses (---…---) with name matching dir",
      "`--cli` with no value exits 1"
     ]
@@ -1485,12 +1463,13 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "deregister --role",
-    "code": 1,
+    "cmd": "wicked-bus register --plugin prov --role provider",
+    "code": 0,
     "complete": false,
     "untyped": [
      "list JSON contains prov before deregister, absent after",
-     "--include-deregistered shows it with non-null deregistered_at"
+     "--include-deregistered shows it with non-null deregistered_at",
+     "`deregister --role` with no value exits 1"
     ]
    },
    "oracle_text": "list JSON contains prov before deregister, absent after; --include-deregistered shows it with non-null deregistered_at; `deregister --role` with no value exits 1",
@@ -1546,12 +1525,13 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-bus cleanup --unacked-policy archive",
-    "code": "nonzero",
+    "code": 0,
     "complete": false,
     "untyped": [
      "archive: owed expired row moved to events_archive (count +1) and gone from events",
      "discard: deleted, not archived",
-     "retain+cap: archived with reason 'retention_cap' in .unacked report"
+     "retain+cap: archived with reason 'retention_cap' in .unacked report",
+     "invalid policy string exits non-zero"
     ]
    },
    "oracle_text": "archive: owed expired row moved to events_archive (count +1) and gone from events; discard: deleted, not archived; retain+cap: archived with reason 'retention_cap' in .unacked report; invalid policy string exits non-zero",
@@ -1787,22 +1767,14 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-bus subscribe --plugin p2 --filter 'wicked.**' --cursor-init oldest --once",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "--idle-timeout -1",
-      "code": 1
-     }
-    ],
+    "kind": "exit",
+    "cmd": "wicked-bus subscribe --plugin p2 --filter 'wicked.**' --cursor-init oldest --once",
+    "code": 0,
     "complete": false,
     "untyped": [
-     "NDJSON line count == events matching filter"
+     "process exits 0 within idle-timeout+poll interval",
+     "NDJSON line count == events matching filter",
+     "invalid `--idle-timeout -1` exits 1 with WB-001"
     ]
    },
    "oracle_text": "process exits 0 within idle-timeout+poll interval; NDJSON line count == events matching filter; invalid `--idle-timeout -1` exits 1 with WB-001",
@@ -2075,6 +2047,7 @@
     },
     "complete": false,
     "untyped": [
+     "bus events: wicked.test.strategy.generated, .scenario.authored, .run.started, .verdict.created, .evidence.captured (only when vault_payload_sha present), .run.completed",
      "all domain 'qe' with payload.qe_version",
      "absent bus CLI -> emitBusEvent returns false, CRUD unaffected"
     ]
@@ -2351,6 +2324,7 @@
     "untyped": [
      "get/list return canonical 'FAIL'",
      "stats().index_coherent==false, drift_count==1",
+     "<root>/index-drift.json exists",
      "stale .index-intent files counted",
      "after reopen index_coherent==true and marker removed"
     ]
@@ -2427,15 +2401,9 @@
     "ledger-entry"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "sqlite3 (or stub require failure) and do CRUD",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "CRUD succeeds",
-     "no wicked-qe.db created",
-     "stats() reports json-only mode"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: CRUD succeeds; no wicked-qe.db created; stats() reports json-only mode"
    },
    "oracle_text": "CRUD succeeds; no wicked-qe.db created; stats() reports json-only mode",
    "covers": [],
@@ -2631,6 +2599,7 @@
     },
     "complete": false,
     "untyped": [
+     "exactly N GET /runs/:id/acceptance requests after click (none before)",
      "each chip text equals that run's gate verdict",
      "second click issues no new requests (cached)"
     ]
@@ -2717,8 +2686,10 @@
      ".gate.satisfied true only for attributed PASS",
      ".gate.reason prefixes: 'workflow declares no acceptance requirement', 'records no verdict (missing ⇒ deny)', 'holds no verdict attributed to this run', 'PASS — ', 'FAIL — ', 'PARTIAL —', 'out-of-enum value'",
      "keys runId,repo,requirement,acceptance,gate,summary,conformance (confirmed live on crew 0.15.4)",
+     "always 200 for a known run",
      "gate.satisfied true only when attributed verdict == PASS",
-     "no ledger -> deny with reason"
+     "no ledger -> deny with reason",
+     "unknown run 404"
     ]
    },
    "oracle_text": "HTTP 200 for known run, 404 unknown; .gate.satisfied true only for attributed PASS; .gate.reason prefixes: 'workflow declares no acceptance requirement', 'records no verdict (missing ⇒ deny)', 'holds no verdict attributed to this run', 'PASS — ', 'FAIL — ', 'PARTIAL —', 'out-of-enum value'; keys runId,repo,requirement,acceptance,gate,summary,conformance (confirmed live on crew 0.15.4)",
@@ -2867,6 +2838,8 @@
     ],
     "complete": false,
     "untyped": [
+     "DOM text of [data-testid=chat-final-acceptance] == GET /runs/:id/acceptance .summary line",
+     "[data-testid=session-gate-qe-why] contains .gate.reason (path-stripped)",
      "no 'checked' word when gate unsatisfied"
     ]
    },
@@ -3054,7 +3027,9 @@
     ],
     "complete": false,
     "untyped": [
-     "--bus-db X: no sidecar bus file created"
+     "default: engine bus at <core db>.bus/bus.db and wicked.crew.project.created lands there",
+     "--bus-db X: no sidecar bus file created",
+     "unopenable: /health.warnings[] kind 'bus.unavailable' and daemon still serves 200"
     ]
    },
    "oracle_text": "default: engine bus at <core db>.bus/bus.db and wicked.crew.project.created lands there; --bus-db X: no sidecar bus file created; unopenable: /health.warnings[] kind 'bus.unavailable' and daemon still serves 200",
@@ -3131,6 +3106,7 @@
     ],
     "complete": false,
     "untyped": [
+     "bus rows wicked.crew.project.created/updated, wicked.crew.membership.attached (domain wicked-crew, type-inclusive idempotency keys)",
      "activity entries newest-first include id 'bus:<event_id>' source 'interactive' and 'crew:<run>:<seq>'",
      "nextCursor paginates"
     ]
@@ -3205,8 +3181,11 @@
     ],
     "complete": false,
     "untyped": [
+     "bus gains wicked.crew.run.launched (domain wicked-core) referencing the request",
+     "GET /api/v1/runs lists the new run",
      "busBridgeState()=={state:'armed', floor}",
-     "run.launched row"
+     "run.launched row",
+     "sessionStarted for requested id"
     ]
    },
    "oracle_text": "bus gains wicked.crew.run.launched (domain wicked-core) referencing the request; GET /api/v1/runs lists the new run",
@@ -3273,6 +3252,7 @@
     },
     "complete": false,
     "untyped": [
+     "/ws carries {type:'teamEvent', event:<bus row>} for each wicked.team.** row",
      "studio watch row sentence 'A reviewer raised a … problem in <path>' appears without reload",
      "after settled(held) stateLine 'The reviewer stands by it'",
      "withdrawn -> dismissed"
@@ -3411,7 +3391,7 @@
      {
       "kind": "exit",
       "cmd": "wicked-garden run scripts/compiler/compile.py <repo> --trigger hook,ci",
-      "code": "nonzero"
+      "code": 0
      },
      {
       "kind": "file",
@@ -3427,9 +3407,12 @@
     "complete": false,
     "untyped": [
      "emitted gate files exist in repo",
+     "gate exits non-zero when latest artifact fails (REJECT) and 0 when passing (PASS)",
      "contract source_pin == detected test command",
+     "<repo>/.wicked/{bindings.json,contract.json,gate.py,README.md} exist",
      "manifest JSON lists claims (tests-pass/lint-clean/build-clean) and needs_review",
      "gate.py imports nothing from wicked-garden",
+     "exit 0 on passing repo",
      "nonzero on failing tests or lint",
      "killswitch fails closed"
     ]
@@ -3514,22 +3497,15 @@
      },
      {
       "kind": "exit",
-      "cmd": "wicked-garden run scripts/qe/prove.py tests-pass --by \"node -e 'process.exit(0)'\"",
-      "code": 1
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/qe/prove.py tests-pass --by \"node -e 'process.exit(0)'\"",
-      "code": 3
-     },
-     {
-      "kind": "exit",
       "cmd": "wicked-garden run scripts/qe/prove.py tests-pass --by \"pytest -q\"",
       "code": 0
      }
     ],
     "complete": false,
     "untyped": [
+     "pass: exit 0 and vault cross-check overall PASS for the claim",
+     "fail: exit 1 REJECT",
+     "unresolvable: exit 3 JSON gate 'unavailable' (fail-closed)",
      "passing cmd → exit 0, JSON satisfied:true re_derived:true",
      "failing cmd → exit 1 satisfied:false",
      "vault entry in .wicked-vault/entries"
@@ -3610,6 +3586,7 @@
     },
     "complete": false,
     "untyped": [
+     "invalid manifest -> recorded verdict INCONCLUSIVE, event wicked.qe.gate.conditional, exit 3",
      "valid exclusions -> verdict_summary contains 'quarantined excluded-with-reason (' with id/cause/owner/deadline; missing field -> exit 3, nothing recorded"
     ]
    },
@@ -3659,29 +3636,18 @@
     "ledger-entry"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "bus",
-      "type": "wicked.qe.gate.passed",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "bus",
-      "type": "wicked.qe.deploy.completed",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.qe.deploy.completed",
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
      "exit 0/1/2/3 per verdict",
      "ledger verdicts row for run R with mapped enum (SYSTEM_ERROR->INCONCLUSIVE)",
+     "bus rows wicked.qe.gate.passed|failed|conditional domain 'qe' with 8-field payload (run_id,context,gate_verdict,exit_code,verdict_summary,mode,completed_at,scenario_count) and idempotency_key 'qe:gate.result:{context}:{sha256(run_id)[0:16]}:0'",
+     "PASS also emits wicked.qe.deploy.completed",
      "--dry-run writes nothing"
     ]
    },
@@ -3739,6 +3705,7 @@
     "untyped": [
      "verdicts row has vault_payload_sha == vault payload sha",
      "vault attestation recorded with the final verdict",
+     "bus wicked.test.evidence.captured",
      "unredacted bundle refused (non-zero, no vault entry)",
      "tampered --vault-entry fails closed"
     ]
@@ -3860,7 +3827,8 @@
     "complete": false,
     "untyped": [
      "bus row wicked.team.finding.settled payload status=='held' with vault_entry non-null (or vault_error naming why)",
-     "`wicked-vault --cwd <evidence_root>/team/vault list --scope run:<run>` has entry claim 'finding:<finding_id>', phase 'team:<ord>', kind 'team-finding-withdrawal-request|team-finding-evidence-gone', created_by == monitor seat"
+     "`wicked-vault --cwd <evidence_root>/team/vault list --scope run:<run>` has entry claim 'finding:<finding_id>', phase 'team:<ord>', kind 'team-finding-withdrawal-request|team-finding-evidence-gone', created_by == monitor seat",
+     "`wicked-vault verify <vault_entry>` exit 0"
     ]
    },
    "oracle_text": "bus row wicked.team.finding.settled payload status=='held' with vault_entry non-null (or vault_error naming why); `wicked-vault --cwd <evidence_root>/team/vault list --scope run:<run>` has entry claim 'finding:<finding_id>', phase 'team:<ord>', kind 'team-finding-withdrawal-request|team-finding-evidence-gone', created_by == monitor seat; `wicked-vault verify <vault_entry>` exit 0",
@@ -3935,7 +3903,9 @@
     ],
     "complete": false,
     "untyped": [
-     "every check with vault_entry in result.json renders 'vault <id>'"
+     "every check with vault_entry in result.json renders 'vault <id>'",
+     "`wicked-vault verify <id>` in the proof root exits 0",
+     "GET /runs/:id/walkthrough check.vaultEntry equals DOM id"
     ]
    },
    "oracle_text": "every check with vault_entry in result.json renders 'vault <id>'; `wicked-vault verify <id>` in the proof root exits 0; GET /runs/:id/walkthrough check.vaultEntry equals DOM id",
@@ -4056,22 +4026,16 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault attest <id> --opinion pass --rationale r --evaluator gemini-reviewer --model gemini/2.5-pro",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault attest <id> --opinion pass --rationale r --evaluator gemini-reviewer --model gemini/2.5-pro",
-      "code": 1
-     }
-    ],
+    "kind": "exit",
+    "cmd": "wicked-vault attest <id> --opinion pass --rationale r --evaluator gemini-reviewer --model gemini/2.5-pro",
+    "code": 0,
     "complete": false,
     "untyped": [
-     "ambient worker: exit 1 unless --allow-weak-worker-identity, then attestation.worker_identity_weak==true"
+     "independent: exit 0 JSON attestation_id, opinion 'pass'",
+     "evaluator==created_by: exit 1 'attest refused (G10/D4)… equals the artifact creator'",
+     "ambient worker: exit 1 unless --allow-weak-worker-identity, then attestation.worker_identity_weak==true",
+     "tampered: exit 1 'integrity check failed'",
+     "invalid opinion exit 1"
     ]
    },
    "oracle_text": "independent: exit 0 JSON attestation_id, opinion 'pass'; evaluator==created_by: exit 1 'attest refused (G10/D4)… equals the artifact creator'; ambient worker: exit 1 unless --allow-weak-worker-identity, then attestation.worker_identity_weak==true; tampered: exit 1 'integrity check failed'; invalid opinion exit 1",
@@ -4204,6 +4168,7 @@
     ],
     "complete": false,
     "untyped": [
+     "bus events table gains wicked.test.evidence.recorded, wicked.contract.published, wicked.contract.checked, wicked.evidence.attested, wicked.evidence.superseded with domain 'qe'",
      "NO_BUS / unresolvable: zero new rows and identical stdout+exit codes"
     ]
    },
@@ -4245,6 +4210,7 @@
     "code": 0,
     "complete": false,
     "untyped": [
+     "exit 0 both",
      "version == package.json version (0.8.0 at f611e00)",
      "help contains 'COMMANDS'",
      "no .wicked-vault created"
@@ -4301,7 +4267,9 @@
     ],
     "complete": false,
     "untyped": [
-     "contracts/ file exists"
+     "exit 0 JSON contract_version",
+     "contracts/ file exists",
+     "bus row event_type 'wicked.contract.published' when bus resolvable"
     ]
    },
    "oracle_text": "exit 0 JSON contract_version; contracts/ file exists; bus row event_type 'wicked.contract.published' when bus resolvable",
@@ -4390,7 +4358,8 @@
      "reject -> 'REJECT'",
      "pass -> 'PASS' judgment 'satisfied'",
      "stale (evidence/criteria sha changed) -> REJECT with '(stale)'",
-     "integrity-only mode -> judgment 'not_evaluated'"
+     "integrity-only mode -> judgment 'not_evaluated'",
+     "bus 'wicked.claim.evaluated' per consulted claim"
     ]
    },
    "oracle_text": "no opinion -> 'UNATTESTED'; reject -> 'REJECT'; pass -> 'PASS' judgment 'satisfied'; stale (evidence/criteria sha changed) -> REJECT with '(stale)'; integrity-only mode -> judgment 'not_evaluated'; bus 'wicked.claim.evaluated' per consulted claim",
@@ -4433,11 +4402,6 @@
       "code": 0
      },
      {
-      "kind": "exit",
-      "cmd": "wicked-vault cross-check --scope s --phase build",
-      "code": 1
-     },
-     {
       "kind": "event",
       "source": "bus",
       "type": "wicked.contract.checked",
@@ -4448,9 +4412,12 @@
     ],
     "complete": false,
     "untyped": [
+     "(a) overall 'PASS' exit 0",
+     "(b) 'REJECT' exit 1 claim result 'FAIL'",
      "(c) claim 'MISSING', overall 'REJECT'",
      "(d) overall 'ERROR' detail 'no contract declared (fail-closed)'",
-     "mode integrity-only"
+     "mode integrity-only",
+     "bus 'wicked.contract.checked'"
     ]
    },
    "oracle_text": "(a) overall 'PASS' exit 0; (b) 'REJECT' exit 1 claim result 'FAIL'; (c) claim 'MISSING', overall 'REJECT'; (d) overall 'ERROR' detail 'no contract declared (fail-closed)'; mode integrity-only; bus 'wicked.contract.checked'",
@@ -4740,14 +4707,9 @@
     "vault-entry"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "kill wicked-vault-analyze-evidence on an artifact id",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "$H/.claude/skills has wicked-vault-{init,record-evidence,verify-evidence,analyze-evidence,cross-check-evidence,update}/SKILL.md with parseable frontmatter",
-     "analyze-evidence run leaves a new attestations/<id> record whose evaluator != created_by"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: $H/.claude/skills has wicked-vault-{init,record-evidence,verify-evidence,analyze-evidence,cross-check-evidence,update}/SKILL.md with parseable frontmatter; analyze-evidence run leaves a new attestations/<id> record whose evaluator != created_by"
    },
    "oracle_text": "$H/.claude/skills has wicked-vault-{init,record-evidence,verify-evidence,analyze-evidence,cross-check-evidence,update}/SKILL.md with parseable frontmatter; analyze-evidence run leaves a new attestations/<id> record whose evaluator != created_by",
    "covers": [
@@ -4978,7 +4940,8 @@
     "untyped": [
      "JSON {old_id,new_id}",
      "old entry state 'superseded' (file kept), new 'active'",
-     "cross-check selects new_id"
+     "cross-check selects new_id",
+     "bus 'wicked.evidence.superseded'"
     ]
    },
    "oracle_text": "JSON {old_id,new_id}; old entry state 'superseded' (file kept), new 'active'; cross-check selects new_id; bus 'wicked.evidence.superseded'",
@@ -5020,7 +4983,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "sh -c 'exit 1'",
-    "code": 1,
+    "code": 0,
     "complete": false,
     "untyped": [
      "verify JSON status=='fail' detail 'exit_code=1 != 0', exit 1",
@@ -5133,22 +5096,13 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault verify <id>",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault verify <id>",
-      "code": 1
-     }
-    ],
+    "kind": "exit",
+    "cmd": "wicked-vault verify <id>",
+    "code": 0,
     "complete": false,
     "untyped": [
-     "intact+pass: hash_ok==true, status=='pass', exit 0"
+     "intact+pass: hash_ok==true, status=='pass', exit 0",
+     "after editing cached status the re-derived status stays 'fail' (exit 1) — cached field ignored"
     ]
    },
    "oracle_text": "intact+pass: hash_ok==true, status=='pass', exit 0; after editing cached status the re-derived status stays 'fail' (exit 1) — cached field ignored",
@@ -5187,25 +5141,16 @@
     "vault-entry"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault verify <id>",
-      "code": 1
-     },
-     {
-      "kind": "event",
-      "source": "bus",
-      "type": "wicked.evidence.tampered",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.evidence.tampered",
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
-     "verify JSON hash_ok==false with payload_ok false, exit 1"
+     "verify JSON hash_ok==false with payload_ok false, exit 1",
+     "bus events table gains event_type 'wicked.evidence.tampered' domain 'qe' subdomain 'vault.tamper' payload.id==<id>"
     ]
    },
    "oracle_text": "verify JSON hash_ok==false with payload_ok false, exit 1; bus events table gains event_type 'wicked.evidence.tampered' domain 'qe' subdomain 'vault.tamper' payload.id==<id>",

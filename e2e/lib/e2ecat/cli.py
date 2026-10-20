@@ -161,6 +161,12 @@ def cmd_drift(a):
     L = ["# e2e surface drift", "", "| repo | pinned | current | added | removed | added and unmapped |", "|---|---|---|---:|---:|---:|"]
     detail, out = [], {}
     for repo in sorted(set(pinned) | set(fresh)):
+        if repo not in fresh:
+            # A repo the fresh extraction did not produce failed to extract; it did not lose its surface.
+            out[repo] = {"pinned": pinned[repo]["sha"], "current": None, "unavailable": True}
+            L.append("| %s | `%s` | unavailable | - | - | - |" % (repo, pinned[repo]["sha"][:12]))
+            detail.append("- %s: no fresh manifest (extraction failed); not compared" % repo)
+            continue
         p = {e["key"] for e in pinned.get(repo, {}).get("elements", [])}
         f = {e["key"] for e in fresh.get(repo, {}).get("elements", [])}
         added, removed = sorted(f - p), sorted(p - f)

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """e2e: the wicked platform certification catalog tool (stdlib only).
 
-    e2e validate [--report RUN_DIR] [--baseline FILE] [--out DIR]
+    e2e validate [--report RUN_DIR] [--baseline FILE] [--surfaces DIR] [--out DIR] [-v]
     e2e select EXPR | --profile NAME
-    e2e surfaces (--src DIR | --clone {pinned,main}) [--crew-npm VERSION|latest] [--out DIR]
-    e2e baseline [--write]
+    e2e surfaces (--src DIR | --clone {pinned,main}) [--repos LIST] [--crew-npm VERSION|latest]
+                 [--out DIR] [--write-pins]
+    e2e drift --against DIR [--out DIR]
+    e2e baseline [--write] [--path FILE]
 
 Windows: run it as `python e2e/bin/e2e ...`.
 """

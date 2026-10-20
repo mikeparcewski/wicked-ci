@@ -104,16 +104,18 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
         if c.get("surface") == "ui" and not UI_EVIDENCE <= set(c.get("required_evidence", [])):
             fails.append("%s: a UI capability must require video, screenshot and trace" % cid)
         o = c.get("oracle")
-        if isinstance(o, dict) and o.get("kind") in ("dom", "api", "event", "file", "exit", "npm", "gh", "all"):
-            for i, ch in enumerate(_checks(o)):
-                if ch.get("kind") == "dom" and ch.get("assert") in VALUE_ASSERTS and "value" not in ch:
-                    fails.append("%s: oracle check %d (%s) needs a value" % (cid, i, ch["assert"]))
-                if ch.get("kind") == "file" and ch.get("assert") in ("sha256", "json-path", "matches") and "value" not in ch:
-                    fails.append("%s: oracle check %d (file %s) needs a value" % (cid, i, ch["assert"]))
-                if ch.get("kind") == "file" and ch.get("assert") == "json-path" and "json_path" not in ch:
-                    fails.append("%s: oracle check %d (file json-path) needs json_path" % (cid, i))
-            if o.get("complete") and o.get("untyped"):
+        if isinstance(o, dict) and o.get("kind") in TYPED:
+            fails += ["%s: %s" % (cid, f) for f in check_semantics(_checks(o))]
+            if "complete" not in o:
+                fails.append("%s: a typed oracle must say whether it is complete" % cid)
+            elif o["complete"] and o.get("untyped"):
                 fails.append("%s: oracle is marked complete but lists untyped clauses" % cid)
+            elif not o["complete"] and not o.get("untyped"):
+                fails.append("%s: a partial oracle must list its untyped clauses" % cid)
+            if o.get("complete") and c.get("surface") == "ui" and not any(ch.get("kind") == "dom" for ch in _checks(o)):
+                fails.append("%s: a UI oracle without a dom check cannot be complete" % cid)
+        elif isinstance(o, dict) and o.get("kind") == "manual" and isinstance(o.get("precheck"), dict):
+            fails += ["%s: precheck: %s" % (cid, f) for f in check_semantics(_checks(o["precheck"]))]
         for k in c.get("covers", []):
             if k not in elements:
                 fails.append("%s: covers %s, which no surface manifest lists" % (cid, k))
@@ -131,6 +133,46 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
         if len(c.get("scenarios", [])) > 1 and "planned" in c.get("scenarios", []):
             fails.append("%s: `planned` cannot sit beside a real scenario" % cid)
     return fails
+
+
+TYPED = ("dom", "api", "event", "file", "exit", "npm", "gh", "all")
+NO_VALUE_OPS = ("exists", "absent")
+
+
+def _comparison(cmp_, where):
+    if isinstance(cmp_, dict) and cmp_.get("op") not in NO_VALUE_OPS and "value" not in cmp_:
+        return ["%s: comparison %s %s needs a value" % (where, cmp_.get("path"), cmp_.get("op"))]
+    return []
+
+
+def check_semantics(checks):
+    """What JSON Schema (as subset here) cannot say: value-taking asserts carry values, nothing is vacuous."""
+    out = []
+    for i, ch in enumerate(checks):
+        k, w = ch.get("kind"), "oracle check %d (%s)" % (i, ch.get("kind"))
+        if k == "dom" and ch.get("assert") in VALUE_ASSERTS and "value" not in ch:
+            out.append("%s %s needs a value" % (w, ch["assert"]))
+        if k == "dom" and ch.get("assert") == "attr" and "attr" not in ch:
+            out.append("%s attr needs the attribute name" % w)
+        if k == "file" and ch.get("assert") in ("sha256", "json-path", "matches") and "value" not in ch:
+            out.append("%s %s needs a value" % (w, ch["assert"]))
+        if k == "file" and ch.get("assert") == "json-path" and "json_path" not in ch:
+            out.append("%s json-path needs json_path" % w)
+        if k == "api":
+            exp = ch.get("expect") or {}
+            if not any(x in exp for x in ("status", "json", "error_code")):
+                out.append("%s expects nothing" % w)
+            if "json" in exp and not exp["json"]:
+                out.append("%s has an empty json expectation" % w)
+            for cmp_ in exp.get("json", []):
+                out += _comparison(cmp_, w)
+        if k == "gh":
+            out += _comparison(ch.get("assert"), w)
+        if k == "event" and isinstance(ch.get("count"), dict):
+            cnt = ch["count"]
+            if cnt.get("min", 0) < 1 and "max" not in cnt:
+                out.append("%s count %s is vacuous (no min >= 1 and no max)" % (w, cnt))
+    return out
 
 
 def unmapped_elements(caps, surfaces):
@@ -295,9 +337,13 @@ def check_report(run_dir, caps, profiles):
                 fails.append("%s: required evidence %s missing" % (cid, kind))
                 continue
             for p in paths if isinstance(paths, list) else [paths]:
-                base = os.path.abspath(run_dir)
-                full = os.path.abspath(os.path.join(base, p))
-                if not full.startswith(base + os.sep):
+                base = os.path.realpath(run_dir)
+                full = os.path.realpath(os.path.join(base, p))  # symlinks resolved: a link out of the run dir escapes
+                try:
+                    inside = os.path.commonpath([base, full]) == base and full != base
+                except ValueError:  # different drives on Windows
+                    inside = False
+                if not inside:
                     fails.append("%s: evidence %s escapes the run dir" % (cid, p))
                 elif not os.path.isfile(full) or os.path.getsize(full) == 0:
                     fails.append("%s: evidence %s (%s) missing or empty" % (cid, p, kind))

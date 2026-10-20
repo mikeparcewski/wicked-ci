@@ -56,10 +56,16 @@ jobs:
           mkdir -p "$out"
           python3 e2e/bin/e2e surfaces --clone pinned --out "$out"
           rc=0
+          committed=$(cd e2e/surfaces && ls wicked-*.json | sort)
+          produced=$(cd "$out" && ls wicked-*.json 2>/dev/null | sort)
+          if [ "$committed" != "$produced" ]; then
+            echo "::error::the manifest set differs: committed [$(echo $committed)] vs extracted [$(echo $produced)]"
+            rc=1
+          fi
           for f in e2e/surfaces/wicked-*.json; do
             if ! cmp -s "$f" "$out/$(basename "$f")"; then
               echo "::error file=$f::does not reproduce from its pinned SHA; re-run: python3 e2e/bin/e2e surfaces --clone pinned"
-              diff <(head -c 4000 "$f") <(head -c 4000 "$out/$(basename "$f")") || true
+              diff "$f" "$out/$(basename "$f")" | head -40 || true
               rc=1
             fi
           done
@@ -82,6 +88,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: extract surfaces from current mains (+ the latest published wicked-crew CLI)
+        id: extract
         continue-on-error: true
         run: |
           mkdir -p "$RUNNER_TEMP/main"
@@ -93,11 +100,18 @@ jobs:
           python3 e2e/bin/e2e validate --surfaces "$RUNNER_TEMP/main" --baseline e2e/coverage-baseline.json \
             --out drift-out/validate-against-main > drift-out/validate-against-main.txt 2>&1 || true
           {
-            cat drift-out/drift.md 2>/dev/null || echo "drift report unavailable (extraction failed; see the log)"
+            if [ "${{ steps.extract.outcome }}" != "success" ]; then
+              echo "> **Extraction did not finish cleanly** (outcome: ${{ steps.extract.outcome }}). Repos with no fresh"
+              echo "> manifest read \`unavailable\` below and are not compared; see the extract step's log."
+              echo
+            fi
+            cat drift-out/drift.md 2>/dev/null || echo "drift report unavailable (see the log)"
             echo
             echo "## validate against current mains"
             echo
-            tail -n 1 drift-out/validate-against-main.txt 2>/dev/null || true
+            echo '```'
+            tail -n 60 drift-out/validate-against-main.txt 2>/dev/null || true
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()

@@ -21,13 +21,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "node smoke-lifecycle.mjs / smoke.mjs with WICKED_MEMORY_EMBEDDER=hash",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "child process exit codes per SIG-1/2/3"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: script exit 0; child process exit codes per SIG-1/2/3"
    },
    "oracle_text": "script exit 0; child process exit codes per SIG-1/2/3",
    "covers": [],
@@ -155,6 +151,7 @@
     },
     "complete": false,
     "untyped": [
+     "wicked.gate.eval.responded row with verdict",
      "fail-closed on captured incident"
     ]
    },
@@ -227,13 +224,18 @@
     ],
     "complete": false,
     "untyped": [
-     "concurrency ≤ cap"
+     "campaignNodeReady/Started/Completed order matches ready_set",
+     "concurrency ≤ cap",
+     "fail-fast cancels in-flight → campaignFailed",
+     "continue-independent blocks only dependents (campaignNodeBlocked)"
     ]
    },
    "oracle_text": "campaignNodeReady/Started/Completed order matches ready_set; concurrency ≤ cap; fail-fast cancels in-flight → campaignFailed; continue-independent blocks only dependents (campaignNodeBlocked)",
    "covers": [
     "crew:route:POST /api/v1/campaigns",
-    "studio:route:/testing"
+    "studio:route:/testing",
+    "studio:route:/testing/campaigns",
+    "studio:route:/testing/campaigns/:id"
    ],
    "scenarios": [
     {
@@ -278,25 +280,16 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "campaignNodeAwaitingHuman",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "campaignNodeStarted",
-      "count": 0
-     }
-    ],
+    "kind": "event",
+    "source": "core-event",
+    "type": "campaignNodeAwaitingHuman",
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
+     "campaignNodeAwaitingHuman",
+     "after resume completed nodes have no new campaignNodeStarted",
      "denial gate auto-reject cancels node and holds run gate"
     ]
    },
@@ -351,60 +344,7 @@
    "oracle": {
     "kind": "manual",
     "category": "dead-path",
-    "reason": "The oracle cites engine events that are no longer emitted (C5 removed ACP from the seats: AcpSessionStarted/AcpTurnSettled/EvaluatorToolCallDenied have no emitter), so a key-presence check passes vacuously. Retire the capability or restate it on the headless carrier.",
-    "precheck": {
-     "kind": "all",
-     "of": [
-      {
-       "kind": "event",
-       "source": "core-event",
-       "type": "acpSessionStarted",
-       "count": {
-        "min": 1
-       }
-      },
-      {
-       "kind": "event",
-       "source": "core-event",
-       "type": "acpTurnSettled",
-       "count": {
-        "min": 1
-       }
-      },
-      {
-       "kind": "event",
-       "source": "core-event",
-       "type": "evaluatorToolCallDenied",
-       "count": {
-        "min": 1
-       }
-      },
-      {
-       "kind": "event",
-       "source": "core-event",
-       "type": "workerToolCallDenied",
-       "count": {
-        "min": 1
-       }
-      },
-      {
-       "kind": "event",
-       "source": "core-event",
-       "type": "acpFallback",
-       "count": {
-        "min": 1
-       }
-      },
-      {
-       "kind": "event",
-       "source": "core-event",
-       "type": "acpProcessRestarted",
-       "count": {
-        "min": 1
-       }
-      }
-     ]
-    }
+    "reason": "The oracle cites engine events that are no longer emitted (C5 removed ACP from the seats: AcpSessionStarted/AcpTurnSettled/EvaluatorToolCallDenied have no emitter), so a key-presence check passes vacuously. Retire the capability or restate it on the headless carrier."
    },
    "oracle_text": "acpSessionStarted, acpTurnSettled; denied calls → evaluatorToolCallDenied/workerToolCallDenied{carrier:'acp'}; acpFallback / acpProcessRestarted on bridge failure",
    "covers": [],
@@ -507,7 +447,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "workerSessionStarted then workerSessionReused on 2nd unit",
+     "workerSessionClosed on completion/error"
+    ]
    },
    "oracle_text": "workerSessionStarted then workerSessionReused on 2nd unit; workerSessionClosed on completion/error",
    "covers": [],
@@ -555,6 +499,7 @@
     },
     "complete": false,
     "untyped": [
+     "governanceHookFired per tool call",
      "workOutput persisted",
      "files changed only within worktree"
     ]
@@ -803,7 +748,8 @@
     "untyped": [
      "stored preset exists with the pin on the step",
      "unknown workflow/phase rejected naming valid ids",
-     "a step whose entry pins its own floor refused"
+     "a step whose entry pins its own floor refused",
+     "gateEvaluated.hasDeterministicFloor=true on that step in a run"
     ]
    },
    "oracle_text": "stored preset exists with the pin on the step; unknown workflow/phase rejected naming valid ids; a step whose entry pins its own floor refused; gateEvaluated.hasDeterministicFloor=true on that step in a run",
@@ -949,8 +895,12 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-core output-gate-hook --scope S --phase P",
-    "code": 2,
-    "complete": true
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "exit 2 when WICKED_DECISIONS_PATH unset (fail closed)",
+     "exit 2 for an output violating an ingested policy, with recalled obligations in the decision line"
+    ]
    },
    "oracle_text": "exit 2 when WICKED_DECISIONS_PATH unset (fail closed); exit 2 for an output violating an ingested policy, with recalled obligations in the decision line",
    "covers": [
@@ -994,25 +944,17 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-core register-repo --path <git dir> [--name N] --db <F>",
-      "code": "nonzero"
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "repoRegistered",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "event",
+    "source": "core-event",
+    "type": "repoRegistered",
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
-     "`repos` stdout contains the repo id/name"
+     "`repos` stdout contains the repo id/name",
+     "register on a non-git dir exits non-zero",
+     "repoRegistered event emitted (Core API)"
     ]
    },
    "oracle_text": "`repos` stdout contains the repo id/name; register on a non-git dir exits non-zero; repoRegistered event emitted (Core API)",
@@ -1152,20 +1094,14 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "rules list --json",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-core rules ingest <dir>",
-      "code": "nonzero"
-     }
-    ],
-    "complete": true
+    "kind": "exit",
+    "cmd": "wicked-core rules ingest <dir>",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "exit 0 and `rules list --json` shows ingested ids",
+     "empty dir / empty applies_to / typo'd field / bad regex each exit non-zero"
+    ]
    },
    "oracle_text": "exit 0 and `rules list --json` shows ingested ids; empty dir / empty applies_to / typo'd field / bad regex each exit non-zero",
    "covers": [
@@ -1263,11 +1199,12 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-estate index",
+    "cmd": "wicked-core rules relink [--json]",
     "code": 0,
     "complete": false,
     "untyped": [
-     "relink JSON lists linked + drift refs (never dropped)"
+     "relink JSON lists linked + drift refs (never dropped)",
+     "drift exit code 0/3/1"
     ]
    },
    "oracle_text": "relink JSON lists linked + drift refs (never dropped); drift exit code 0/3/1",
@@ -1368,14 +1305,13 @@
       "count": {
        "min": 1
       }
-     },
-     {
-      "kind": "exit",
-      "cmd": "--confirm bogus",
-      "code": "nonzero"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "stdout event stream contains sessionStarted then sessionCompleted",
+     "`--confirm bogus` exits non-zero before any launch (HumanConfirm::parse)"
+    ]
    },
    "oracle_text": "stdout event stream contains sessionStarted then sessionCompleted; `--confirm bogus` exits non-zero before any launch (HumanConfirm::parse)",
    "covers": [
@@ -1457,11 +1393,12 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-core seat-image status",
-    "code": 2,
+    "code": 0,
     "complete": false,
     "untyped": [
      "stdout lines per CLI with present/missing",
-     "WICKED_SEAT_IMAGE_<CLI> override shown as the tag"
+     "WICKED_SEAT_IMAGE_<CLI> override shown as the tag",
+     "bad verb exits 2 with usage"
     ]
    },
    "oracle_text": "stdout lines per CLI with present/missing; WICKED_SEAT_IMAGE_<CLI> override shown as the tag; bad verb exits 2 with usage",
@@ -1500,22 +1437,15 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-core seat-login argv <claude|codex|pi|opencode|copilot>",
-      "code": 2
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-core seat-login argv <claude|codex|pi|opencode|copilot>",
-      "code": 1
-     }
-    ],
+    "kind": "exit",
+    "cmd": "wicked-core seat-login argv <claude|codex|pi|opencode|copilot>",
+    "code": 0,
     "complete": false,
     "untyped": [
-     "stdout parses as JSON string array"
+     "stdout parses as JSON string array",
+     "unsupported cli or bad verb exits 2 without echoing args",
+     "missing gateway dir exits 1 naming WICKED_SEAT_GATEWAY_DIR",
+     "host-login CLI absent on PATH exits 1 'is not installed on this host'"
     ]
    },
    "oracle_text": "stdout parses as JSON string array; unsupported cli or bad verb exits 2 without echoing args; missing gateway dir exits 1 naming WICKED_SEAT_GATEWAY_DIR; host-login CLI absent on PATH exits 1 'is not installed on this host'",
@@ -1704,8 +1634,7 @@
     "complete": false,
     "untyped": [
      "stdout JSON status tag",
-     "unknown cli -> nonzero",
-     "`--help` documents without executing."
+     "exit code 0 unless status==unknown"
     ]
    },
    "oracle_text": "stdout JSON status tag; exit code 0 unless status==unknown",
@@ -1773,7 +1702,8 @@
     ],
     "complete": false,
     "untyped": [
-     "vault holds the pin"
+     "vault holds the pin",
+     "domain-extraction run's domain_coverage unit emits validationPinAttached with that pin"
     ]
    },
    "oracle_text": "exit 0; vault holds the pin; domain-extraction run's domain_coverage unit emits validationPinAttached with that pin",
@@ -1858,9 +1788,10 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-core provision-validator --criterion \"...\"",
-    "code": "nonzero",
+    "code": 0,
     "complete": false,
     "untyped": [
+     "missing --criterion / --pin exits non-zero with usage",
      "approve returns a pin",
      "load_validator(pin) round-trips approved=true",
      "editing the script changes the pin"
@@ -1945,15 +1876,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "codex unit completes",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "unit completes",
-     "gateway route log shows the CLI's route",
-     "no direct upstream from seat"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: unit completes; gateway route log shows the CLI's route; no direct upstream from seat"
    },
    "oracle_text": "unit completes; gateway route log shows the CLI's route; no direct upstream from seat",
    "covers": [],
@@ -2007,27 +1932,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "codex (app-server account/read refreshToken), pi (print-bearer-token), opencode (import/models/export) renewed on host in throwaway home",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-core seat-login status {cli}",
-      "code": 0,
-      "stdout_matches": "\"status\":\\s*\"signed_in\""
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "seat-login status detail last refresh advances",
-     "failure recorded without CLI output",
-     "one pass per gateway (lock)",
-     "expires_at is later than before the refresh pass; only one pass runs per gateway (lock file)"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: seat-login status detail last refresh advances; failure recorded without CLI output; one pass per gateway (lock)"
    },
    "oracle_text": "seat-login status detail last refresh advances; failure recorded without CLI output; one pass per gateway (lock)",
    "covers": [
@@ -2136,7 +2043,8 @@
     },
     "complete": false,
     "untyped": [
-     "unit output from seat_model_refused '(seat 'copilot' could not run this governed unit: ...)'"
+     "unit output from seat_model_refused '(seat 'copilot' could not run this governed unit: ...)'",
+     "stepFailed"
     ]
    },
    "oracle_text": "unit output from seat_model_refused '(seat 'copilot' could not run this governed unit: ...)'; stepFailed",
@@ -2218,13 +2126,12 @@
     },
     "complete": false,
     "untyped": [
-     "unit output contains floor_refusal_text with reason (no_container_runtime, container_runtime_down, gateway_unavailable, agent_signed_out, gate_hook_unreachable, host_only_carrier, needs_container_floor)"
+     "unit output contains floor_refusal_text with reason (no_container_runtime, container_runtime_down, gateway_unavailable, agent_signed_out, gate_hook_unreachable, host_only_carrier, needs_container_floor)",
+     "unitReassigned or failover"
     ]
    },
    "oracle_text": "unit output contains floor_refusal_text with reason (no_container_runtime, container_runtime_down, gateway_unavailable, agent_signed_out, gate_hook_unreachable, host_only_carrier, needs_container_floor); unitReassigned or failover",
-   "covers": [
-    "garden:hook:Stop"
-   ],
+   "covers": [],
    "scenarios": [
     {
      "ref": "wicked-core:src/worker_sandbox.rs",
@@ -2263,14 +2170,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "claude seat with a fenced dir",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "fenced path unchanged",
-     "in-tree change present"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: fenced path unchanged; in-tree change present"
    },
    "oracle_text": "fenced path unchanged; in-tree change present",
    "covers": [],
@@ -2318,7 +2220,8 @@
     "complete": false,
     "untyped": [
      "daemon stdout warning line on host",
-     "isContainerSeatFloor(env) true by default"
+     "isContainerSeatFloor(env) true by default",
+     "units' sandboxPosture reason names container"
     ]
    },
    "oracle_text": "daemon stdout warning line on host; isContainerSeatFloor(env) true by default; units' sandboxPosture reason names container",
@@ -2490,14 +2393,13 @@
     },
     "complete": false,
     "untyped": [
+     "governanceHookFired per call",
      "deny blocks",
      "relay unreachable → unit refused gate_hook_unreachable"
     ]
    },
    "oracle_text": "governanceHookFired per call; deny blocks; relay unreachable → unit refused gate_hook_unreachable",
-   "covers": [
-    "garden:hook:PreToolUse"
-   ],
+   "covers": [],
    "scenarios": [
     {
      "ref": "wicked-core:src/hook_relay.rs",
@@ -2537,6 +2439,7 @@
     "complete": false,
     "untyped": [
      "unit output 'its seat container did not arm — <reason>'",
+     "stepFailed",
      "no container started"
     ]
    },
@@ -2673,6 +2576,8 @@
     ],
     "complete": false,
     "untyped": [
+     "deliverLiftEvaluated.outcome in {unchanged, lifted, conflict, skipped}",
+     "lifted → baseBefore != baseAfter and a repoChecksEvaluated for the lifted tree",
      "assurance receipt present"
     ]
    },
@@ -2719,30 +2624,23 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitPlanned",
-      "count": 0
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{id}",
-      "expect": {
-       "json": [
-        {
-         "path": "$.delivery",
-         "op": "eq",
-         "value": "none"
-        }
-       ]
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{id}",
+    "expect": {
+     "json": [
+      {
+       "path": "$.delivery",
+       "op": "eq",
+       "value": "none"
       }
-     }
-    ],
-    "complete": true
+     ]
+    },
+    "complete": false,
+    "untyped": [
+     "no unitPlanned for deliver",
+     "GET /runs/:id delivery=='none'"
+    ]
    },
    "oracle_text": "no unitPlanned for deliver; GET /runs/:id delivery=='none'",
    "covers": [
@@ -2803,7 +2701,8 @@
     "complete": false,
     "untyped": [
      "git ls-remote shows refs/heads/wicked/<run> == worktree HEAD",
-     "`gh pr view` state OPEN"
+     "`gh pr view` state OPEN",
+     "GET /runs/:id delivery field = pushed with URL"
     ]
    },
    "oracle_text": "git ls-remote shows refs/heads/wicked/<run> == worktree HEAD; `gh pr view` state OPEN; GET /runs/:id delivery field = pushed with URL",
@@ -2888,7 +2787,10 @@
     ],
     "complete": false,
     "untyped": [
-     "approve → deliver unit attempt+1"
+     "deliverLiftEvaluated.outcome=='conflict' with conflicts[]",
+     "awaitingHuman.gateKind=='deliver_refusal'",
+     "approve → deliver unit attempt+1",
+     "studio session-stranded-deliver"
     ]
    },
    "oracle_text": "deliverLiftEvaluated.outcome=='conflict' with conflicts[]; awaitingHuman.gateKind=='deliver_refusal'; approve → deliver unit attempt+1; studio session-stranded-deliver",
@@ -2953,6 +2855,7 @@
     },
     "complete": false,
     "untyped": [
+     "unit stepFailed naming the secret guard",
      "deliver refused before deliver command spawns",
      "remote ref unchanged"
     ]
@@ -3017,6 +2920,8 @@
     ],
     "complete": false,
     "untyped": [
+     "for each evaluator unit: unitDistributed.cli != creator unit's cli",
+     "gateEvaluated.assurance.evaluator != assurance.creator",
      "one-seat → refusal naming no eligible seat"
     ]
    },
@@ -3127,7 +3032,10 @@
     "count": {
      "min": 1
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "assumptionRecorded{library, transform, known:false}"
+    ]
    },
    "oracle_text": "assumptionRecorded{library, transform, known:false}",
    "covers": [],
@@ -3190,6 +3098,8 @@
     ],
     "complete": false,
     "untyped": [
+     "cliUsage{inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens, costUsd|null} per attempt",
+     "cliUsageUnreported{cli} otherwise",
      "roster/record cost == sum of costUsd"
     ]
    },
@@ -3237,14 +3147,15 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "cliOutputDelta",
-    "count": {
-     "min": 1
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{id}/events",
+    "expect": {
+     "status": 200
     },
     "complete": false,
     "untyped": [
+     "recorded history == live stream (minus cliOutputDelta)",
      "survives the core that wrote it",
      "no event reaches a subscriber without reaching the log"
     ]
@@ -3302,6 +3213,7 @@
     },
     "complete": false,
     "untyped": [
+     "/ws carries unitOutputDelta frames labelled with attempt",
      "no frame of attempt N after attempt N+1 dispatch carrying old text"
     ]
    },
@@ -3365,7 +3277,10 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "toolInvoked{tools[]} and dataUsed{files[]} after unit completion for reporting seats"
+    ]
    },
    "oracle_text": "toolInvoked{tools[]} and dataUsed{files[]} after unit completion for reporting seats",
    "covers": [],
@@ -3407,7 +3322,8 @@
     "complete": false,
     "untyped": [
      "workOutput/unitTranscript JSON non-empty",
-     "output survives daemon restart"
+     "output survives daemon restart",
+     "unitOutputCaptured.outputBytes matches"
     ]
    },
    "oracle_text": "workOutput/unitTranscript JSON non-empty; output survives daemon restart; unitOutputCaptured.outputBytes matches",
@@ -3453,6 +3369,7 @@
     },
     "complete": false,
     "untyped": [
+     "workerToolCallDenied naming the effective dir and remedy",
      "no node_modules created outside worktree"
     ]
    },
@@ -3542,6 +3459,7 @@
     },
     "complete": false,
     "untyped": [
+     "workerToolCallDenied for the segment",
      "operator config files' hashes unchanged"
     ]
    },
@@ -3579,36 +3497,7 @@
    "oracle": {
     "kind": "manual",
     "category": "dead-path",
-    "reason": "The oracle cites engine events that are no longer emitted (C5 removed ACP from the seats: AcpSessionStarted/AcpTurnSettled/EvaluatorToolCallDenied have no emitter), so a key-presence check passes vacuously. Retire the capability or restate it on the headless carrier.",
-    "precheck": {
-     "kind": "all",
-     "of": [
-      {
-       "kind": "event",
-       "source": "core-event",
-       "type": "governanceHookFired",
-       "count": {
-        "min": 1
-       }
-      },
-      {
-       "kind": "event",
-       "source": "core-event",
-       "type": "evaluatorToolCallDenied",
-       "count": {
-        "min": 1
-       }
-      },
-      {
-       "kind": "event",
-       "source": "core-event",
-       "type": "workerToolCallDenied",
-       "count": {
-        "min": 1
-       }
-      }
-     ]
-    }
+    "reason": "The oracle cites engine events that are no longer emitted (C5 removed ACP from the seats: AcpSessionStarted/AcpTurnSettled/EvaluatorToolCallDenied have no emitter), so a key-presence check passes vacuously. Retire the capability or restate it on the headless carrier."
    },
    "oracle_text": "governanceHookFired{decision:'deny'} or evaluatorToolCallDenied/workerToolCallDenied with path; replay of FINDING-045 corpus denies all hostile writes",
    "covers": [],
@@ -3657,6 +3546,7 @@
     },
     "complete": false,
     "untyped": [
+     "workerToolCallDenied{command, reason, remedy} for git push/gh pr",
      "remote ref unchanged"
     ]
    },
@@ -3767,12 +3657,14 @@
     ],
     "complete": false,
     "untyped": [
-     "denial.source=='worktree_guard'"
+     "evaluatorMutatedWorktree{changed[], beforeTree, afterTree, restored:true}",
+     "denial.source=='worktree_guard'",
+     "worktreeRestored{discarded, suggestionRef}",
+     "studio gate-verdict-mutation/gate-verdict-restored"
     ]
    },
    "oracle_text": "evaluatorMutatedWorktree{changed[], beforeTree, afterTree, restored:true}; denial.source=='worktree_guard'; worktreeRestored{discarded, suggestionRef}; studio gate-verdict-mutation/gate-verdict-restored",
    "covers": [
-    "garden:hook:Stop",
     "studio:testid:gate-verdict-mutation",
     "studio:testid:gate-verdict-restored"
    ],
@@ -3813,15 +3705,7 @@
    "oracle": {
     "kind": "manual",
     "category": "dead-path",
-    "reason": "The oracle cites engine events that are no longer emitted (C5 removed ACP from the seats: AcpSessionStarted/AcpTurnSettled/EvaluatorToolCallDenied have no emitter), so a key-presence check passes vacuously. Retire the capability or restate it on the headless carrier.",
-    "precheck": {
-     "kind": "event",
-     "source": "core-event",
-     "type": "evaluatorToolCallDenied",
-     "count": {
-      "min": 1
-     }
-    }
+    "reason": "The oracle cites engine events that are no longer emitted (C5 removed ACP from the seats: AcpSessionStarted/AcpTurnSettled/EvaluatorToolCallDenied have no emitter), so a key-presence check passes vacuously. Retire the capability or restate it on the headless carrier."
    },
    "oracle_text": "deliverable file exists; evaluatorToolCallDenied{role:'evaluator', posture} for evaluator write",
    "covers": [],
@@ -3865,6 +3749,7 @@
     },
     "complete": false,
     "untyped": [
+     "gateEvaluated.hasDeterministicFloor and criterion include EVIDENCE_CRITERION when changed",
      "unchanged → ungated:true with ungatedReason / floorNote 'the unit left the worktree tree unchanged'"
     ]
    },
@@ -3909,6 +3794,7 @@
     },
     "complete": false,
     "untyped": [
+     "unitDone for extract only after its spawned process group exits",
      "coverage unit dispatched after"
     ]
    },
@@ -3970,6 +3856,7 @@
     ],
     "complete": false,
     "untyped": [
+     "repoChecksEvaluated{checks[{cmd,exit,durationMs,tails}],skipped,passed,env.sandboxLevel} emitted just before gateEvaluated for the verify unit",
      "passed:false → denial.source=='repo_checks'",
      "install uses --ignore-scripts"
     ]
@@ -4014,16 +3901,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "repoChecksEvaluated",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "with opt-in env.sandboxLevel=='none' on the event and the gate note"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: repoChecksEvaluated.passed=false with reason no OS boundary; with opt-in env.sandboxLevel=='none' on the event and the gate note"
    },
    "oracle_text": "repoChecksEvaluated.passed=false with reason no OS boundary; with opt-in env.sandboxLevel=='none' on the event and the gate note",
    "covers": [],
@@ -4059,28 +3939,19 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "stepFailed",
-      "where": {
-       "failureKind": "substanceRejected"
-      },
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "seatBenched",
-      "count": 0
-     }
-    ],
+    "kind": "event",
+    "source": "core-event",
+    "type": "stepFailed",
+    "where": {
+     "failureKind": "substanceRejected"
+    },
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
+     "stepFailed.failureKind=='substanceRejected'",
+     "no seatBenched for that seat",
      "a short human-confirmed answer is not rejected (core#970)"
     ]
    },
@@ -4133,7 +4004,8 @@
     },
     "complete": false,
     "untyped": [
-     "confirmGate action accept_suggestion accepted only at that gate"
+     "confirmGate action accept_suggestion accepted only at that gate",
+     "unitReworkAmended on creator referencing the suggestion"
     ]
    },
    "oracle_text": "confirmGate action accept_suggestion accepted only at that gate; unitReworkAmended on creator referencing the suggestion",
@@ -4183,6 +4055,7 @@
     },
     "complete": false,
     "untyped": [
+     "unitReworkAmended{scope:'cursor'|'creator', amendment} before resumed",
      "creator-scoped steer reaches fix unit only, no prior context block"
     ]
    },
@@ -4253,6 +4126,8 @@
     ],
     "complete": false,
     "untyped": [
+     "intentAmended{ord, text} before resumed",
+     "run detail shows amendment (run-intent-amendment)",
      "refused at plan/team gates and with empty text"
     ]
    },
@@ -4336,7 +4211,13 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "awaitingHuman.gateKind=='dead_seat'",
+     "after approve one unitDispatched",
+     "reassign → unitReassigned then single dispatch",
+     "reject → runCancelled"
+    ]
    },
    "oracle_text": "awaitingHuman.gateKind=='dead_seat'; after approve one unitDispatched; reassign → unitReassigned then single dispatch; reject → runCancelled",
    "covers": [
@@ -4400,6 +4281,7 @@
     },
     "complete": false,
     "untyped": [
+     "awaitingHuman.gateKind=='deliver' before deliver unit",
      "with deliverGate:'auto' no deliver pause"
     ]
    },
@@ -4465,6 +4347,8 @@
     ],
     "complete": false,
     "untyped": [
+     "validationPinAttached{pin,criterion}",
+     "gateEvaluated.deterministicPass, agentVerdict, combined per combine_verdict",
      "agent PASS with det FAIL → combined false"
     ]
    },
@@ -4677,6 +4561,8 @@
     ],
     "complete": false,
     "untyped": [
+     "failureTriaged{decision, analysis}",
+     "escalate → awaitingHuman.gateKind=='triage'",
      "fail rejection persists transcript (unitTranscript)"
     ]
    },
@@ -4745,13 +4631,14 @@
     ],
     "complete": false,
     "untyped": [
+     "awaitingHuman{gateKind:'run_level', ord, reviewingOrd:null}",
      "approve → resumed{ord}",
+     "reject → runCancelled",
      "pre-unit approval is first dispatch (attempt 0)"
     ]
    },
    "oracle_text": "awaitingHuman{gateKind:'run_level', ord, reviewingOrd:null}; approve → resumed{ord}; reject → runCancelled; pre-unit approval is first dispatch (attempt 0)",
    "covers": [
-    "garden:hook:Stop",
     "studio:route:/s/:id",
     "studio:testid:run-gate-approve"
    ],
@@ -4837,7 +4724,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "gateEvaluated.judgeCli != creator and judgeDistinct==true when judged",
+     "otherwise judgeSkippedReason set and awaitingHuman.gateKind=='judge_unavailable'"
+    ]
    },
    "oracle_text": "gateEvaluated.judgeCli != creator and judgeDistinct==true when judged; otherwise judgeSkippedReason set and awaitingHuman.gateKind=='judge_unavailable'",
    "covers": [
@@ -4905,7 +4796,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "gateEvaluated.assurance.judge names fallback with reason",
+     "with env off awaitingHuman.gateKind=='judge_unavailable' on each gate"
+    ]
    },
    "oracle_text": "gateEvaluated.assurance.judge names fallback with reason; with env off awaitingHuman.gateKind=='judge_unavailable' on each gate",
    "covers": [],
@@ -4971,7 +4866,9 @@
     ],
     "complete": false,
     "untyped": [
-     "consecutive refusals open two gates"
+     "stepFailed.failureKind=='environmentRefused'",
+     "consecutive refusals open two gates",
+     "seat-specific failure gate lists other seats (needs-you-reassign)"
     ]
    },
    "oracle_text": "stepFailed.failureKind=='environmentRefused'; consecutive refusals open two gates; seat-specific failure gate lists other seats (needs-you-reassign)",
@@ -5019,6 +4916,7 @@
     },
     "complete": false,
     "untyped": [
+     "awaitingHuman.reviewingOrd == preceding phase ord for def gates",
      "null for run_level"
     ]
    },
@@ -5077,14 +4975,6 @@
      {
       "kind": "event",
       "source": "core-event",
-      "type": "unitDispatched",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
       "type": "sessionCompleted",
       "count": {
        "min": 1
@@ -5093,6 +4983,9 @@
     ],
     "complete": false,
     "untyped": [
+     "unitReworkAmended{scope:'request_changes'}",
+     "creator unitDispatched attempt>0",
+     "then sessionCompleted",
      "mismatched approve/action rejected before engine"
     ]
    },
@@ -5149,16 +5042,13 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "gateEvaluated",
-    "where": {
-     "ungated": true
-    },
-    "count": {
-     "min": 1
-    },
-    "complete": true
+    "kind": "dom",
+    "selector": "[data-testid=gate-verdict-ungated]",
+    "assert": "visible",
+    "complete": false,
+    "untyped": [
+     "gateEvaluated.ungated==true, ungatedReason lists each absent layer, evaluatorPolicies==[]"
+    ]
    },
    "oracle_text": "gateEvaluated.ungated==true, ungatedReason lists each absent layer, evaluatorPolicies==[]",
    "covers": [
@@ -5222,7 +5112,12 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "governanceContextArmed{path, dbPath} per governed attempt",
+     "governanceUnenforced{cli, reason} otherwise",
+     "unitOutputCaptured.governed matches"
+    ]
    },
    "oracle_text": "governanceContextArmed{path, dbPath} per governed attempt; governanceUnenforced{cli, reason} otherwise; unitOutputCaptured.governed matches",
    "covers": [],
@@ -5466,32 +5361,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "codex benched on bound run unless WICKED_CODEX_WORKTREE_OK or container floor",
-      "code": 0
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/roster",
-      "expect": {
-       "status": 200
-      }
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "worktreeBenched(clisJson, bound) returns [{cli, reason, source:'launcher'}]",
-     "session benched_seats matches",
-     "reason contains 'needs_container_floor'",
-     "roster[pi|copilot|opencode].host_floor_bench is a non-empty string",
-     "issues includes 'host_floor'",
-     "council_eligible unaffected",
-     "a governed run never assigns them a unit. If the bench read fails on the host floor: host_floor_unknown set (fail closed)."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: worktreeBenched(clisJson, bound) returns [{cli, reason, source:'launcher'}]; session benched_seats matches; reason contains 'needs_container_floor'"
    },
    "oracle_text": "worktreeBenched(clisJson, bound) returns [{cli, reason, source:'launcher'}]; session benched_seats matches; reason contains 'needs_container_floor'",
    "covers": [
@@ -5616,7 +5488,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "sandboxPosture{cli, posture:'os'|'advisory', reason}",
+     "sandboxUnenforced{level, reason} when arming fails"
+    ]
    },
    "oracle_text": "sandboxPosture{cli, posture:'os'|'advisory', reason}; sandboxUnenforced{level, reason} when arming fails",
    "covers": [
@@ -5661,6 +5537,7 @@
     },
     "complete": false,
     "untyped": [
+     "sandboxPosture{posture:'os'} for the unit",
      "out-of-tree write file absent",
      "in-tree commit present"
     ]
@@ -5743,6 +5620,7 @@
     },
     "complete": false,
     "untyped": [
+     "gateEvaluated.denial.source names the deliverable floor when a file is missing",
      "launch rejected when no plan/preset"
     ]
    },
@@ -5790,6 +5668,7 @@
     },
     "complete": false,
     "untyped": [
+     "sessionStarted.entityMode",
      "unit output scope strings `wicked-agent/...` shared vs per-unit"
     ]
    },
@@ -5827,17 +5706,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "gateEvaluated",
-    "count": {
-     "min": 1
-    },
-    "complete": false,
-    "untyped": [
-     "unit records' exclusion list contains the seats",
-     "straight-through path refuses rather than dropping"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: unit records' exclusion list contains the seats; gateEvaluated.judgeCli never in the excluded set; straight-through path refuses rather than dropping"
    },
    "oracle_text": "unit records' exclusion list contains the seats; gateEvaluated.judgeCli never in the excluded set; straight-through path refuses rather than dropping",
    "covers": [],
@@ -5873,15 +5744,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "event",
-    "source": "core-event",
-    "type": "unitDispatched",
-    "count": 0,
-    "complete": false,
-    "untyped": [
-     "launch rejects with typed error",
-     "tool-only plan on dead roster still accepted"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: launch rejects with typed error; no unitDispatched in events; tool-only plan on dead roster still accepted"
    },
    "oracle_text": "launch rejects with typed error; no unitDispatched in events; tool-only plan on dead roster still accepted",
    "covers": [],
@@ -5949,6 +5814,7 @@
     },
     "complete": false,
     "untyped": [
+     "GET /presets names exactly the builtin set with created_by=builtin",
      "launching `feature` yields units clarify, design, build, adversarial-review, test, review"
     ]
    },
@@ -6057,7 +5923,9 @@
     ],
     "complete": false,
     "untyped": [
-     "worker env WICKED_WRITE_ROOTS/WICKED_READ_ROOTS contain the roots"
+     "launch error and GET /runs has no session for invalid root",
+     "worker env WICKED_WRITE_ROOTS/WICKED_READ_ROOTS contain the roots",
+     "write into a read root denied (workerToolCallDenied/evaluatorToolCallDenied)"
     ]
    },
    "oracle_text": "launch error and GET /runs has no session for invalid root; worker env WICKED_WRITE_ROOTS/WICKED_READ_ROOTS contain the roots; write into a read root denied (workerToolCallDenied/evaluatorToolCallDenied)",
@@ -6116,15 +5984,14 @@
       "count": {
        "min": 1
       }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "councilConvened",
-      "count": 0
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "toolExecutorDispatched x2 with bound cmd",
+     "sessionCompleted",
+     "no councilConvened"
+    ]
    },
    "oracle_text": "toolExecutorDispatched x2 with bound cmd; sessionCompleted; no councilConvened",
    "covers": [
@@ -6198,6 +6065,8 @@
     ],
     "complete": false,
     "untyped": [
+     "workflowSelected{unitCount}",
+     "unitPlanned per phase with role/gate from the def",
      "unit ids `<session>:<phase_id>`"
     ]
    },
@@ -6256,6 +6125,7 @@
     "complete": false,
     "untyped": [
      "registerWorkflow returns id",
+     "GET /workflows/:id returns it",
      "launch with workflow=id plans its phases"
     ]
    },
@@ -6400,16 +6270,13 @@
       "count": {
        "min": 1
       }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "unitDispatched",
-      "count": 1
      }
     ],
     "complete": false,
     "untyped": [
+     "bus rows wicked.team.plan.proposed{by:human} → path.scored{score,band} → gate opened",
+     "awaitingHuman.gateKind=='plan_approval'",
+     "after approve exactly one unitDispatched attempt 0 for cursor",
      "build plan with no touch scores 100"
     ]
    },
@@ -6526,7 +6393,8 @@
     },
     "complete": false,
     "untyped": [
-     "team rows plan.proposed then plan.accepted or plan.refused keyed by requestId"
+     "team rows plan.proposed then plan.accepted or plan.refused keyed by requestId",
+     "later unitPlanned reflect revision"
     ]
    },
    "oracle_text": "team rows plan.proposed then plan.accepted or plan.refused keyed by requestId; later unitPlanned reflect revision",
@@ -6596,8 +6464,10 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /projects/:id/members rows",
      "duplicate attach returns same pm_<hash16> id",
-     "detached absent"
+     "detached absent",
+     "bus rows wicked.crew.membership.attached/detached"
     ]
    },
    "oracle_text": "GET /projects/:id/members rows; duplicate attach returns same pm_<hash16> id; detached absent; bus rows wicked.crew.membership.attached/detached",
@@ -6661,6 +6531,7 @@
     },
     "complete": false,
     "untyped": [
+     "qeAcceptanceDecided{basis:'diff', status, score, reasons}",
      "session contract assurance.qe updated",
      "later receipts carry it"
     ]
@@ -6718,6 +6589,7 @@
     },
     "complete": false,
     "untyped": [
+     "sessionStarted.assurance.qe {status:'required', basis:'plan'} for app-change workflows",
      "absent/not-required for learn"
     ]
    },
@@ -6874,6 +6746,7 @@
     },
     "complete": false,
     "untyped": [
+     "unitContextInjected for evaluator includes the brief block",
      "rendered prompt contains prior verdict and ruling"
     ]
    },
@@ -6940,13 +6813,13 @@
     ],
     "complete": false,
     "untyped": [
+     "toolExecutorKilled{pid, reason} then runCancelled{toolChildrenKilled>=1}",
      "no process with the child's pgid remains"
     ]
    },
    "oracle_text": "toolExecutorKilled{pid, reason} then runCancelled{toolChildrenKilled>=1}; no process with the child's pgid remains",
    "covers": [
-    "crew:route:POST /api/v1/runs/:id/cancel",
-    "garden:hook:Stop"
+    "crew:route:POST /api/v1/runs/:id/cancel"
    ],
    "scenarios": [
     {
@@ -6995,6 +6868,7 @@
     },
     "complete": false,
     "untyped": [
+     "each run's events end in sessionCompleted",
      "per-run event logs contain only their own session"
     ]
    },
@@ -7066,12 +6940,6 @@
      {
       "kind": "event",
       "source": "core-event",
-      "type": "awaitingHuman",
-      "count": 0
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
       "type": "stepFailed",
       "count": {
        "min": 1
@@ -7080,7 +6948,12 @@
     ],
     "complete": false,
     "untyped": [
+     "unitReassigned{newCli} or unitDispatched attempt+1 on another cli",
+     "single-seat → sessionFailed",
+     "dead seat, no seat left → awaitingHuman.gateKind escalation",
+     "stepFailed detail matches /seat '(.+)' failed \\(.*\\)",
      "failing over to '(.+)'/",
+     "the next unitDispatched for that ord runs on the named seat",
      "unit.worker_failed_clis grows",
      "an evaluation unit is never failed over to its creator."
     ]
@@ -7196,6 +7069,7 @@
     },
     "complete": false,
     "untyped": [
+     "unitDispatched.baseSkill{name, role} on every dispatch",
      "/health.baseSkill.present true"
     ]
    },
@@ -7299,6 +7173,7 @@
     },
     "complete": false,
     "untyped": [
+     "unitPlanned.skillRef set",
      "transcript shows skill invocation"
     ]
    },
@@ -7346,7 +7221,10 @@
     "count": {
      "min": 1
     },
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "skillsSnapshotHanded{path:'wrapped_cli'|'acp'|'tool_cmd', gen, contentHash, source} per dispatch"
+    ]
    },
    "oracle_text": "skillsSnapshotHanded{path:'wrapped_cli'|'acp'|'tool_cmd', gen, contentHash, source} per dispatch",
    "covers": [
@@ -7446,6 +7324,7 @@
     "complete": false,
     "untyped": [
      "team rows council.called{question, options} → council.ruled{ruling, agreement, dissent}",
+     "councilConvened/councilVoted events",
      "no per-phase council otherwise"
     ]
    },
@@ -7507,6 +7386,7 @@
     },
     "complete": false,
     "untyped": [
+     "awaitingHuman.gateKind=='team_dispute'",
      "findingIds non-empty",
      "choices ['approve','request_changes','reject'] recommended index 1",
      "team row gate.opened{kind:team_dispute}"
@@ -7713,6 +7593,7 @@
     ],
     "complete": false,
     "untyped": [
+     "GET /api/v1/runs/:id/team rows wicked.team.member.joined/left",
      "number of monitors matches review_scale plan_for(score) band"
     ]
    },
@@ -7826,6 +7707,9 @@
     ],
     "complete": false,
     "untyped": [
+     "terminalOpened{id}",
+     "terminalOutput frames",
+     "terminalExited{status}",
      "no pgid processes after close"
     ]
    },
@@ -7909,7 +7793,11 @@
       }
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "workerMessageInjected or workerMessageQueued",
+     "queued message appears in next unitContextInjected/prompt"
+    ]
    },
    "oracle_text": "workerMessageInjected or workerMessageQueued; queued message appears in next unitContextInjected/prompt",
    "covers": [
@@ -7980,15 +7868,15 @@
       "count": {
        "min": 1
       }
-     },
-     {
-      "kind": "event",
-      "source": "core-event",
-      "type": "seatBenched",
-      "count": 0
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "unitOutputCaptured.stepStatus=='timed_out'",
+     "stepFailed.failureKind timedOut",
+     "awaitingHuman.gateKind=='failure'",
+     "no seatBenched"
+    ]
    },
    "oracle_text": "unitOutputCaptured.stepStatus=='timed_out'; stepFailed.failureKind timedOut; awaitingHuman.gateKind=='failure'; no seatBenched",
    "covers": [],
@@ -8034,6 +7922,7 @@
     "untyped": [
      "walkthrough_review tool unit result pin passes",
      "files under evidence root",
+     "failing → awaitingHuman escalation",
      "unjailed → gateKind 'unjailed_host'",
      "recorder got exactly the declared env"
     ]
@@ -8094,6 +7983,7 @@
     },
     "complete": false,
     "untyped": [
+     "runBaseResolved{baseRef, lifted, behind, note}",
      "unit workdir under the clone's wicked-worktrees",
      "`git -C <wt> branch --show-current` == wicked/<run>"
     ]
@@ -8139,6 +8029,7 @@
     },
     "complete": false,
     "untyped": [
+     "dirty → worktreeRetained{path}",
      "clean → worktree dir absent",
      "studio run-delivery-worktree / session-stranded-worktree shows path"
     ]
