@@ -420,7 +420,7 @@ def resolve(request, caps, profiles, run_dir=None):
         if (ignored or topical_shadow) and not topic:
             # "re-run zorblax failures": a topic was given and matched nothing, so nothing is re-run.
             _status(out, "no-match")
-            out["needs"].append("the topic words (%s) match nothing in the catalog" % ", ".join(ignored))
+            out["needs"].append("the topic words (%s) match nothing in the catalog" % ", ".join(ignored + topical_shadow))
             bad = []
         if bad and topic_expr:
             try:
