@@ -1,0 +1,22 @@
+{
+ "version": 1,
+ "$comment": "Profiles are saved selections in the e2e selection language (see e2e/README.md). They select; they never change what a capability asserts.",
+ "profiles": {
+  "smoke": {
+   "description": "The seams wicked-ci smoke already drives (S01-S10), cheap enough for every PR: no governed run.",
+   "select": "tag:smoke cost<=M !oracle=manual"
+  },
+  "daily": {
+   "description": "Everything certifiable without a governed run: fixture/hermetic checks and single seat turns.",
+   "select": "cost<=M !oracle=manual"
+  },
+  "release": {
+   "description": "The release-blocking user journeys, governed runs included: launch, gates, delivery, QE acceptance, sign-in, installs, plugins and the smoke seams.",
+   "select": "cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual"
+  },
+  "full": {
+   "description": "Every capability, manual ones included (a manual capability reports `manual`, never `pass`).",
+   "select": ""
+  }
+ }
+}

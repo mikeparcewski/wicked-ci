@@ -1,0 +1,762 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://github.com/mikeparcewski/wicked-ci/blob/main/e2e/catalog/SCHEMA.json",
+ "title": "wicked e2e certification catalog: one area file",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "version",
+  "area",
+  "capabilities"
+ ],
+ "properties": {
+  "version": {
+   "const": 1
+  },
+  "area": {
+   "enum": [
+    "studio-ui",
+    "crew-api",
+    "core-engine",
+    "estate",
+    "garden",
+    "plugins-and-installs",
+    "interactive-and-docs",
+    "foundation",
+    "seats-and-clis"
+   ]
+  },
+  "description": {
+   "type": "string"
+  },
+  "capabilities": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/capability"
+   }
+  }
+ },
+ "$defs": {
+  "comparison": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "path",
+    "op"
+   ],
+   "description": "One JSONPath assertion. op exists/absent take no value.",
+   "properties": {
+    "path": {
+     "type": "string",
+     "pattern": "^\\$"
+    },
+    "op": {
+     "enum": [
+      "eq",
+      "ne",
+      "exists",
+      "absent",
+      "in",
+      "matches",
+      "gt",
+      "gte",
+      "lt",
+      "lte",
+      "length",
+      "contains"
+     ]
+    },
+    "value": {}
+   }
+  },
+  "dom": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "selector",
+    "assert"
+   ],
+   "description": "A DOM assertion on the rendered page (Playwright locator semantics).",
+   "properties": {
+    "kind": {
+     "const": "dom"
+    },
+    "route": {
+     "type": "string",
+     "description": "The studio address the check reads (after the user path)."
+    },
+    "selector": {
+     "type": "string",
+     "minLength": 1
+    },
+    "assert": {
+     "enum": [
+      "visible",
+      "hidden",
+      "text-equals",
+      "text-matches",
+      "count",
+      "attr"
+     ]
+    },
+    "attr": {
+     "type": "string"
+    },
+    "value": {
+     "description": "Required for text-equals, text-matches (regex), count (integer) and attr."
+    },
+    "complete": {
+     "type": "boolean",
+     "description": "true when every clause of oracle_text is a typed check below; false means the checks are necessary but not sufficient, and a runner may report at most `partial`."
+    },
+    "untyped": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "The oracle_text clauses no typed check captures yet (refinement work)."
+    }
+   }
+  },
+  "api": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "method",
+    "path",
+    "expect"
+   ],
+   "description": "An HTTP (or MCP JSON-RPC) request and its expected answer.",
+   "properties": {
+    "kind": {
+     "const": "api"
+    },
+    "method": {
+     "enum": [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "JSONRPC"
+     ]
+    },
+    "path": {
+     "type": "string",
+     "description": "A crew /api/v1 path, an interactive /api path, or an MCP tool name for JSONRPC. {name} placeholders are bound from earlier captures."
+    },
+    "body": {},
+    "expect": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "status": {
+       "anyOf": [
+        {
+         "type": "integer",
+         "minimum": 100,
+         "maximum": 599
+        },
+        {
+         "type": "array",
+         "minItems": 1,
+         "items": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+         }
+        }
+       ]
+      },
+      "json": {
+       "type": "array",
+       "items": {
+        "$ref": "#/$defs/comparison"
+       }
+      },
+      "error_code": {
+       "type": "integer"
+      }
+     }
+    },
+    "capture": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string",
+      "pattern": "^\\$"
+     }
+    },
+    "complete": {
+     "type": "boolean",
+     "description": "true when every clause of oracle_text is a typed check below; false means the checks are necessary but not sufficient, and a runner may report at most `partial`."
+    },
+    "untyped": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "The oracle_text clauses no typed check captures yet (refinement work)."
+    }
+   }
+  },
+  "event": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "type"
+   ],
+   "description": "An engine CoreEvent, bus row, ws frame or log line observed during the path.",
+   "properties": {
+    "kind": {
+     "const": "event"
+    },
+    "source": {
+     "enum": [
+      "core-event",
+      "bus",
+      "ws",
+      "interactive",
+      "hook-log",
+      "transcript"
+     ]
+    },
+    "type": {
+     "type": "string",
+     "minLength": 1
+    },
+    "where": {
+     "type": "object",
+     "description": "field -> expected value on the event payload."
+    },
+    "count": {
+     "anyOf": [
+      {
+       "type": "integer",
+       "minimum": 0
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "min": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "max": {
+         "type": "integer",
+         "minimum": 0
+        }
+       }
+      }
+     ]
+    },
+    "within_s": {
+     "type": "number",
+     "minimum": 0,
+     "description": "A wait budget for the runner, not a performance assertion."
+    },
+    "complete": {
+     "type": "boolean",
+     "description": "true when every clause of oracle_text is a typed check below; false means the checks are necessary but not sufficient, and a runner may report at most `partial`."
+    },
+    "untyped": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "The oracle_text clauses no typed check captures yet (refinement work)."
+    }
+   }
+  },
+  "file": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "path",
+    "assert"
+   ],
+   "description": "A file the path leaves behind (exists, hash, a JSON value, or a regex over its text).",
+   "properties": {
+    "kind": {
+     "const": "file"
+    },
+    "path": {
+     "type": "string",
+     "minLength": 1
+    },
+    "assert": {
+     "enum": [
+      "exists",
+      "absent",
+      "sha256",
+      "json-path",
+      "matches",
+      "non-empty"
+     ]
+    },
+    "json_path": {
+     "type": "string",
+     "pattern": "^\\$"
+    },
+    "value": {},
+    "complete": {
+     "type": "boolean",
+     "description": "true when every clause of oracle_text is a typed check below; false means the checks are necessary but not sufficient, and a runner may report at most `partial`."
+    },
+    "untyped": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "The oracle_text clauses no typed check captures yet (refinement work)."
+    }
+   }
+  },
+  "exit": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "cmd",
+    "code"
+   ],
+   "description": "A command's exit code and output.",
+   "properties": {
+    "kind": {
+     "const": "exit"
+    },
+    "cmd": {
+     "type": "string",
+     "minLength": 1
+    },
+    "code": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "const": "nonzero"
+      }
+     ]
+    },
+    "stdout_matches": {
+     "type": "string"
+    },
+    "stderr_matches": {
+     "type": "string"
+    },
+    "complete": {
+     "type": "boolean",
+     "description": "true when every clause of oracle_text is a typed check below; false means the checks are necessary but not sufficient, and a runner may report at most `partial`."
+    },
+    "untyped": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "The oracle_text clauses no typed check captures yet (refinement work)."
+    }
+   }
+  },
+  "npm": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "pkg",
+    "version"
+   ],
+   "description": "A published npm package version.",
+   "properties": {
+    "kind": {
+     "const": "npm"
+    },
+    "pkg": {
+     "type": "string",
+     "minLength": 1
+    },
+    "version": {
+     "type": "string",
+     "minLength": 1
+    },
+    "dist_tag": {
+     "type": "string"
+    },
+    "complete": {
+     "type": "boolean",
+     "description": "true when every clause of oracle_text is a typed check below; false means the checks are necessary but not sufficient, and a runner may report at most `partial`."
+    },
+    "untyped": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "The oracle_text clauses no typed check captures yet (refinement work)."
+    }
+   }
+  },
+  "gh": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "target",
+    "assert"
+   ],
+   "description": "A GitHub object's state (read-only).",
+   "properties": {
+    "kind": {
+     "const": "gh"
+    },
+    "target": {
+     "enum": [
+      "pr",
+      "run",
+      "release"
+     ]
+    },
+    "repo": {
+     "type": "string"
+    },
+    "assert": {
+     "$ref": "#/$defs/comparison"
+    },
+    "complete": {
+     "type": "boolean",
+     "description": "true when every clause of oracle_text is a typed check below; false means the checks are necessary but not sufficient, and a runner may report at most `partial`."
+    },
+    "untyped": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "The oracle_text clauses no typed check captures yet (refinement work)."
+    }
+   }
+  },
+  "check": {
+   "oneOf": [
+    {
+     "$ref": "#/$defs/dom"
+    },
+    {
+     "$ref": "#/$defs/api"
+    },
+    {
+     "$ref": "#/$defs/event"
+    },
+    {
+     "$ref": "#/$defs/file"
+    },
+    {
+     "$ref": "#/$defs/exit"
+    },
+    {
+     "$ref": "#/$defs/npm"
+    },
+    {
+     "$ref": "#/$defs/gh"
+    }
+   ]
+  },
+  "all": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "of"
+   ],
+   "description": "Every check must hold.",
+   "properties": {
+    "kind": {
+     "const": "all"
+    },
+    "of": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/check"
+     }
+    },
+    "complete": {
+     "type": "boolean",
+     "description": "true when every clause of oracle_text is a typed check below; false means the checks are necessary but not sufficient, and a runner may report at most `partial`."
+    },
+    "untyped": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "The oracle_text clauses no typed check captures yet (refinement work)."
+    }
+   }
+  },
+  "manual": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "category",
+    "reason"
+   ],
+   "description": "No typed oracle yet. Counted separately; never a pass. `untyped` = deterministic in principle but still prose (refinement debt); every other category = cannot be made deterministic as stated.",
+   "properties": {
+    "kind": {
+     "const": "manual"
+    },
+    "category": {
+     "enum": [
+      "model-output",
+      "human-gui",
+      "timing",
+      "dead-path",
+      "host-dependent",
+      "stub-only",
+      "doc-drift",
+      "untyped"
+     ]
+    },
+    "reason": {
+     "type": "string",
+     "minLength": 10
+    },
+    "precheck": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/check"
+      },
+      {
+       "$ref": "#/$defs/all"
+      }
+     ],
+     "description": "A deterministic necessary condition the runner may still check."
+    }
+   }
+  },
+  "oracle": {
+   "oneOf": [
+    {
+     "$ref": "#/$defs/dom"
+    },
+    {
+     "$ref": "#/$defs/api"
+    },
+    {
+     "$ref": "#/$defs/event"
+    },
+    {
+     "$ref": "#/$defs/file"
+    },
+    {
+     "$ref": "#/$defs/exit"
+    },
+    {
+     "$ref": "#/$defs/npm"
+    },
+    {
+     "$ref": "#/$defs/gh"
+    },
+    {
+     "$ref": "#/$defs/all"
+    },
+    {
+     "$ref": "#/$defs/manual"
+    }
+   ]
+  },
+  "scenario": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "ref",
+    "fidelity"
+   ],
+   "properties": {
+    "ref": {
+     "type": "string",
+     "pattern": "^wicked-[a-z]+:[^\\s]+$",
+     "description": "<repo>:<path of a test file in that repo>"
+    },
+    "name": {
+     "type": "string",
+     "description": "The test, step or case inside the file."
+    },
+    "fidelity": {
+     "enum": [
+      "e2e-live",
+      "e2e-hermetic",
+      "e2e-fixture",
+      "integration",
+      "unit"
+     ],
+     "description": "e2e-live: the real product on a real daemon/site; e2e-hermetic: published artifacts with shimmed seats (wicked-ci smoke); e2e-fixture: the UI against a stub backend; integration: in-process routes/engine; unit: one module."
+    }
+   }
+  },
+  "capability": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "id",
+    "title",
+    "surface",
+    "user_path",
+    "deps",
+    "cost",
+    "tags",
+    "required_evidence",
+    "oracle",
+    "covers",
+    "scenarios",
+    "origin"
+   ],
+   "properties": {
+    "id": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9][a-z0-9_-]*)+$"
+    },
+    "title": {
+     "type": "string",
+     "minLength": 1
+    },
+    "surface": {
+     "enum": [
+      "ui",
+      "api",
+      "cli",
+      "mcp",
+      "plugin",
+      "background"
+     ]
+    },
+    "user_path": {
+     "type": "string",
+     "minLength": 1
+    },
+    "deps": {
+     "type": "array",
+     "uniqueItems": true,
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "cost": {
+     "enum": [
+      "S",
+      "M",
+      "L"
+     ],
+     "description": "S: fixture or hermetic, seconds; M: one live seat turn; L: a governed run."
+    },
+    "tags": {
+     "type": "array",
+     "minItems": 1,
+     "uniqueItems": true,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+     }
+    },
+    "required_evidence": {
+     "type": "array",
+     "minItems": 1,
+     "uniqueItems": true,
+     "items": {
+      "enum": [
+       "video",
+       "screenshot",
+       "trace",
+       "api-transcript",
+       "event-log",
+       "file-hash",
+       "ledger-entry",
+       "vault-entry",
+       "cli-transcript"
+      ]
+     }
+    },
+    "oracle": {
+     "$ref": "#/$defs/oracle"
+    },
+    "oracle_text": {
+     "type": "string",
+     "description": "The inventory's free-text oracle, kept as the intent the typed oracle refines."
+    },
+    "covers": {
+     "type": "array",
+     "uniqueItems": true,
+     "items": {
+      "type": "string",
+      "pattern": "^[a-z]+:[a-z-]+:.+$"
+     }
+    },
+    "scenarios": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "anyOf": [
+       {
+        "const": "planned"
+       },
+       {
+        "$ref": "#/$defs/scenario"
+       }
+      ]
+     }
+    },
+    "aliases": {
+     "type": "array",
+     "uniqueItems": true,
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "Ids merged into this one (true duplicates)."
+    },
+    "related": {
+     "type": "array",
+     "uniqueItems": true,
+     "items": {
+      "type": "string",
+      "minLength": 1
+     },
+     "description": "The same feature on a different user path (e.g. its API form)."
+    },
+    "sources": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "notes": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "origin": {
+     "enum": [
+      "inventory-2026-10-20",
+      "critic-2026-10-20"
+     ]
+    }
+   }
+  }
+ }
+}

@@ -29,6 +29,11 @@ Three workflows live here:
   PUBLISHED tarballs into a hermetic temp root, boots the daemon with
   shimmed seats and asserts the cross-repo wire (S01–S10). See **smoke**
   below and [`docs/smoke-consumer-recipes.md`](docs/smoke-consumer-recipes.md).
+- `.github/workflows/e2e-catalog.yml` — the **e2e certification catalog**
+  (harness under `e2e/`, phase 1): every platform capability with a typed
+  oracle and its evidence contract, per-repo surface manifests read from
+  pinned SHAs, and `e2e validate`, which fails when a user-facing surface
+  element has no capability. See [`e2e/README.md`](e2e/README.md).
 
 Consumers call them via `uses:`. Versions are pinned by tag — `@v1` for
 the latest non-breaking line.

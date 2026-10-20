@@ -1,0 +1,4808 @@
+{
+ "version": 1,
+ "area": "plugins-and-installs",
+ "description": "Installing the family: wicked-installer per agent CLI, the garden plugin per host, editor plugins and MCP servers built and installed by crew workflows.",
+ "capabilities": [
+  {
+   "id": "plugins.crew.editors.conformance-timeout",
+   "title": "Install-time conformance timeout honours WG_EDITOR_CONFORMANCE_TIMEOUT",
+   "surface": "background",
+   "user_path": "Start the proof daemon with WG_EDITOR_CONFORMANCE_TIMEOUT=<s> and install a pack.",
+   "deps": [
+    "proof crew daemon",
+    "chromium"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "crew",
+    "plugins",
+    "editors",
+    "governance",
+    "install"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: the conformance child receives the env bound; crew's overall cap == conformanceCapMs(editors, bound); a slow host page does not fail a correct editor"
+   },
+   "oracle_text": "the conformance child receives the env bound; crew's overall cap == conformanceCapMs(editors, bound); a slow host page does not fail a correct editor",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/editor-conformance-cap.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/editors/pack-install.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.crew.editors.first-party-discovery",
+   "title": "First-party editors discovered from studio's bundle at boot",
+   "surface": "background",
+   "user_path": "Start crew with a studio dist containing dist/editors/<id>/editor.json + index.html (built by studio scripts/build-editors.mjs).",
+   "deps": [
+    "crew daemon",
+    "studio dist"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "crew",
+    "plugins",
+    "editors"
+   ],
+   "required_evidence": [
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/editors",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "a symlinked dir/manifest/entry is skipped with a reason in the daemon log",
+     "no studio bundle => no editors and no daemon-editors.json written"
+    ]
+   },
+   "oracle_text": "GET /api/v1/editors lists every dist/editors/<id> with sha256 == sha256(index.html); a symlinked dir/manifest/entry is skipped with a reason in the daemon log; no studio bundle => no editors and no daemon-editors.json written",
+   "covers": [
+    "crew:route:GET /api/v1/editors"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/editors.test.ts",
+     "name": "discovers the first-party editors a studio bundle ships",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:tests/editorBundles.test.ts",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/editors/registry.ts",
+    "wicked-studio:scripts/build-editors.mjs"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.crew.editors.mcp-session-grant",
+   "title": "Install consent writes (and uninstall withdraws) the mcp.session grant",
+   "surface": "api",
+   "user_path": "Install an editor declaring mcp.session (e.g. garden's packs/garden-mcp-inspector) then uninstall it.",
+   "deps": [
+    "proof crew daemon",
+    "core-ts with editor grants"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "crew",
+    "plugins",
+    "editors",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: after install: EDITOR-GRANTS rule excludes contains editor:<id>@<v>#<sha>/mcp.session and response granted[] lists it; updating to a build without it drops the token; DELETE withdraws the token before removal (503 if it cannot, editor kept)"
+   },
+   "oracle_text": "after install: EDITOR-GRANTS rule excludes contains editor:<id>@<v>#<sha>/mcp.session and response granted[] lists it; updating to a build without it drops the token; DELETE withdraws the token before removal (503 if it cannot, editor kept)",
+   "covers": [
+    "garden:pack:garden-mcp-inspector"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/editor/test_editor_scripts.py",
+     "name": "test_install_reports_the_grants_crew_wrote_or_why_not",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/editors.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/editors/routes.ts:editInstallGrants,grantToken",
+    "wicked-garden:packs/garden-mcp-inspector/wicked-pack.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.crew.garden-required",
+   "title": "Crew refuses onboarding/launch without a usable garden",
+   "surface": "api",
+   "user_path": "Run crew with no garden or a garden older than the minimum; GET /api/v1/health.",
+   "deps": [
+    "proof crew daemon"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "crew",
+    "plugins",
+    "launch"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/repos",
+    "expect": {
+     "status": 422
+    },
+    "complete": false,
+    "untyped": [
+     "health carries a blocking skills.garden finding naming found vs required"
+    ]
+   },
+   "oracle_text": "health carries a blocking skills.garden finding naming found vs required; POST /repos and launch answer 422 garden_required / base_skill_refused (assert only on a proof daemon)",
+   "covers": [
+    "crew:route:GET /api/v1/health",
+    "crew:route:POST /api/v1/repos"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/garden-required.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/routes.ts (skills.garden finding)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.crew.install-verify",
+   "title": "Verify a crew install: versions and engine binaries",
+   "surface": "cli",
+   "user_path": "`npm i -g wicked-crew`, `wicked-crew --version`, start `wicked-crew serve`, GET /api/v1/health and /api/v1/diagnostics.",
+   "deps": [
+    "network (npm)",
+    "a free port for a proof daemon"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "crew",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npm i -g wicked-crew",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "--version prints three lines (wicked-crew, wicked-core-ts, wicked-studio)",
+     "health .version == package version",
+     "diagnostics .components has crew, studioBundle, coreTs, engineBinaries {wicked-core, wicked-estate} (seen on :7721: crew 0.15.4, wicked-core 0.4.0, wicked-estate 0.29.2)"
+    ]
+   },
+   "oracle_text": "--version prints three lines (wicked-crew, wicked-core-ts, wicked-studio); health .version == package version; diagnostics .components has crew, studioBundle, coreTs, engineBinaries {wicked-core, wicked-estate} (seen on :7721: crew 0.15.4, wicked-core 0.4.0, wicked-estate 0.29.2)",
+   "covers": [
+    "crew:cli:serve",
+    "crew:route:GET /api/v1/health"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-installer:registry.json (wicked-core instructions)",
+    "wicked-crew:packages/crew/src/api/server.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.crew.skills.garden-source",
+   "title": "Crew finds the installed garden plugin (marketplace cache first, installer copy last)",
+   "surface": "api",
+   "user_path": "Start crew with garden registered in Claude Code (or only an installer copy); GET /api/v1/skills and /api/v1/diagnostics.",
+   "deps": [
+    "crew daemon (read-only GETs)"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "crew",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/skills",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/diagnostics",
+      "expect": {
+       "status": 200
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "WICKED_CREW_SKILLS_SOURCE overrides",
+     "symlinked levels skipped"
+    ]
+   },
+   "oracle_text": "GET /api/v1/skills .installed.source {kind, path, plugin_version}: kind cache when <config>/plugins/cache/wicked-garden/wicked-garden/<highest semver> exists (wins over any copy), 'installer-copy' only as last resort with a skills.source WARNING in GET /api/v1/diagnostics .skills.findings; WICKED_CREW_SKILLS_SOURCE overrides; symlinked levels skipped",
+   "covers": [
+    "crew:route:GET /api/v1/diagnostics",
+    "crew:route:GET /api/v1/skills"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/skills-plugin-source.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/skills-installed-plugin.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/skills/plugin-source.ts",
+    "wicked-crew:packages/crew/src/skills/runtime.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.crew.skills.garden-upgrade-drift",
+   "title": "After a garden upgrade crew reports the installed plugin ahead of its baseline",
+   "surface": "ui",
+   "user_path": "Upgrade garden (installer update), then open studio Skills page. Terminal state: [data-testid=skills-behind] banner with [data-testid=skills-behind-refresh] then publish; or boot auto-refresh when nothing is user-edited.",
+   "deps": [
+    "studio + proof crew daemon"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "crew",
+    "plugins",
+    "install",
+    "skills",
+    "repos"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/skills",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "after Refresh + Publish (proof daemon) they match and the banner is gone",
+     "on restart with no user edits the finding clears automatically"
+    ]
+   },
+   "oracle_text": "GET /api/v1/skills .installed.baseline != .manifest baseline while behind; after Refresh + Publish (proof daemon) they match and the banner is gone; on restart with no user edits the finding clears automatically",
+   "covers": [
+    "crew:route:GET /api/v1/skills",
+    "studio:testid-computed:testId",
+    "studio:testid:skills-add-open",
+    "studio:testid:skills-behind",
+    "studio:testid:skills-behind-detail",
+    "studio:testid:skills-behind-support",
+    "studio:testid:skills-conflict",
+    "studio:testid:skills-conflict-reload",
+    "studio:testid:skills-deep-link-missing",
+    "studio:testid:skills-drift-unknown",
+    "studio:testid:skills-engine",
+    "studio:testid:skills-engine-finding",
+    "studio:testid:skills-error",
+    "studio:testid:skills-header",
+    "studio:testid:skills-kpis",
+    "studio:testid:skills-loading",
+    "studio:testid:skills-note",
+    "studio:testid:skills-page",
+    "studio:testid:skills-page-error",
+    "studio:testid:skills-page-findings",
+    "studio:testid:skills-recover-publish",
+    "studio:testid:skills-recover-refresh",
+    "studio:testid:skills-recovery",
+    "studio:testid:skills-recovery-busy",
+    "studio:testid:skills-recovery-error",
+    "studio:testid:skills-recovery-finding",
+    "studio:testid:skills-recovery-findings",
+    "studio:testid:skills-recovery-no-diagnostics",
+    "studio:testid:skills-recovery-staged",
+    "studio:testid:skills-recovery-state",
+    "studio:testid:skills-refresh",
+    "studio:testid:skills-reload",
+    "studio:testid:skills-root",
+    "studio:testid:skills-snapshot",
+    "studio:testid:skills-source",
+    "studio:testid:skills-stale",
+    "studio:testid:skills-stale-retry",
+    "studio:testid:skills-unavailable",
+    "studio:testid:skills-unsupported"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/skills-installed-ahead.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/skills/installed.ts",
+    "wicked-crew:packages/crew/src/api/skills.ts (refresh-baseline, publish)",
+    "wicked-studio:src/components/SkillsPage.tsx"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.editor.conformance",
+   "title": "Editor conformance run in headless Chromium against studio's conformance host",
+   "surface": "cli",
+   "user_path": "`wicked-garden run scripts/editor/conformance.py --pack <dir> --host-url <crew URL> --json` (or --studio-dist <dir>; --timeout / WG_EDITOR_CONFORMANCE_TIMEOUT).",
+   "deps": [
+    "python>=3.10",
+    "playwright chromium",
+    "a crew daemon (read-only GETs) or a studio dist"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "editor",
+    "plugins",
+    "editors",
+    "governance"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "wicked-garden run scripts/editor/conformance.py --pack <dir> --host-url <crew URL> --json",
+      "code": 0
+     },
+     {
+      "kind": "exit",
+      "cmd": "wicked-garden run scripts/editor/conformance.py --pack <dir> --host-url <crew URL> --json",
+      "code": 1
+     },
+     {
+      "kind": "exit",
+      "cmd": "wicked-garden run scripts/editor/conformance.py --pack <dir> --host-url <crew URL> --json",
+      "code": 3
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "report sha256 == manifest",
+     "report lists known gaps (case 7, axe, WebRTC)"
+    ]
+   },
+   "oracle_text": "exit 0 iff cases 0-6 and 8-12 pass (plus 13-16 for protocol 2, 17 for protocol 1) for every editor; report sha256 == manifest; exit 1 names the failed case; exit 3 when no headless browser (fail closed); report lists known gaps (case 7, axe, WebRTC)",
+   "covers": [
+    "garden:cli:run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/editor/test_garden_packs.py",
+     "name": "test_the_mcp_inspector_passes_every_case_and_mounts_each_options_tab",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:e2e/editor_conformance_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:e2e/editor_surfaces_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "related": [
+    "studio-ui.editors.conformance"
+   ],
+   "sources": [
+    "wicked-garden:scripts/editor/conformance.py",
+    "wicked-studio:src/components/editors/EditorHostPage.tsx (/editors/conformance)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.editor.install-by-hand",
+   "title": "Install an editor pack into a crew daemon by hand (turned on)",
+   "surface": "cli",
+   "user_path": "`wicked-garden run scripts/editor/install.py --dir <pack> --target daemon --crew-url <proof daemon> --json`. Terminal state: editor listed in studio /plugins as Installed.",
+   "deps": [
+    "a proof crew daemon (never the operator's :7701)",
+    "garden root visible to crew",
+    "playwright chromium on the daemon host",
+    "proof crew daemon"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "editor",
+    "plugins",
+    "editors",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "wicked-garden run scripts/editor/install.py --dir <pack> --target daemon --crew-url <proof daemon> --json",
+      "code": 0
+     },
+     {
+      "kind": "file",
+      "path": "~/.wicked/editors/{name}/current/wicked-pack.json",
+      "assert": "exists"
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/editors/{id}/{version}/entry",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "api",
+      "method": "DELETE",
+      "path": "/api/v1/editors/{id}",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/editors",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "api",
+      "method": "DELETE",
+      "path": "/api/v1/editors/{id}",
+      "expect": {
+       "status": 409
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "GET <crew>/api/v1/editors .editors[] has {id, version, sha256 == manifest, first_party:false, enabled:true}",
+     "EDITOR-GRANTS ledger holds no editor:<id>@ token",
+     "~/.wicked/editors/<name> removed"
+    ]
+   },
+   "oracle_text": "exit 0; ~/.wicked/editors/<name>/current/wicked-pack.json exists and installed.json printed; GET <crew>/api/v1/editors .editors[] has {id, version, sha256 == manifest, first_party:false, enabled:true}; GET /api/v1/editors/<id>/<version>/entry 200 text/html whose sha256 == pinned",
+   "covers": [
+    "crew:route:DELETE /api/v1/editors/:id",
+    "crew:route:GET /api/v1/editors",
+    "crew:route:GET /api/v1/editors/:id/:version/entry",
+    "garden:cli:run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/editor/test_editor_scripts.py",
+     "name": "test_an_approved_choice_installs_the_pack_it_planned",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/editors.test.ts",
+     "name": "an editor-only pack that passes both installs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/editors.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "aliases": [
+    "plugins.editor.uninstall"
+   ],
+   "related": [
+    "garden.editor.install"
+   ],
+   "sources": [
+    "wicked-garden:scripts/editor/install.py",
+    "wicked-crew:packages/crew/src/editors/routes.ts (POST /api/v1/editors)",
+    "wicked-crew:packages/crew/src/editors/pack-install.ts",
+    "wicked-crew:packages/crew/src/editors/routes.ts (DELETE)"
+   ],
+   "notes": [
+    "merged duplicate plugins.editor.uninstall (plugins-and-installs area); its oracle: DELETE /api/v1/editors/<id> 200 {removed:true}; GET /api/v1/editors no longer lists it; EDITOR-GRANTS ledger holds no editor:<id>@ token; ~/.wicked/editors/<name> removed; a first-party id (wicked-page) answers 409 'ships with studio and cannot be removed'"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.editor.install-digest-binding",
+   "title": "The install approval is bound to the planned manifest bytes",
+   "surface": "cli",
+   "user_path": "Run install.py --dry-run, change the pack (permission/version/hash), then run install.py --target daemon_<old digest>.",
+   "deps": [
+    "python>=3.10"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "editor",
+    "plugins",
+    "editors",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 1, nothing staged or registered; a malformed --target refused (exit 2); a manifest swapped between locate and staging never lands"
+   },
+   "oracle_text": "exit 1, nothing staged or registered; a malformed --target refused (exit 2); a manifest swapped between locate and staging never lands",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/editor/test_editor_scripts.py",
+     "name": "test_a_pack_changed_after_the_approved_plan_is_never_installed",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/editor/test_editor_scripts.py",
+     "name": "test_a_malformed_target_is_refused",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/editor/test_editor_scripts.py",
+     "name": "test_a_manifest_swapped_between_locate_and_staging_never_lands",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-garden:scripts/editor/install.py ('The approval is bound to the plan')"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.editor.install-off",
+   "title": "Install an editor pack turned off (daemon-off)",
+   "surface": "cli",
+   "user_path": "`install.py --dir <pack> --target daemon-off ...`, then open studio /plugins.",
+   "deps": [
+    "proof crew daemon",
+    "studio"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "editor",
+    "plugins",
+    "editors",
+    "install"
+   ],
+   "required_evidence": [
+    "screenshot",
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/editors",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "GET .../entry => 404 '<id> is disabled'",
+     "/plugins row [data-editor=<id>] has testid editor-plugin-off and text 'Turned off, so it opens nowhere.' and no editor-plugin-open link"
+    ]
+   },
+   "oracle_text": "GET /api/v1/editors entry enabled:false; GET .../entry => 404 '<id> is disabled'; /plugins row [data-editor=<id>] has testid editor-plugin-off and text 'Turned off, so it opens nowhere.' and no editor-plugin-open link",
+   "covers": [
+    "crew:route:GET /api/v1/editors"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-garden:scripts/editor/install.py",
+    "wicked-studio:src/components/editors/EditorPluginsSettings.tsx:EditorRow"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.editor.install-plan",
+   "title": "Editor install dry-run plan: the consent gate's choices",
+   "surface": "cli",
+   "user_path": "`wicked-garden run scripts/editor/install.py --dir <pack> --dry-run --json`.",
+   "deps": [
+    "python>=3.10"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "editor",
+    "plugins",
+    "editors",
+    "gates",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-garden run scripts/editor/install.py --dir <pack> --dry-run --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "exactly one JSON line {dry_run:true, key, choices:[{id:'daemon_<d>',...default}, {id:'daemon-off_<d>'}], skipped:[]} where <d> == first 21 base64url chars of sha256(wicked-pack.json bytes)",
+     "each choice writes[] lists ~/.wicked/editors/<name>/current, previous, installed.json and the daemon-editors.json registry",
+     "an mcp.session editor adds the EDITOR-GRANTS write naming token editor:<id>@<v>#<sha>/mcp.session",
+     "nothing written"
+    ]
+   },
+   "oracle_text": "exactly one JSON line {dry_run:true, key, choices:[{id:'daemon_<d>',...default}, {id:'daemon-off_<d>'}], skipped:[]} where <d> == first 21 base64url chars of sha256(wicked-pack.json bytes); each choice writes[] lists ~/.wicked/editors/<name>/current, previous, installed.json and the daemon-editors.json registry; an mcp.session editor adds the EDITOR-GRANTS write naming token editor:<id>@<v>#<sha>/mcp.session; nothing written",
+   "covers": [
+    "garden:cli:run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/editor/test_editor_scripts.py",
+     "name": "test_dry_run_plans_two_choices_with_their_program_owned_writes",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/editor/test_editor_scripts.py",
+     "name": "test_the_plan_of_an_mcp_session_editor_lists_its_per_build_grant_on_both_choices",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-garden:scripts/editor/install.py"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.editor.install-refusal-rollback",
+   "title": "A refused install rolls the staged copy back",
+   "surface": "cli",
+   "user_path": "Install a pack that fails conformance (or ships skills/blocks, or reuses an installed id).",
+   "deps": [
+    "proof crew daemon"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "editor",
+    "plugins",
+    "editors",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "POST",
+      "path": "/api/v1/editors",
+      "expect": {
+       "status": [
+        409,
+        422,
+        501
+       ]
+      }
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/editors",
+      "expect": {
+       "status": 200
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "install.py exit 1 with the daemon's message",
+     "previous/ swapped back to current/ (or current/ removed on first install)"
+    ]
+   },
+   "oracle_text": "install.py exit 1 with the daemon's message; POST /editors answered 422 (failed check/conformance, report attached), 501 pack_ships_skills_or_blocks, or 409 id conflict; previous/ swapped back to current/ (or current/ removed on first install); GET /api/v1/editors unchanged",
+   "covers": [
+    "crew:route:GET /api/v1/editors",
+    "crew:route:POST /api/v1/editors"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/editors.test.ts",
+     "name": "a failed or impossible conformance run installs nothing (422)",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/editors.test.ts",
+     "name": "a pack that also ships skills or blocks is refused (501)",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/editors/pack-install.ts",
+    "wicked-garden:scripts/editor/install.py"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.editor.install-update",
+   "title": "Re-install the same pack: update in place with previous kept",
+   "surface": "cli",
+   "user_path": "Change the editor version, re-pin, run install.py --dir again.",
+   "deps": [
+    "proof crew daemon"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "editor",
+    "plugins",
+    "editors",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/editors",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "~/.wicked/editors/<name>/previous holds the prior copy and current the new",
+     "crew log '(update)'"
+    ]
+   },
+   "oracle_text": "~/.wicked/editors/<name>/previous holds the prior copy and current the new; GET /api/v1/editors shows the new version/sha256 and keeps the operator's enabled flag; crew log '(update)'",
+   "covers": [
+    "crew:route:GET /api/v1/editors"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/editors.test.ts",
+     "name": "the same pack again is an update in place",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-garden:scripts/editor/install.py (swap)",
+    "wicked-crew:packages/crew/src/editors/registry.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.editor.surfaces-declaration",
+   "title": "Protocol-2 surfaces declaration validated identically by garden, crew and studio",
+   "surface": "cli",
+   "user_path": "Pass a custom --surfaces file to scaffold (card actions, options tabs, full modes), then pack check.",
+   "deps": [
+    "python>=3.10"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "editor",
+    "plugins",
+    "editors"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: a declaration using a host decision word label (approve/install/...) or look-alike is refused with its reason; protocol-2 editor without surfaces refused; protocol-1 with surfaces refused; canonical JSON byte-equal across garden _surfaces.py, crew src/editors/surfaces.ts and studio src/editors/surfa"
+   },
+   "oracle_text": "a declaration using a host decision word label (approve/install/...) or look-alike is refused with its reason; protocol-2 editor without surfaces refused; protocol-1 with surfaces refused; canonical JSON byte-equal across garden _surfaces.py, crew src/editors/surfaces.ts and studio src/editors/surfaces.ts",
+   "covers": [
+    "garden:skill:editor-scaffold"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/editor/test_editor_surfaces.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/editorSurfaces.test.ts",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:tests/editorRegistrySurfaces.test.ts",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-garden:scripts/editor/_surfaces.py",
+    "wicked-crew:packages/crew/src/editors/surfaces.ts",
+    "wicked-studio:src/editors/surfaces.ts",
+    "wicked-garden:skills/editor-scaffold/refs/surfaces.md"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.garden.codex-plugin-loaded",
+   "title": "Garden loaded in Codex with its wicked-estate MCP server declared",
+   "surface": "plugin",
+   "user_path": "After the Codex plugin install, run `codex plugin list --json`; start Codex and confirm garden skills and the wicked-estate MCP server (from .codex-plugin/mcp.json) are present.",
+   "deps": [
+    "codex-cli>=0.163",
+    "registered plugin"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "garden",
+    "plugins",
+    "mcp"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "codex plugin list --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "codex plugin list --json shows wicked-garden enabled",
+     "plugin cache plugins/cache/wicked-garden/wicked-garden/<version>/.codex-plugin/mcp.json declares wicked-estate with command 'wicked-garden' args ['run','scripts/estate_mcp.mjs']",
+     "plugin.json hooks is empty"
+    ]
+   },
+   "oracle_text": "codex plugin list --json shows wicked-garden enabled; plugin cache plugins/cache/wicked-garden/wicked-garden/<version>/.codex-plugin/mcp.json declares wicked-estate with command 'wicked-garden' args ['run','scripts/estate_mcp.mjs']; plugin.json hooks is empty",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/test_codex_plugin_manifest.py",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.plugin.codex.estate-mcp"
+   ],
+   "sources": [
+    "wicked-garden:.codex-plugin/plugin.json",
+    "wicked-garden:.codex-plugin/mcp.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.garden.launcher",
+   "title": "The wicked-garden launcher: run / python / path / root / doctor",
+   "surface": "cli",
+   "user_path": "`wicked-garden doctor`, `wicked-garden root`, `wicked-garden path scripts/pack/check.py`, `wicked-garden run scripts/editor/pin.py <dir>` (on PATH after `npm i -g wicked-garden`, else `npx wicked-garden ...`, inside crew `$WICKED_GARDEN_ROOT/scripts/wicked-garden`).",
+   "deps": [
+    "node>=20",
+    "python>=3.10"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "garden",
+    "plugins",
+    "launch"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-garden doctor",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "root resolution WICKED_GARDEN_ROOT -> CLAUDE_PLUGIN_ROOT -> package",
+     "path prints an existing absolute file under root",
+     "run propagates the script's exit code"
+    ]
+   },
+   "oracle_text": "doctor prints JSON with ok:true and root/source/python/node/uv, exit 0; root resolution WICKED_GARDEN_ROOT -> CLAUDE_PLUGIN_ROOT -> package; path prints an existing absolute file under root; run propagates the script's exit code",
+   "covers": [
+    "garden:cli:doctor",
+    "garden:cli:path",
+    "garden:cli:root",
+    "garden:cli:run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/test_launcher.py",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.launcher.doctor",
+    "garden.launcher.path-root",
+    "garden.launcher.python",
+    "garden.launcher.root-resolution",
+    "garden.launcher.run",
+    "garden.launcher.twins"
+   ],
+   "sources": [
+    "wicked-garden:install.mjs (LAUNCHER_VERBS)",
+    "wicked-garden:scripts/wicked-garden.mjs",
+    "wicked-garden:scripts/wicked-garden"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.garden.pack-discovery-routing",
+   "title": "Pack discovery order and crew specialist routing to pack skills",
+   "surface": "cli",
+   "user_path": "Make a pack visible via WICKED_PACK_PATH, registered.json, a Claude plugin dir with wicked-pack.json, or <project>/.wicked/packs; resolve a pack specialist by full name / bare role.",
+   "deps": [
+    "python>=3.10"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "garden",
+    "plugins",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "python3 scripts/crew/specialist_resolver.py acme-seo-keyword-analyst",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "`pack list --json` shows the pack (first source wins on duplicate names)",
+     "`python3 scripts/crew/specialist_resolver.py acme-seo-keyword-analyst` resolves to the pack skill"
+    ]
+   },
+   "oracle_text": "`pack list --json` shows the pack (first source wins on duplicate names); `python3 scripts/crew/specialist_resolver.py acme-seo-keyword-analyst` resolves to the pack skill",
+   "covers": [
+    "garden:skill:docs"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/packs/test_pack_registry.py",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/packs/test_specialist_resolver_packs.py",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.pack.runtime-resolution"
+   ],
+   "sources": [
+    "wicked-garden:scripts/_pack_registry.py",
+    "wicked-garden:scripts/crew/specialist_resolver.py",
+    "wicked-garden:docs/extending.md 'What registration gets you'"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.garden.pack-registry",
+   "title": "Register / unregister / list packs and check peer floors",
+   "surface": "cli",
+   "user_path": "`npx wicked-garden pack register <dir> --source <url>`, `pack list --json`, `pack floors --json`, `pack unregister <name>`.",
+   "deps": [
+    "python>=3.10"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "garden",
+    "plugins"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-garden pack register <dir> --source <url>",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "register writes ~/.something-wicked/wicked-garden/packs/registered.json with provenance hashes",
+     "non-conformant refused unless --force",
+     "list --json contains the pack, domains, specialists",
+     "unregister removes it",
+     "reserved 'wicked' vendor refused"
+    ]
+   },
+   "oracle_text": "register writes ~/.something-wicked/wicked-garden/packs/registered.json with provenance hashes; non-conformant refused unless --force; list --json contains the pack, domains, specialists; unregister removes it; reserved 'wicked' vendor refused",
+   "covers": [
+    "garden:cli:pack register"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/packs/test_pack_registry.py",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.pack.register",
+    "garden.pack.list",
+    "garden.pack.floors"
+   ],
+   "sources": [
+    "wicked-garden:scripts/_pack_registry.py",
+    "wicked-garden:install.mjs:cmdPack"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.antigravity.skills",
+   "title": "Antigravity / Gemini family: garden skills copied into ~/.gemini/config/skills",
+   "surface": "cli",
+   "user_path": "Pick Antigravity in `npx wicked-installer`, or `node dist/install-antigravity.js wicked-garden --gemini-home <dir> --json` (alias --antigravity-home, env GEMINI_HOME).",
+   "deps": [
+    "sandboxed gemini home",
+    "agy/gemini optional"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "<dir>/config/skills/<skill>/SKILL.md per garden skill",
+     "report key geminiHome==<dir>",
+     "no MCP config file written (mcpInstructions prose note only)",
+     "marker <dir>/wicked-installer/antigravity-install.json"
+    ]
+   },
+   "oracle_text": "<dir>/config/skills/<skill>/SKILL.md per garden skill; report key geminiHome==<dir>; no MCP config file written (mcpInstructions prose note only); marker <dir>/wicked-installer/antigravity-install.json",
+   "covers": [
+    "installer:agent:antigravity",
+    "installer:bundle:garden",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/retired-products.test.mjs",
+     "name": "install-antigravity --all",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "garden.plugin.cross-cli.skills-copy"
+   ],
+   "sources": [
+    "wicked-installer:src/install-antigravity.ts",
+    "wicked-installer:INTERFACE.md §2.1 §8.3"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.config-dir-targets",
+   "title": "Claude target resolution: --claude-home > CLAUDE_CONFIG_DIR (list, exclusive) > ~/.claude",
+   "surface": "cli",
+   "user_path": "Run install/status with (a) CLAUDE_CONFIG_DIR='dirA:dirB', (b) --claude-home X --claude-home Y, (c) nothing set, (d) CLAUDE_CONFIG_DIR=''. Terminal state: registration in exactly the resolved set; (d) is an error.",
+   "deps": [
+    "claude CLI or stub",
+    "sandboxed dirs"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: (a) both dirA and dirB registered, ~/.claude untouched; (b) only X,Y registered; (c) ~/.claude only when it has settings.json|plugins/|projects/; (d) exit 1, nothing registered; Windows splits on ';' and ','"
+   },
+   "oracle_text": "(a) both dirA and dirB registered, ~/.claude untouched; (b) only X,Y registered; (c) ~/.claude only when it has settings.json|plugins/|projects/; (d) exit 1, nothing registered; Windows splits on ';' and ','",
+   "covers": [
+    "installer:agent:claude"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/garden-registration.test.mjs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/dry-run.test.mjs",
+     "name": "--claude-home wins over CLAUDE_CONFIG_DIR",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/claude-plugin-unit.test.mjs",
+     "name": "resolveClaudeConfigDirs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/claude-plugin.ts:resolveClaudeConfigDirs",
+    "wicked-installer:INTERFACE.md §11.1"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.estate-mcp",
+   "title": "wicked-estate MCP server wired into Claude Code's .claude.json",
+   "surface": "cli",
+   "user_path": "`node dist/install-claude.js wicked-estate --claude-home <dir> --json` (or interactive with estate + Claude Code). Terminal state: report assets.mcp==1.",
+   "deps": [
+    "cargo + network (or --skip-binaries)",
+    "sandboxed Claude dir"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "node dist/install-claude.js wicked-estate --claude-home <dir> --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "<dir>/.claude.json (or ~/.claude.json for the default home) .mcpServers['wicked-estate'] == {command:'wicked-estate-mcp', args:[], env with WICKED_ESTATE_DB etc tilde-expanded}",
+     "marker files[] has json-key pointer '/mcpServers/wicked-estate' whose wroteHash == sha256 of canonical value",
+     "a backup exists under wicked-installer/backups/",
+     "unrelated top-level keys preserved",
+     "re-run is a no-op"
+    ]
+   },
+   "oracle_text": "<dir>/.claude.json (or ~/.claude.json for the default home) .mcpServers['wicked-estate'] == {command:'wicked-estate-mcp', args:[], env with WICKED_ESTATE_DB etc tilde-expanded}; marker files[] has json-key pointer '/mcpServers/wicked-estate' whose wroteHash == sha256 of canonical value; a backup exists under wicked-installer/backups/; unrelated top-level keys preserved; re-run is a no-op",
+   "covers": [
+    "installer:agent:claude",
+    "installer:product:wicked-estate"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "same wireMcp path",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-claude.ts (wireMcp)",
+    "wicked-installer:registry.json wicked-estate.mcp",
+    "wicked-installer:INTERFACE.md §8.3"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.legacy-detect",
+   "title": "Legacy unregistered garden copies are detected and reported, never removed by install",
+   "surface": "cli",
+   "user_path": "Seed a bare ~/.claude/plugins/wicked-garden copy (or a v1 install-claude marker naming garden), then run an install with Claude Code selected. Terminal state: line 'legacy wicked-garden copy detected at <path> — left in place; remove it with 'wicked-installer cleanup-legacy''.",
+   "deps": [
+    "sandboxed config dir"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install",
+    "repos"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-garden copy (or a v1 install-claude marker naming garden), then run an install with Claude Code selected",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "stdout contains the legacy line naming the path",
+     "the legacy tree hash is unchanged after install",
+     "marker garden record carried forward"
+    ]
+   },
+   "oracle_text": "stdout contains the legacy line naming the path; the legacy tree hash is unchanged after install; marker garden record carried forward",
+   "covers": [
+    "installer:agent:claude",
+    "installer:bundle:garden",
+    "installer:cli:cleanup-legacy",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/install-claude-plugin.test.mjs",
+     "name": "dispatch: a v1 (array) marker naming garden is reported BEFORE the script runs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:reportLegacyCopies",
+    "wicked-installer:src/claude-plugin.ts:detectLegacyCopies"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.marker-fail-closed",
+   "title": "An unusable install marker fails closed before any write",
+   "surface": "cli",
+   "user_path": "Corrupt or symlink <dir>/wicked-installer/claude-install.json, then run install (also with --dry-run).",
+   "deps": [
+    "sandboxed dir"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 1 with a diagnostic naming the file and cause; marker bytes and full config-dir tree hash unchanged; nothing staged"
+   },
+   "oracle_text": "exit 1 with a diagnostic naming the file and cause; marker bytes and full config-dir tree hash unchanged; nothing staged",
+   "covers": [
+    "installer:agent:claude",
+    "installer:bundle:full"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/install-claude-plugin.test.mjs",
+     "name": "install-claude.js fails closed on an unparseable marker",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-claude.ts (lstatChainNoFollow)",
+    "wicked-installer:INTERFACE.md §12.1"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.no-claude-fallback",
+   "title": "No Claude Code: direct path copies (unregistered), interactive path is a manual step, broken Claude is an error",
+   "surface": "cli",
+   "user_path": "(a) `npx wicked-installer install wicked-garden` with no claude on PATH; (b) interactive with Claude Code chosen and no claude; (c) claude on PATH whose --version fails. Terminal states: (a) 'copied to ~/.claude/plugins/wicked-garden; not registered — Claude Code not detected'; (b) manual step; (c) error.",
+   "deps": [
+    "sandboxed PATH without claude",
+    "network for npx wicked-garden"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "npx wicked-installer install wicked-garden",
+      "code": 0
+     },
+     {
+      "kind": "file",
+      "path": "~/.claude/plugins/wicked-garden/.claude-plugin/plugin.json",
+      "assert": "exists"
+     },
+     {
+      "kind": "exit",
+      "cmd": "npx wicked-installer install wicked-garden",
+      "code": 1
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "(b) delivery 'manual', no copy written"
+    ]
+   },
+   "oracle_text": "(a) exit 0, delivery 'copied', ~/.claude/plugins/wicked-garden/.claude-plugin/plugin.json exists; (b) delivery 'manual', no copy written; (c) exit 1 and config dir byte-identical",
+   "covers": [
+    "installer:agent:claude",
+    "installer:cli:install",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/garden-registration.test.mjs",
+     "name": "without any Claude Code the installer falls back",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/install-claude-plugin.test.mjs",
+     "name": "dispatch: a present-but-broken claude fails garden",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/installer.ts",
+    "wicked-installer:src/index.ts:registerPluginViaClaude (noFallback)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.repair-partial",
+   "title": "A partial garden registration is repaired",
+   "surface": "cli",
+   "user_path": "Delete the payload dir under plugins/cache/wicked-garden/wicked-garden/<v>/ in a sandbox config dir, then `npx wicked-installer install wicked-garden`. Terminal state: registered.",
+   "deps": [
+    "claude CLI or stub"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "npx wicked-installer install wicked-garden",
+      "code": 1
+     },
+     {
+      "kind": "exit",
+      "cmd": "npx wicked-installer install wicked-garden",
+      "code": 0
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "the run spawns `claude plugin install` (not update)"
+    ]
+   },
+   "oracle_text": "before: status verdict 'partially registered (...)' exit 1; the run spawns `claude plugin install` (not update); after: status 'registered' exit 0",
+   "covers": [
+    "installer:agent:claude",
+    "installer:bundle:garden",
+    "installer:cli:install",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/garden-registration.test.mjs",
+     "name": "a partial registration (record without payload) is repaired",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/claude-plugin.ts:registrationVerdict"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.rollback",
+   "title": "A failed plugin install rolls back this run's marketplace add",
+   "surface": "cli",
+   "user_path": "Install garden where `claude plugin install` fails (stub fault) after the marketplace was added by this run. Terminal state: garden failed; marketplace removed again.",
+   "deps": [
+    "tests/claude-stub.mjs with fault injection"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "claude plugin install",
+    "code": 1,
+    "complete": false,
+    "untyped": [
+     "spawn log shows `claude plugin marketplace remove wicked-garden` after the failed install",
+     "known_marketplaces.json byte-identical to before",
+     "a marketplace that pre-existed this run is NOT removed"
+    ]
+   },
+   "oracle_text": "exit 1; spawn log shows `claude plugin marketplace remove wicked-garden` after the failed install; known_marketplaces.json byte-identical to before; a marketplace that pre-existed this run is NOT removed",
+   "covers": [
+    "installer:agent:claude",
+    "installer:bundle:garden",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/garden-registration.test.mjs",
+     "name": "a failing install after THIS run's marketplace add rolls the add back",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/claude-plugin.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.script-install-converge",
+   "title": "install-claude installs non-plugin products with marker v2 and converges on re-run",
+   "surface": "cli",
+   "user_path": "`node dist/install-claude.js wicked-bus wicked-crew --claude-home <dir> --json` twice. Terminal state: second run reports 'already current'.",
+   "deps": [
+    "network for npm",
+    "sandboxed dir"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "node dist/install-claude.js wicked-bus wicked-crew --claude-home <dir> --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "<dir>/wicked-installer/claude-install.json markerVersion==2 with per-product version, lastResult 'installed', files[]",
+     "second run actions all skipped/ok with no writes (tree hash unchanged)",
+     "report contract=='1.1'",
+     "assets.agents/commands == 0",
+     "handing it wicked-garden yields skipped:true manual 'registered by the central installer' and no marker entry"
+    ]
+   },
+   "oracle_text": "exit 0 both runs; <dir>/wicked-installer/claude-install.json markerVersion==2 with per-product version, lastResult 'installed', files[]; second run actions all skipped/ok with no writes (tree hash unchanged); report contract=='1.1'; assets.agents/commands == 0; handing it wicked-garden yields skipped:true manual 'registered by the central installer' and no marker entry",
+   "covers": [
+    "installer:agent:claude",
+    "installer:product:wicked-bus",
+    "installer:product:wicked-crew",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/install-claude-plugin.test.mjs",
+     "name": "install-claude.js handed wicked-garden: a manual step",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-claude.ts",
+    "wicked-installer:INTERFACE.md §8 §10.2 §12.1"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.script-status",
+   "title": "install-claude status verb: per-product state current/stale/missing/partial/legacy-marker/corrupt",
+   "surface": "cli",
+   "user_path": "`node dist/install-claude.js status --all --claude-home <dir> --json`. Terminal state: one state per product x target.",
+   "deps": [
+    "sandboxed dir"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "node dist/install-claude.js status --all --claude-home <dir> --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "state 'current' iff lastResult installed and all files[] exist and json-key hashes match",
+     "delete a recorded dir => 'stale'",
+     "edit .claude.json key => 'stale' with modified-externally",
+     "plugins not reported"
+    ]
+   },
+   "oracle_text": "state 'current' iff lastResult installed and all files[] exist and json-key hashes match; delete a recorded dir => 'stale'; edit .claude.json key => 'stale' with modified-externally; exit 0 on query success, 2 when neither home nor marker exists, 1 on unparseable marker; plugins not reported",
+   "covers": [
+    "installer:agent:claude"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/install-claude-plugin.test.mjs",
+     "name": "install-claude.js status does not report plugins",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "claude: status and uninstall --all see the synthetic mcp-server:<key> product",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-claude.ts",
+    "wicked-installer:INTERFACE.md §12.2"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.script-uninstall",
+   "title": "install-claude uninstall removes exactly what install created",
+   "surface": "cli",
+   "user_path": "`node dist/install-claude.js uninstall <ids>|--all --claude-home <dir> [--dry-run] [--purge-binaries] --json`.",
+   "deps": [
+    "sandboxed dir with prior install"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "node dist/install-claude.js uninstall <ids>|--all --claude-home <dir> [--dry-run] [--purge-binaries] --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "recorded dirs/files removed",
+     "json-key deleted only when value hash==wroteHash (prior restored when recorded), else action 'skipped-modified'",
+     "foreign hooks/keys untouched",
+     "marker deleted when last product goes",
+     "binaries kept unless --purge-binaries",
+     "uninstall of wicked-garden removes nothing and names `claude plugin uninstall wicked-garden@wicked-garden`",
+     "unusable marker in any target fails the whole run before anything is removed"
+    ]
+   },
+   "oracle_text": "recorded dirs/files removed; json-key deleted only when value hash==wroteHash (prior restored when recorded), else action 'skipped-modified'; foreign hooks/keys untouched; marker deleted when last product goes; binaries kept unless --purge-binaries; uninstall of wicked-garden removes nothing and names `claude plugin uninstall wicked-garden@wicked-garden`; unusable marker in any target fails the whole run before anything is removed",
+   "covers": [
+    "installer:agent:claude",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/install-claude-plugin.test.mjs",
+     "name": "install-claude.js uninstall of a plugin removes NOTHING",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/install-claude-plugin.test.mjs",
+     "name": "uninstall: an unusable marker in ANY selected target fails the whole run",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-claude.ts",
+    "wicked-installer:INTERFACE.md §12.3 §12.4"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.source-root",
+   "title": "Register garden from a local checkout (--source-root)",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer install wicked-garden --source-root <dir>` where <dir>/wicked-garden is a garden checkout. Terminal state: marketplace registered from the local path.",
+   "deps": [
+    "claude CLI or stub",
+    "a garden checkout"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer install wicked-garden --source-root <dir>",
+    "code": 1,
+    "complete": false,
+    "untyped": [
+     "known_marketplaces.json wicked-garden source points at <dir>/wicked-garden",
+     "install record present"
+    ]
+   },
+   "oracle_text": "known_marketplaces.json wicked-garden source points at <dir>/wicked-garden; install record present; invalid --source-root (no .claude-plugin/marketplace.json) exits 1 before any dependency install; --source-root without Claude Code exits 1 (no npx fallback)",
+   "covers": [
+    "installer:agent:claude",
+    "installer:bundle:garden",
+    "installer:cli:install",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/garden-registration.test.mjs",
+     "name": "--source-root registers the local checkout",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/dry-run.test.mjs",
+     "name": "--dry-run fails fast on a --source-root with no marketplace manifest",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:validatePluginInputs",
+    "wicked-installer:src/claude-plugin.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.claude.update-garden",
+   "title": "Upgrade: a re-run updates the registered garden plugin instead of re-adding",
+   "surface": "cli",
+   "user_path": "Run `npx wicked-installer install wicked-garden` a second time on a registered dir (optionally after a new garden release). Terminal state: registered at the marketplace's newest version.",
+   "deps": [
+    "claude CLI or stub",
+    "sandboxed config dir"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer install wicked-garden",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "second run spawns `claude plugin update wicked-garden@wicked-garden` and no `marketplace add`/`install`",
+     "installed_plugins.json version == marketplace plugin version",
+     "cache dir for that version present"
+    ]
+   },
+   "oracle_text": "second run spawns `claude plugin update wicked-garden@wicked-garden` and no `marketplace add`/`install`; installed_plugins.json version == marketplace plugin version; cache dir for that version present",
+   "covers": [
+    "installer:agent:claude",
+    "installer:bundle:garden",
+    "installer:cli:install",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/garden-registration.test.mjs",
+     "name": "a second install updates instead of re-adding",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/claude-plugin.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.cleanup-legacy",
+   "title": "Prune legacy garden copies with proven ownership (cleanup-legacy)",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer cleanup-legacy --dry-run --json` then `npx wicked-installer cleanup-legacy --json` (optionally --claude-home). Terminal state: per dir result cleaned/planned/nothing/blocked/failed.",
+   "deps": [
+    "sandboxed config dir with registered garden + legacy copies"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer cleanup-legacy --dry-run --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "envelope verb=='cleanup-legacy'",
+     "dry-run: every removal 'planned' and tree unchanged",
+     "live: bare plugins/wicked-garden and marker-recorded skills/hooks/json-keys gone, marker record dropped",
+     "dir not 'registered' => 'blocked' exit 1, nothing removed",
+     "any refused entry => dir 'failed', nothing removed, exit 1",
+     "symlink anywhere => refused"
+    ]
+   },
+   "oracle_text": "envelope verb=='cleanup-legacy'; dry-run: every removal 'planned' and tree unchanged; live: bare plugins/wicked-garden and marker-recorded skills/hooks/json-keys gone, marker record dropped; dir not 'registered' => 'blocked' exit 1, nothing removed; any refused entry => dir 'failed', nothing removed, exit 1; symlink anywhere => refused",
+   "covers": [
+    "installer:bundle:garden",
+    "installer:cli:cleanup-legacy",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/legacy-cleanup.test.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/legacy-cleanup.ts:runCleanupLegacy",
+    "wicked-installer:INTERFACE.md §12.6",
+    "wicked-installer:schemas/install-report.schema.json $defs.cleanupLegacyEnvelope"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.codex.copy-path",
+   "title": "Codex copy-path fallback: skills copied into $CODEX_HOME/skills",
+   "surface": "cli",
+   "user_path": "Run the Codex install on a codex without `codex plugin`, or against a garden without .codex-plugin/.",
+   "deps": [
+    "codex without plugin support (stub)"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "$CODEX_HOME/skills/{name}/SKILL.md",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "report delivery 'copied'",
+     "marker products[].skills lists the copied directory names",
+     "on a later version a skill dropped upstream is removed"
+    ]
+   },
+   "oracle_text": "report delivery 'copied'; $CODEX_HOME/skills/<name>/SKILL.md exists for every garden skill; marker products[].skills lists the copied directory names; on a later version a skill dropped upstream is removed",
+   "covers": [
+    "installer:agent:codex",
+    "installer:bundle:garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "a garden without .codex-plugin falls back to the copy path",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-codex.ts",
+    "wicked-installer:INTERFACE.md §7.1 §10.1"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.codex.disabled-respected",
+   "title": "A Codex plugin the user disabled is left alone",
+   "surface": "cli",
+   "user_path": "Disable wicked-garden in Codex, then re-run the Codex install.",
+   "deps": [
+    "codex or stub"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "codex plugin add",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "no `codex plugin add` spawned (it would re-enable)",
+     "loose skills stay",
+     "no estate repair",
+     "`codex plugin list --json` still shows it disabled",
+     "a failed `codex plugin list` adds nothing"
+    ]
+   },
+   "oracle_text": "no `codex plugin add` spawned (it would re-enable); loose skills stay; no estate repair; `codex plugin list --json` still shows it disabled; a failed `codex plugin list` adds nothing",
+   "covers": [
+    "installer:agent:codex",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "a plugin the user disabled is not updated",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "a failed `codex plugin list` adds nothing",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-codex.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.codex.estate-mcp",
+   "title": "Codex wicked-estate MCP: create when absent, repair only the command line, never shadow the launcher",
+   "surface": "cli",
+   "user_path": "Install wicked-estate (and/or garden) into Codex with an existing `[mcp_servers.wicked-estate]` pointing at a stale binary, then with none.",
+   "deps": [
+    "codex or stub",
+    "a wicked-estate binary"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "launch",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "$CODEX_HOME/config.toml",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "none present and no plugin serving it: `codex mcp add wicked-estate -- <bin>` spawned",
+     "dotted-key/inline/repeated forms untouched and reported",
+     "launcher entries (`wicked-garden run scripts/estate_mcp.mjs`) never repointed"
+    ]
+   },
+   "oracle_text": "none present and no plugin serving it: `codex mcp add wicked-estate -- <bin>` spawned; stale direct-binary entry: only its `command = ...` line in $CODEX_HOME/config.toml changes, a backup exists, file mode preserved, `codex mcp get wicked-estate --json` reads back the new command with other fields unchanged; dotted-key/inline/repeated forms untouched and reported; launcher entries (`wicked-garden run scripts/estate_mcp.mjs`) never repointed",
+   "covers": [
+    "garden:cli:run",
+    "installer:agent:codex",
+    "installer:bundle:garden",
+    "installer:product:wicked-estate",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "estate + garden in one run: no direct-binary entry shadows the plugin's launcher",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "estate: a renamed WICKED_ESTATE_MCP_BIN download still repairs a direct-binary entry",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-codex.ts",
+    "wicked-installer:INTERFACE.md §8.3 mechanism 1/2"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.codex.marketplace-rollback",
+   "title": "A failed Codex plugin add rolls back the marketplace change",
+   "surface": "cli",
+   "user_path": "Codex install where `codex plugin add` fails (stub fault).",
+   "deps": [
+    "tests/codex-stub.mjs"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "codex plugin add",
+    "code": 1,
+    "complete": false,
+    "untyped": [
+     "marketplace this run added is removed",
+     "marker keeps the earlier product entry with lastFailure {at, message}",
+     "--dry-run never removes a marketplace"
+    ]
+   },
+   "oracle_text": "exit 1; marketplace this run added is removed; marker keeps the earlier product entry with lastFailure {at, message}; --dry-run never removes a marketplace",
+   "covers": [
+    "installer:agent:codex"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "a failed plugin add rolls back the marketplace it added this run",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-codex.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.codex.plugin-idempotent",
+   "title": "Codex plugin re-run is a no-op",
+   "surface": "cli",
+   "user_path": "Run the Codex garden install a second time with nothing changed.",
+   "deps": [
+    "codex or stub"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "codex plugin marketplace add",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "no `codex plugin marketplace add` and no `codex plugin add` spawned",
+     "report notes say unchanged line by line",
+     "config.toml and marker hashes unchanged except updatedAt-free fields"
+    ]
+   },
+   "oracle_text": "no `codex plugin marketplace add` and no `codex plugin add` spawned; report notes say unchanged line by line; config.toml and marker hashes unchanged except updatedAt-free fields",
+   "covers": [
+    "installer:agent:codex",
+    "installer:bundle:garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "plugin path is idempotent",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-codex.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.codex.plugin-upgrade",
+   "title": "Codex plugin upgrade on a new garden version (and user-managed marketplaces)",
+   "surface": "cli",
+   "user_path": "Bump the garden package version at the marketplace root, re-run the Codex install. Also: a user-managed same-name marketplace that moved ahead; `--force` repoint of the installer's own local marketplace.",
+   "deps": [
+    "codex or stub"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "codex plugin add wicked-garden@wicked-garden",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "`codex plugin add wicked-garden@wicked-garden` re-run exactly when the offered version differs",
+     "codex plugin list --json version == new version",
+     "a user-managed marketplace is never repointed (no remove/add of it) but the plugin still updates",
+     "a git marketplace is never repointed even with --force"
+    ]
+   },
+   "oracle_text": "`codex plugin add wicked-garden@wicked-garden` re-run exactly when the offered version differs; codex plugin list --json version == new version; a user-managed marketplace is never repointed (no remove/add of it) but the plugin still updates; a git marketplace is never repointed even with --force",
+   "covers": [
+    "installer:agent:codex",
+    "installer:bundle:garden",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "a new garden version re-adds the plugin",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "a user-managed marketplace that moved ahead updates the plugin without being repointed",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "repointing the installer's own marketplace re-copies the plugin",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-codex.ts",
+    "wicked-installer:INTERFACE.md §7.6"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.codex.prune-loose-skills",
+   "title": "Prune the loose garden skills an earlier copy install left in $CODEX_HOME/skills",
+   "surface": "cli",
+   "user_path": "Seed a marker recording garden loose skills, run the Codex plugin install; for a count-only (pre-1.1) marker add `--prune-legacy-skills`.",
+   "deps": [
+    "codex or stub",
+    "sandboxed CODEX_HOME"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: recorded skill dirs moved to $CODEX_HOME/wicked-installer/pruned-skills/<time>/ and absent from skills/; count-only marker without the flag: dirs listed but present; with flag: removed; symlinks never removed; unreadable marker => nothing removed and file kept as codex-install.json.unreadable-<time>"
+   },
+   "oracle_text": "recorded skill dirs moved to $CODEX_HOME/wicked-installer/pruned-skills/<time>/ and absent from skills/; count-only marker without the flag: dirs listed but present; with flag: removed; symlinks never removed; unreadable marker => nothing removed and file kept as codex-install.json.unreadable-<time>",
+   "covers": [
+    "installer:agent:codex",
+    "installer:bundle:garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "a pre-1.1 (count-only) marker proves no directory",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "--prune-legacy-skills removes the installer-named loose skills",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "an unreadable marker prunes nothing and is kept aside",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-codex.ts",
+    "wicked-installer:README.md 'Codex — wicked-garden as a plugin' step 3"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.dispatch.binaries-once",
+   "title": "Binaries are acquired once across several CLIs (--skip-binaries / --plugin-packages)",
+   "surface": "cli",
+   "user_path": "Interactive install selecting two or more CLIs (e.g. claude + codex) with garden in the selection. Terminal state: the second and later blocks are labelled '(binaries already acquired)'; Codex still receives garden's npm package because it is the plugin marketplace.",
+   "deps": [
+    "claude-stub/codex-stub or real CLIs",
+    "sandboxed homes"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npm install -g",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "spawned argv of 2nd..nth install-<cli>.js contains '--skip-binaries'",
+     "codex argv additionally contains '--plugin-packages' iff a selected product has install.codexPlugin=true",
+     "`npm install -g` runs at most once per package (stubbed spawn log)"
+    ]
+   },
+   "oracle_text": "spawned argv of 2nd..nth install-<cli>.js contains '--skip-binaries'; codex argv additionally contains '--plugin-packages' iff a selected product has install.codexPlugin=true; `npm install -g` runs at most once per package (stubbed spawn log)",
+   "covers": [
+    "installer:bundle:garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/codex-plugin.test.mjs",
+     "name": "dispatch: after another CLI, Codex keeps --skip-binaries but gets --plugin-packages",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:dispatchToClis,runCliScript",
+    "wicked-installer:INTERFACE.md §1 §14"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.dry-run",
+   "title": "Dry run prints the exact plan and writes nothing",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer install wicked-garden --dry-run` and `node dist/install-<cli>.js --all --dry-run --json` per CLI. Terminal state: 'probe:' and 'dry-run:' lines (central) / one pure JSON report with dryRun:true and every action result 'planned' (per-CLI).",
+   "deps": [
+    "node>=20",
+    "optional claude CLI"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer install wicked-garden --dry-run",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "sandbox homes' tree hash unchanged",
+     "only spawned process is `claude --version` (spawn-guard)",
+     "per-CLI stdout parses as exactly one JSON object with <cli>Home and reports[]",
+     "failures detectable without writing (unknown id, retired id, corrupt target JSON) give the same exit codes as a live run"
+    ]
+   },
+   "oracle_text": "exit 0; sandbox homes' tree hash unchanged; only spawned process is `claude --version` (spawn-guard); per-CLI stdout parses as exactly one JSON object with <cli>Home and reports[]; failures detectable without writing (unknown id, retired id, corrupt target JSON) give the same exit codes as a live run",
+   "covers": [
+    "installer:agent:codex",
+    "installer:cli:install",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/dry-run.test.mjs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/spawn-guard.cjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:INTERFACE.md §13",
+    "wicked-installer:src/index.ts:parseArgs",
+    "wicked-installer:src/install-codex.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.install.direct",
+   "title": "Non-interactive install of named products with requires resolved",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer install wicked-garden wicked-estate`. Terminal state: deps installed first (wicked-vault), each product's result line, the readiness block; exit 1 if any product failed.",
+   "deps": [
+    "network (npm, crates.io)",
+    "cargo for wicked-estate",
+    "sandboxed npm prefix"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "npx wicked-installer install wicked-garden wicked-estate",
+      "code": 0
+     },
+     {
+      "kind": "exit",
+      "cmd": "wicked-vault --version",
+      "code": 0
+     },
+     {
+      "kind": "exit",
+      "cmd": "install bogus-id",
+      "code": 1,
+      "stderr_matches": "Unknown"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "`install` with no ids -> 'Specify at least one product id' exit 1"
+    ]
+   },
+   "oracle_text": "exit 0 iff every product result success; `wicked-vault --version` exits 0 afterwards; `install bogus-id` -> stderr 'Unknown products: bogus-id' exit 1; `install` with no ids -> 'Specify at least one product id' exit 1",
+   "covers": [
+    "installer:cli:install",
+    "installer:product:wicked-estate",
+    "installer:product:wicked-garden",
+    "installer:product:wicked-vault"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/registry-truth.test.mjs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/garden-registration.test.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:runInstallDirect",
+    "wicked-installer:src/resolver.ts",
+    "wicked-installer:src/installer.ts"
+   ],
+   "notes": [
+    "critic 2026-10-20: the wicked-estate cargo path is plugins.installer.install.estate-cargo"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.install.estate-cargo",
+   "title": "Installer cargo path for wicked-estate",
+   "surface": "cli",
+   "user_path": "In a sandboxed HOME with cargo, `npx -y wicked-installer install wicked-estate`.",
+   "deps": [
+    "cargo",
+    "network (crates.io)",
+    "sandboxed HOME"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "npx -y wicked-installer install wicked-estate",
+      "code": 0
+     },
+     {
+      "kind": "exit",
+      "cmd": "wicked-estate version",
+      "code": 0
+     },
+     {
+      "kind": "exit",
+      "cmd": "wicked-estate-mcp --version",
+      "code": 0
+     }
+    ],
+    "complete": true
+   },
+   "oracle_text": "(critic 2026-10-20: added; no inventory oracle) Installer cargo path for wicked-estate",
+   "covers": [
+    "installer:cli:install",
+    "installer:product:wicked-estate"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-installer:registry.json"
+   ],
+   "origin": "critic-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.install.retired-refused",
+   "title": "Retired products are never installed on any path",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer install wicked-testing` (or wicked-brain); also `node dist/install-<cli>.js wicked-testing` for each CLI script and `--all`. Terminal state: refusal naming the successor products, nothing acquired.",
+   "deps": [
+    "node>=20"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer install wicked-testing",
+    "code": 1,
+    "complete": false,
+    "untyped": [
+     "output names successors from registry.json .successors (wicked-garden, wicked-crew / wicked-estate)",
+     "`--all --dry-run --json` reports[].productId contains no product with status retired or design",
+     "no npm/cargo spawn"
+    ]
+   },
+   "oracle_text": "exit 1; output names successors from registry.json .successors (wicked-garden, wicked-crew / wicked-estate); `--all --dry-run --json` reports[].productId contains no product with status retired or design; no npm/cargo spawn",
+   "covers": [
+    "installer:cli:install",
+    "installer:product:wicked-brain",
+    "installer:product:wicked-crew",
+    "installer:product:wicked-estate",
+    "installer:product:wicked-garden",
+    "installer:product:wicked-testing"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/retired-products.test.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/types.ts:isInstallable,retiredRefusal",
+    "wicked-installer:README.md (retired products)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.interactive.bundle",
+   "title": "Interactive install via a bundle into the selected CLIs",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer` -> 'Choose a bundle' -> pick quick-start/garden/knowledge/creative/full -> 'Proceed with installation?' yes -> 'Install into which CLIs?' (detected ones preselected) -> enter. Terminal state: per-CLI '-> Installing into <CLI>...' blocks, the product x CLI summary grid (registered/copied/acquired/manual/planned), the readiness block and the closing done line.",
+   "deps": [
+    "sandboxed HOME with CLAUDE_CONFIG_DIR/CODEX_HOME etc pointed at temp dirs",
+    "at least one CLI (claude/codex/opencode/pi/agy) or its stub",
+    "network for npm/cargo acquisition"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "video",
+    "cli-transcript",
+    "file-hash",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "npx wicked-installer",
+      "code": 0
+     },
+     {
+      "kind": "file",
+      "path": "{home}/wicked-installer/{cli}-install.json",
+      "assert": "exists"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "summary grid has one row per product with no 'failed' cell"
+    ]
+   },
+   "oracle_text": "exit 0; for each selected CLI the marker <home>/wicked-installer/<cli>-install.json exists and lists every bundle product (registry.json .bundles[id].products plus resolved requires, e.g. garden->wicked-vault); summary grid has one row per product with no 'failed' cell",
+   "covers": [
+    "installer:bundle:creative",
+    "installer:bundle:full",
+    "installer:bundle:garden",
+    "installer:bundle:knowledge",
+    "installer:bundle:quick-start",
+    "installer:product:wicked-vault"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/bundle-resolution.test.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:runInteractive,dispatchToClis,renderSummary",
+    "wicked-installer:src/ui.ts:promptSelectionMode,promptBundle,promptConfirm,promptClis",
+    "wicked-installer:INTERFACE.md §14"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.interactive.cancel",
+   "title": "Cancel the interactive installer without side effects",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer` -> any selection -> answer 'no' to 'Proceed with installation?' (or press Ctrl+C at any prompt). Terminal state: 'Installation cancelled.' (or 'Cancelled.').",
+   "deps": [
+    "sandboxed HOME"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "video",
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "stdout contains 'Installation cancelled.' or 'Cancelled.'",
+     "recursive file-tree hash of every sandboxed CLI home unchanged",
+     "no wicked-installer/ dir created"
+    ]
+   },
+   "oracle_text": "exit 0; stdout contains 'Installation cancelled.' or 'Cancelled.'; recursive file-tree hash of every sandboxed CLI home unchanged; no wicked-installer/ dir created",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:runInteractive (force closed handling)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.interactive.cli-detection",
+   "title": "CLI detection and the offer rule in the picker",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer` and reach 'Install into which CLIs?'. Terminal state: 'Detected CLIs: ...' line; detected CLIs preselected; undetected ones shown unchecked 'not detected — home will be created'; only CLIs with a dist/install-<cli>.js are offered (antigravity, claude, codex, opencode, pi) — never Copilot, Cursor or Kiro, and Gemini is offered once under antigravity.",
+   "deps": [
+    "node>=20",
+    "sandboxed PATH/HOME with chosen identity markers (settings.json, config.toml, ~/.pi/agent, ~/.gemini/settings.json)"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "governance",
+    "install"
+   ],
+   "required_evidence": [
+    "video",
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "picker choice values == basenames of dist/install-*.js",
+     "preselected set == CLIs where detectCli(slug).binOnPath||homeDetected",
+     "detection spawns no process (spawn-guard)"
+    ]
+   },
+   "oracle_text": "picker choice values == basenames of dist/install-*.js; preselected set == CLIs where detectCli(slug).binOnPath||homeDetected; detection spawns no process (spawn-guard)",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/path-probe.test.mjs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/product-detection.test.mjs",
+     "name": "D7 detectCli",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/dry-run.test.mjs",
+     "name": "picker CLI detection is spawn-free",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/detector.ts:DETECT_SPECS,detectCli,discoverCliScripts",
+    "wicked-installer:INTERFACE.md §11.2 §14",
+    "wicked-installer:src/ui.ts:promptClis"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.interactive.custom",
+   "title": "Interactive custom product selection with dependency resolution",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer` -> 'Custom selection' -> toggle products (garden shows '[bundle — all or nothing]') -> confirm -> pick CLIs. Terminal state: summary grid includes the auto-added required deps (wicked-vault when garden picked; wicked-garden when crew picked).",
+   "deps": [
+    "sandboxed CLI homes",
+    "network"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "video",
+    "cli-transcript",
+    "event-log",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "summary grid product rows == resolver.resolve(selection).selected (garden=>+wicked-vault, crew=>+wicked-garden+wicked-vault)"
+    ]
+   },
+   "oracle_text": "summary grid product rows == resolver.resolve(selection).selected (garden=>+wicked-vault, crew=>+wicked-garden+wicked-vault); exit 0",
+   "covers": [
+    "installer:bundle:garden",
+    "installer:product:wicked-garden",
+    "installer:product:wicked-vault"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/bundle-resolution.test.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/ui.ts:promptCustom",
+    "wicked-installer:src/resolver.ts",
+    "wicked-installer:registry.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.interactive.zero-cli",
+   "title": "Zero CLIs selected falls back to the direct install path",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer` -> select products -> confirm -> deselect every CLI -> enter. Terminal state: legacy direct install output and a readiness block for host 'claude'; garden is a manual step when no claude CLI is present (never a bare copy on this path).",
+   "deps": [
+    "sandboxed HOME",
+    "network"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "video",
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "stdout shows per-product results from installer.installProduct",
+     "with no `claude` on PATH, garden line says manual step and <home>/.claude/plugins/wicked-garden does not exist"
+    ]
+   },
+   "oracle_text": "exit 0 (or 1 if any product failed); stdout shows per-product results from installer.installProduct; with no `claude` on PATH, garden line says manual step and <home>/.claude/plugins/wicked-garden does not exist",
+   "covers": [
+    "installer:bundle:garden",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/garden-registration.test.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:legacyInstall",
+    "wicked-installer:src/installer.ts",
+    "wicked-installer:README.md 'wicked-garden is a registered Claude Code plugin'"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.list",
+   "title": "List installable products with status badges",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer list`. Terminal state: every registry product printed with its [status] badge and a 'requires:' line where it has requirements.",
+   "deps": [
+    "node>=20"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash",
+    "vault-entry"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer list",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "stdout contains every id in registry.json .products[].id",
+     "'wicked-testing' and 'wicked-brain' lines carry '[retired]'",
+     "the wicked-garden block contains 'requires: wicked-vault'",
+     "the wicked-crew block contains 'requires: wicked-garden'"
+    ]
+   },
+   "oracle_text": "exit 0; stdout contains every id in registry.json .products[].id; 'wicked-testing' and 'wicked-brain' lines carry '[retired]'; the wicked-garden block contains 'requires: wicked-vault'; the wicked-crew block contains 'requires: wicked-garden'",
+   "covers": [
+    "installer:cli:list",
+    "installer:product:wicked-brain",
+    "installer:product:wicked-crew",
+    "installer:product:wicked-garden",
+    "installer:product:wicked-testing",
+    "installer:product:wicked-vault"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/registry-truth.test.mjs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/retired-products.test.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:runList",
+    "wicked-installer:registry.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.mcp.bad-args-and-corrupt",
+   "title": "mcp verb argument validation and corrupt-config safety",
+   "surface": "cli",
+   "user_path": "Run `mcp upsert Bad_Key ...`, `--env X=1`, `--command ./rel/bin`, unknown `--cli foo`, missing --command; and an upsert against a corrupt .claude.json.",
+   "deps": [
+    "sandboxed Claude dir"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: bad arguments exit 2; `--help` names the no-env rule; corrupt .claude.json => that CLI result 'failed' with 'fix or remove <file> and re-run', exit 1, file byte-identical; `--dry-run` => results 'planned', nothing written"
+   },
+   "oracle_text": "bad arguments exit 2; `--help` names the no-env rule; corrupt .claude.json => that CLI result 'failed' with 'fix or remove <file> and re-run', exit 1, file byte-identical; `--dry-run` => results 'planned', nothing written",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "bad arguments exit 2",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "claude: a corrupt .claude.json fails that CLI",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "--dry-run prints planned entries",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/mcp-verb.ts",
+    "wicked-installer:INTERFACE.md §12.5 exit codes"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.mcp.collision-force",
+   "title": "mcp upsert collision with a foreign entry (and --force)",
+   "surface": "cli",
+   "user_path": "Seed a hand-written mcpServers.acme-notes, run `mcp upsert acme-notes ...` without and then with `--force`.",
+   "deps": [
+    "sandboxed Claude dir"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: without --force: result 'skipped' (collision-skipped), file byte-identical; with --force: overwritten, marker json-key 'prior' == the foreign value; a later remove restores the prior"
+   },
+   "oracle_text": "without --force: result 'skipped' (collision-skipped), file byte-identical; with --force: overwritten, marker json-key 'prior' == the foreign value; a later remove restores the prior",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "claude: a foreign entry is collision-skipped without --force and overwritten with it",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:INTERFACE.md §8.3 invariant 4"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.mcp.remove-ownership",
+   "title": "mcp remove deletes only entries this installer wrote",
+   "surface": "cli",
+   "user_path": "After an upsert, (a) `mcp remove acme-notes --cli claude`; (b) hand-edit the entry then remove; (c) remove a key the installer never wrote.",
+   "deps": [
+    "sandboxed Claude dir"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: (a) key absent, result 'removed'; (b) result 'skipped' (skipped-modified), entry and marker record kept; (c) foreign key untouched"
+   },
+   "oracle_text": "(a) key absent, result 'removed'; (b) result 'skipped' (skipped-modified), entry and marker record kept; (c) foreign key untouched",
+   "covers": [
+    "installer:agent:claude"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "claude: remove deletes only our key",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-claude.ts (mcp remove)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.mcp.unsupported",
+   "title": "mcp verb reports Pi and Antigravity as unsupported",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer mcp upsert acme-notes --command node --cli pi,antigravity --json`.",
+   "deps": [
+    "sandboxed homes"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "mcp",
+    "install",
+    "repos"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer mcp upsert acme-notes --command node --cli pi,antigravity --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "each clis[] entry result 'unsupported' (antigravity detail 'no stated MCP target (INTERFACE §8.3)')",
+     "no file under the pi or gemini home changed"
+    ]
+   },
+   "oracle_text": "exit 0; each clis[] entry result 'unsupported' (antigravity detail 'no stated MCP target (INTERFACE §8.3)'); no file under the pi or gemini home changed",
+   "covers": [
+    "installer:agent:antigravity",
+    "installer:agent:pi",
+    "installer:cli:mcp upsert"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "pi and antigravity report unsupported and exit 0",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-pi.ts",
+    "wicked-installer:src/install-antigravity.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.mcp.upsert-claude",
+   "title": "mcp upsert into Claude Code (one ad-hoc MCP server by key)",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer mcp upsert acme-notes --command node --arg ~/acme/dist/server.js --cli claude --claude-home <dir> --json`, then the same again.",
+   "deps": [
+    "sandboxed Claude dir"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer mcp upsert acme-notes --command node --arg ~/acme/dist/server.js --cli claude --claude-home <dir> --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "envelope {verb:'upsert', key:'acme-notes', clis:[{cli:'claude', result:'written'}]}",
+     "<dir>/.claude.json .mcpServers['acme-notes'] == {command:'node', args:[<expanded path>]} with no env",
+     "marker json-key under product 'mcp-server:acme-notes'",
+     "backup present",
+     "second run result 'converged' and file hash unchanged",
+     "changed --arg => 'updated'"
+    ]
+   },
+   "oracle_text": "envelope {verb:'upsert', key:'acme-notes', clis:[{cli:'claude', result:'written'}]}; <dir>/.claude.json .mcpServers['acme-notes'] == {command:'node', args:[<expanded path>]} with no env; marker json-key under product 'mcp-server:acme-notes'; backup present; second run result 'converged' and file hash unchanged; changed --arg => 'updated'",
+   "covers": [
+    "installer:agent:claude",
+    "installer:cli:mcp upsert"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "claude: upsert writes the key",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "claude: a changed command updates the entry",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/mcp-verb.ts:runMcpVerb",
+    "wicked-installer:src/install-claude.ts (mcp verb)",
+    "wicked-installer:INTERFACE.md §12.5"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.mcp.upsert-codex",
+   "title": "mcp upsert/remove into Codex via codex mcp add/remove",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer mcp upsert acme-notes --command node --arg x.js --cli codex --codex-home <dir> --json`; then remove.",
+   "deps": [
+    "codex-cli or stub"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer mcp upsert acme-notes --command node --arg x.js --cli codex --codex-home <dir> --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "`CODEX_HOME=<dir> codex mcp get acme-notes --json` shows command node args [x.js]",
+     "drift => remove then add",
+     "remove => entry gone and result 'removed'",
+     "v1 marker gains/drops product 'mcp-server:acme-notes'"
+    ]
+   },
+   "oracle_text": "`CODEX_HOME=<dir> codex mcp get acme-notes --json` shows command node args [x.js]; drift => remove then add; remove => entry gone and result 'removed'; v1 marker gains/drops product 'mcp-server:acme-notes'",
+   "covers": [
+    "installer:agent:codex",
+    "installer:cli:mcp upsert"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "codex: mcp add / get / remove through the CLI",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-codex.ts (mcp verb)",
+    "wicked-installer:INTERFACE.md §12.5"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.mcp.upsert-opencode",
+   "title": "mcp upsert into OpenCode; remove is manual",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer mcp upsert acme-notes --command node --arg x.js --cli opencode --opencode-home <dir>/opencode --json`; then `mcp remove`.",
+   "deps": [
+    "opencode CLI or stub"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "file",
+      "path": "opencode.jsonc/opencode.json",
+      "assert": "exists"
+     },
+     {
+      "kind": "exit",
+      "cmd": "npx wicked-installer mcp upsert acme-notes --command node --arg x.js --cli opencode --opencode-home <dir>/opencode --json",
+      "code": 0
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "a numeric-looking --arg (e.g. 3000) or a home whose basename is not 'opencode' => result 'manual' with the JSON to add",
+     "remove => result 'manual' naming entry and file"
+    ]
+   },
+   "oracle_text": "opencode.jsonc/opencode.json contains the acme-notes entry after upsert (re-read confirm); a numeric-looking --arg (e.g. 3000) or a home whose basename is not 'opencode' => result 'manual' with the JSON to add; remove => result 'manual' naming entry and file; exit 0",
+   "covers": [
+    "installer:agent:opencode",
+    "installer:cli:mcp upsert"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/mcp-verb.test.mjs",
+     "name": "opencode: mcp add via the CLI, converge read from its config, remove is manual",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/install-opencode.ts (mcp verb)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.opencode.skills",
+   "title": "OpenCode: garden skills copied and registered in skills.paths",
+   "surface": "cli",
+   "user_path": "Pick OpenCode in `npx wicked-installer`, or `node dist/install-opencode.js wicked-garden --opencode-home <dir> --json`.",
+   "deps": [
+    "opencode 1.17.x optional",
+    "sandboxed XDG_CONFIG_HOME"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "file",
+      "path": "{dir}/skills/{skill}/SKILL.md",
+      "assert": "exists"
+     },
+     {
+      "kind": "file",
+      "path": "{dir}/opencode.json",
+      "assert": "exists"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "an unparseable config left byte-identical with a note",
+     "report notes 'no OpenCode plugin (hooks/opencode-plugin.ts) in package",
+     "skills-only install' for garden",
+     "marker <dir>/wicked-installer/opencode-install.json"
+    ]
+   },
+   "oracle_text": "<dir>/skills/<skill>/SKILL.md exists per garden skill; <dir>/opencode.jsonc (or opencode.json) .skills.paths contains <dir>/skills exactly once (idempotent); an unparseable config left byte-identical with a note; report notes 'no OpenCode plugin (hooks/opencode-plugin.ts) in package; skills-only install' for garden; marker <dir>/wicked-installer/opencode-install.json",
+   "covers": [
+    "installer:agent:opencode",
+    "installer:bundle:garden",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/retired-products.test.mjs",
+     "name": "install-opencode --all",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "garden.plugin.cross-cli.skills-copy"
+   ],
+   "sources": [
+    "wicked-installer:src/install-opencode.ts:copySkills,registerSkillsPath,installOpencodePlugin"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.pack.add-local",
+   "title": "Install a third-party skill pack from a local directory",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer pack add ./acme-seo-pack` (a dir with wicked-pack.json + skills/).",
+   "deps": [
+    "wicked-garden on PATH (pack check/register)",
+    "python>=3.10",
+    "sandboxed HOME"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "exit",
+      "cmd": "npx wicked-installer pack add ./acme-seo-pack",
+      "code": 0
+     },
+     {
+      "kind": "file",
+      "path": "name>/wicked-pack.json",
+      "assert": "exists"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "each pack skill copied to ~/.claude/skills/<skill>/SKILL.md (skipped when the pack is itself a Claude Code plugin)",
+     "`npx wicked-garden pack list --json` includes the pack with provenance hashes"
+    ]
+   },
+   "oracle_text": "exit 0; ~/.something-wicked/wicked-garden/packs/installed/<manifest name>/wicked-pack.json exists; each pack skill copied to ~/.claude/skills/<skill>/SKILL.md (skipped when the pack is itself a Claude Code plugin); `npx wicked-garden pack list --json` includes the pack with provenance hashes",
+   "covers": [
+    "garden:cli:pack list",
+    "garden:skill:docs",
+    "installer:cli:pack add",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/pack.test.mjs",
+     "name": "pack add: local dir → validate, install, copy skills, register",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-garden:tests/packs/test_e2e_toy_pack.py",
+     "name": "test_toy_pack_end_to_end",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "garden.pack.install"
+   ],
+   "sources": [
+    "wicked-installer:src/pack.ts:runPack",
+    "wicked-garden:scripts/_pack_registry.py",
+    "wicked-garden:docs/extending.md 'Install + register'"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.pack.add-npm",
+   "title": "Install a skill pack from an npm spec",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer pack add acme-seo-pack@1.0.0`.",
+   "deps": [
+    "network (npm)",
+    "wicked-garden",
+    "sandboxed HOME"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer pack add acme-seo-pack@1.0.0",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "npm install --prefix <staging> spawned",
+     "installed dir name == wicked-pack.json .name (not the npm spec)",
+     "pack list shows source == the npm spec"
+    ]
+   },
+   "oracle_text": "npm install --prefix <staging> spawned; installed dir name == wicked-pack.json .name (not the npm spec); pack list shows source == the npm spec",
+   "covers": [
+    "installer:cli:pack add"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/pack.test.mjs",
+     "name": "unit: npmSpecName strips versions, keeps scopes",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "garden.pack.install"
+   ],
+   "sources": [
+    "wicked-installer:src/pack.ts (npmSpecName)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.pack.conformance-block",
+   "title": "A non-conformant pack is blocked (fail-closed) unless --force",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer pack add ./acme-broken` then with `--force`.",
+   "deps": [
+    "wicked-garden",
+    "python>=3.10"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "governance",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer pack add ./acme-broken",
+    "code": 1,
+    "complete": false,
+    "untyped": [
+     "with --force: installed",
+     "traversal-shaped manifest names refused"
+    ]
+   },
+   "oracle_text": "without --force: exit 1, PK error codes printed, nothing under packs/installed or ~/.claude/skills; with --force: installed; traversal-shaped manifest names refused",
+   "covers": [
+    "installer:cli:pack add"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/pack.test.mjs",
+     "name": "pack add: conformance failure blocks install (no --force)",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/pack.test.mjs",
+     "name": "pack add: traversal-shaped manifest name is refused",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "garden.pack.check"
+   ],
+   "sources": [
+    "wicked-installer:src/pack.ts",
+    "wicked-garden:scripts/pack/check.py",
+    "wicked-garden:tests/fixtures/packs/acme-broken"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.pack.remove-list-check",
+   "title": "Remove, list and check skill packs",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer pack list`, `pack check ./dir`, `pack remove <manifest name>`.",
+   "deps": [
+    "wicked-garden"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer pack list",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "remove: packs/installed/<name> gone, its copied ~/.claude/skills entries gone (a plugin-shaped pack leaves ~/.claude/skills alone), garden unregister run",
+     "pack list no longer shows it",
+     "traversal names refused",
+     "check exit code == garden pack check's"
+    ]
+   },
+   "oracle_text": "remove: packs/installed/<name> gone, its copied ~/.claude/skills entries gone (a plugin-shaped pack leaves ~/.claude/skills alone), garden unregister run; pack list no longer shows it; traversal names refused; check exit code == garden pack check's",
+   "covers": [
+    "installer:bundle:garden",
+    "installer:cli:pack list"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/pack.test.mjs",
+     "name": "pack remove: plugin-shaped pack leaves ~/.claude/skills alone",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/pack.test.mjs",
+     "name": "pack remove: refuses traversal-shaped names",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/pack.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.pi.skills",
+   "title": "Pi: garden skills copied into the Pi agent home",
+   "surface": "cli",
+   "user_path": "Pick Pi in `npx wicked-installer`, or `node dist/install-pi.js wicked-garden --pi-home <dir> --json` (default $PI_CODING_AGENT_DIR or ~/.pi/agent).",
+   "deps": [
+    "sandboxed pi home"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install",
+    "skills"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "<dir>/skills/<skill>/SKILL.md per garden skill",
+     "extension copied to <dir>/extensions/<id>.ts only when the product ships hooks/pi-extension.ts (garden: note 'skills-only install')",
+     "marker <dir>/wicked-installer/pi-install.json"
+    ]
+   },
+   "oracle_text": "<dir>/skills/<skill>/SKILL.md per garden skill; extension copied to <dir>/extensions/<id>.ts only when the product ships hooks/pi-extension.ts (garden: note 'skills-only install'); marker <dir>/wicked-installer/pi-install.json",
+   "covers": [
+    "installer:agent:pi",
+    "installer:bundle:garden",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/retired-products.test.mjs",
+     "name": "install-pi --all",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "garden.plugin.cross-cli.skills-copy"
+   ],
+   "sources": [
+    "wicked-installer:src/install-pi.ts:copySkills,installPiExtension"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.readiness",
+   "title": "Post-install readiness: delivered is not ready",
+   "surface": "cli",
+   "user_path": "After any install (or `npx wicked-installer status`), read the 'Readiness (checked after install):' block. Optional `--offline`. Terminal state: each delivered product's capabilities (skill-scripts, plugin-scripts, evidence-gate, mem-search, code-graph, daemon) marked ready/pending/unchecked with reason + fix; closing line counts pending.",
+   "deps": [
+    "sandboxed PATH variants (launcher present/absent, python version)"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "deliver",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-garden doctor",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "python>=3.10",
+     "backend bin on PATH",
+     "an npx fallback is never 'ready'",
+     "`--offline` performs no registry lookup",
+     "`--dry-run` reports 'unchecked' never 'ready'",
+     "pending never changes exit code"
+    ]
+   },
+   "oracle_text": "capability ready iff every need met: launcher `wicked-garden doctor` prints {\"ok\": true} and exits 0; python>=3.10; backend bin on PATH; an npx fallback is never 'ready'; `--offline` performs no registry lookup; `--dry-run` reports 'unchecked' never 'ready'; pending never changes exit code",
+   "covers": [
+    "garden:cli:doctor",
+    "installer:cli:status",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/readiness.test.mjs",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/readiness.ts",
+    "wicked-installer:registry.json .capabilities",
+    "wicked-installer:README.md 'Delivered is not ready'"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.registry-conformance",
+   "title": "Registry conformance guard: every registry entry still resolves at its channel",
+   "surface": "background",
+   "user_path": "In a wicked-installer checkout at the pinned SHA: `npm ci && npm run conformance` (the job the workflow runs).",
+   "deps": [
+    "GitHub",
+    "network"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "governance",
+    "install"
+   ],
+   "required_evidence": [
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npm run conformance",
+    "code": 0,
+    "complete": true
+   },
+   "oracle_text": "workflow run conclusion 'success' for the latest main (gh run list --workflow 'registry conformance'); the conformance job resolves every non-manual product via npm view / crates.io",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:.github/workflows/registry-conformance.yml",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:.github/workflows/registry-conformance.yml",
+    "wicked-garden:.github/workflows/notify-installer.yml",
+    "wicked-crew:.github/workflows/notify-installer.yml"
+   ],
+   "notes": [
+    "critic 2026-10-20 (CI/remote proxy): replaced by a local re-derivation; the conformance job re-run locally; the workflow conclusion is a proxy."
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.status",
+   "title": "Status: detected CLIs, installed products, readiness and garden registration verdict",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer status [--claude-home <dir>]`. Terminal state: per config dir the marketplace (source), installed version/scope, cached versions, enable switch and a verdict (registered / partially registered (...) / copy only (unregistered) / not installed / unreadable (...)), then an overall line.",
+   "deps": [
+    "sandboxed Claude config dir(s)"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer status [--claude-home <dir>]",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "verdict derived from plugins/known_marketplaces.json + installed_plugins.json + plugins/cache/wicked-garden/wicked-garden/<v>/.claude-plugin/plugin.json version match",
+     "no `claude plugin` command spawned",
+     "a symlinked state file => 'unreadable' exit 1"
+    ]
+   },
+   "oracle_text": "exit 0 iff garden 'registered' in every active config dir else 1; verdict derived from plugins/known_marketplaces.json + installed_plugins.json + plugins/cache/wicked-garden/wicked-garden/<v>/.claude-plugin/plugin.json version match; no `claude plugin` command spawned; a symlinked state file => 'unreadable' exit 1",
+   "covers": [
+    "installer:bundle:garden",
+    "installer:cli:status",
+    "installer:product:wicked-garden"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-installer:tests/install-claude-plugin.test.mjs",
+     "name": "status: per-dir verdict",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-installer:tests/claude-plugin-unit.test.mjs",
+     "name": "registrationVerdict",
+     "fidelity": "integration"
+    }
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:runStatus,renderPluginRegistration",
+    "wicked-installer:src/claude-plugin.ts:registrationVerdict"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.installer.version-help",
+   "title": "Installer prints its version and usage",
+   "surface": "cli",
+   "user_path": "`npx wicked-installer --version` then `npx wicked-installer --help`. Terminal state: version line and a usage block listing list/install/pack/mcp/status/cleanup-legacy and the flags --dry-run/--claude-home/--source-root/--force/--offline.",
+   "deps": [
+    "node>=20",
+    "network (npx) or a built dist/"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "installer",
+    "plugins",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "npx wicked-installer --version",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "`--version` stdout == wicked-installer/package.json .version (0.8.0 at f3a8ed6)",
+     "`--help` stdout contains 'mcp upsert|remove' and '--offline'"
+    ]
+   },
+   "oracle_text": "exit 0 for both; `--version` stdout == wicked-installer/package.json .version (0.8.0 at f3a8ed6); `--help` stdout contains 'mcp upsert|remove' and '--offline'",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "sources": [
+    "wicked-installer:src/index.ts:main,printHelp",
+    "wicked-installer:package.json"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.studio.coming-soon",
+   "title": "Vibe app builder shown as coming soon (not actionable)",
+   "surface": "ui",
+   "user_path": "/plugins -> scroll to the Coming soon list.",
+   "deps": [
+    "studio"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "studio",
+    "plugins"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plugin-coming-soon][data-plugin=vibe]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plugin-coming-soon-tag]",
+      "assert": "visible"
+     }
+    ],
+    "complete": true
+   },
+   "oracle_text": "[data-testid=plugin-coming-soon][data-plugin=vibe][aria-disabled=true] with [data-testid=plugin-coming-soon-tag] 'Coming soon' and no link/button inside",
+   "covers": [
+    "studio:route:/plugins",
+    "studio:testid:editor-host-back",
+    "studio:testid:editor-host-pick",
+    "studio:testid:editor-plugin-elsewhere",
+    "studio:testid:editor-plugin-internet",
+    "studio:testid:editor-plugin-off",
+    "studio:testid:editor-plugin-open",
+    "studio:testid:editor-plugin-permissions",
+    "studio:testid:editor-plugin-row",
+    "studio:testid:editor-plugin-source",
+    "studio:testid:editor-plugins-create",
+    "studio:testid:editor-plugins-devhost",
+    "studio:testid:editor-plugins-empty",
+    "studio:testid:editor-plugins-error",
+    "studio:testid:editor-plugins-list",
+    "studio:testid:editor-plugins-loading",
+    "studio:testid:editor-plugins-mcp-inspect",
+    "studio:testid:editor-plugins-settings",
+    "studio:testid:editor-plugins-unsupported",
+    "studio:testid:plugin-coming-soon",
+    "studio:testid:plugin-coming-soon-tag",
+    "studio:testid:plugins-page"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_plugins_document_test.py",
+     "name": "SOON steps",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/editors/EditorPluginsSettings.tsx",
+    "wicked-studio:src/board/comingSoon.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.studio.create-editor-plugin",
+   "title": "Create an editor plugin opens the launch wizard on the editor-plugin workflow",
+   "surface": "ui",
+   "user_path": "/plugins -> click [data-testid=editor-plugins-create]. Terminal state: [data-testid=launch-wizard] open on workflow 'editor-plugin' ('Editor plugin' card), ready for intent/repo; [data-testid=launch-wizard-launch] starts the run.",
+   "deps": [
+    "studio + crew (fixture for the open; proof daemon for the launch)"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "studio",
+    "plugins",
+    "editors",
+    "launch"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "launch wizard visible with workflowId 'editor-plugin'"
+    ]
+   },
+   "oracle_text": "launch wizard visible with workflowId 'editor-plugin'; after Launch, GET /api/v1/runs newest run has workflow 'editor-plugin' (proof daemon only — launching POSTs)",
+   "covers": [
+    "crew:route:GET /api/v1/runs",
+    "studio:route:/plugins",
+    "studio:testid-pattern:launch-wizard-workflow-*",
+    "studio:testid:editor-host-back",
+    "studio:testid:editor-host-pick",
+    "studio:testid:editor-plugin-elsewhere",
+    "studio:testid:editor-plugin-internet",
+    "studio:testid:editor-plugin-off",
+    "studio:testid:editor-plugin-open",
+    "studio:testid:editor-plugin-permissions",
+    "studio:testid:editor-plugin-row",
+    "studio:testid:editor-plugin-source",
+    "studio:testid:editor-plugins-create",
+    "studio:testid:editor-plugins-devhost",
+    "studio:testid:editor-plugins-empty",
+    "studio:testid:editor-plugins-error",
+    "studio:testid:editor-plugins-list",
+    "studio:testid:editor-plugins-loading",
+    "studio:testid:editor-plugins-mcp-inspect",
+    "studio:testid:editor-plugins-settings",
+    "studio:testid:editor-plugins-unsupported",
+    "studio:testid:launch-wizard",
+    "studio:testid:launch-wizard-back",
+    "studio:testid:launch-wizard-blocker",
+    "studio:testid:launch-wizard-cards",
+    "studio:testid:launch-wizard-change",
+    "studio:testid:launch-wizard-chosen",
+    "studio:testid:launch-wizard-clear",
+    "studio:testid:launch-wizard-close",
+    "studio:testid:launch-wizard-deliver",
+    "studio:testid:launch-wizard-deliver-toggle",
+    "studio:testid:launch-wizard-demo",
+    "studio:testid:launch-wizard-demo-audience",
+    "studio:testid:launch-wizard-demo-audience-pick",
+    "studio:testid:launch-wizard-demo-gates",
+    "studio:testid:launch-wizard-demo-project",
+    "studio:testid:launch-wizard-demo-show",
+    "studio:testid:launch-wizard-demo-url",
+    "studio:testid:launch-wizard-draft-instructions",
+    "studio:testid:launch-wizard-draft-project",
+    "studio:testid:launch-wizard-error",
+    "studio:testid:launch-wizard-error-detail",
+    "studio:testid:launch-wizard-gate",
+    "studio:testid:launch-wizard-helpers",
+    "studio:testid:launch-wizard-intent",
+    "studio:testid:launch-wizard-keys",
+    "studio:testid:launch-wizard-launch",
+    "studio:testid:launch-wizard-lead",
+    "studio:testid:launch-wizard-next",
+    "studio:testid:launch-wizard-optin-note",
+    "studio:testid:launch-wizard-progress",
+    "studio:testid:launch-wizard-project",
+    "studio:testid:launch-wizard-qe",
+    "studio:testid:launch-wizard-qe-off",
+    "studio:testid:launch-wizard-qe-refused",
+    "studio:testid:launch-wizard-reduced",
+    "studio:testid:launch-wizard-repo",
+    "studio:testid:launch-wizard-requirements",
+    "studio:testid:launch-wizard-requirements-browser",
+    "studio:testid:launch-wizard-review",
+    "studio:testid:launch-wizard-review-lead",
+    "studio:testid:launch-wizard-review-qe-off",
+    "studio:testid:launch-wizard-scrim",
+    "studio:testid:launch-wizard-seat",
+    "studio:testid:launch-wizard-skip",
+    "studio:testid:launch-wizard-skip-toggle",
+    "studio:testid:launch-wizard-soon",
+    "studio:testid:launch-wizard-start-chat",
+    "studio:testid:launch-wizard-step",
+    "studio:testid:plugin-coming-soon",
+    "studio:testid:plugin-coming-soon-tag",
+    "studio:testid:plugins-page"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:tests/editorPluginsSettings.test.tsx",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_newjob_cards_test.py",
+     "name": "editor-plugin card",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/editors/EditorPluginsSettings.tsx:startCreateEditorPlugin,CREATE_EDITOR_WORKFLOW_ID",
+    "wicked-studio:src/components/launch/LaunchWizard.tsx"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.studio.editor-test-page-picker",
+   "title": "Editor test page with no editor named lists installed editors",
+   "surface": "ui",
+   "user_path": "Click [data-testid=editor-plugins-devhost] 'Open the editor test page' (or open /editors/dev). Terminal state: [data-testid=editor-host-pick] with a compact list and [data-testid=editor-host-back].",
+   "deps": [
+    "studio + crew"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "studio",
+    "plugins",
+    "editors",
+    "install"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=editor-host-pick]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=editor-host-back]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "compact rows each with an 'Open' link"
+    ]
+   },
+   "oracle_text": "[data-testid=editor-host-pick] visible; compact rows each with an 'Open' link; editor-host-back navigates to /plugins",
+   "covers": [
+    "studio:route:/editors/dev",
+    "studio:route:/plugins",
+    "studio:testid:editor-host-back",
+    "studio:testid:editor-host-pick",
+    "studio:testid:editor-plugin-elsewhere",
+    "studio:testid:editor-plugin-internet",
+    "studio:testid:editor-plugin-off",
+    "studio:testid:editor-plugin-open",
+    "studio:testid:editor-plugin-permissions",
+    "studio:testid:editor-plugin-row",
+    "studio:testid:editor-plugin-source",
+    "studio:testid:editor-plugins-create",
+    "studio:testid:editor-plugins-devhost",
+    "studio:testid:editor-plugins-empty",
+    "studio:testid:editor-plugins-error",
+    "studio:testid:editor-plugins-list",
+    "studio:testid:editor-plugins-loading",
+    "studio:testid:editor-plugins-mcp-inspect",
+    "studio:testid:editor-plugins-settings",
+    "studio:testid:editor-plugins-unsupported",
+    "studio:testid:plugin-coming-soon",
+    "studio:testid:plugin-coming-soon-tag",
+    "studio:testid:plugins-page"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:tests/editorPluginsSettings.test.tsx",
+     "fidelity": "unit"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/editors/EditorPluginsSettings.tsx:EditorTestPagePicker"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.studio.palette-routes",
+   "title": "Command palette reaches Plugins, the editor test page and the MCP inspector",
+   "surface": "ui",
+   "user_path": "Press Mod+K, type 'Plugins' / 'Editor test page' / 'MCP inspector', Enter.",
+   "deps": [
+    "studio"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "studio",
+    "plugins",
+    "editors",
+    "mcp"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: navigates to /plugins, /editors/dev, /mcp/inspect respectively; /editors/conformance not offered"
+   },
+   "oracle_text": "navigates to /plugins, /editors/dev, /mcp/inspect respectively; /editors/conformance not offered",
+   "covers": [
+    "studio:route:/editors/conformance",
+    "studio:route:/editors/dev",
+    "studio:route:/mcp",
+    "studio:route:/mcp/inspect",
+    "studio:route:/plugins"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/desk_cmdk_routes_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "related": [
+    "studio-ui.palette.go-routes"
+   ],
+   "sources": [
+    "wicked-studio:src/palette/routeTargets.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.studio.plugin-card-in-run",
+   "title": "An installed editor renders a run's artifact as a card in the thread",
+   "surface": "ui",
+   "user_path": "Open a run whose artifact kind is claimed by an enabled editor (e.g. an installed pack editor for kind 'page'). Terminal state: [data-testid=plugin-card] with [data-testid=plugin-card-frame], host-drawn [data-testid=plugin-card-action] buttons, [data-testid=plugin-card-options] and [data-testid=plugin-card-full].",
+   "deps": [
+    "studio + crew with an artifact-producing run (fixture)"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "studio",
+    "plugins",
+    "editors",
+    "install",
+    "artifacts"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plugin-card-no-editor]",
+      "assert": "hidden"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=artifact-no-editor]",
+      "assert": "hidden"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plugin-torn]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "the card's frame loads /api/v1/editors/<id>/<v>/entry for the editor chosen by editorFor(editors, kind) (enabled, protocol-compatible, claims kind)"
+    ]
+   },
+   "oracle_text": "the card's frame loads /api/v1/editors/<id>/<v>/entry for the editor chosen by editorFor(editors, kind) (enabled, protocol-compatible, claims kind); a kind no editor claims shows [data-testid=plugin-card-no-editor] / [data-testid=artifact-no-editor]; a card action is answered within 2 s (no plugin-torn)",
+   "covers": [
+    "studio:testid:artifact-export-download",
+    "studio:testid:artifact-export-file",
+    "studio:testid:artifact-export-format",
+    "studio:testid:artifact-export-menu",
+    "studio:testid:artifact-exports",
+    "studio:testid:artifact-no-editor",
+    "studio:testid:artifact-no-editor-note",
+    "studio:testid:page-line",
+    "studio:testid:page-undo",
+    "studio:testid:plugin-artifact",
+    "studio:testid:plugin-card",
+    "studio:testid:plugin-card-action",
+    "studio:testid:plugin-card-catch",
+    "studio:testid:plugin-card-frame",
+    "studio:testid:plugin-card-full",
+    "studio:testid:plugin-card-no-editor",
+    "studio:testid:plugin-card-note",
+    "studio:testid:plugin-card-offer",
+    "studio:testid:plugin-card-offer-accept",
+    "studio:testid:plugin-card-options",
+    "studio:testid:plugin-card-pill",
+    "studio:testid:plugin-card-tag",
+    "studio:testid:plugin-card-thumb",
+    "studio:testid:plugin-card-who",
+    "studio:testid:plugin-grants-note",
+    "studio:testid:plugin-reload",
+    "studio:testid:plugin-torn"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:tests/runHost.test.tsx",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_page_editor_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_doc_editors_test.py",
+     "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_deck_editor_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/editorHost/PluginCard.tsx",
+    "wicked-studio:src/components/session/PluginArtifact.tsx",
+    "wicked-studio:src/api/editors.ts:editorFor"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.studio.plugin-grants-enforced",
+   "title": "The plugin host enforces the decided grants",
+   "surface": "ui",
+   "user_path": "Open an editor whose manifest asks for a permission the operator has not allowed (e.g. artifact.write) and trigger that request.",
+   "deps": [
+    "studio + crew"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "studio",
+    "plugins"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plugin-grants-note]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=editor-grants-note]",
+      "assert": "visible"
+     },
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/editors/{id}/grants",
+      "expect": {
+       "status": 200
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "host replies {ok:false} for the ungranted request"
+    ]
+   },
+   "oracle_text": "host replies {ok:false} for the ungranted request; [data-testid=plugin-grants-note] (run) or [data-testid=editor-grants-note] (test page) visible; grants fetched from GET /api/v1/editors/<id>/grants before host.hello",
+   "covers": [
+    "crew:route:GET /api/v1/editors/:id/grants",
+    "studio:testid:editor-frame",
+    "studio:testid:editor-grants-note",
+    "studio:testid:plugin-grants-note"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:tests/editorGrants.test.ts",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:e2e/editor_conformance_test.py",
+     "name": "case 4 permissions withdrawn",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/editors/host.ts",
+    "wicked-studio:src/editors/model.ts:fetchGrants"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.studio.plugin-host-options-full",
+   "title": "Editor options panel tabs and full-screen Simple/Advanced",
+   "surface": "ui",
+   "user_path": "From a plugin card click [data-testid=plugin-card-options] then a [data-testid=host-panel-tab]; then [data-testid=plugin-card-full] and switch [data-testid=full-shell-mode]; Esc / [data-testid=full-shell-exit].",
+   "deps": [
+    "studio + crew (fixture)"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "studio",
+    "plugins",
+    "editors"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=host-panel-frame]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=host-controls]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=full-shell-head]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "mode echo within 2 s",
+     "exit returns to the card"
+    ]
+   },
+   "oracle_text": "[data-testid=host-panel-frame] mounts per plugin tab, host-drawn [data-testid=host-controls] for controls tabs; full screen shows [data-testid=full-shell-head] and the same instance (no reload: frame element identity unchanged); mode echo within 2 s; exit returns to the card",
+   "covers": [
+    "studio:testid:editor-frame",
+    "studio:testid:full-shell",
+    "studio:testid:full-shell-chat",
+    "studio:testid:full-shell-drawer",
+    "studio:testid:full-shell-exit",
+    "studio:testid:full-shell-fillscreen",
+    "studio:testid:full-shell-head",
+    "studio:testid:full-shell-mode",
+    "studio:testid:host-control",
+    "studio:testid:host-controls",
+    "studio:testid:host-panel",
+    "studio:testid:host-panel-close",
+    "studio:testid:host-panel-fold",
+    "studio:testid:host-panel-frame",
+    "studio:testid:host-panel-heading",
+    "studio:testid:host-panel-hosttab",
+    "studio:testid:host-panel-ribbon",
+    "studio:testid:host-panel-run",
+    "studio:testid:host-panel-tab",
+    "studio:testid:host-panel-tab-footer",
+    "studio:testid:host-panel-torn",
+    "studio:testid:host-panel-v1",
+    "studio:testid:plugin-card-full",
+    "studio:testid:plugin-card-options",
+    "studio:testid:run-details-handle"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:tests/editorHostSurfaces.test.tsx",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-studio:e2e/editor_surfaces_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/components/editorHost/HostPanel.tsx",
+    "wicked-studio:src/components/editorHost/FullShell.tsx",
+    "wicked-studio:src/editors/host.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.studio.plugin-torn-reload",
+   "title": "An unresponsive or misbehaving editor is torn down with a Reload",
+   "surface": "ui",
+   "user_path": "Open an editor that misses host.ping or sends three decision chords (e2e fixture hostile.html).",
+   "deps": [
+    "studio + crew fixture"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "studio",
+    "plugins",
+    "editors"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plugin-torn]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=plugin-reload]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=editor-torn]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=host-panel-torn]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "clicking reload remounts a fresh frame"
+    ]
+   },
+   "oracle_text": "[data-testid=plugin-torn] (or editor-torn / host-panel-torn) visible with [data-testid=plugin-reload]; clicking reload remounts a fresh frame",
+   "covers": [
+    "studio:testid:editor-frame",
+    "studio:testid:editor-torn",
+    "studio:testid:host-panel-torn",
+    "studio:testid:plugin-reload",
+    "studio:testid:plugin-torn"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-studio:e2e/editor_conformance_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "sources": [
+    "wicked-studio:src/editors/host.ts",
+    "wicked-studio:e2e/editor-fixtures/hostile.html"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.workflow.editor-plugin.build-test",
+   "title": "Governed build and test phases scaffold, pin, check and run conformance",
+   "surface": "api",
+   "user_path": "Approve scope and design gates in studio; let build and test run.",
+   "deps": [
+    "proof crew daemon",
+    "seats",
+    "chromium on daemon host"
+   ],
+   "cost": "L",
+   "tags": [
+    "plugins-and-installs",
+    "workflow",
+    "plugins",
+    "editors",
+    "governance"
+   ],
+   "required_evidence": [
+    "api-transcript",
+    "file-hash",
+    "ledger-entry"
+   ],
+   "oracle": {
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{id}/acceptance",
+    "expect": {
+     "status": 200
+    },
+    "complete": false,
+    "untyped": [
+     "build unit output contains the scaffold JSON and a passing pack check",
+     "test unit output contains a conformance.py --json report with all required cases passed and sha256 == manifest"
+    ]
+   },
+   "oracle_text": "build unit output contains the scaffold JSON and a passing pack check; test unit output contains a conformance.py --json report with all required cases passed and sha256 == manifest; GET /api/v1/runs/:id/acceptance verdict PASS attributed",
+   "covers": [
+    "crew:route:GET /api/v1/runs/:id/acceptance",
+    "garden:skill:editor-scaffold"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "related": [
+    "crew-api.workflow.editor-plugin"
+   ],
+   "sources": [
+    "wicked-core:src/presets/editor-plugin.json (build, test)",
+    "wicked-garden:skills/editor-scaffold/SKILL.md 'In a governed run'"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.workflow.editor-plugin.install",
+   "title": "Approve the install: the governed run installs the editor and studio lists it",
+   "surface": "ui",
+   "user_path": "At the consent gate click 'Install for this daemon' ([data-testid=session-gate-choice]). Terminal state: install unit succeeded, run complete, /plugins shows the new editor as Installed and its open link works.",
+   "deps": [
+    "studio + proof crew daemon",
+    "seats",
+    "chromium"
+   ],
+   "cost": "L",
+   "tags": [
+    "plugins-and-installs",
+    "workflow",
+    "plugins",
+    "editors",
+    "install"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace",
+    "api-transcript",
+    "file-hash"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/editors",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-editor=<id>]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=editor-plugin-source]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=editor-plugin-open]",
+      "assert": "visible"
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "install unit command received WICKED_CONSENT_CHOICE == the chosen daemon_<d>",
+     "unit exit 0",
+     "'Install, turned off' variant gives enabled:false",
+     "Decline cancels without running install"
+    ]
+   },
+   "oracle_text": "install unit command received WICKED_CONSENT_CHOICE == the chosen daemon_<d>; unit exit 0; GET /api/v1/editors contains the pack's editor id enabled:true with sha256 == manifest; /plugins row [data-editor=<id>] editor-plugin-source 'Installed'; editor-plugin-open loads /editors/dev with matching sha; 'Install, turned off' variant gives enabled:false; Decline cancels without running install",
+   "covers": [
+    "crew:route:GET /api/v1/editors",
+    "studio:route:/editors/dev",
+    "studio:route:/plugins",
+    "studio:testid:editor-plugin-open",
+    "studio:testid:editor-plugin-source",
+    "studio:testid:session-gate-choice"
+   ],
+   "scenarios": [
+    "planned"
+   ],
+   "related": [
+    "crew-api.workflow.editor-plugin"
+   ],
+   "sources": [
+    "wicked-core:src/presets/editor-plugin.json (install)",
+    "wicked-garden:scripts/editor/install.py",
+    "wicked-crew:packages/crew/src/editors/routes.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.workflow.editor-plugin.install-plan",
+   "title": "install-plan Tool phase prints the consent plan",
+   "surface": "api",
+   "user_path": "The run reaches install-plan (after security-review).",
+   "deps": [
+    "proof crew daemon"
+   ],
+   "cost": "L",
+   "tags": [
+    "plugins-and-installs",
+    "workflow",
+    "plugins",
+    "editors",
+    "install"
+   ],
+   "required_evidence": [
+    "api-transcript"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: unit output is one JSON line from install.py --from-run --dry-run --json with choices daemon_<d> and daemon-off_<d>; nothing written under ~/.wicked/editors"
+   },
+   "oracle_text": "unit output is one JSON line from install.py --from-run --dry-run --json with choices daemon_<d> and daemon-off_<d>; nothing written under ~/.wicked/editors",
+   "covers": [],
+   "scenarios": [
+    "planned"
+   ],
+   "related": [
+    "crew-api.workflow.editor-plugin"
+   ],
+   "sources": [
+    "wicked-core:src/presets/editor-plugin.json (install-plan executor)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.workflow.editor-plugin.plan",
+   "title": "The editor-plugin workflow plan: scope, design, build, test, security-review, install-plan, install",
+   "surface": "api",
+   "user_path": "Launch an editor-plugin run (Create an editor plugin or /workflow-editor-plugin) on a proof daemon; open the run page plan.",
+   "deps": [
+    "proof crew daemon",
+    "signed-in seats"
+   ],
+   "cost": "L",
+   "tags": [
+    "plugins-and-installs",
+    "workflow",
+    "plugins",
+    "editors",
+    "install"
+   ],
+   "required_evidence": [
+    "screenshot",
+    "api-transcript",
+    "event-log"
+   ],
+   "oracle": {
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: run units in order scope(understand) -> design -> build -> test -> security-review -> install-plan(Tool) -> install(Tool, consent_before); qe_acceptance required for the run (catalog.rs qe_requirement for 'editor-plugin'); New job card shows scope/design/build/test"
+   },
+   "oracle_text": "run units in order scope(understand) -> design -> build -> test -> security-review -> install-plan(Tool) -> install(Tool, consent_before); qe_acceptance required for the run (catalog.rs qe_requirement for 'editor-plugin'); New job card shows scope/design/build/test",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-core:tests/presets.rs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-core:tests/qe_acceptance_contract.rs",
+     "fidelity": "integration"
+    },
+    {
+     "ref": "wicked-studio:e2e/desk_newjob_cards_test.py",
+     "fidelity": "e2e-fixture"
+    }
+   ],
+   "related": [
+    "crew-api.workflow.editor-plugin"
+   ],
+   "sources": [
+    "wicked-core:src/presets/editor-plugin.json",
+    "wicked-core:src/catalog.rs:editor_plugin_preset"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.workflow.mcp-server.install-operator-clis",
+   "title": "Also install an MCP server into the operator's own CLIs via wicked-installer",
+   "surface": "cli",
+   "user_path": "Approve 'Also install into my CLIs', or `scripts/mcp/install.py ... --target operator --cli all`.",
+   "deps": [
+    "wicked-installer>=mcp verb",
+    "sandboxed operator homes"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "workflow",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "~/.codex/config.toml",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "wicked-installer mcp upsert <key> was invoked",
+     "an installer without the mcp verb is reported, not failed (all homes sandboxed)"
+    ]
+   },
+   "oracle_text": "wicked-installer mcp upsert <key> was invoked; ~/.claude.json mcpServers.<key>, ~/.codex/config.toml [mcp_servers.<key>], opencode config contain the entry with no env/secret; an installer without the mcp verb is reported, not failed (all homes sandboxed)",
+   "covers": [
+    "installer:cli:mcp upsert"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/mcp/test_mcp_install.py",
+     "name": "test_an_installer_without_the_verb_is_skipped",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "crew-api.workflow.mcp-server"
+   ],
+   "sources": [
+    "wicked-garden:scripts/mcp/install.py (step 6)",
+    "wicked-installer:src/mcp-verb.ts"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.workflow.mcp-server.install-plan",
+   "title": "mcp-server workflow install-plan: worker vs operator choices",
+   "surface": "cli",
+   "user_path": "An mcp-server run reaches install-plan; or by hand `wicked-garden run scripts/mcp/install.py --dir <server> --dry-run --json`.",
+   "deps": [
+    "python>=3.10",
+    "node/npm for the server"
+   ],
+   "cost": "S",
+   "tags": [
+    "plugins-and-installs",
+    "workflow",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "exit",
+    "cmd": "wicked-garden run scripts/mcp/install.py --dir <server> --dry-run --json",
+    "code": 0,
+    "complete": false,
+    "untyped": [
+     "one JSON line {dry_run:true, key, choices:[worker(default), operator], skipped:[{cli, why}]}",
+     "worker writes only ~/.wicked/mcp-servers/<key>, the crew registry and ~/.wicked-worker/{claude/.claude.json,codex/config.toml,opencode/...}",
+     "operator adds the operator's CLI configs"
+    ]
+   },
+   "oracle_text": "one JSON line {dry_run:true, key, choices:[worker(default), operator], skipped:[{cli, why}]}; worker writes only ~/.wicked/mcp-servers/<key>, the crew registry and ~/.wicked-worker/{claude/.claude.json,codex/config.toml,opencode/...}; operator adds the operator's CLI configs",
+   "covers": [
+    "garden:cli:run"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/mcp/test_mcp_install.py",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "crew-api.workflow.mcp-server"
+   ],
+   "sources": [
+    "wicked-garden:scripts/mcp/install.py",
+    "wicked-core:src/presets/mcp-server.json (install-plan)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.workflow.mcp-server.install-workers",
+   "title": "Install a built MCP server for workers (registry + worker CLI configs)",
+   "surface": "cli",
+   "user_path": "Approve 'Install for workers' at the mcp-server consent gate, or `scripts/mcp/install.py --dir <server> --target worker --crew-url <proof daemon> --json`.",
+   "deps": [
+    "proof crew daemon",
+    "npm",
+    "sandboxed WICKED_WORKER_HOME"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "workflow",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "file",
+    "path": "~/.wicked/mcp-servers/{key}/current/dist/server.js",
+    "assert": "exists",
+    "complete": false,
+    "untyped": [
+     "GET <crew>/api/v1/mcp/servers lists <key> with command node <root>/<key>/current/dist/server.js and auth ref env:<SERVER>_TOKEN (no value)",
+     "worker-home configs contain the key",
+     "installed.json written",
+     "missing token => pending, not failed"
+    ]
+   },
+   "oracle_text": "~/.wicked/mcp-servers/<key>/current/dist/server.js exists; GET <crew>/api/v1/mcp/servers lists <key> with command node <root>/<key>/current/dist/server.js and auth ref env:<SERVER>_TOKEN (no value); worker-home configs contain the key; installed.json written; missing token => pending, not failed",
+   "covers": [],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/mcp/test_mcp_install.py",
+     "name": "test_first_install_stages_registers_writes_clis_and_records",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-garden:tests/mcp/test_mcp_install.py",
+     "name": "test_secret_missing_is_disclosed_not_failed",
+     "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-crew:packages/crew/tests/mcp-server-workflow-mirror.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "crew-api.workflow.mcp-server",
+    "garden.mcp-scaffold.install"
+   ],
+   "sources": [
+    "wicked-garden:scripts/mcp/install.py",
+    "wicked-crew:packages/crew/src/api/mcp.ts (GET/POST /api/v1/mcp/servers, /preview)"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
+   "id": "plugins.workflow.mcp-server.uninstall",
+   "title": "Uninstall an installed MCP server (registry, CLIs, root)",
+   "surface": "cli",
+   "user_path": "`wicked-garden run scripts/mcp/install.py --uninstall <key> --crew-url <proof daemon> [--cli ...]`.",
+   "deps": [
+    "proof crew daemon"
+   ],
+   "cost": "M",
+   "tags": [
+    "plugins-and-installs",
+    "workflow",
+    "plugins",
+    "mcp",
+    "install"
+   ],
+   "required_evidence": [
+    "cli-transcript"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "api",
+      "method": "GET",
+      "path": "/api/v1/mcp/servers",
+      "expect": {
+       "status": 200
+      }
+     },
+     {
+      "kind": "exit",
+      "cmd": "wicked-garden run scripts/mcp/install.py --uninstall <key> --crew-url <proof daemon> [--cli ...]",
+      "code": 1
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "CLI entries removed via wicked-installer mcp remove (opencode manual)",
+     "~/.wicked/mcp-servers/<key> removed"
+    ]
+   },
+   "oracle_text": "GET /api/v1/mcp/servers no longer lists <key>; CLI entries removed via wicked-installer mcp remove (opencode manual); ~/.wicked/mcp-servers/<key> removed; a same-key registry entry of a different server refuses install (exit 1)",
+   "covers": [
+    "crew:route:GET /api/v1/mcp/servers",
+    "garden:cli:run",
+    "installer:cli:mcp remove"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-garden:tests/mcp/test_mcp_install.py",
+     "name": "test_uninstall_deletes_the_registration_clis_and_root",
+     "fidelity": "unit"
+    }
+   ],
+   "related": [
+    "crew-api.workflow.mcp-server"
+   ],
+   "sources": [
+    "wicked-garden:scripts/mcp/install.py"
+   ],
+   "origin": "inventory-2026-10-20"
+  }
+ ]
+}
