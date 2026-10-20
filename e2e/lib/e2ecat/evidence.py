@@ -112,8 +112,10 @@ class Vault:
             raise RuntimeError("wicked-vault CLI not found (install wicked-vault, or set E2E_VAULT)")
         # `init` creates the vault at the start dir; we init first so no ancestor vault is ever used.
         rc, doc, err = self._call("init", "--cwd", self.run_dir)
-        if rc != 0 and not os.path.isdir(os.path.join(self.run_dir, ".wicked-vault")):
-            raise RuntimeError("wicked-vault init failed: %s %s" % (doc, err))
+        if not os.path.isdir(os.path.join(self.run_dir, ".wicked-vault")):
+            # Never record into an ancestor's vault (the walk-up footgun): the run's own vault or none.
+            raise RuntimeError("wicked-vault init did not create %s/.wicked-vault (exit %s; ancestor vault: %s): %s %s" % (
+                self.run_dir, rc, _ancestor_vault(self.run_dir), doc, err))
         return doc
 
     def record(self, scope, claim, manifest_path, criteria):

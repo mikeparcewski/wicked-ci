@@ -142,7 +142,6 @@ def plan(caps, ctx, adapters=None, catalog_ids=frozenset()):
         cid = cap["id"]
         checks = _checks(cap["oracle"])
         cands = []
-        claimed_elsewhere = []
         for idx, s in enumerate(cap.get("scenarios", [])):
             if not isinstance(s, dict):
                 continue
@@ -152,8 +151,6 @@ def plan(caps, ctx, adapters=None, catalog_ids=frozenset()):
                     rank = RANK.get(ctx.target, {}).get(s.get("fidelity"), 9)
                     cands.append({"rank": rank, "idx": idx, "ad": ad, "key": c[0], "params": c[1], "s": s})
                     break
-            else:
-                claimed_elsewhere.append(s)
         if direct.applicable(cap, ctx, checks):
             first = vd.read_only(cap) and all(direct_checkable(c, ctx) for c in checks)
             cands.append({"rank": DIRECT_FIRST if first else DIRECT_LAST, "idx": 99, "ad": direct,
@@ -411,7 +408,13 @@ def execute(a, e2e_dir, caps, profiles, select_expr, profile_name, adapters=None
         except Exception as e:
             ctx.log("  cleanup of %s failed: %s" % (u.key, e))
     run["finished"] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
-    seal(ctx, run, sel, a.no_vault)
+    try:
+        seal(ctx, run, sel, a.no_vault)
+    except (RuntimeError, OSError, ValueError) as e:
+        # The results stand; the bundle is not sealed, so `validate --report` refuses it (and the run exits 1).
+        run["vault"] = {"disabled": "sealing failed: %s" % e}
+        write_json(os.path.join(run_dir, "run.json"), run)
+        ctx.log("vault: %s" % run["vault"]["disabled"])
     val = reportmod.validation(run_dir, caps, profiles)
     reportmod.write(run_dir, by_id, val)
     ctx.log("validate --report: %s" % ("OK" if val["ok"] else "%d failures" % len(val["failures"])))
