@@ -434,6 +434,18 @@ class ResolveEdges(unittest.TestCase):
             self.assertFalse(any(c.startswith("e2e run") for c in out["commands"]), text)
         self.assertEqual(self.r("dry-run the smoke")["action"], "plan")
 
+    def test_round11_negated_runs_and_dry_run_ids(self):
+        for text in ("please do not run crew-api.standing-orders.read", "don't run the smoke", "never test the run page"):
+            out = self.r(text)
+            self.assertEqual(out["action"], "select", text)
+            self.assertFalse(any(c.startswith("e2e run") for c in out["commands"]), text)
+        tmp = self.run_dir({"target": "fixture"}, {"interactive.cli.dry-run": "partial"})
+        out = self.r("show evidence for interactive.cli.dry-run", run_dir=tmp)
+        self.assertEqual((out["action"], out["selection"]), ("evidence", "id:interactive.cli.dry-run"))
+        out = self.r("run id:interactive.cli.dry-run")
+        self.assertEqual((out["action"], out["status"], out["count"]), ("run", "resolved", 1))
+        self.assertEqual(self.r("dry run the smoke")["action"], "plan")
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")

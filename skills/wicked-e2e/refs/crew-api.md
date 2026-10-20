@@ -34,7 +34,7 @@ wicked-crew's daemon wire (/api/v1, /ws), its CLI and its MCP server: what a scr
 | best scenario fidelity | integration 248, e2e-hermetic 42, e2e-fixture 5, planned 5, e2e-live 3 |
 | who can run it | fixture adapter 298, planned only 5 |
 
-Select it: `area:crew-api`; the cheap part: `area:crew-api cost<=S`; one group: `area:crew-api id:crew-api.<group>.*`.
+Select it: `area:crew-api`; the cheap part: `area:crew-api cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:crew-api.appearance,crew-api.appearance.*`).
 
 ### Tags
 
@@ -42,7 +42,9 @@ Select it: `area:crew-api`; the cheap part: `area:crew-api cost<=S`; one group: 
 
 ### Id groups
 
-`appearance` 1, `audit` 1, `auth` 5, `bg` 6, `campaigns` 5, `catalog` 1, `chats` 12, `cli` 18, `config` 1, `contract` 1, `decisions` 6, `deliver` 10, `demo` 5, `diagnostics` 6, `editors` 6, `gate` 17, `governance` 10, `health` 3, `interactive` 13, `learn` 4, `linked-issues` 1, `mcp` 15, `mcp-cli` 7, `mcp-inspect` 1, `memory` 5, `open-path` 1, `origin-guard` 2, `plans` 1, `plugin` 2, `presets` 1, `projects` 8, `proposals` 5, `qe` 6, `repos` 8, `request-strictness` 1, `roster` 3, `runs` 41, `scripts` 1, `search` 1, `seats` 7, `settings` 2, `skills` 9, `standing-orders` 6, `steering` 4, `studio` 1, `team` 1, `terminals` 2, `testing` 5, `watch` 4, `whoami` 1, `workflow` 14, `workflows` 3, `ws` 3
+Each count is what `id:<group>,<group>.*` selects (aliases included).
+
+`crew-api.appearance` 1, `crew-api.audit` 1, `crew-api.auth` 5, `crew-api.bg` 6, `crew-api.campaigns` 5, `crew-api.catalog` 1, `crew-api.chats` 12, `crew-api.cli` 18, `crew-api.config` 1, `crew-api.contract` 1, `crew-api.decisions` 6, `crew-api.deliver` 10, `crew-api.demo` 5, `crew-api.diagnostics` 6, `crew-api.editors` 6, `crew-api.gate` 17, `crew-api.governance` 10, `crew-api.health` 3, `crew-api.interactive` 13, `crew-api.learn` 4, `crew-api.linked-issues` 1, `crew-api.mcp` 15, `crew-api.mcp-cli` 7, `crew-api.mcp-inspect` 1, `crew-api.memory` 5, `crew-api.open-path` 1, `crew-api.origin-guard` 2, `crew-api.plans` 1, `crew-api.plugin` 2, `crew-api.presets` 1, `crew-api.projects` 8, `crew-api.proposals` 5, `crew-api.qe` 6, `crew-api.repos` 8, `crew-api.request-strictness` 1, `crew-api.roster` 3, `crew-api.runs` 41, `crew-api.scripts` 1, `crew-api.search` 1, `crew-api.seats` 7, `crew-api.settings` 2, `crew-api.skills` 9, `crew-api.standing-orders` 6, `crew-api.steering` 4, `crew-api.studio` 1, `crew-api.team` 1, `crew-api.terminals` 2, `crew-api.testing` 5, `crew-api.watch` 4, `crew-api.whoami` 1, `crew-api.workflow` 14, `crew-api.workflows` 3, `crew-api.ws` 3
 
 ### Dependencies (requirement classes)
 

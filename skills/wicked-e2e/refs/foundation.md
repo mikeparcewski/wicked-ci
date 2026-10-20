@@ -30,7 +30,7 @@ wicked-bus, wicked-vault, wicked-ledger, the shared wicked-ci tooling, and where
 | best scenario fidelity | integration 73, unit 12, planned 8, e2e-fixture 2, e2e-hermetic 2, e2e-live 2 |
 | who can run it | no adapter yet 78, fixture adapter 13, planned only 8 |
 
-Select it: `area:foundation`; the cheap part: `area:foundation cost<=S`; one group: `area:foundation id:ci.<group>.*`.
+Select it: `area:foundation`; the cheap part: `area:foundation cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:ci.docs-lint,ci.docs-lint.*`).
 
 ### Tags
 
@@ -38,7 +38,9 @@ Select it: `area:foundation`; the cheap part: `area:foundation cost<=S`; one gro
 
 ### Id groups
 
-`bus` 38, `docs-lint` 1, `ledger` 12, `node-ci` 1, `node-release` 1, `platform` 18, `rules-conformance` 1, `smoke` 1, `vault` 26
+Each count is what `id:<group>,<group>.*` selects (aliases included).
+
+`ci.docs-lint` 1, `ci.node-ci` 1, `ci.node-release` 1, `ci.rules-conformance` 1, `ci.smoke` 1, `foundation.bus` 38, `foundation.ledger` 12, `foundation.platform` 18, `foundation.vault` 26
 
 ### Dependencies (requirement classes)
 

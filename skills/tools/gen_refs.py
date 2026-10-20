@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.join(ROOT, "e2e", "lib"))
 from e2ecat import deps as depsmod  # noqa: E402
 from e2ecat import validate as v  # noqa: E402
 from e2ecat.adapters import all_adapters  # noqa: E402
+from e2ecat.select import select  # noqa: E402
 
 REFS = os.path.join(ROOT, "skills", "wicked-e2e", "refs")
 ROUTER = os.path.join(ROOT, "skills", "wicked-e2e", "SKILL.md")
@@ -60,7 +61,8 @@ def generated(area, doc, caps, catalog_ids):
         _inc(fid, v.best_fidelity(c) or "planned")
         for t in c["tags"]:
             _inc(tags, t)
-        _inc(groups, c["id"].split(".")[1] if "." in c["id"] else c["id"])
+        parts = c["id"].split(".")
+        _inc(groups, ".".join(parts[:2]) if len(parts) > 1 else c["id"])  # root.group: an area can hold several roots
         mine = set()
         for d in c.get("deps", []):
             k = depsmod.classify(d, catalog_ids)
@@ -87,10 +89,12 @@ def generated(area, doc, caps, catalog_ids):
          "| oracle | %s |" % _fmt(okind),
          "| best scenario fidelity | %s |" % _fmt(fid),
          "| who can run it | %s |" % _fmt({k: n for k, n in run.items() if n}),
-         "", "Select it: `area:%s`; the cheap part: `area:%s cost<=S`; one group: `area:%s id:%s.<group>.*`." % (
-             area, area, area, caps[0]["id"].split(".")[0] if caps else area),
+         "", "Select it: `area:%s`; the cheap part: `area:%s cost<=S`; one group: `id:<group>,<group>.*` with a "
+             "group below (e.g. `id:%s,%s.*`)." % (area, area, sorted(groups)[0] if groups else area,
+                                                   sorted(groups)[0] if groups else area),
          "", "### Tags", "", ", ".join("`%s` %d" % (t, n) for t, n in sorted(tags.items())), "",
-         "### Id groups", "", ", ".join("`%s` %d" % (g, n) for g, n in sorted(groups.items())), "",
+         "### Id groups", "", "Each count is what `id:<group>,<group>.*` selects (aliases included).", "",
+         ", ".join("`%s` %d" % (g, len(select(caps, "id:%s,%s.*" % (g, g)))) for g in sorted(groups)), "",
          "### Dependencies (requirement classes)", "",
          "| class | capabilities | e.g. |", "|---|---:|---|"]
     for k, n in sorted(classes.items(), key=lambda kv: (-kv[1], kv[0])):
@@ -152,6 +156,21 @@ def main(argv):
     for f in sorted(os.listdir(REFS)):
         if f.endswith(".md") and f[:-3] not in v.AREAS:
             fails.append("refs/%s names no catalog area" % f)
+    # Every documented group selector selects exactly its advertised count.
+    for area, acaps in by_area.items():
+        groups = {}
+        for c in acaps:
+            parts = c["id"].split(".")
+            g = ".".join(parts[:2]) if len(parts) > 1 else c["id"]
+            groups[g] = groups.get(g, 0) + 1
+        covered = set()
+        for g in groups:
+            got = {c["id"] for c in select(acaps, "id:%s,%s.*" % (g, g))}
+            if not got:
+                fails.append("refs/%s.md: group selector id:%s,%s.* selects nothing" % (area, g, g))
+            covered |= got
+        if covered != {c["id"] for c in acaps}:
+            fails.append("refs/%s.md: the group selectors miss %s" % (area, sorted({c["id"] for c in acaps} - covered)[:3]))
     all_tags = {t for c in caps for t in c["tags"]}
     for t in sorted(all_tags - listed_tags):
         fails.append("tag %s is listed in no ref" % t)

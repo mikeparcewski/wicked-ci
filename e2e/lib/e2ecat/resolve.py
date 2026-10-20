@@ -86,7 +86,9 @@ INTENTS = [
                           r"\bis\b.*\bcertified\b|\bdid\b.*\b(pass|fail)\w*\b|\bsummar\w*\b|\breport\b|\bresults?\b|\bwhat (failed|passed)\b|\bverdicts?\b|"
                           r"\bhow did .* go\b")),
 ]
-DRY_RUN = re.compile(r"\bdry[- ]?runs?\b", re.I)
+# Prose only: never inside an id or a literal term (`interactive.cli.dry-run`, `id:...dry-run`).
+DRY_RUN = re.compile(r"(?<![\w.:*-])dry[- ]?runs?(?![\w.*-])", re.I)
+NEG_EXEC = re.compile(r"\b(do not|don'?t|never|no need to|not to|stop|cancel)\s+(\w+\s+)?(re-?)?(run|test|certify|check|verify|execute)\w*\b")
 LOOKUP_START = re.compile(r"^\s*(please\s+)?(list|show|find|count|which|what|how many|look up|search)\b")
 EXEC_VERB = re.compile(r"\b(test\w*|certif\w*|run|running|check\w*|verif\w*|execut\w*|exercis\w*|e2e)\b")
 
@@ -261,6 +263,11 @@ def resolve(request, caps, profiles, run_dir=None):
             else:
                 # No execution verb ("everything about sign-in"): list what it selects; running is asked for.
                 action = "select"
+    if action in ("run", "rerun") and NEG_EXEC.search(_intent_text(text, vocab)):
+        # "do not run X": never a run. List what it names; the operator can ask to run it.
+        explain_pre.append({"words": NEG_EXEC.search(_intent_text(text, vocab)).group(0),
+                            "as": "a request not to run: listing only"})
+        action = "select"
     url, port, live = _live(text)
     toks = _tokens(text)
     terms, explain, ignored, shadowed = {}, list(explain_pre), [], []

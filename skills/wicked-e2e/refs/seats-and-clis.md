@@ -37,7 +37,7 @@ Seats: the agent CLIs crew runs as workers: roster, sign-in by floor, live check
 | best scenario fidelity | integration 35, unit 10, e2e-fixture 4, e2e-live 3 |
 | who can run it | fixture adapter 47, no adapter yet 5 |
 
-Select it: `area:seats-and-clis`; the cheap part: `area:seats-and-clis cost<=S`; one group: `area:seats-and-clis id:seats.<group>.*`.
+Select it: `area:seats-and-clis`; the cheap part: `area:seats-and-clis cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:seats.assurance,seats.assurance.*`).
 
 ### Tags
 
@@ -45,7 +45,9 @@ Select it: `area:seats-and-clis`; the cheap part: `area:seats-and-clis cost<=S`;
 
 ### Id groups
 
-`assurance` 1, `bench` 4, `chat` 3, `council` 1, `diagnostics` 1, `failover` 1, `floor` 1, `livecheck` 2, `operator` 2, `reassign` 1, `roster` 3, `settings` 1, `signin` 11, `skills` 5, `standing` 6, `ui` 3, `usage` 4, `version` 2
+Each count is what `id:<group>,<group>.*` selects (aliases included).
+
+`seats.assurance` 1, `seats.bench` 4, `seats.chat` 3, `seats.council` 1, `seats.diagnostics` 1, `seats.failover` 1, `seats.floor` 1, `seats.livecheck` 2, `seats.operator` 2, `seats.reassign` 1, `seats.roster` 3, `seats.settings` 1, `seats.signin` 11, `seats.skills` 5, `seats.standing` 6, `seats.ui` 3, `seats.usage` 4, `seats.version` 2
 
 ### Dependencies (requirement classes)
 

@@ -33,7 +33,7 @@ wicked-core, the engine behind crew: launches, plans, gates, seats, delivery, go
 | best scenario fidelity | integration 74, unit 37, e2e-fixture 15, planned 12, e2e-live 9 |
 | who can run it | fixture adapter 135, planned only 12 |
 
-Select it: `area:core-engine`; the cheap part: `area:core-engine cost<=S`; one group: `area:core-engine id:core.<group>.*`.
+Select it: `area:core-engine`; the cheap part: `area:core-engine cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:core.binding,core.binding.*`).
 
 ### Tags
 
@@ -41,7 +41,9 @@ Select it: `area:core-engine`; the cheap part: `area:core-engine cost<=S`; one g
 
 ### Id groups
 
-`binding` 2, `bus` 2, `campaign` 2, `carrier` 4, `cli` 27, `container` 15, `deliver` 5, `distribute` 1, `editor` 1, `events` 6, `fence` 8, `floor` 5, `gate` 16, `governance` 3, `graph` 1, `harness` 1, `host-floor` 4, `knowledge` 1, `launch` 10, `mcp` 1, `memory` 1, `plan` 3, `project` 1, `qe` 4, `review` 1, `run` 2, `seat` 2, `skills` 4, `sources` 1, `team` 7, `terminal` 1, `unit` 2, `walkthrough` 1, `worktree` 2
+Each count is what `id:<group>,<group>.*` selects (aliases included).
+
+`core.binding` 2, `core.bus` 2, `core.campaign` 2, `core.carrier` 4, `core.cli` 27, `core.container` 15, `core.deliver` 5, `core.distribute` 1, `core.editor` 1, `core.events` 6, `core.fence` 8, `core.floor` 5, `core.gate` 16, `core.governance` 3, `core.graph` 1, `core.harness` 1, `core.host-floor` 4, `core.knowledge` 1, `core.launch` 10, `core.mcp` 1, `core.memory` 1, `core.plan` 3, `core.project` 1, `core.qe` 4, `core.review` 1, `core.run` 2, `core.seat` 2, `core.skills` 4, `core.sources` 1, `core.team` 7, `core.terminal` 1, `core.unit` 2, `core.walkthrough` 1, `core.worktree` 2
 
 ### Dependencies (requirement classes)
 

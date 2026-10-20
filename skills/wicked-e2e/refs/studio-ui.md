@@ -35,7 +35,7 @@ wicked-studio, the coder-facing UI: every page, control and run panel, driven in
 | best scenario fidelity | e2e-fixture 166, unit 52, e2e-live 18, planned 16, integration 3, e2e-hermetic 1 |
 | who can run it | fixture adapter 177, no adapter yet 53, planned only 16, live journey 10 |
 
-Select it: `area:studio-ui`; the cheap part: `area:studio-ui cost<=S`; one group: `area:studio-ui id:studio-ui.<group>.*`.
+Select it: `area:studio-ui`; the cheap part: `area:studio-ui cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:studio-ui.a11y,studio-ui.a11y.*`).
 
 ### Tags
 
@@ -43,7 +43,9 @@ Select it: `area:studio-ui`; the cheap part: `area:studio-ui cost<=S`; one group
 
 ### Id groups
 
-`a11y` 3, `agents` 7, `artifact` 12, `chat` 8, `ci` 1, `composer` 2, `connection` 1, `desk` 28, `editors` 2, `evaluate` 4, `everything` 13, `gate` 16, `health` 3, `launch` 17, `learn` 1, `live` 5, `mcp` 6, `memory` 5, `palette` 6, `peek` 2, `phone` 3, `plugins` 1, `privacy` 1, `projects` 9, `rail` 7, `repo-detail` 4, `repos` 6, `routing` 3, `run-panel` 9, `search` 1, `session` 18, `settings` 8, `sheets` 5, `shell` 1, `shortcuts` 2, `skills` 6, `steer` 11, `terminal` 1, `testing` 4, `theme` 5, `visual` 5, `watch` 2, `workflows` 2
+Each count is what `id:<group>,<group>.*` selects (aliases included).
+
+`studio-ui.a11y` 3, `studio-ui.agents` 7, `studio-ui.artifact` 12, `studio-ui.chat` 8, `studio-ui.ci` 1, `studio-ui.composer` 2, `studio-ui.connection` 1, `studio-ui.desk` 29, `studio-ui.editors` 2, `studio-ui.evaluate` 4, `studio-ui.everything` 13, `studio-ui.gate` 16, `studio-ui.health` 3, `studio-ui.launch` 17, `studio-ui.learn` 1, `studio-ui.live` 5, `studio-ui.mcp` 6, `studio-ui.memory` 5, `studio-ui.palette` 6, `studio-ui.peek` 2, `studio-ui.phone` 3, `studio-ui.plugins` 1, `studio-ui.privacy` 1, `studio-ui.projects` 9, `studio-ui.rail` 7, `studio-ui.repo-detail` 4, `studio-ui.repos` 6, `studio-ui.routing` 3, `studio-ui.run-panel` 9, `studio-ui.search` 1, `studio-ui.session` 18, `studio-ui.settings` 8, `studio-ui.sheets` 5, `studio-ui.shell` 1, `studio-ui.shortcuts` 2, `studio-ui.skills` 6, `studio-ui.steer` 12, `studio-ui.terminal` 1, `studio-ui.testing` 4, `studio-ui.theme` 5, `studio-ui.visual` 5, `studio-ui.watch` 2, `studio-ui.workflows` 2
 
 ### Dependencies (requirement classes)
 

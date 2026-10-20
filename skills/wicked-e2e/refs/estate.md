@@ -30,7 +30,7 @@ wicked-estate: the code graph, memory and knowledge store, through its CLI, its 
 | best scenario fidelity | integration 93, planned 30, unit 29, e2e-live 2, e2e-fixture 1 |
 | who can run it | no adapter yet 122, planned only 30, fixture adapter 3 |
 
-Select it: `area:estate`; the cheap part: `area:estate cost<=S`; one group: `area:estate id:estate.<group>.*`.
+Select it: `area:estate`; the cheap part: `area:estate cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:estate.bg,estate.bg.*`).
 
 ### Tags
 
@@ -38,7 +38,9 @@ Select it: `area:estate`; the cheap part: `area:estate cost<=S`; one group: `are
 
 ### Id groups
 
-`bg` 6, `cli` 32, `evidence` 1, `garden` 12, `index` 15, `inject` 4, `install` 2, `mcp` 55, `migrate` 5, `plugin` 6, `plugins` 3, `scip` 2, `seat` 6, `site` 1, `supports` 1, `via-crew` 2, `via-studio` 1, `wiki` 1
+Each count is what `id:<group>,<group>.*` selects (aliases included).
+
+`estate.bg` 6, `estate.cli` 32, `estate.evidence` 1, `estate.garden` 12, `estate.index` 15, `estate.inject` 4, `estate.install` 2, `estate.mcp` 55, `estate.migrate` 5, `estate.plugin` 6, `estate.plugins` 3, `estate.scip` 2, `estate.seat` 6, `estate.site` 1, `estate.supports` 1, `estate.via-crew` 2, `estate.via-studio` 1, `estate.wiki` 1
 
 ### Dependencies (requirement classes)
 

@@ -28,7 +28,7 @@ wicked-garden, the skill catalog: skills, hooks, the npx launcher, packs, the si
 | best scenario fidelity | planned 119, unit 91, integration 16, e2e-live 9 |
 | who can run it | planned only 119, no adapter yet 116 |
 
-Select it: `area:garden`; the cheap part: `area:garden cost<=S`; one group: `area:garden id:garden.<group>.*`.
+Select it: `area:garden`; the cheap part: `area:garden cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:garden.agentic,garden.agentic.*`).
 
 ### Tags
 
@@ -36,7 +36,9 @@ Select it: `area:garden`; the cheap part: `area:garden cost<=S`; one group: `are
 
 ### Id groups
 
-`agentic` 5, `archetype` 13, `bus` 2, `ci` 5, `classify` 1, `cli` 5, `compile` 2, `core` 6, `daemon` 2, `data` 5, `deliberate` 1, `demo` 8, `domain` 2, `draft` 4, `editor` 3, `engineering` 13, `governed-worker` 2, `ground` 1, `hook` 26, `jam` 5, `launcher` 6, `learn` 2, `loom` 1, `mcp-scaffold` 4, `mem` 3, `npm` 1, `pack` 6, `packs` 2, `persona` 2, `platform` 10, `playbooks` 1, `plugin` 9, `product` 13, `prove` 3, `qe` 40, `repo-learn` 1, `search` 4, `sentinel` 1, `site` 10, `statusline` 1, `swarm` 1, `wickedizer` 1, `workflow` 1, `worktrees` 1
+Each count is what `id:<group>,<group>.*` selects (aliases included).
+
+`garden.agentic` 5, `garden.archetype` 13, `garden.bus` 2, `garden.ci` 5, `garden.classify` 1, `garden.cli` 5, `garden.compile` 2, `garden.core` 6, `garden.daemon` 2, `garden.data` 5, `garden.deliberate` 1, `garden.demo` 8, `garden.domain` 2, `garden.draft` 4, `garden.editor` 3, `garden.engineering` 13, `garden.governed-worker` 2, `garden.ground` 1, `garden.hook` 26, `garden.jam` 5, `garden.launcher` 6, `garden.learn` 2, `garden.loom` 1, `garden.mcp-scaffold` 4, `garden.mem` 3, `garden.npm` 1, `garden.pack` 6, `garden.packs` 2, `garden.persona` 2, `garden.platform` 10, `garden.playbooks` 1, `garden.plugin` 9, `garden.product` 13, `garden.prove` 3, `garden.qe` 40, `garden.repo-learn` 1, `garden.search` 4, `garden.sentinel` 1, `garden.site` 10, `garden.statusline` 1, `garden.swarm` 1, `garden.wickedizer` 1, `garden.workflow` 1, `garden.worktrees` 1
 
 ### Dependencies (requirement classes)
 

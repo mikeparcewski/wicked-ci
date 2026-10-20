@@ -31,7 +31,7 @@ Installing the family: wicked-installer per agent CLI, the garden plugin per hos
 | best scenario fidelity | integration 57, unit 10, e2e-fixture 9, planned 8 |
 | who can run it | no adapter yet 56, fixture adapter 20, planned only 8 |
 
-Select it: `area:plugins-and-installs`; the cheap part: `area:plugins-and-installs cost<=S`; one group: `area:plugins-and-installs id:plugins.<group>.*`.
+Select it: `area:plugins-and-installs`; the cheap part: `area:plugins-and-installs cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:plugins.crew,plugins.crew.*`).
 
 ### Tags
 
@@ -39,7 +39,9 @@ Select it: `area:plugins-and-installs`; the cheap part: `area:plugins-and-instal
 
 ### Id groups
 
-`crew` 7, `editor` 8, `garden` 4, `installer` 49, `studio` 8, `workflow` 8
+Each count is what `id:<group>,<group>.*` selects (aliases included).
+
+`plugins.crew` 7, `plugins.editor` 8, `plugins.garden` 4, `plugins.installer` 49, `plugins.studio` 8, `plugins.workflow` 8
 
 ### Dependencies (requirement classes)
 

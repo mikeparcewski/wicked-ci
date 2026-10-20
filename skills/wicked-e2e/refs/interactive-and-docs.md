@@ -28,7 +28,7 @@ wicked-interactive (the document engine crew proxies), the document/demo seams i
 | best scenario fidelity | integration 54, e2e-live 11, e2e-fixture 8, planned 5, unit 1 |
 | who can run it | no adapter yet 51, fixture adapter 18, live journey 5, planned only 5 |
 
-Select it: `area:interactive-and-docs`; the cheap part: `area:interactive-and-docs cost<=S`; one group: `area:interactive-and-docs id:crew.<group>.*`.
+Select it: `area:interactive-and-docs`; the cheap part: `area:interactive-and-docs cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:crew.interactive,crew.interactive.*`).
 
 ### Tags
 
@@ -36,7 +36,9 @@ Select it: `area:interactive-and-docs`; the cheap part: `area:interactive-and-do
 
 ### Id groups
 
-`apex` 1, `api` 4, `bus` 1, `cli` 9, `contract` 1, `conversation` 1, `crew` 2, `deck` 6, `demo` 6, `doc` 12, `editor` 1, `estate` 1, `events` 2, `export` 5, `feedback` 3, `generation` 1, `interactive` 9, `made` 1, `plugin` 3, `recorder` 1, `sources` 1, `studio` 1, `theme` 4, `video` 1, `walkthrough` 1, `wt` 1
+Each count is what `id:<group>,<group>.*` selects (aliases included).
+
+`crew.interactive` 8, `crew.walkthrough` 1, `interactive.api` 4, `interactive.bus` 1, `interactive.cli` 9, `interactive.conversation` 1, `interactive.deck` 4, `interactive.demo` 5, `interactive.doc` 11, `interactive.events` 2, `interactive.export` 5, `interactive.feedback` 3, `interactive.generation` 1, `interactive.plugin` 3, `interactive.recorder` 1, `interactive.sources` 1, `interactive.theme` 4, `sites.apex` 1, `sites.crew` 2, `sites.estate` 1, `sites.interactive` 1, `sites.studio` 1, `sites.wt` 1, `studio.contract` 1, `studio.deck` 2, `studio.demo` 1, `studio.doc` 1, `studio.editor` 1, `studio.made` 1, `studio.video` 1
 
 ### Dependencies (requirement classes)
 
