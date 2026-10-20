@@ -1,9 +1,9 @@
-# e2e: the wicked platform certification catalog
+# e2e: the wicked platform certification suite
 
-This is phase 1 of the platform's end-to-end certification suite: what has to be certified, how
-each item is checked, and a validator that proves the list is complete. The runner and the
-evidence capture (phase 2) and the skills (phase 3) build on it. This phase runs nothing against a
-product. It reads the source of each repo and the catalog.
+The platform's end-to-end certification suite: what has to be certified (the catalog), how each
+item is checked (typed oracles), a validator that proves the list is complete (phase 1), and a
+runner that executes the existing tests behind each capability, records evidence, seals it in
+wicked-vault and writes a report (phase 2). The skills that drive it are phase 3.
 
 The rule it encodes: **certify the user's exact path to its terminal state.** A launch is not done.
 Creating something through the API is not creating it in the UI. A stub is not the real thing. A
@@ -11,7 +11,8 @@ capability's `user_path` is the path a user takes, and its oracle checks the sta
 it.
 
 Next to it, `smoke/` (S01 to S10) stays what it is: a 5 to 8 minute artifact-level smoke of the
-seams. The catalog points at smoke steps as scenarios where a step already exercises a capability.
+seams. The catalog points at smoke steps as scenarios where a step already exercises a capability,
+and the runner drives those steps through the harness unchanged.
 
 ## Layout
 
@@ -25,6 +26,12 @@ seams. The catalog points at smoke steps as scenarios where a step already exerc
 | `profiles.json` | Saved selections: `smoke`, `daily`, `release` and `full`. |
 | `bin/e2e` | The tool (Python 3, stdlib only). On Windows run `python e2e/bin/e2e ...`. |
 | `lib/e2ecat/` | Its modules: schema subset validator, selection language, surface extractors, checks. |
+| `lib/e2ecat/run.py` | `e2e run`: selection, plan, execution, judging, sealing (phase 2). |
+| `lib/e2ecat/{deps,observe,verdict,evidence,report}.py` | Dependency checks, typed-check evaluation, THE verdict rule, evidence hashing and the vault seal, reports. |
+| `lib/e2ecat/adapters/` | One adapter per kind of existing test: smoke steps, studio journeys, crew vitest, core cargo, direct reads. |
+| `lib/e2ecat/pwhook/` | The Playwright evidence hook a studio journey runs under (video, trace, HAR, screenshots, DOM samples). |
+| `lib/e2ecat/taps/` | The vitest setup file that records a crew test's HTTP exchanges. |
+| `samples/` | A generated report from a real run (the report files only, no videos). |
 | `tests/` | `python3 -m unittest discover -s e2e/tests -v` |
 
 ## A capability
@@ -133,28 +140,47 @@ A capability's `oracle` is one typed check, an `all` of typed checks, or `manual
 - `cli-transcript` (stdout, stderr and the exit code) extends the original list of eight. Without
   it, the 337 CLI capabilities would have no evidence type of their own.
 
-A run directory (phase 2's output) is checked by `e2e validate --report <run-dir>`:
+A run directory is what `e2e run` writes and what `e2e validate --report <run-dir>` checks:
 
 ```
-<run-dir>/run.json                 {"version": 1, "capabilities": [ids]}   (or "selection": EXPR, or "profile": NAME)
-<run-dir>/results/<id>.json        {"id", "verdict", "observed": [{"value", "ok"}, ...], "evidence": {"<kind>": ["relative/path", ...]}}
+<run-dir>/run.json                    {"version": 2, "run_id", "target", "profile"|"selection", "capabilities": [ids],
+                                       "catalog_sha256", "plan", "vault": {"scope", "index"}, ...}
+<run-dir>/<cap-id>/result.json        {"id", "verdict", "reason", "observed": [{"check", "value", "ok", "how"}],
+                                       "evidence": {"<kind>": ["run-relative path", ...]},
+                                       "scenario": {"ref", "name", "fidelity", "adapter", "status"}, "skip"?, ...}
+<run-dir>/<cap-id>/evidence-manifest.json   {"id", "result_sha256", "files": {"<path>": "<sha256>"}}
+<run-dir>/scenarios/<unit>/...        what each scenario run left (videos, traces, transcripts, logs)
+<run-dir>/.wicked-vault/              the run's own vault; vault-index.json maps each capability to its entry
+<run-dir>/report.{md,html,json}
 ```
 
 The report fails when any of these holds:
 
-- A selected capability has no results file.
+- A selected capability has no `result.json`, or `run.json`'s capability list differs from what its
+  selection resolves to (on the same catalog): a run cannot drop a capability and still validate.
 - The verdict is missing, or is not one of `pass`, `fail`, `partial`, `manual`, `error` or
   `skipped`.
-- A selected capability is `skipped`. Deselect it instead.
-- A `manual` oracle is reported as `pass`, or a partial oracle (`complete: false`) is reported as
-  `pass`.
+- A `skipped` capability does not name its unmet dependency in `skip.dep` (one of its own `deps`,
+  or a runner requirement: `checkout:`, `adapter:`, `target:`, `evidence:`, `scenario:`). An
+  `error` gives no reason.
+- A `manual` oracle is reported as `pass`, or a partial oracle (`complete: false`, recursively) is
+  reported as `pass`.
+- A `pass` with any check whose `ok` is not `true`, a scenario that did not pass, a fidelity other
+  than `e2e-live`/`e2e-hermetic`, a scenario that is not one of the capability's own, or only the
+  runner's direct reads on a capability whose path is not itself a read (see the verdict rule).
+- A contradicted check (`ok: false`) reported as anything but `fail`.
 - `observed` does not hold one entry, with `value` and `ok`, for each typed check.
 - A required evidence kind is missing, or one of its files is missing, empty or outside the run
-  directory.
+  directory (`skipped` and `error` results carry none).
 - The video is not a `.webm`, the screenshot is not a `.png`, or the trace is not a `.zip`.
+- **Integrity**: a capability or the run has no vault entry; the vault payload does not hash to its
+  entry; `result.json`, `run.json` or any evidence file differs from the hashes frozen in the vault;
+  or `wicked-vault verify` (when the CLI is on PATH) does not pass. `--allow-unvaulted` skips the
+  integrity check for a hand-written report; `--no-vault-cli` re-derives the hashes offline only.
 
 A complete report exits 0, even when some verdicts are `fail`. The validator checks that the
-evidence is complete. It does not judge the results.
+evidence is complete and intact, and that no verdict claims more than the verdict rule allows. It
+does not judge the product.
 
 ## Surface manifests
 
@@ -355,12 +381,147 @@ From now on the catalog files are the source.
     explicitly. The rest are mapped only by file association, which is a claim about which
     component the path drives, not about what it asserts. Phase 2 tightens it from the traces.
 
+## Running: `e2e run`
+
+```bash
+python3 e2e/bin/e2e run --profile smoke --target fixture --out runs/smoke-1 --src ~/checkouts \
+    --python ~/pw/bin/python --playwright-browsers ~/pw/browsers --build-slot "build-slot --"
+python3 e2e/bin/e2e run --select 'area:studio-ui tag:run-page cost<=S' --target fixture --out runs/ui-1 --src DIR
+python3 e2e/bin/e2e run --select 'surface=api cost<=S' --target live --studio http://127.0.0.1:7801 --out runs/live-1
+python3 e2e/bin/e2e run ... --plan-only            # write plan.json, run nothing
+python3 e2e/bin/e2e validate --report runs/smoke-1
+python3 e2e/bin/e2e report runs/smoke-1            # regenerate report.md / .html / .json
+```
+
+`e2e run` exits 0 when the run is complete and its own report validates, whatever the verdicts
+(read them from `report.json`), and 1 when it does not.
+
+`--src DIR` holds the `wicked-studio`, `wicked-crew` and `wicked-core` checkouts (or name each with
+`--checkout REPO=PATH`); this checkout is wicked-ci. `--python` is a Python with Playwright for the
+studio journeys, `--build-slot` a command prefix that serialises heavy builds (cargo, vitest).
+
+### Targets
+
+- **`fixture`** runs what is hermetic: the wicked-ci smoke steps (published artifacts, shimmed
+  seats, a temp root), the studio's fixture journeys (the built UI against the in-process uxfix
+  stub), crew's vitest files and core's cargo tests (in-process), and the npm/gh reads.
+- **`live`** certifies one running daemon, `--studio URL`: the runner's own direct reads, and with
+  `--live-journeys` the studio's `e2e-live` journeys with `STUDIO_URL`/`CREW_ORIGIN` pointed at it
+  (opt-in, because a live journey drives the daemon for real; some launch governed runs). It
+  refuses the operator daemon ports (7701, 7721) unless `--allow-daemon-port`. The runner itself
+  never sends a non-GET: what the UI sent is observed in the browser's HAR, never repeated.
+
+### From selection to plan
+
+1. The selection (or profile) picks the capabilities.
+2. Each capability's scenarios are ranked by fidelity for the target (fixture: `e2e-hermetic`,
+   `e2e-fixture`, `integration`, `unit`; live: `e2e-live`). On a tie, a scenario already planned
+   for an earlier capability wins, so one run proves several capabilities: one smoke harness run
+   carries every Sxx step the plan needs, one `run_journeys.py` call every journey, one vitest
+   invocation per file, one cargo invocation per test target.
+3. The first candidate that (a) has an adapter on this target, (b) can run on this host
+   (checkout, toolchain), (c) can capture every required evidence kind, and (d) has every dep met
+   is chosen. Otherwise the capability is `skipped` and `skip.dep` names the best candidate's
+   unmet requirement. A skip is never a pass.
+
+**Deps** (`deps.py`) are prose in the catalog. One rule table reduces each to a requirement class:
+
+| class | how it is decided |
+|---|---|
+| `daemon`, `real-engine`, `signed-in-seats`, `registered-repo`, `projects-engine` | provided by the smoke harness (real daemon, shimmed seats); replaced by doubles in an integration test or the uxfix stub (which caps them below pass); on the live target probed read-only (`/health`, `/diagnostics` `components.coreTs`, `/roster` signed-in seats, `/repos`, `/projects`) |
+| `container`, `network`, `gh-auth`, tools (`node>=N`, `python>=3.N`, `cargo`, `git`, `ffmpeg`, ...), product binaries, platform | probed on the host (`docker info`, a DNS lookup, `gh auth status`, PATH, versions); "or stub" deps are met by the test's stub |
+| `credential` (a provider account, an API key, the keychain) | never met: the runner reads no credential |
+| a catalog id | a prerequisite the scenario's own setup performs (recorded) |
+| anything else ("open chat", "snapshot") | scenario setup state, recorded as unchecked |
+
+### Adapters
+
+| adapter | runs | fidelity | evidence |
+|---|---|---|---|
+| `wicked-ci-smoke` | `smoke/lib/steps/Sxx-*.mjs` through `smoke/bin/wicked-smoke.mjs --steps ...`, unchanged; `WICKED_SMOKE_TAP_DIR` turns on `smoke/lib/tap.mjs` | e2e-hermetic | per step: the API transcript, the event log (/ws frames, events read back from `GET /runs/:id/events`, the hermetic `bus.db`), the CLI transcript, the harness's evidence dir (hashed) |
+| `wicked-studio-journeys` | `e2e/<name>_test.py` through the studio's `e2e/run_journeys.py`, unchanged, with `pwhook/` on PYTHONPATH | e2e-fixture (fixture) / e2e-live (live) | per context: `.webm` video, Playwright `trace.zip`, HAR of every `/api/` exchange, every screenshot plus a final one per page, the fixture's own request log, DOM samples of the capability's `dom` checks |
+| `wicked-crew-vitest` | `packages/crew/tests/*.test.ts` (one file, `-t name` when the scenario names one) under crew's own config plus `taps/vitest-tap.mjs` | integration | the vitest JSON report and log; the API transcript of every Fastify `inject()` and `/api/` `fetch` |
+| `wicked-core-cargo` | `cargo test --test <t>` / `--lib` (per crate), filtered by test name, inside `--build-slot` | integration / unit | the test output |
+| `direct` | the runner's own reads: GET on the live daemon, npm and gh reads, `<bin> --version`/`--help` on the live host, one read-only visit of the studio root | e2e-live | the API and CLI transcripts of the reads; the visit's video, trace and screenshot |
+
+A lower-fidelity test cannot record an event log or a product CLI transcript natively. When it
+did not, its test report stands in for `api-transcript`, `event-log` or `cli-transcript`, and the
+result says so (`evidence_substitutes`). Such a result is never a `pass` (its fidelity caps it).
+When a scenario could not capture a required kind at all, the capability is `error` ("required
+evidence not captured"), never a verdict on the product.
+
+### Observing the oracle
+
+Each typed check is evaluated on what the proving scenario recorded (`observe.py`), and its
+OBSERVED value is kept in `result.json`:
+
+- `ok: true` the check held on a recorded exchange, event, invocation, file or DOM sample (or on a
+  read-only direct read).
+- `ok: false` a definitive contradiction: the runner's own read of the end state answers otherwise
+  (a direct GET, npm or gh read, a direct `--version` run), a complete event stream (the browser's
+  HAR) lacks the event or holds a forbidden one, or a file the scenario left behind holds another
+  value.
+- `ok: null` not observed: nothing matched (no such request, invocation or event, a partial
+  stream, a DOM check never seen to hold at a sample point), or the matching exchanges were
+  unsatisfied (`how: "transcript: unsatisfied"`). A scenario's request is not necessarily made in
+  the state the oracle describes: a poll before the run settled, a step that seeds a warning on
+  purpose. The report counts unsatisfied checks separately. Neither is ever a pass.
+- A hold is marked `wildcard` when nothing ties what held to this path: a request matched through
+  an unbound `{placeholder}` (some run completed, not necessarily this path's), an event in a
+  stream window other runs share, a gh check on a repo's latest workflow run. It is recorded as
+  held, and it never counts toward a pass.
+- The runner's own direct read (a GET, a `--version` run) decides (`ok: false` on a mismatch)
+  only when the capability's user path is itself that read. On any other path it read a daemon
+  nobody drove down the path, so a mismatch is `direct: unsatisfied`.
+- A request check matches only a recorded request with the same method, path and (when the check
+  names one) body fields. `{request_body}` is the scenario's own body. An expected value that
+  names an unbound placeholder makes the check undecidable (`ok: null`), never a contradiction.
+- DOM samples: a positive check (`visible`, `text-*`, `count` > 0, `attr`) holds when a sample saw
+  it. A negative one (`hidden`, `count: 0`) holds only when it held at the final sample of every
+  page the journey ended.
+
+### The verdict rule
+
+`verdict.py` is the one rule the runner derives with and `validate --report` re-checks with:
+
+| verdict | when |
+|---|---|
+| `error` | the scenario could not run, or could not capture required evidence |
+| `fail` | the scenario failed, or a check was contradicted |
+| `manual` | the oracle is manual |
+| `pass` | every check observed to hold on something tied to this path (no `wildcard` hold), the oracle complete (recursively), fidelity `e2e-live` or `e2e-hermetic`, and a scenario drove the path. The runner's direct reads alone pass only a capability whose user path is itself nothing but such reads (`GET`, `npm view`, a gh read) and whose every check is one |
+| `partial` | it ran and none of the above: the result lists what is missing |
+| `skipped` | it did not run; `skip.dep` names why |
+
+### Evidence integrity
+
+After judging, the runner hashes every evidence file of each capability into
+`<cap-id>/evidence-manifest.json` (with the hash of its `result.json`) and records the manifest in
+the run's own wicked-vault (`wicked-vault record --artifact`, scope `e2e-<run-id>`, phase
+`certify`, the claim is the capability id), the CLI garden's `prove` uses. `run.json` is recorded
+the same way. The vault freezes a copy of each manifest, and `validate --report` re-derives every
+hash against the frozen copy. So deleting a video, editing a transcript, or flipping a verdict after
+the run is detected. As wicked-vault documents, unkeyed hashes catch mutation, not a determined
+writer who rewrites the vault too. Set `E2E_VAULT` to use a vault CLI that is not on PATH
+(`E2E_VAULT='npx -y wicked-vault'`).
+
+### Reports
+
+`report.json` (for CI and a future studio view), `report.md` and `report.html`: the result of
+`e2e validate --report` on the run as the report was written (so a report never reads cleaner than
+its run), the summary counts, a coverage matrix by area and verdict, and every capability (fail, error, partial, skipped,
+manual, then pass) with its scenario, fidelity, checks held, the reason, and links to its video,
+screenshots, trace, transcripts and `result.json`. Paths are run-relative and the home directory is
+redacted. `e2e report <run-dir>` regenerates them. `samples/` holds the report of a real smoke run.
+
 ## Commands
 
 ```bash
 python3 e2e/bin/e2e validate --baseline e2e/coverage-baseline.json --out e2e-out   # what CI runs
 python3 e2e/bin/e2e validate                                                        # strict: every unmapped element fails
-python3 e2e/bin/e2e validate --report <run-dir>                                     # phase 2 run completeness
+python3 e2e/bin/e2e run --profile smoke --target fixture --out RUN_DIR --src DIR      # run the selection
+python3 e2e/bin/e2e validate --report <run-dir>                                     # run completeness + integrity
+python3 e2e/bin/e2e report <run-dir>                                                # regenerate the reports
 python3 e2e/bin/e2e select --profile daily
 python3 e2e/bin/e2e surfaces --clone pinned --out /tmp/pinned-check                 # reproduce the manifests
 python3 e2e/bin/e2e surfaces --clone main --crew-npm latest --write-pins            # re-pin to current mains
@@ -384,5 +545,8 @@ python3 -m unittest discover -s e2e/tests -v
 
 ## Not in this phase
 
-The runner, the evidence capture and the skills (phases 2 and 3). No scenario is written here.
-Capabilities map to existing tests, or are `planned`.
+- The skills that drive the runner (phase 3).
+- New scenarios: the runner maps to existing tests only. Capabilities with only `planned` (and
+  those whose scenarios have no adapter yet: studio and garden unit tests, estate, interactive,
+  bus, vault and installer suites) report `skipped`.
+- Event-log capture for cargo tests (the engine's durable logs live in the tests' temp dirs).

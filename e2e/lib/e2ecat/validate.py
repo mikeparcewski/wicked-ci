@@ -427,44 +427,78 @@ def render_md(summ, fails, notes):
 
 # ── (d) run report ────────────────────────────────────────────────────────────────────────────
 
-def check_report(run_dir, caps, profiles):
-    """Return (fails, verdict counts)."""
+def catalog_digest(e2e_dir=E2E):
+    """sha256 over the catalog area files: a run records it, so validate knows whether the catalog moved."""
+    import hashlib
+    h = hashlib.sha256()
+    for area in AREAS:
+        p = os.path.join(e2e_dir, "catalog", area + ".json")
+        if os.path.isfile(p):
+            with open(p, "rb") as fh:
+                h.update(area.encode() + b"\0" + fh.read() + b"\0")
+    return h.hexdigest()
+
+
+def _selected_ids(run, caps, profiles):
+    """(selected ids, failures): the run's capability list, cross-checked against its selection."""
+    expr = run.get("selection")
+    if expr is None and run.get("profile"):
+        prof = profiles.get(run["profile"])
+        if prof is None:
+            return None, ["run.json: unknown profile %r" % run["profile"]]
+        expr = prof["select"]
+    resolved = [c["id"] for c in select(caps, expr or "")] if (expr is not None or "capabilities" not in run) else None
+    if "capabilities" not in run:
+        return resolved, []
+    listed = run["capabilities"]
+    fails = []
+    if len(set(listed)) != len(listed):
+        fails.append("run.json: a capability is listed twice")
+    if resolved is not None and run.get("catalog_sha256") in (None, catalog_digest()):
+        # Same catalog as the run: the list must be exactly what the selection resolves to, so a run
+        # cannot drop a capability it did not like and still validate.
+        if set(listed) != set(resolved):
+            miss, extra = sorted(set(resolved) - set(listed)), sorted(set(listed) - set(resolved))
+            fails.append("run.json: capabilities differ from the selection (missing %s; extra %s)" % (miss[:5], extra[:5]))
+    return listed, fails
+
+
+def check_report(run_dir, caps, profiles, vault=True, vault_cli=True):
+    """Return (fails, verdict counts). `vault=False` skips the hash re-derivation (`--allow-unvaulted`)."""
+    from . import verdict as vd
+    from . import evidence as evm
     fails, counts = [], {}
     rp = os.path.join(run_dir, "run.json")
     if not os.path.isfile(rp):
         return ["%s: run.json missing" % run_dir], counts
     run = _load(rp)
     by_id = {c["id"]: c for c in caps}
-    if "capabilities" in run:
-        selected = run["capabilities"]
-    else:
-        expr = run.get("selection")
-        if expr is None and run.get("profile"):
-            prof = profiles.get(run["profile"])
-            if prof is None:
-                return ["run.json: unknown profile %r" % run["profile"]], counts
-            expr = prof["select"]
-        selected = [c["id"] for c in select(caps, expr or "")]
+    selected, sf = _selected_ids(run, caps, profiles)
+    fails += sf
+    if selected is None:
+        return fails, counts
     if not selected:
         fails.append("run.json: the run selects no capability")
+    results = {}
     for cid in selected:
         cap = by_id.get(cid)
         if cap is None:
             fails.append("%s: selected, but not a catalog id" % cid)
             continue
-        res_p = os.path.join(run_dir, "results", cid + ".json")
+        res_p = os.path.join(run_dir, cid, "result.json")
         if not os.path.isfile(res_p):
-            fails.append("%s: no verdict (results/%s.json missing)" % (cid, cid))
+            fails.append("%s: no verdict (%s/result.json missing)" % (cid, cid))
             continue
         try:
             res = _load(res_p)
         except ValueError as e:
-            fails.append("%s: results file is not JSON (%s)" % (cid, e))
+            fails.append("%s: result.json is not JSON (%s)" % (cid, e))
             continue
+        results[cid] = res
         v = res.get("verdict")
         counts[v] = counts.get(v, 0) + 1
         if res.get("id") != cid:
-            fails.append("%s: results file names id %r" % (cid, res.get("id")))
+            fails.append("%s: result.json names id %r" % (cid, res.get("id")))
         if v not in VERDICTS:
             fails.append("%s: verdict %r is not one of %s" % (cid, v, sorted(VERDICTS)))
             continue
@@ -473,7 +507,10 @@ def check_report(run_dir, caps, profiles):
             fails.append("%s: a manual oracle can never be `pass` (report `manual`)" % cid)
         if o["kind"] != "manual" and not oracle_complete(o) and v == "pass":
             fails.append("%s: the oracle is partial (it, or a child, is incomplete or untyped); report `partial`, not `pass`" % cid)
-        if v != "skipped" and o["kind"] != "manual":
+        fails += ["%s: %s" % (cid, p) for p in vd.problems(cap, res)]
+        if v in ("skipped", "error"):
+            continue  # it did not run (or could not): no observation or evidence to check, only its reason
+        if o["kind"] != "manual":
             n = len(_checks(o))
             obs = res.get("observed")
             if not isinstance(obs, list) or len(obs) != n:
@@ -483,9 +520,6 @@ def check_report(run_dir, caps, profiles):
                 for i, ob in enumerate(obs):
                     if not isinstance(ob, dict) or "value" not in ob or "ok" not in ob:
                         fails.append("%s: observed[%d] needs `value` and `ok`" % (cid, i))
-        if v == "skipped":
-            fails.append("%s: skipped — a selected capability must run (or be deselected)" % cid)
-            continue
         ev = res.get("evidence") or {}
         for kind in cap["required_evidence"]:
             paths = ev.get(kind)
@@ -505,6 +539,9 @@ def check_report(run_dir, caps, profiles):
                     fails.append("%s: evidence %s (%s) missing or empty" % (cid, p, kind))
                 elif kind in EVIDENCE_EXT and not p.lower().endswith(EVIDENCE_EXT[kind]):
                     fails.append("%s: %s evidence must be %s, got %s" % (cid, kind, "/".join(EVIDENCE_EXT[kind]), p))
+    if vault:
+        fails += ["vault: %s" % f for f in evm.check_bundle(run_dir, run, [c for c in selected if c in results], results,
+                                                             use_cli=vault_cli)]
     return fails, counts
 
 

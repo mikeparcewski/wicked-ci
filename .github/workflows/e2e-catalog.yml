@@ -1,5 +1,5 @@
-# e2e certification catalog (phase 1): the capability catalog, its typed oracles, the per-repo surface
-# manifests and the coverage validator under e2e/ (see e2e/README.md).
+# e2e certification suite: the capability catalog, its typed oracles, the per-repo surface manifests,
+# the coverage validator and the runner under e2e/ (see e2e/README.md).
 #
 # - On PRs and pushes to main that touch e2e/: the unit tests on ubuntu/macos/windows; the committed
 #   surface manifests must reproduce byte-for-byte from their PINNED SHAs (e2e/surfaces/pins.json);
@@ -42,7 +42,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: unit tests (schema subset, selection language, ratchet, run-report contract, shipped catalog)
+      - name: unit tests (schema subset, selection, ratchet, run-report contract, runner, verdict rule, vault seal)
         shell: bash
         run: |
           PY=python3
@@ -76,6 +76,11 @@ jobs:
           exit $rc
       - name: e2e validate (catalog, coverage against the baseline, scenarios at the pins)
         run: python3 e2e/bin/e2e validate --baseline e2e/coverage-baseline.json --out e2e-out
+      - name: e2e run --plan-only (every profile plans; nothing runs, no checkouts, no product)
+        run: |
+          for p in smoke daily release full; do
+            python3 e2e/bin/e2e run --profile "$p" --target fixture --out "$RUNNER_TEMP/plan-$p" --plan-only
+          done
       - name: coverage summary
         if: always()
         run: test -f e2e-out/coverage.md && cat e2e-out/coverage.md >> "$GITHUB_STEP_SUMMARY" || true

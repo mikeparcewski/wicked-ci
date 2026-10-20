@@ -1,0 +1,696 @@
+{
+ "version": 1,
+ "run": {
+  "run_id": "20261020T154030Z-ae8c",
+  "target": "live",
+  "studio": "http://127.0.0.1:7811",
+  "profile": null,
+  "selection": "id:crew-api.health.get,crew-api.diagnostics.*,crew-api.roster.read,crew-api.skills.manifest,crew-api.chats.list,crew-api.campaigns.read,crew-api.standing-orders.read,studio-ui.shell.desk-loads,studio-ui.rail.order,crew-api.runs.list*,crew-api.projects.crud",
+  "started": "2026-10-20T15:40:30+00:00",
+  "finished": "2026-10-20T15:40:37+00:00",
+  "checkouts": {
+   "wicked-ci": "f5833fa85abfa6711e16f2487c3022175a465c54",
+   "wicked-studio": "c4151ce0288b8028f732ae12277ad80afc41364f",
+   "wicked-crew": "8158e618d073b322fc945f3a24f3723f95d09e60"
+  },
+  "catalog_sha256": "c8ae16160345428716f916d6315270dd1167ea716d00467dba9e6c24c08354c3"
+ },
+ "vault": {
+  "scope": "e2e-20261020T154030Z-ae8c",
+  "index": "vault-index.json",
+  "cli": "0.8.0"
+ },
+ "total": 17,
+ "counts": {
+  "partial": 10,
+  "skipped": 4,
+  "fail": 2,
+  "pass": 1
+ },
+ "matrix": {
+  "studio-ui": {
+   "partial": 2
+  },
+  "crew-api": {
+   "partial": 8,
+   "skipped": 3,
+   "fail": 2,
+   "pass": 1
+  },
+  "foundation": {
+   "skipped": 1
+  }
+ },
+ "plan": [
+  {
+   "unit": "direct",
+   "adapter": "direct",
+   "scenarios": [
+    "direct"
+   ],
+   "capabilities": [
+    "studio-ui.rail.order",
+    "studio-ui.shell.desk-loads",
+    "crew-api.campaigns.read",
+    "crew-api.chats.list",
+    "crew-api.diagnostics.governance",
+    "crew-api.diagnostics.recent-errors",
+    "crew-api.diagnostics.seat-governance",
+    "crew-api.diagnostics.skills",
+    "crew-api.health.get",
+    "crew-api.roster.read",
+    "crew-api.runs.list",
+    "crew-api.skills.manifest",
+    "crew-api.standing-orders.read"
+   ]
+  }
+ ],
+ "capabilities": [
+  {
+   "id": "crew-api.roster.read",
+   "area": "crew-api",
+   "title": "Roster of seats with health, standing, sign-in, admission",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "fail",
+   "reason": "check 0 contradicted by what the run recorded",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 0,
+    "contradicted": 1,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.roster.read/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.roster.read/result.json"
+  },
+  {
+   "id": "crew-api.skills.manifest",
+   "area": "crew-api",
+   "title": "Skills manifest (root, revision, current generation, rules staleness)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "fail",
+   "reason": "check 0 contradicted by what the run recorded",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 0,
+    "contradicted": 1,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.skills.manifest/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.skills.manifest/result.json"
+  },
+  {
+   "id": "crew-api.campaigns.read",
+   "area": "crew-api",
+   "title": "List campaigns and read one (stats rollup)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 200; campaign.nodes statuses match their runs' statuses; unknown -> 404",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.campaigns.read/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.campaigns.read/result.json"
+  },
+  {
+   "id": "crew-api.chats.list",
+   "area": "crew-api",
+   "title": "List live chats",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 200 contains chatId from open; after DELETE absent",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.chats.list/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.chats.list/result.json"
+  },
+  {
+   "id": "crew-api.diagnostics.governance",
+   "area": "crew-api",
+   "title": "Diagnostics show governance evidence landing (store, record count, dead letters)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: diagnostics.governance.store non-null on a real boot; records is integer >= 0; when outbox has >=1 line, findings contains 'governance.deadletter'",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.diagnostics.governance/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.diagnostics.governance/result.json"
+  },
+  {
+   "id": "crew-api.diagnostics.recent-errors",
+   "area": "crew-api",
+   "title": "Diagnostics surface recent daemon errors (bus/SQLite faults visible)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: after the seeded bus error the entry matches the daemon log line; daemon stdout has 0 'malformed' repeats; check 0 not observed; the runner only read the end state; no scenario drove the user's path",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 1,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.diagnostics.recent-errors/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.diagnostics.recent-errors/result.json"
+  },
+  {
+   "id": "crew-api.diagnostics.seat-governance",
+   "area": "crew-api",
+   "title": "Diagnostics report per-seat governance (transport, sandbox, governance class, mode per scope)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: seatGovernance.seats.length == roster length; each seat has governance_class in {acp_input_governance,os_sandbox,none}; roleFindings equals /health warnings of kind seat.work_default; diagnostics.seatGovernance.seats[].governance_mode.scoped_bound.mode in {admitted,os_sandbox,none}; any seat with mode 'none' yields health.warnings kind 'seats.ungoverned'; floor seats on a host with no sandbox launcher yield 'seats.os-floor-unarmable'. (Live 7721 read: claude admitted, codex/pi/copilot/opencode os_sandbox, hostBoundary sandbox-exec.)",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 2,
+    "held": 2,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.diagnostics.seat-governance/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.diagnostics.seat-governance/result.json"
+  },
+  {
+   "id": "crew-api.diagnostics.skills",
+   "area": "crew-api",
+   "title": "Diagnostics report the skills seam outcome (published/fallback/blocked/config-error)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "check 0 not observed; the runner only read the end state; no scenario drove the user's path",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 1,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.diagnostics.skills/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.diagnostics.skills/result.json"
+  },
+  {
+   "id": "crew-api.health.get",
+   "area": "crew-api",
+   "title": "Daemon liveness + capabilities (GET /health)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: json.status=='ok'; json.version==packages/crew/package.json version; json.ping in {'ok','busy'}; json.capabilities.qeAcceptance in {'required','off'}; json.baseSkill.present is boolean",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.health.get/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.health.get/result.json"
+  },
+  {
+   "id": "crew-api.runs.list",
+   "area": "crew-api",
+   "title": "List runs, actionable first (GET /runs)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: json.runs is array; every element has session.id and units[]; awaiting_human entries precede executing/terminal ones",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.runs.list/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.runs.list/result.json"
+  },
+  {
+   "id": "studio-ui.rail.order",
+   "area": "studio-ui",
+   "title": "Rail order: wordmark, New project, sessions, Workspace links, Health last",
+   "surface": "ui",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: DOM order of rail link texts equals the list in desk_rail_test ORDER; absence of links to /repos,/rules,/testing,/agents in rail; check 2 not observed; the runner only read the end state; no scenario drove the user's path",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 3,
+    "held": 2,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "video": [
+     "scenarios/direct/pw/visit/video/page@e9011b5842c73625734ba8c43decbd62.webm"
+    ],
+    "screenshot": [
+     "scenarios/direct/pw/visit/shots/001-visit.png",
+     "scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png"
+    ],
+    "trace": [
+     "scenarios/direct/pw/visit/trace/ctx-1.zip"
+    ],
+    "api-transcript": [
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "studio-ui.rail.order/result.json"
+  },
+  {
+   "id": "studio-ui.shell.desk-loads",
+   "area": "studio-ui",
+   "title": "App shell loads on the Desk",
+   "surface": "ui",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: DOM: document.querySelector('[data-shell=desk]') present; [data-testid=desk] data-tab=='work'; rail boundingBox.width==236; 0 pageerror events; the runner only read the end state; no scenario drove the user's path",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 2,
+    "held": 2,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "video": [
+     "scenarios/direct/pw/visit/video/page@e9011b5842c73625734ba8c43decbd62.webm"
+    ],
+    "screenshot": [
+     "scenarios/direct/pw/visit/shots/001-visit.png",
+     "scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png"
+    ],
+    "trace": [
+     "scenarios/direct/pw/visit/trace/ctx-1.zip"
+    ],
+    "api-transcript": [
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "studio-ui.shell.desk-loads/result.json"
+  },
+  {
+   "id": "crew-api.diagnostics.components",
+   "area": "crew-api",
+   "title": "Diagnostics report component versions of the running daemon",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "skipped",
+   "reason": "skipped: evidence:file-hash (direct cannot capture file-hash)",
+   "skip": {
+    "dep": "evidence:file-hash",
+    "class": null,
+    "detail": "direct cannot capture file-hash",
+    "candidates": [
+     {
+      "scenario": "direct",
+      "dep": "evidence:file-hash",
+      "detail": "direct cannot capture file-hash"
+     }
+    ]
+   },
+   "scenario": null,
+   "checks": {
+    "total": 0,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {},
+   "evidence_substitutes": {},
+   "result": "crew-api.diagnostics.components/result.json"
+  },
+  {
+   "id": "crew-api.diagnostics.state-home",
+   "area": "crew-api",
+   "title": "Diagnostics classify the state home and say whether it refuses launches",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "skipped",
+   "reason": "skipped: target:fixture (no e2e-live scenario (fidelities: integration); run --target fixture)",
+   "skip": {
+    "dep": "target:fixture",
+    "class": null,
+    "detail": "no e2e-live scenario (fidelities: integration); run --target fixture",
+    "candidates": []
+   },
+   "scenario": null,
+   "checks": {
+    "total": 0,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {},
+   "evidence_substitutes": {},
+   "result": "crew-api.diagnostics.state-home/result.json"
+  },
+  {
+   "id": "crew-api.projects.crud",
+   "area": "crew-api",
+   "title": "Create, list, get, update, archive projects",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "skipped",
+   "reason": "skipped: target:fixture (no e2e-live scenario (fidelities: e2e-hermetic, integration); run --target fixture)",
+   "skip": {
+    "dep": "target:fixture",
+    "class": null,
+    "detail": "no e2e-live scenario (fidelities: e2e-hermetic, integration); run --target fixture",
+    "candidates": []
+   },
+   "scenario": null,
+   "checks": {
+    "total": 0,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {},
+   "evidence_substitutes": {},
+   "result": "crew-api.projects.crud/result.json"
+  },
+  {
+   "id": "foundation.platform.vault.bin-posture",
+   "area": "foundation",
+   "title": "Crew hands the engine a wicked-vault CLI and discloses its posture",
+   "surface": "api",
+   "cost": "M",
+   "verdict": "skipped",
+   "reason": "skipped: target:fixture (no e2e-live scenario (fidelities: integration); run --target fixture)",
+   "skip": {
+    "dep": "target:fixture",
+    "class": null,
+    "detail": "no e2e-live scenario (fidelities: integration); run --target fixture",
+    "candidates": []
+   },
+   "scenario": null,
+   "checks": {
+    "total": 0,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {},
+   "evidence_substitutes": {},
+   "result": "foundation.platform.vault.bin-posture/result.json"
+  },
+  {
+   "id": "crew-api.standing-orders.read",
+   "area": "crew-api",
+   "title": "Read standing orders state (away flag, orders, outbox)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "pass",
+   "reason": null,
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.standing-orders.read/api-transcript.json",
+     "scenarios/direct/pw/visit/api-transcript.json",
+     "scenarios/direct/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/direct/pw/visit/network-events.json",
+     "scenarios/direct/event-log.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.standing-orders.read/result.json"
+  }
+ ],
+ "validation": {
+  "ok": true,
+  "failures": []
+ }
+}

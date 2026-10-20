@@ -270,15 +270,15 @@ class RecursiveCompleteness(unittest.TestCase):
                 os.makedirs(os.path.dirname(os.path.join(d, p_)), exist_ok=True)
                 write_text(os.path.join(d, p_), body)
             write_text(os.path.join(d, "run.json"), json.dumps({"version": 1, "capabilities": ["studio-ui.a.b"]}))
-            os.makedirs(os.path.join(d, "results"))
+            os.makedirs(os.path.join(d, "studio-ui.a.b"))
             res = {"id": "studio-ui.a.b", "verdict": "pass", "observed": [{"value": 1, "ok": True}, {"value": 1, "ok": True}],
                    "evidence": {"video": ["ev/a.webm"], "screenshot": ["ev/a.png"], "trace": ["ev/a.zip"]}}
-            write_text(os.path.join(d, "results", "studio-ui.a.b.json"), json.dumps(res))
-            fails, _ = v.check_report(d, [c], {})
+            write_text(os.path.join(d, "studio-ui.a.b", "result.json"), json.dumps(res))
+            fails, _ = v.check_report(d, [c], {}, vault=False)
             self.assertTrue(any("report `partial`, not `pass`" in f for f in fails), fails)
             res["verdict"] = "partial"
-            write_text(os.path.join(d, "results", "studio-ui.a.b.json"), json.dumps(res))
-            self.assertEqual(v.check_report(d, [c], {})[0], [])
+            write_text(os.path.join(d, "studio-ui.a.b", "result.json"), json.dumps(res))
+            self.assertEqual(v.check_report(d, [c], {}, vault=False)[0], [])
         finally:
             shutil.rmtree(d, ignore_errors=True)
 
@@ -321,8 +321,9 @@ class RunReport(unittest.TestCase):
     def setUp(self):
         self.d = tempfile.mkdtemp(prefix="e2e-report-test-")
         self.caps = [
-            dict(cap(id="studio-ui.a.b"), _area="studio-ui"),
-            dict(cap(id="crew-api.c.d", surface="api", required_evidence=["api-transcript"],
+            dict(cap(id="studio-ui.a.b", scenarios=[{"ref": "wicked-studio:e2e/a_test.py", "fidelity": "e2e-live"}]),
+                 _area="studio-ui"),
+            dict(cap(id="crew-api.c.d", surface="api", required_evidence=["api-transcript"], deps=["container runtime"],
                      oracle={"kind": "all", "complete": False, "untyped": ["x"],
                              "of": [{"kind": "api", "method": "GET", "path": "/api/v1/health", "expect": {"status": 200}},
                                     {"kind": "event", "type": "sessionCompleted"}]}), _area="crew-api"),
@@ -332,13 +333,14 @@ class RunReport(unittest.TestCase):
         self.write("run.json", {"version": 1, "capabilities": ["studio-ui.a.b", "crew-api.c.d", "garden.e.f"]})
         for p in ("ev/a.webm", "ev/a.png", "ev/a.zip", "ev/c.json", "ev/e.txt"):
             self.write(p, "x")
-        self.write("results/studio-ui.a.b.json", {"id": "studio-ui.a.b", "verdict": "pass",
+        self.write("studio-ui.a.b/result.json", {"id": "studio-ui.a.b", "verdict": "pass",
                    "observed": [{"value": True, "ok": True}],
+                   "scenario": {"ref": "wicked-studio:e2e/a_test.py", "fidelity": "e2e-live", "status": "passed"},
                    "evidence": {"video": ["ev/a.webm"], "screenshot": ["ev/a.png"], "trace": ["ev/a.zip"]}})
-        self.write("results/crew-api.c.d.json", {"id": "crew-api.c.d", "verdict": "partial",
+        self.write("crew-api.c.d/result.json", {"id": "crew-api.c.d", "verdict": "partial",
                    "observed": [{"value": 200, "ok": True}, {"value": 1, "ok": True}],
                    "evidence": {"api-transcript": ["ev/c.json"]}})
-        self.write("results/garden.e.f.json", {"id": "garden.e.f", "verdict": "manual", "observed": [],
+        self.write("garden.e.f/result.json", {"id": "garden.e.f", "verdict": "manual", "observed": [],
                    "evidence": {"cli-transcript": ["ev/e.txt"]}})
 
     def tearDown(self):
@@ -351,19 +353,19 @@ class RunReport(unittest.TestCase):
             fh.write(obj if isinstance(obj, str) else json.dumps(obj))
 
     def check(self):
-        return v.check_report(self.d, self.caps, {})[0]
+        return v.check_report(self.d, self.caps, {}, vault=False)[0]  # the vault seal: test_runner.py
 
     def edit(self, cid, **kw):
-        p = os.path.join(self.d, "results", cid + ".json")
+        p = os.path.join(self.d, cid, "result.json")
         r = read_json(p)
         r.update(kw)
-        self.write("results/%s.json" % cid, r)
+        self.write("%s/result.json" % cid, r)
 
     def test_complete_report_passes(self):
         self.assertEqual(self.check(), [])
 
     def test_missing_verdict(self):
-        os.remove(os.path.join(self.d, "results", "crew-api.c.d.json"))
+        os.remove(os.path.join(self.d, "crew-api.c.d", "result.json"))
         self.assertTrue(any("no verdict" in f for f in self.check()))
 
     def test_missing_or_empty_video(self):
@@ -403,21 +405,33 @@ class RunReport(unittest.TestCase):
         finally:
             shutil.rmtree(outside, ignore_errors=True)
 
-    def test_skipped_is_not_a_verdict_for_a_selected_capability(self):
+    def test_skipped_must_name_an_unmet_dependency(self):
         self.edit("crew-api.c.d", verdict="skipped")
-        self.assertTrue(any("skipped" in f for f in self.check()))
+        self.assertTrue(any("must name the unmet dependency" in f for f in self.check()))
+        self.edit("crew-api.c.d", verdict="skipped", skip={"dep": "it felt slow"})
+        self.assertTrue(any("neither a dep of the capability" in f for f in self.check()))
+        self.edit("crew-api.c.d", verdict="skipped", skip={"dep": "container runtime", "detail": "no docker"})
+        self.assertEqual(self.check(), [])
+
+    def test_pass_needs_a_certifying_scenario_that_passed(self):
+        self.edit("studio-ui.a.b", scenario={"ref": "wicked-studio:e2e/a_test.py", "fidelity": "e2e-fixture", "status": "passed"})
+        self.assertTrue(any("e2e-live or e2e-hermetic" in f for f in self.check()))
+        self.edit("studio-ui.a.b", scenario={"ref": "wicked-studio:e2e/other_test.py", "fidelity": "e2e-live", "status": "passed"})
+        self.assertTrue(any("not one of this capability's scenarios" in f for f in self.check()))
+        self.edit("studio-ui.a.b", scenario={"ref": "direct", "fidelity": "e2e-live", "status": "passed"})
+        self.assertTrue(any("must be driven by a scenario" in f for f in self.check()))
 
     def test_relative_run_dir(self):
         cwd = os.getcwd()
         try:
             os.chdir(self.d)
-            self.assertEqual(v.check_report(".", self.caps, {})[0], [])
+            self.assertEqual(v.check_report(".", self.caps, {}, vault=False)[0], [])
         finally:
             os.chdir(cwd)
 
     def test_selection_by_profile(self):
         self.write("run.json", {"version": 1, "profile": "p"})
-        fails, _ = v.check_report(self.d, self.caps, {"p": {"select": "area:crew-api"}})
+        fails, _ = v.check_report(self.d, self.caps, {"p": {"select": "area:crew-api"}}, vault=False)
         self.assertEqual(fails, [])
 
 
