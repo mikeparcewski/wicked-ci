@@ -75,7 +75,8 @@ ask before running, and the next commands. It exits 0 only when `status` is `res
   picks). Never widen to everything on your own.
 - `refused`: the request targets an operator daemon. Say so and offer a throwaway daemon.
 - Read the `explain` lines back to the operator in one sentence ("'run page' is the tag run-page,
-  15 capabilities in studio-ui") so a misreading is caught before anything runs.
+  15 capabilities in studio-ui") so a misreading is caught before anything runs. Name any word
+  "read as a filler word" that is also a catalog tag: the selection may be wider than meant.
 
 ## Step 2: route
 

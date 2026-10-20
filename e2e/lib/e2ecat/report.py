@@ -11,6 +11,7 @@ import json
 import os
 
 from .validate import AREAS, oracle_complete
+from . import verdict as vd
 
 ORDER = ["fail", "error", "partial", "skipped", "manual", "pass"]
 COLORS = {"pass": "#1a7f37", "fail": "#cf222e", "error": "#9a6700", "partial": "#bc4c00", "skipped": "#6e7781",
@@ -130,7 +131,8 @@ def blocks(cap, res):
         out.append("partial: a check held only on something not tied to this path (wildcard)")
     sc = res.get("scenario") or {}
     if sc.get("adapter") == "direct":
-        out.append("partial: only the runner's direct reads (no scenario drove the path)")
+        if not (cap and vd.read_only(cap)):  # a read-only path is certified by the runner's own read
+            out.append("partial: only the runner's direct reads (no scenario drove the path)")
     elif sc.get("fidelity") not in ("e2e-live", "e2e-hermetic"):
         out.append("partial: scenario fidelity %s is not certification" % sc.get("fidelity"))
     return out or ["%s: see the result's reason" % v]

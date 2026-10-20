@@ -568,7 +568,8 @@ with `--force`. It writes nowhere but `DEST`.
 
 `e2e validate --report` also validates the catalog and coverage, so without `--baseline` every
 known unmapped surface element fails it too. The skills always pass `--baseline
-e2e/coverage-baseline.json` and read only the `report:` lines as verdicts about the run.
+e2e/coverage-baseline.json`, and treat any non-zero exit as "not certified" (`report:` lines are
+about the run, the others about the catalog it was judged by).
 
 **Tests.** `python3 -m unittest discover -s skills/tests -v`: the lint (frontmatter keys,
 descriptions of at most 1024 characters, every `e2e` subcommand and flag a skill names read back

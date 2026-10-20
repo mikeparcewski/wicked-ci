@@ -133,6 +133,22 @@ class Blockers(Fixture):
         self.assertEqual(report.blocks(c, {}), ["no result.json (the run did not record it)"])
 
 
+class PlanAndBlockerReasons(Fixture):
+    def test_manual_is_never_listed_as_at_most_partial(self):
+        (_, _), text = self.execute(plan_only=True)
+        s = read_json(os.path.join(self.out, "plan.json"))["summary"]
+        self.assertEqual(sum(s["ceiling_reasons"].values()) >= s["ceilings"]["partial"], True)
+        self.assertNotIn("manual", " ".join(s["ceiling_reasons"]))
+        self.assertNotIn("at most partial: the oracle is manual", text)
+
+    def test_direct_reads_do_not_block_a_read_only_path(self):
+        c = cap("crew-api.health.partial", oracle={"kind": "api", "method": "GET", "path": "/api/v1/health",
+                                                   "expect": {"status": 200}, "complete": False, "untyped": ["x"]})
+        b = report.blocks(c, {"verdict": "partial", "observed": [{"ok": True}],
+                              "scenario": {"adapter": "direct", "fidelity": "e2e-live"}})
+        self.assertEqual(b, ["partial: incomplete oracle (untyped clauses)"])
+
+
 class Evidence(Fixture):
     def cli(self, *args):
         return subprocess.run([sys.executable, os.path.join(E2E, "bin", "e2e")] + list(args), capture_output=True,
@@ -190,6 +206,20 @@ class Evidence(Fixture):
         out = evm.inspect(self.out, "crew-api.health.ok")
         self.assertFalse(out["intact"])
         self.assertTrue(all(r["status"] == "unverified" for r in out["evidence"]))
+
+    def test_an_empty_frozen_manifest_is_not_intact(self):
+        self.execute()
+        idx = read_json(os.path.join(self.out, "vault-index.json"))
+        aid = idx["entries"]["crew-api.health.ok"]
+        orig = evm._frozen
+        evm._frozen = lambda vdir, scope, claim, a: ({}, None)
+        try:
+            out = evm.inspect(self.out, "crew-api.health.ok", use_cli=False)
+        finally:
+            evm._frozen = orig
+        self.assertTrue(aid)
+        self.assertFalse(out["intact"])
+        self.assertTrue(any("malformed" in p for p in out["problems"]))
 
     def test_unknown_capability_is_an_error(self):
         self.execute()
@@ -265,12 +295,49 @@ class ResolveEdges(unittest.TestCase):
             out = self.r("test %s" % cid)
             self.assertEqual((out["action"], out["status"], out["selection"]), ("run", "resolved", "id:%s" % cid))
 
+    def test_operator_ports_without_a_scheme_or_before_a_query_are_refused(self):
+        for text in ("cheap studio checks on localhost:7701", "test the live daemon on port 7701",
+                     "test it on 127.0.0.1:7721", "test it on http://127.0.0.1:7701?foo=1"):
+            out = self.r(text)
+            self.assertEqual((out["status"], out["target"], out["commands"]), ("refused", "live", []), text)
+
+    def test_a_refusal_is_never_downgraded_and_a_rerun_without_a_run_dir_runs_nothing(self):
+        tmp = tempfile.mkdtemp(prefix="e2e-resolve-")
+        try:
+            write_json(os.path.join(tmp, "run.json"), {"target": "fixture", "capabilities": ["crew-api.runs.cancel"]})
+            write_json(os.path.join(tmp, "crew-api.runs.cancel", "result.json"), {"verdict": "partial"})
+            out = self.r("re-run what failed on :7701", run_dir=tmp)
+            self.assertEqual((out["status"], out["commands"]), ("refused", []))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        out = self.r("re-run the studio failures")
+        self.assertEqual((out["status"], out["selection"], out["commands"]), ("needs-input", None, []))
+
+    def test_a_rerun_keeps_the_request_topic(self):
+        tmp = tempfile.mkdtemp(prefix="e2e-resolve-")
+        try:
+            write_json(os.path.join(tmp, "run.json"), {"target": "fixture",
+                                                       "capabilities": ["crew-api.runs.cancel", "studio-ui.rail.order"]})
+            for cid in ("crew-api.runs.cancel", "studio-ui.rail.order"):
+                write_json(os.path.join(tmp, cid, "result.json"), {"verdict": "fail"})
+            out = self.r("re-run the studio failures", run_dir=tmp)
+            self.assertEqual((out["selection"], out["count"]), ("id:studio-ui.rail.order", 1))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_a_filler_word_that_is_a_tag_is_named(self):
+        out = self.r("certify crew testing")
+        self.assertEqual(out["shadowed"], ["testing"])
+        self.assertTrue(any("tag:testing" in e["as"] for e in out["explain"]))
+        self.assertIn("is also a catalog tag", rs.render(out))
+        self.assertEqual(self.r("check a plugin's hooks")["selection"], "tag:plugin,hooks", "'s is not a plural")
+
     def test_a_rerun_sizes_and_asks_for_the_failed_ids_not_the_request_words(self):
         tmp = tempfile.mkdtemp(prefix="e2e-resolve-")
         try:
             write_json(os.path.join(tmp, "run.json"), {"target": "fixture", "capabilities": ["crew-api.runs.boot-resume"]})
             write_json(os.path.join(tmp, "crew-api.runs.boot-resume", "result.json"), {"verdict": "error"})
-            out = self.r("re-run what failed in smoke", run_dir=tmp)
+            out = self.r("re-run what failed", run_dir=tmp)
             self.assertEqual(out["selection"], "id:crew-api.runs.boot-resume")
             self.assertIsNone(out["profile"])
             self.assertEqual((out["count"], out["cost"]), (1, {"L": 1}))

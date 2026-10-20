@@ -231,7 +231,8 @@ def inspect(run_dir, cid, use_cli=True, vault_argv=None):
     "result": {...}, "vault": {...}, "intact": bool, "problems": [...]}. A file's status is `ok` (its hash
     matches the frozen copy), `changed`, `gone`, `not-recorded` or `outside` (the path escapes the run
     directory, so it is not read); `intact` is true only when the run is
-    sealed, every file and result.json match, and (with the CLI) `wicked-vault verify` passes."""
+    sealed, the frozen manifest is well formed, every file and result.json match, and (when the CLI is on
+    PATH, as `validate --report` does) `wicked-vault verify` passes."""
     run_dir = os.path.abspath(run_dir)
     with open(os.path.join(run_dir, "run.json"), encoding="utf-8") as fh:
         run = json.load(fh)
@@ -259,6 +260,9 @@ def inspect(run_dir, cid, use_cli=True, vault_argv=None):
         man, err = _frozen(os.path.join(run_dir, ".wicked-vault"), vinfo.get("scope"), cid, aid)
         if err:
             problems.append(err)
+    if man is not None and not (isinstance(man, dict) and man.get("result_sha256") and isinstance(man.get("files"), dict)):
+        problems.append("the frozen manifest is malformed (no result_sha256 or files)")
+        man = None
     files = (man or {}).get("files") or {}
     result_ok = bool(man) and sha256_file(rp) == man.get("result_sha256")
     if man and not result_ok:
@@ -302,4 +306,5 @@ def inspect(run_dir, cid, use_cli=True, vault_argv=None):
     return {"id": cid, "verdict": res.get("verdict"), "reason": res.get("reason"), "scenario": res.get("scenario"),
             "evidence": rows, "result": {"path": "%s/result.json" % cid, "abs": rp, "status": "ok" if result_ok else
                                          ("changed" if man else "unverified")},
-            "vault": vault, "intact": vault["sealed"] and not problems, "problems": problems}
+            "vault": vault, "problems": problems,
+            "intact": bool(vault["sealed"] and man and result_ok and not problems and all(r["status"] == "ok" for r in rows))}

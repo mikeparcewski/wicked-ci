@@ -70,9 +70,9 @@ e2e run --select '<expr>' --target live --studio <url-the-operator-gave> --out <
 
    Exit 0 is required before anyone treats a verdict in this run as real. Keep `--baseline`:
    without it the validator also fails on every known unmapped surface element. A non-zero exit
-   lists failures. Any line starting `report:` means the run is not certified: say so, and hand
-   the lines to the `wicked-e2e-validate` skill to explain. Lines without that prefix are about the
-   catalog or coverage at this checkout, not this run; report them as such.
+   lists failures, and any of them means the run is not certified: say so, and hand the lines to
+   the `wicked-e2e-validate` skill to explain. `report:` lines are about the run; the others are
+   about the catalog the run was judged by, which can make a recorded verdict wrong too.
 3. **Hand-off**: open the `wicked-e2e-report` skill and summarise `<new-run-dir>` with it. On
    Claude Code this is the Skill tool; on any other seat open the named skill from your catalog
    and carry it out inline, then continue here.

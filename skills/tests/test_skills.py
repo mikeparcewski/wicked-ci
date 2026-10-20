@@ -256,7 +256,7 @@ class HonestyGuards(unittest.TestCase):
         so a skill that drops it would call every run uncertified (or teach agents to ignore the exit code)."""
         for d in skill_dirs():
             for seg in code_segments(self.body(d)):
-                if seg.startswith("e2e validate") and "--report" in seg and "<" in seg:
+                if seg.startswith("e2e validate") and "--report" in seg and len(seg.split()) > 3:
                     self.assertIn("--baseline e2e/coverage-baseline.json", seg, "%s: %s" % (d, seg))
         out = rs.resolve("is the run report complete", [], {}, run_dir=None)
         self.assertTrue(all("--baseline" in c for c in out["commands"] if "--report" in c))

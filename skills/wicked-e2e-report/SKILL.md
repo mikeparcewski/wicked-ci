@@ -45,9 +45,10 @@ as `python3 <wicked-ci>/e2e/bin/e2e` from `<wicked-ci>`. If it is missing, stop 
    (already ordered fail, error, partial, skipped, manual, pass) and `validation`.
 3. Write the summary in this order:
    - **Validation first.** If `e2e validate --report` did not exit 0, say "this run is not
-     certified" when any failure line starts with `report:` (those are about the run), and list
-     them before anything else (the `wicked-e2e-validate` skill explains them). Other lines are
-     about the catalog or coverage at this checkout: report them separately.
+     certified" and list its failure lines before anything else (the `wicked-e2e-validate` skill
+     explains them). Any non-zero exit blocks certification: `report:` lines are about the run,
+     the others about the catalog the run was judged by, and a broken catalog record can make a
+     recorded `pass` wrong.
    - **Counts** by verdict, and the area-by-verdict table from `matrix`.
    - **Failures and errors** one by one: the id, the scenario and fidelity, the reason, and the
      evidence links from that capability's `evidence` (video, screenshots, trace, transcripts) plus
@@ -57,7 +58,8 @@ as `python3 <wicked-ci>/e2e/bin/e2e` from `<wicked-ci>`. If it is missing, stop 
      integration fidelity, only direct reads, a check not observed or held only on a wildcard, a
      missing adapter (`adapter:none`), a missing checkout, an unmet dependency, a planned scenario,
      evidence the adapter cannot capture, a manual oracle.
-   - **Passes**: the count, and the ids if there are few.
+   - **Passes**: the count, and the ids if there are few. When validation did not exit 0, call
+     them "recorded pass, not certified", never "passed".
 4. Point at `<run-dir>/report.html` for the videos and screenshots inline.
 
 ## Words to use

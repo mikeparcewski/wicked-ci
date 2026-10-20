@@ -61,6 +61,10 @@ SAFE_URL = re.compile(r"^https?://[A-Za-z0-9.\-]+(:\d{1,5})?(/[A-Za-z0-9._~\-/]*
 TERM = re.compile(r"^!?(area:|tag:|id:|surface=|cost<=|oracle=)\S+$")
 URL = re.compile(r"https?://[^\s'\"<>]+", re.I)
 PORT_ONLY = re.compile(r"(?<![\w.:/]):(\d{2,5})\b")
+# host:port with no scheme (localhost:7801, 127.0.0.1:7801, a dotted host) and "port 7801".
+HOST_PORT = re.compile(r"(?<![\w/.:-])((?:localhost|\d{1,3}(?:\.\d{1,3}){3}|[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)):(\d{2,5})\b")
+PORT_WORD = re.compile(r"\bport\s+(\d{2,5})\b", re.I)
+URL_PORT = re.compile(r"^[^/?#]*:(\d+)(?:[/?#]|$)")
 
 INTENTS = [
     ("rerun", re.compile(r"\b(re-?run|retry|run again)\b.*\b(fail\w*|error\w*|broke\w*|red)\b|\bfailed (ones )?again\b")),
@@ -83,7 +87,9 @@ def _norm(s):
 
 def _tokens(text):
     """Words, lowercased, except a literal selection term, which is kept as written (`cost<=S`)."""
-    t = PORT_ONLY.sub(" ", URL.sub(" ", text.replace("\u2019", "'")))
+    t = text.replace("\u2019", "'")
+    t = re.sub(r"'s\b", "", t, flags=re.I)  # possessives and contractions ("run's", "what's") are not plurals
+    t = PORT_WORD.sub(" ", PORT_ONLY.sub(" ", HOST_PORT.sub(" ", URL.sub(" ", t))))
     out = []
     for tok in re.findall(r"!?[A-Za-z0-9][A-Za-z0-9.\-_*:<=,?!\[\]]*", t):
         out.append(tok if TERM.match(tok) else tok.rstrip(".,?!:").lower())
@@ -141,13 +147,21 @@ def _match_span(vocab, span, segments=False):
     return None
 
 
+def _url_port(url):
+    m = URL_PORT.match(url.split("//", 1)[-1])
+    return int(m.group(1)) if m else None
+
+
 def _live(text):
+    """(url, port, live) for a live target the request names: a URL, host:port, `:port` or `port N`."""
     m = URL.search(text)
     if m:
         url = m.group(0).rstrip(".,)")
-        port = re.search(r":(\d+)(/|$)", url.split("//", 1)[1])
-        return url, int(port.group(1)) if port else None, True
-    m = PORT_ONLY.search(text)
+        return url, _url_port(url), True
+    m = HOST_PORT.search(text)
+    if m:
+        return "http://%s:%s" % (m.group(1), m.group(2)), int(m.group(2)), True
+    m = PORT_ONLY.search(text) or PORT_WORD.search(text)
     if m:
         p = int(m.group(1))
         return "http://127.0.0.1:%d" % p, p, True
@@ -179,6 +193,12 @@ def _intent_text(text, vocab):
     return " ".join(words).lower().replace("\u2019", "'")
 
 
+def _status(out, status):
+    """Set the status, except that a refusal is never downgraded."""
+    if out["status"] != "refused":
+        out["status"] = status
+
+
 def resolve(request, caps, profiles, run_dir=None):
     vocab = Vocab(caps, profiles)
     text = request.strip()
@@ -186,7 +206,7 @@ def resolve(request, caps, profiles, run_dir=None):
     action = next((name for name, rx in INTENTS if rx.search(_intent_text(text, vocab))), "run")
     url, port, live = _live(text)
     toks = _tokens(text)
-    terms, explain, ignored = {}, [], []
+    terms, explain, ignored, shadowed = {}, [], [], []
     literal, cost, negate = [], None, []
     profile, pword = None, None
     i = 0
@@ -228,6 +248,9 @@ def resolve(request, caps, profiles, run_dir=None):
                 profile, pword = PROFILE_WORDS.get(w, "full"), w
         elif w not in STOP and w not in FILLER and w not in ("no", "without", "skip", "exclude", "governed", "manual"):
             ignored.append(w)
+        elif i > 0 and w not in ("live", "daemon") and _norm(w) in vocab.tag_norm:
+            # A filler word that is also a catalog tag or id group: say so, so a widened selection is caught.
+            shadowed.append(w)
         i += 1
     # A profile word is a profile only when nothing else names the topic ("smoke" alone, "studio smoke" is a tag).
     topic = bool(terms or literal)
@@ -249,7 +272,11 @@ def resolve(request, caps, profiles, run_dir=None):
     parts = ["%s:%s" % (k, ",".join(v)) for k, v in terms.items() if k in ("area", "tag", "id")]
     parts += literal + (["cost<=%s" % cost] if cost else []) + negate
     expr = " ".join(parts)
+    for w in shadowed:
+        explain.append({"words": w, "as": "read as a filler word; it is also a catalog tag (write `tag:%s` to "
+                                          "select it)" % w})
     out = {"request": request, "action": action, "status": "resolved", "explain": explain, "ignored": ignored,
+           "shadowed": shadowed,
            "selection": expr or None, "profile": profile, "target": "live" if live else "fixture",
            "studio": url, "needs": [], "ask_before_running": False, "ask_reasons": [], "count": None,
            "cost": {}, "areas": {}, "commands": []}
@@ -268,29 +295,37 @@ def resolve(request, caps, profiles, run_dir=None):
     # Run-dir actions.
     if action in NEEDS_RUN_DIR and not run_dir:
         if out["status"] == "resolved":
-            out["status"] = "needs-input"
+            _status(out, "needs-input")
         out["needs"].append("--run-dir DIR: which run directory (the --out of an earlier `e2e run`)")
+    if action == "rerun" and not run_dir:
+        out["selection"], out["profile"], profile = None, None, None  # nothing to run until the run is named
     if action == "rerun" and run_dir:
         run, results = _read_run(run_dir)
         bad = [cid for cid in run.get("capabilities", []) if (results.get(cid) or {}).get("verdict") in ("fail", "error")]
         explain.append({"words": "what failed", "as": "%d of %d capabilities in %s with verdict fail or error" % (
             len(bad), len(run.get("capabilities", [])), os.path.basename(os.path.normpath(run_dir)))})
+        topic_expr = profiles[profile]["select"] if profile else expr
+        if bad and topic_expr:
+            keep = {c["id"] for c in select(caps, topic_expr)}
+            explain.append({"words": "topic", "as": "only the failed ones that %s also selects (%d of %d)" % (
+                topic_expr, len([b for b in bad if b in keep]), len(bad))})
+            bad = [b for b in bad if b in keep]
         if not bad:
-            out["status"] = "no-match"
-            out["needs"].append("nothing to re-run: no capability in that run is fail or error")
+            _status(out, "no-match")
+            out["needs"].append("nothing to re-run: no capability in that run%s is fail or error" % (
+                " matching the request's topic" if topic_expr else ""))
         expr = "id:" + ",".join(bad) if bad else ""
-        profile = None  # the re-run is exactly the failed ids, whatever topic or profile words the request had
+        profile = None  # the re-run is exactly these ids
         out["selection"], out["profile"] = expr or None, None
-        out["target"] = run.get("target") if run.get("target") in ("fixture", "live") else out["target"]
-        out["studio"] = run.get("studio") or out["studio"]
-        if out["studio"] and not SAFE_URL.match(str(out["studio"])):
-            out["status"] = "refused"
-            out["needs"].append("the earlier run's studio URL is not a plain http(s) URL")
-            out["studio"] = None
-        elif out["target"] == "live" and out["studio"]:
-            p = re.search(r":(\d+)(/|$)", out["studio"].split("//", 1)[-1])
-            if p and int(p.group(1)) in OPERATOR_PORTS:
-                out["status"] = "refused"
+        if not live:  # a target the request names wins; otherwise the earlier run's
+            out["target"] = run.get("target") if run.get("target") in ("fixture", "live") else out["target"]
+            out["studio"] = run.get("studio") if out["target"] == "live" else None
+            if out["studio"] and not SAFE_URL.match(str(out["studio"])):
+                _status(out, "refused")
+                out["needs"].append("the earlier run's studio URL is not a plain http(s) URL")
+                out["studio"] = None
+            elif out["studio"] and _url_port(str(out["studio"])) in OPERATOR_PORTS:
+                _status(out, "refused")
                 out["needs"].append("the earlier run targeted an operator daemon port; certify a throwaway daemon")
     # Size the selection.
     sel_expr = profiles[profile]["select"] if profile else expr
@@ -298,17 +333,17 @@ def resolve(request, caps, profiles, run_dir=None):
     if action in ("run", "plan") or (action == "rerun" and run_dir) or (action in ("report", "evidence", "validate-coverage") and (expr or profile)):
         if not (expr or profile):
             if out["status"] == "resolved":
-                out["status"] = "no-match"
+                _status(out, "no-match")
             out["needs"].append("a topic: no word of the request names a catalog area, tag, id or profile "
                                 "(try `e2e select 'tag:<x>'`, or name an area: %s)" % ", ".join(vocab.areas))
         else:
             try:
                 sel = select(caps, sel_expr)
             except SelectError as e:
-                out["status"] = "no-match"
+                _status(out, "no-match")
                 out["needs"].append("the selection does not parse: %s" % e)
             if not sel and out["status"] == "resolved":
-                out["status"] = "no-match"
+                _status(out, "no-match")
                 out["needs"].append("the selection %s selects no capability" % (sel_expr or "*"))
     if sel:
         out["count"] = len(sel)

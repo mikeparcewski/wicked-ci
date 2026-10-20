@@ -89,8 +89,9 @@ def summarize(sel, units, assign, ctx, catalog_ids=frozenset()):
         u = by_unit[a["unit"]]
         best, why = ceiling(cap, u, u.scenarios.get(a["scenario"]))
         _count(out["ceilings"], best)
-        for w in why:
-            _count(out["ceiling_reasons"], w.split(" (")[0])
+        if best == "partial":  # a manual oracle is counted as manual, never as "at most partial"
+            for w in why:
+                _count(out["ceiling_reasons"], w.split(" (")[0])
         res = a.get("deps") or {}
         for dep in cap.get("deps", []):
             cls = depsmod.classify(dep, catalog_ids)
