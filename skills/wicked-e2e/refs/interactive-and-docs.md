@@ -42,7 +42,7 @@ Select it: `area:interactive-and-docs`; the cheap part: `area:interactive-and-do
 
 | class | capabilities | e.g. |
 |---|---:|---|
-| prerequisite | 45 | interactive.doc.create-demo-kind; crew.interactive.draft-seam; crew.walkthrough.view-file |
+| prerequisite | 43 | interactive.doc.create-demo-kind; crew.interactive.draft-seam; crew.walkthrough.view-file |
 | daemon | 15 | crew daemon; crew daemon (for the set case); interactive.cli.serve-daemon x2 |
 | playwright | 13 | recorder browser (interactive.cli.doctor); Playwright/Chrome render browser; recorder browser |
 | network | 11 | npm registry or cached wicked-interactive; network (Playwright download); network (Playwright CDN download) |
@@ -51,12 +51,12 @@ Select it: `area:interactive-and-docs`; the cheap part: `area:interactive-and-do
 | bin-wicked-bus | 4 | wicked-bus (embedded SQLite, WICKED_BUS_DATA_DIR); wicked-bus; wicked-bus CLI |
 | bin-wicked-interactive | 4 | interactive bridge; interactive bridge (spawned by crew); wicked-interactive checkout |
 | signed-in-seats | 4 | signed-in seats distinct from the author; an answerer (interactive.crew.edit-seam or assist skill); signed-in seat |
-| tool-python | 3 | python3 (vendor/pptx/html_to_pptx.py); python-pptx for readback; python3 + requests |
 | bin-wicked-garden | 2 | wicked-garden >= 12.35.0; wicked-garden data root for --from-garden |
 | bin-wicked-ledger | 2 | wicked-ledger; wicked-ledger/vault |
 | registered-repo | 2 | registered repos; registered repo with requirements read |
 | studio-dist | 2 | frontend/dist built; studio |
 | tool-node | 2 | node>=20 |
+| tool-python | 2 | python3 (vendor/pptx/html_to_pptx.py); python-pptx for readback; python3 + requests |
 | credential | 1 | WICKED_READS_API_KEY present (not read by the tester) |
 
 "who can run it": `fixture adapter` = a scenario an adapter runs on the fixture target (given the checkouts it needs); `live journey` = only an e2e-live studio journey (`--target live --live-journeys`); `no adapter yet` = reports `skipped: adapter:none`; `planned only` = reports `skipped: scenario:planned`.

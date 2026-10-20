@@ -42,17 +42,17 @@ Select it: `area:garden`; the cheap part: `area:garden cost<=S`; one group: `are
 
 | class | capabilities | e.g. |
 |---|---:|---|
-| prerequisite | 97 | garden.plugin.cc.marketplace-install; garden.domain.extract; garden.daemon.http |
-| tool-python | 84 | python3; pyyaml; python3 + flask |
-| tool-node | 30 | node; npm; node>=20 |
+| prerequisite | 94 | garden.plugin.cc.marketplace-install; garden.domain.extract; garden.daemon.http |
+| tool-python | 78 | python3; pyyaml; python3 + flask |
+| tool-node | 28 | node; npm; node>=20 |
 | playwright | 19 | chromium; headless chrome (--render); chromium (e2e) |
-| unchecked | 18 | sandboxed config dir; app under test running; wicked-core domain-graph build |
 | bin-wicked-estate | 17 | wicked-estate store; estate symbol DB; estate symbol DB (estate_db.py) |
+| unchecked | 17 | sandboxed config dir; app under test running; wicked-core domain-graph build |
 | bin-wicked-vault | 12 | wicked-vault; wicked-vault via npx |
 | bin-wicked-ledger | 10 | wicked-ledger; wicked-ledger npm |
-| network | 9 | network; network (npm); network (ts) |
 | signed-in-seats | 8 | claude CLI signed in; claude-code harness; external model CLIs signed in (codex, etc.) |
 | daemon | 7 | wicked-crew daemon (optional); wicked-crew daemon; wicked-crew daemon (for governed run) |
+| network | 7 | network; network (npm); network (ts) |
 | tool-git | 5 | git |
 | gh-auth | 4 | gh auth; gh auth (pinned GH_TOKEN); gh (issue mode) |
 | bin-wicked-bus | 3 | wicked-bus (optional); wicked-bus; wicked-bus (consumer) |

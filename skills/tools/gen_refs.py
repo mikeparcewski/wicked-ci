@@ -61,9 +61,12 @@ def generated(area, doc, caps, catalog_ids):
         for t in c["tags"]:
             _inc(tags, t)
         _inc(groups, c["id"].split(".")[1] if "." in c["id"] else c["id"])
+        mine = set()
         for d in c.get("deps", []):
             k = depsmod.classify(d, catalog_ids)
-            _inc(classes, k)
+            if k not in mine:  # count a class once per capability; collect every example
+                mine.add(k)
+                _inc(classes, k)
             ex = examples.setdefault(k, [])
             if d not in ex and len(ex) < 3:
                 ex.append(d)

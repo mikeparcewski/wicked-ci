@@ -41,6 +41,14 @@ if [ ! -f "$root/e2e/bin/e2e" ]; then echo "install.sh: $root has no e2e/bin/e2e
 
 run() { if [ "$dry" = 1 ]; then echo "would: $*"; else "$@"; fi; }
 
+# Never install into the sources themselves (or below them): replacing a skill there deletes it.
+if [ -d "$dest" ]; then
+  cdest=$(cd "$dest" && pwd -P)
+  case "$cdest/" in
+    "$here"/*) echo "install.sh: $dest is inside this checkout's skills/ ($here); choose another directory" >&2; exit 2 ;;
+  esac
+fi
+
 run mkdir -p "$dest"
 n=0
 for src in "$here"/wicked-e2e*; do

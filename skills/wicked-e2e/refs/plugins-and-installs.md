@@ -45,8 +45,8 @@ Select it: `area:plugins-and-installs`; the cheap part: `area:plugins-and-instal
 
 | class | capabilities | e.g. |
 |---|---:|---|
-| unchecked | 41 | registered plugin; sandboxed gemini home; sandboxed dirs |
-| daemon | 16 | proof crew daemon; crew daemon; a free port for a proof daemon |
+| unchecked | 39 | registered plugin; sandboxed gemini home; sandboxed dirs |
+| daemon | 15 | proof crew daemon; crew daemon; a free port for a proof daemon |
 | studio-dist | 13 | studio dist; studio + proof crew daemon; a crew daemon (read-only GETs) or a studio dist |
 | network | 11 | network (npm); network for npx wicked-garden; network for npm |
 | tool-python | 10 | python>=3.10 |

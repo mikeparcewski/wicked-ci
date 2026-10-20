@@ -326,6 +326,25 @@ class Install(unittest.TestCase):
         self.assertEqual(self.sh("--copy", "--force", "--codex", env={"CODEX_HOME": dest}).returncode, 0)
 
     @unittest.skipIf(sys.platform.startswith("win"), "install.sh runs under Git Bash there; covered on ubuntu and macOS")
+    def test_installing_into_the_sources_is_refused_and_changes_nothing(self):
+        # On a disposable copy of the checkout: a broken guard must never touch the real sources.
+        mock = os.path.join(self.tmp, "mock")
+        shutil.copytree(SKILLS, os.path.join(mock, "skills"), ignore=shutil.ignore_patterns("__pycache__"))
+        os.makedirs(os.path.join(mock, "e2e", "bin"))
+        with open(os.path.join(mock, "e2e", "bin", "e2e"), "w", encoding="utf-8") as fh:
+            fh.write("# stub\n")
+        msk = os.path.join(mock, "skills")
+        before = sorted(os.listdir(msk))
+        for dest in (msk, os.path.join(msk, "wicked-e2e")):
+            r = subprocess.run([shutil.which("sh"), os.path.join(msk, "install.sh"), "--force", dest],
+                               capture_output=True, text=True, timeout=60)
+            self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertEqual(sorted(os.listdir(msk)), before)
+        for d in EXPECTED:
+            self.assertFalse(os.path.islink(os.path.join(msk, d)))
+            self.assertTrue(os.path.isfile(os.path.join(msk, d, "SKILL.md")))
+
+    @unittest.skipIf(sys.platform.startswith("win"), "install.sh runs under Git Bash there; covered on ubuntu and macOS")
     def test_codex_and_a_destination_are_exclusive_in_either_order(self):
         dest = os.path.join(self.tmp, "x")
         for args in (("--codex", dest), (dest, "--codex")):

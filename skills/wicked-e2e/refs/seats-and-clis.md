@@ -51,9 +51,9 @@ Select it: `area:seats-and-clis`; the cheap part: `area:seats-and-clis cost<=S`;
 
 | class | capabilities | e.g. |
 |---|---:|---|
-| daemon | 30 | crew daemon; test daemon; crew daemon restart |
+| daemon | 27 | crew daemon; test daemon; crew daemon restart |
 | unchecked | 17 | open chat; a council-convening run; target CLI |
-| container | 10 | container floor; container runtime (docker/podman/nerdctl) for container floor; container runtime |
+| container | 9 | container floor; container runtime (docker/podman/nerdctl) for container floor; container runtime |
 | studio-dist | 7 | studio:bundled-dist; studio |
 | credential | 6 | claude subscription; ChatGPT account; GitHub Copilot entitlement |
 | signed-in-seats | 6 | single signed-in seat; seats; ≥2 seats |

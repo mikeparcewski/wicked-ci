@@ -47,27 +47,27 @@ Select it: `area:core-engine`; the cheap part: `area:core-engine cost<=S`; one g
 
 | class | capabilities | e.g. |
 |---|---:|---|
-| daemon | 128 | crew daemon (GET); crew test daemon; crew:daemon-hermetic |
-| unchecked | 40 | claude-agent-acp; test repo; annotated estate store |
-| signed-in-seats | 38 | seat CLIs; seats; seat |
-| container | 30 | container runtime; network (base image pull); seat image (built on first use) |
+| daemon | 100 | crew daemon (GET); crew test daemon; crew:daemon-hermetic |
+| unchecked | 38 | claude-agent-acp; test repo; annotated estate store |
+| signed-in-seats | 37 | seat CLIs; seats; seat |
 | playwright | 30 | playwright-chromium; Playwright recorder |
 | studio-dist | 29 | studio:bundled-dist |
-| credential | 10 | a completed vendor sign-in; signed-in broker entry; vendor accounts |
+| container | 22 | container runtime; network (base image pull); seat image (built on first use) |
 | registered-repo | 9 | registered repo; registered repo with checks; registered repo with remote |
+| credential | 8 | a completed vendor sign-in; signed-in broker entry; vendor accounts |
 | bin-wicked-core | 6 | wicked-core binary |
 | bin-wicked-bus | 5 | bus db; bus |
 | platform-sandbox | 5 | Linux container runtime with Landlock ABI; sandbox-exec/bwrap; Linux host without bubblewrap (or env simulation) |
 | real-engine | 5 | built core-ts addon; core-ts addon; real-engine |
 | bin-wicked-estate | 2 | estate; wicked-estate binary |
 | bin-wicked-garden | 2 | garden qe skill; garden plugin snapshot |
-| gh-auth | 2 | repo with GitHub remote; gh auth (pinned identity) |
 | network | 2 | network |
-| tool-git | 2 | git; temp git repo |
 | bin-claude | 1 | claude CLI |
 | bin-codex | 1 | codex CLI |
 | bin-wicked-ledger | 1 | wicked-ledger |
+| gh-auth | 1 | repo with GitHub remote; gh auth (pinned identity) |
 | tool-cargo | 1 | Rust toolchain |
+| tool-git | 1 | git; temp git repo |
 | tool-node | 1 | node |
 | tool-python | 1 | python3 |
 

@@ -44,11 +44,11 @@ Select it: `area:foundation`; the cheap part: `area:foundation cost<=S`; one gro
 
 | class | capabilities | e.g. |
 |---|---:|---|
-| prerequisite | 56 | foundation.bus.init; foundation.bus.retention.retain-default; foundation.bus.delivery.at-least-once |
-| bin-wicked-vault | 19 | wicked-vault CLI; wicked-vault via npx; wicked-vault>=0.8.0 |
-| daemon | 14 | daemon; crew daemon; crew daemon :7721 |
+| prerequisite | 53 | foundation.bus.init; foundation.bus.retention.retain-default; foundation.bus.delivery.at-least-once |
+| bin-wicked-vault | 16 | wicked-vault CLI; wicked-vault via npx; wicked-vault>=0.8.0 |
 | tool-node | 13 | node>=20; node; node>=22 |
 | unchecked | 13 | temp WICKED_BUS_DATA_DIR; better-sqlite3 peer; better-sqlite3 |
+| daemon | 11 | daemon; crew daemon; crew daemon :7721 |
 | gh-auth | 5 | GitHub |
 | bin-wicked-bus | 4 | wicked-bus CLI; wicked-bus CLI on PATH; wicked-bus package installed |
 | bin-wicked-garden | 3 | wicked-garden CLI |

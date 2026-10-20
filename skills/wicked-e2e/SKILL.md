@@ -84,6 +84,7 @@ ask before running, and the next commands. It exits 0 only when `status` is `res
 |---|---|
 | `run`, `rerun` | show the plan first (`wicked-e2e-plan`), ask when it says so, then `wicked-e2e-run` |
 | `plan` | `wicked-e2e-plan` |
+| `select` | run the printed `e2e select ...` and show the list (id, cost, surface, oracle kind); nothing runs |
 | `validate-coverage`, `validate-report` | `wicked-e2e-validate` |
 | `report` | `wicked-e2e-report` |
 | `evidence` | `wicked-e2e-evidence` |

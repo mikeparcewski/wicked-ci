@@ -48,22 +48,22 @@ Select it: `area:crew-api`; the cheap part: `area:crew-api cost<=S`; one group: 
 
 | class | capabilities | e.g. |
 |---|---:|---|
-| daemon | 333 | daemon; crew daemon; crew daemon (GET allowed) |
+| daemon | 289 | daemon; crew daemon; crew daemon (GET allowed) |
 | real-engine | 158 | real-engine; wicked-core-ts>=0.7.35 |
-| signed-in-seats | 70 | signed-in-seats; signed-in seats; signed-in seat |
-| registered-repo | 36 | registered-repo; registered repo with remote |
-| bin-wicked-estate | 23 | wicked-estate; estate |
-| gh-auth | 14 | gh-auth; open PR; gh auth |
+| signed-in-seats | 57 | signed-in-seats; signed-in seats; signed-in seat |
+| registered-repo | 35 | registered-repo; registered repo with remote |
+| bin-wicked-estate | 22 | wicked-estate; estate |
 | unchecked | 13 | open chat; sandboxed HOME; crew.demo.launch completed |
+| gh-auth | 12 | gh-auth; open PR; gh auth |
 | bin-wicked-interactive | 11 | wicked-interactive |
-| prerequisite | 11 | crew.demo.gates (completed run); crew.interactive.bridge-pool; crew.demo.launch |
-| projects-engine | 11 | projects-engine; project with crew.repo members |
-| network | 10 | network; network to provider |
+| prerequisite | 10 | crew.demo.gates (completed run); crew.interactive.bridge-pool; crew.demo.launch |
+| projects-engine | 10 | projects-engine; project with crew.repo members |
 | bin-wicked-garden | 9 | wicked-garden demo skill; wicked-garden-plugin; wicked-garden-draft skill published |
-| container | 6 | container-runtime; container floor; container runtime |
+| network | 9 | network; network to provider |
 | playwright | 5 | chromium |
 | tool-ffmpeg | 5 | ffmpeg |
 | bin-wicked-bus | 3 | wicked-bus; bus db |
+| container | 3 | container-runtime; container floor; container runtime |
 | credential | 3 | oidc-issuer-or-fixture-jwks; ado-credentials; os-keychain |
 | platform-service-manager | 2 | launchd-or-systemd-user |
 | bin-claude | 1 | claude/codex installed |

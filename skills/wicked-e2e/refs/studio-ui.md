@@ -49,16 +49,16 @@ Select it: `area:studio-ui`; the cheap part: `area:studio-ui cost<=S`; one group
 
 | class | capabilities | e.g. |
 |---|---:|---|
-| daemon | 282 | crew:daemon-hermetic; crew test daemon; crew daemon |
-| studio-dist | 281 | studio:bundled-dist; studio; studio dist (WICKED_STUDIO_DIST) or crew host URL |
-| playwright | 254 | playwright-chromium; chromium |
-| prerequisite | 24 | studio.artifact.inline-card; crew.demo.view-file-script; crew.demo.export |
-| unchecked | 14 | host floor; fresh settings; doc bound to a run |
-| signed-in-seats | 8 | seats; one seat; seat:signed-in |
-| registered-repo | 3 | repo:registered; registered repo |
-| container | 2 | container floor; container runtime |
+| daemon | 254 | crew:daemon-hermetic; crew test daemon; crew daemon |
+| playwright | 253 | playwright-chromium; chromium |
+| studio-dist | 250 | studio:bundled-dist; studio; studio dist (WICKED_STUDIO_DIST) or crew host URL |
+| prerequisite | 17 | studio.artifact.inline-card; crew.demo.view-file-script; crew.demo.export |
+| unchecked | 13 | host floor; fresh settings; doc bound to a run |
+| signed-in-seats | 7 | seats; one seat; seat:signed-in |
+| registered-repo | 2 | repo:registered; registered repo |
 | tool-node | 2 | node/npm |
 | bin-wicked-interactive | 1 | wicked-interactive checkout (sibling) |
+| container | 1 | container floor; container runtime |
 | credential | 1 | real vendor account |
 | seat-state | 1 | seat record data |
 | tool-python | 1 | python3 |

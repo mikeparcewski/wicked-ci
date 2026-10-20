@@ -4,7 +4,8 @@ The wicked-e2e router skill calls this instead of guessing. It matches words aga
 only (area names and their aliases, tags, id segments, ids, profile names, selection-language
 terms), with one fixed precedence, and prints how each word was read. Nothing here is a model.
 
-    action     run | plan | validate-coverage | validate-report | report | evidence | rerun
+    action     run | plan | select | validate-coverage | validate-report | report | evidence | rerun
+               (`select` lists what a selection holds; only `run` and `rerun` lead to running anything)
     selection  a selection expression (or a profile) the runner takes unchanged
     status     resolved | no-match | needs-input | refused   (exit 0 only for `resolved`)
 
@@ -74,9 +75,12 @@ INTENTS = [
     ("evidence", re.compile(r"\bevidence\b|\bvideos?\b|\bscreenshots?\b|\btraces?\b|\btamper\w*\b|\bhash(es)?\b|"
                             r"\btranscripts?\b")),
     ("validate-report", re.compile(r"\bvalidate\b.*\b(run|report)\b|\b(run|report)\b.*\b(complete|intact|valid)\b")),
+    ("select", re.compile(r"\bwhich (capabilit\w*|tests?|scenarios?)\b|\bwhat (capabilit\w* )?covers?\b|"
+                          r"\blist (the |all )?capabilit\w*\b|\bshow (me )?(the )?capabilities\b|"
+                          r"\bhow many capabilit\w*\b|\bwhat is in\b")),
     ("plan", re.compile(r"\bplan\b|\bwhat would run\b|\bwhat will run\b|\bdry[- ]?run\b|\bhow long\b|\bestimate\b|"
                         r"\bwould it take\b|\bwhat does .* need\b|\bprerequisites?\b")),
-    ("report", re.compile(r"\bsummar\w*\b|\breport\b|\bresults?\b|\bwhat (failed|passed)\b|\bverdicts?\b|"
+    ("report", re.compile(r"\bis\b.*\bcertified\b|\bdid\b.*\b(pass|fail)\w*\b|\bsummar\w*\b|\breport\b|\bresults?\b|\bwhat (failed|passed)\b|\bverdicts?\b|"
                           r"\bhow did .* go\b")),
 ]
 NEEDS_RUN_DIR = ("validate-report", "report", "evidence", "rerun")
@@ -378,7 +382,7 @@ def resolve(request, caps, profiles, run_dir=None):
     # Size the selection.
     sel_expr = profiles[profile]["select"] if profile else expr
     sel = []
-    if action in ("run", "plan") or (action == "rerun" and run_dir) or (action in ("report", "evidence", "validate-coverage") and (expr or profile)):
+    if action in ("run", "plan", "select") or (action == "rerun" and run_dir) or (action in ("report", "evidence", "validate-coverage") and (expr or profile)):
         if not (expr or profile):
             if out["status"] == "resolved":
                 _status(out, "no-match")
@@ -430,6 +434,8 @@ def _commands(out, run_dir):
         if a != "plan":
             cmds.append(["e2e", "run"] + sel + tgt + ["--out", "NEW_RUN_DIR", "--src", "CHECKOUTS_DIR"])
             cmds.append(["e2e", "validate", "--report", "NEW_RUN_DIR"] + base)
+    elif a == "select" and sel:
+        cmds.append(["e2e", "select"] + (["--profile", out["profile"]] if out["profile"] else [out["selection"]]))
     elif a == "validate-coverage":
         cmds.append(["e2e", "validate"] + base + ["--out", "COVERAGE_DIR"])
     elif a == "validate-report":

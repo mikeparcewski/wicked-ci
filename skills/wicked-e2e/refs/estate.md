@@ -44,17 +44,16 @@ Select it: `area:estate`; the cheap part: `area:estate cost<=S`; one group: `are
 
 | class | capabilities | e.g. |
 |---|---:|---|
-| bin-wicked-estate | 95 | wicked-estate; wicked-estate-mcp; wicked-estate (sandbox store) |
-| unchecked | 73 | OTLP collector; postgres-feature build; indexed graph |
+| bin-wicked-estate | 90 | wicked-estate; wicked-estate-mcp; wicked-estate (sandbox store) |
+| unchecked | 71 | OTLP collector; postgres-feature build; indexed graph |
 | bin-wicked-garden | 18 | wicked-garden; wicked-garden checkout; wicked-garden installed |
 | signed-in-seats | 7 | claude seat; claude CLI signed in |
-| daemon | 5 | isolated wicked-crew daemon (never :7701/:7721 POST); isolated wicked-crew daemon; daemon |
 | tool-cargo | 5 | rust toolchain; rust toolchain >=1.85 |
 | tool-git | 5 | git; two git repos |
 | tool-node | 4 | node (adapter); node; node/npx |
+| daemon | 3 | isolated wicked-crew daemon (never :7701/:7721 POST); isolated wicked-crew daemon; daemon |
 | network | 3 | network (crates.io); network (HF model download for embedders); network (npm) |
 | prerequisite | 2 | garden.search.estate-shim |
-| registered-repo | 2 | registered repo; registered-repo |
 | bin-agy | 1 | Antigravity installed |
 | bin-claude | 1 | claude CLI |
 | bin-codex | 1 | codex CLI |
@@ -63,6 +62,7 @@ Select it: `area:estate`; the cheap part: `area:estate cost<=S`; one group: `are
 | container | 1 | container runtime |
 | playwright | 1 | Playwright browsers |
 | projects-engine | 1 | projects-engine |
+| registered-repo | 1 | registered repo; registered-repo |
 | studio-dist | 1 | isolated crew daemon + studio dist |
 | tool-python | 1 | python3 |
 
