@@ -17,7 +17,7 @@ seams. The catalog points at smoke steps as scenarios where a step already exerc
 
 | Path | What it is |
 |---|---|
-| `catalog/<area>.json` | The capabilities of one area, one record each (9 areas, 1411 capabilities). |
+| `catalog/<area>.json` | The capabilities of one area, one record each (9 areas, 1410 capabilities). |
 | `catalog/SCHEMA.json` | The JSON Schema (draft 2020-12) every area file must satisfy. |
 | `surfaces/<repo>.json` | Each repo's user-facing surface elements and its test-file index, read from source at a pinned SHA. |
 | `surfaces/pins.json` | The pinned SHA per repo, and the published `wicked-crew` version whose CLI is read. |
@@ -106,7 +106,12 @@ A capability's `oracle` is one typed check, an `all` of typed checks, or `manual
 - **Placeholders** in `{braces}` come from a `capture` or from the runner's own bindings
   (`{port}`, `{runId}`, `{projectId}`, `{repoId}`, `{tag}`, and seeded values a scenario's setup
   names, such as `{stale_ord}`). A path's `:id` is named after its resource (`/runs/{runId}`).
-- **`complete`**: `true` means every clause of `oracle_text` is a typed check. `false` means the
+- **`complete`** is computed recursively, by one function that catalog validation, the summary
+  and the run-report guard all use. An oracle is complete only if it declares `complete: true`,
+  lists no `untyped` clause, and every child of a composite (`all`, at any depth) is typed, with
+  no `complete: false` and no `untyped` of its own. `validate` refuses a composite that declares
+  `complete: true` over an incomplete, untyped or manual child.
+- **What `complete` declares**: `true` means every clause of `oracle_text` is a typed check. `false` means the
   checks are necessary but not sufficient, and `untyped` lists the clauses that still need typing.
   A runner may report a partial oracle as `partial`, never as `pass`.
 - **`manual`**: `{category, reason, precheck?}`. It is counted separately and is never a pass.
@@ -236,7 +241,7 @@ e2e select --profile release
 | `smoke` | `tag:smoke cost<=M !oracle=manual` | 33 |
 | `daily` | `cost<=M !oracle=manual` | 834 |
 | `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 351 |
-| `full` | everything (manual capabilities report `manual`) | 1411 |
+| `full` | everything (manual capabilities report `manual`) | 1410 |
 
 ## How the catalog was built
 
@@ -267,7 +272,7 @@ From now on the catalog files are the source.
   - the installed-browser recorder;
   - two studio details;
   - two engine guarantees.
-- **Critic, duplicates**: 171 ids were merged into their survivor and recorded as `aliases`.
+- **Critic, duplicates**: 172 ids were merged into their survivor and recorded as `aliases`.
   - A cluster is merged only within one surface. The same feature on a different user path (API
     and UI) is kept, and the two are linked as `related`.
   - Glob-wide, parenthesised and `⊂`/`~` relations become `related`, not merges.
@@ -334,12 +339,13 @@ From now on the catalog files are the source.
     placeholder value is quoted (`[data-agent="{key}"]`).
   - `validate` refuses any shorthand left in a path, a network request, a selector or a command
     (`[optional]`, `a|b`, `<name>`, `…`; a shell pipe with spaces is fine), and any unquoted
-    attribute value that is not a CSS identifier.
+    attribute value that is not a CSS identifier. An uppercase metavariable after a flag
+    (`--db F`, `--manifest OUT.json`) becomes a placeholder named after the flag (`{db}`).
   - Response paths follow the wire. `GET /api/v1/runs/{runId}` answers `{run: {session, units}}`.
     A roster comparison must address `$.roster`. Other response paths come from the inventory's
     wording and are not yet checked against the response types; phase 2 binds them.
   - Hand-written oracles that omit a clause of their user path list it in `untyped` too.
-  - 19 oracles are complete, 942 partial, 340 untyped and 110 manual.
+  - 19 oracles are complete, 942 partial, 339 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.
