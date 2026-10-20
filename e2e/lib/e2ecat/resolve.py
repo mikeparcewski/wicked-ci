@@ -314,6 +314,13 @@ def resolve(request, caps, profiles, run_dir=None):
                 break
         if hit:
             key, vals, label = hit
+            if neg_next and key == "literal":
+                t = vals[0] if vals[0].startswith("!") else "!" + vals[0]  # already negated: it excludes already
+                literal.append(t)
+                explain.append({"words": vals[0], "as": "excluded: %s" % t})
+                neg_next = False
+                i += n
+                continue
             if neg_next and key != "literal":
                 literal.append("!%s:%s" % (key, ",".join(vals)))
                 explain.append({"words": " ".join(toks[i:i + n]), "as": "excluded: !%s:%s" % (key, ",".join(vals))})
@@ -347,7 +354,8 @@ def resolve(request, caps, profiles, run_dir=None):
     # A profile word is a profile only when nothing else names the topic ("smoke" alone, "studio smoke" is a tag).
     # A literal area:/tag:/id: term names a topic; a literal bound or exclusion (cost<=, surface=, oracle=,
     # any `!` term) only narrows, so with a profile it narrows the profile instead of replacing it.
-    lit_topic = [t for t in literal if re.match(r"^(area:|tag:|id:|surface=|oracle=)", t)]
+    # With a profile, surface= and oracle= filter the profile (they are modifiers); without one they scope.
+    lit_topic = [t for t in literal if re.match(r"^(area:|tag:|id:)" if profile else r"^(area:|tag:|id:|surface=|oracle=)", t)]
     lit_mod = [t for t in literal if t not in lit_topic]
     # A malformed literal is left for the selection parser to refuse: it is never merged away or dropped.
     bad_literal = [t for t in literal if re.match(r"^!?cost<=", t) and t.split("<=", 1)[1] not in ("S", "M", "L")]

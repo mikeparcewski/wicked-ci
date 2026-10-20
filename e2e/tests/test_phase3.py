@@ -469,6 +469,20 @@ class ResolveEdges(unittest.TestCase):
         tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail"})
         self.assertEqual(self.r("re-run the cancel test failures", run_dir=tmp)["action"], "rerun")
 
+    def test_round13_profile_filters_and_literal_exclusions(self):
+        from e2ecat.select import select
+        ids = lambda e: {c["id"] for c in select(self.caps, e)}
+        daily = {c["id"] for c in select(self.caps, self.profiles["daily"]["select"])}
+        self.assertEqual(ids(self.r("run daily surface=ui")["selection"]), daily & ids("surface=ui"))
+        smoke = {c["id"] for c in select(self.caps, self.profiles["smoke"]["select"])}
+        self.assertEqual(ids(self.r("run smoke oracle=api")["selection"]), smoke & ids("oracle=api"))
+        out = self.r("run all cheap tests except tag:run-page")
+        self.assertEqual(ids(out["selection"]), ids("cost<=S") - ids("tag:run-page"))
+        out = self.r("test area:crew-api except id:crew-api.runs.cancel")
+        self.assertEqual(ids(out["selection"]), ids("area:crew-api") - {"crew-api.runs.cancel"})
+        out = self.r("test crew except tag:runs plugins")
+        self.assertEqual(out["selection"], "area:crew-api,plugins-and-installs !tag:runs", "only the next term is excluded")
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")
