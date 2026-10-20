@@ -389,7 +389,7 @@ python3 e2e/bin/e2e run --profile smoke --target fixture --out runs/smoke-1 --sr
 python3 e2e/bin/e2e run --select 'area:studio-ui tag:run-page cost<=S' --target fixture --out runs/ui-1 --src DIR
 python3 e2e/bin/e2e run --select 'surface=api cost<=S' --target live --studio http://127.0.0.1:7801 --out runs/live-1
 python3 e2e/bin/e2e run ... --plan-only            # write plan.json, run nothing
-python3 e2e/bin/e2e validate --report runs/smoke-1
+python3 e2e/bin/e2e validate --report runs/smoke-1 --baseline e2e/coverage-baseline.json
 python3 e2e/bin/e2e report runs/smoke-1            # regenerate report.md / .html / .json
 ```
 
@@ -566,6 +566,10 @@ installs into `$CODEX_HOME/skills`; `--copy` copies instead and writes a `wicked
 skills use to find the CLI; `--dry-run` prints what it would do; an existing skill is replaced only
 with `--force`. It writes nowhere but `DEST`.
 
+`e2e validate --report` also validates the catalog and coverage, so without `--baseline` every
+known unmapped surface element fails it too. The skills always pass `--baseline
+e2e/coverage-baseline.json` and read only the `report:` lines as verdicts about the run.
+
 **Tests.** `python3 -m unittest discover -s skills/tests -v`: the lint (frontmatter keys,
 descriptions of at most 1024 characters, every `e2e` subcommand and flag a skill names read back
 from `e2e --help`, portability, honesty guards), the install script, and the router evals in
@@ -577,7 +581,7 @@ from `e2e --help`, portability, honesty guards), the install script, and the rou
 python3 e2e/bin/e2e validate --baseline e2e/coverage-baseline.json --out e2e-out   # what CI runs
 python3 e2e/bin/e2e validate                                                        # strict: every unmapped element fails
 python3 e2e/bin/e2e run --profile smoke --target fixture --out RUN_DIR --src DIR      # run the selection
-python3 e2e/bin/e2e validate --report <run-dir>                                     # run completeness + integrity
+python3 e2e/bin/e2e validate --report <run-dir> --baseline e2e/coverage-baseline.json   # run completeness + integrity
 python3 e2e/bin/e2e report <run-dir>                                                # regenerate the reports
 python3 e2e/bin/e2e select --profile daily
 python3 e2e/bin/e2e surfaces --clone pinned --out /tmp/pinned-check                 # reproduce the manifests

@@ -53,11 +53,13 @@ reports and never fails.
 ## Run report: "is this run complete"
 
 ```bash
-e2e validate --report <run-dir>
+e2e validate --report <run-dir> --baseline e2e/coverage-baseline.json
 ```
 
 Exit 0 means the run directory is complete and intact and no verdict claims more than the verdict
-rule allows. It does not mean capabilities passed: read the verdicts with the `wicked-e2e-report`
+rule allows. The same command also validates the catalog and coverage, so keep `--baseline`
+(without it every known unmapped surface element fails too). Failure lines that start with
+`report:` are about the run; the others are about the catalog at this checkout. It does not mean capabilities passed: read the verdicts with the `wicked-e2e-report`
 skill. `--allow-unvaulted` and `--no-vault-cli` weaken the integrity check. Use them only when the
 operator asks, and say so in the result.
 

@@ -319,13 +319,13 @@ def _commands(out, run_dir):
         cmds.append("e2e run %s %s --out PLAN_DIR --plan-only" % (sel, tgt))
         if a != "plan":
             cmds.append("e2e run %s %s --out NEW_RUN_DIR --src CHECKOUTS_DIR" % (sel, tgt))
-            cmds.append("e2e validate --report NEW_RUN_DIR")
+            cmds.append("e2e validate --report NEW_RUN_DIR --baseline e2e/coverage-baseline.json")
     elif a == "validate-coverage":
         cmds.append("e2e validate --baseline e2e/coverage-baseline.json --out COVERAGE_DIR")
     elif a == "validate-report":
-        cmds.append("e2e validate --report %s" % rd)
+        cmds.append("e2e validate --report %s --baseline e2e/coverage-baseline.json" % rd)
     elif a == "report":
-        cmds += ["e2e report %s" % rd, "e2e validate --report %s" % rd]
+        cmds += ["e2e report %s" % rd, "e2e validate --report %s --baseline e2e/coverage-baseline.json" % rd]
     elif a == "evidence":
         ids = [x for x in (out["selection"] or "").split() if x.startswith("id:")]
         cid = ids[0][3:].split(",")[0] if ids and "*" not in ids[0] else "CAP_ID"

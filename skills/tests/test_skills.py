@@ -251,6 +251,16 @@ class HonestyGuards(unittest.TestCase):
             if seg.startswith("e2e run"):
                 self.assertIn("--plan-only", seg, "the plan skill only ever runs `e2e run --plan-only`")
 
+    def test_every_run_report_validation_keeps_the_baseline(self):
+        """Without --baseline, `e2e validate --report` also fails on every known unmapped surface element,
+        so a skill that drops it would call every run uncertified (or teach agents to ignore the exit code)."""
+        for d in skill_dirs():
+            for seg in code_segments(self.body(d)):
+                if seg.startswith("e2e validate") and "--report" in seg and "<" in seg:
+                    self.assertIn("--baseline e2e/coverage-baseline.json", seg, "%s: %s" % (d, seg))
+        out = rs.resolve("is the run report complete", [], {}, run_dir=None)
+        self.assertTrue(all("--baseline" in c for c in out["commands"] if "--report" in c))
+
     def test_no_skill_tells_an_agent_to_weaken_validation_unasked(self):
         for d in skill_dirs():
             b = self.body(d)

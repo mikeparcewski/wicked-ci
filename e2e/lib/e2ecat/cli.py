@@ -166,7 +166,8 @@ def cmd_evidence(a):
             print("  %-15s %-12s %s" % (r["kind"], r["status"], r["abs"]))
         print("  %-15s %-12s %s" % ("result.json", out["result"]["status"], out["result"]["abs"]))
         vlt = out["vault"]
-        print("vault: %s" % ("scope %s, entry %s%s" % (vlt["scope"], vlt["entry"], ", verify %s" % vlt["verify"] if vlt.get("verify") else "")
+        print("vault: %s" % ("scope %s, entry %s%s" % (vlt["scope"], vlt["entry"], ", wicked-vault verify %s (the frozen manifest; each file is checked against it above)" % vlt["verify"]
+                                                              if vlt.get("verify") else "")
                              if vlt["sealed"] else "NOT sealed"))
         for p in out["problems"]:
             print("problem: %s" % p)

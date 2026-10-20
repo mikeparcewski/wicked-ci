@@ -65,12 +65,14 @@ e2e run --select '<expr>' --target live --studio <url-the-operator-gave> --out <
 2. Validate it yourself:
 
    ```bash
-   e2e validate --report <new-run-dir>
+   e2e validate --report <new-run-dir> --baseline e2e/coverage-baseline.json
    ```
 
-   Exit 0 is required before anyone treats a verdict in this run as real. A non-zero exit lists
-   failures (`report: ...`). Hand them to the `wicked-e2e-validate` skill to explain, and say the
-   run is not certified.
+   Exit 0 is required before anyone treats a verdict in this run as real. Keep `--baseline`:
+   without it the validator also fails on every known unmapped surface element. A non-zero exit
+   lists failures. Any line starting `report:` means the run is not certified: say so, and hand
+   the lines to the `wicked-e2e-validate` skill to explain. Lines without that prefix are about the
+   catalog or coverage at this checkout, not this run; report them as such.
 3. **Hand-off**: open the `wicked-e2e-report` skill and summarise `<new-run-dir>` with it. On
    Claude Code this is the Skill tool; on any other seat open the named skill from your catalog
    and carry it out inline, then continue here.

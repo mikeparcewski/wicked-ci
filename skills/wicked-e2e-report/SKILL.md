@@ -34,18 +34,20 @@ as `python3 <wicked-ci>/e2e/bin/e2e` from `<wicked-ci>`. If it is missing, stop 
 
    ```bash
    e2e report <run-dir>
-   e2e validate --report <run-dir>
+   e2e validate --report <run-dir> --baseline e2e/coverage-baseline.json
    ```
 
    `e2e report` rewrites `report.md`, `report.html` and `report.json` from the result files and
    embeds a validation result. `e2e validate --report` also runs `wicked-vault verify` when the
-   vault CLI is on PATH.
+   vault CLI is on PATH. Keep `--baseline`: without it the validator also fails on every known
+   unmapped surface element, which says nothing about this run.
 2. Read `<run-dir>/report.json`: `counts`, `matrix` (area by verdict), `blockers`, `capabilities`
    (already ordered fail, error, partial, skipped, manual, pass) and `validation`.
 3. Write the summary in this order:
    - **Validation first.** If `e2e validate --report` did not exit 0, say "this run is not
-     certified" and list its failures before anything else (the `wicked-e2e-validate` skill
-     explains them).
+     certified" when any failure line starts with `report:` (those are about the run), and list
+     them before anything else (the `wicked-e2e-validate` skill explains them). Other lines are
+     about the catalog or coverage at this checkout: report them separately.
    - **Counts** by verdict, and the area-by-verdict table from `matrix`.
    - **Failures and errors** one by one: the id, the scenario and fidelity, the reason, and the
      evidence links from that capability's `evidence` (video, screenshots, trace, transcripts) plus
