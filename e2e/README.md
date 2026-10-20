@@ -539,8 +539,9 @@ The CLI pieces the skills use:
 - **`e2e resolve "<request>" [--run-dir DIR] [--json]`** reads a request deterministically: a
   literal selection term, a capability id, an area or its alias ("plugins", "studio"), a tag
   (hyphen-insensitive: "sign in" is `sign-in` and `signin`), then an id segment, longest phrase
-  first. It prints how each word was read, the action (`run`, `plan`, `validate-coverage`,
-  `validate-report`, `report`, `evidence`, `rerun`), the selection or profile, its size by cost and
+  first. It prints how each word was read, the action (`run`, `plan`, `select`, `validate-coverage`,
+  `validate-report`, `report`, `evidence`, `rerun`; a request with no execution verb, or a lookup
+  such as "list ..." or "which tests cover ...", is `select`, which only lists), the selection or profile, its size by cost and
   area, the target (a URL in the request means live; 7701/7721 are refused), and whether to ask
   before running (any selected capability at cost M or L, or the live target). "Re-run what
   failed" with `--run-dir` selects that run's `fail` and `error` capabilities. Unmatched words are

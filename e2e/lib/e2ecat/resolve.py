@@ -86,6 +86,17 @@ INTENTS = [
                           r"\bis\b.*\bcertified\b|\bdid\b.*\b(pass|fail)\w*\b|\bsummar\w*\b|\breport\b|\bresults?\b|\bwhat (failed|passed)\b|\bverdicts?\b|"
                           r"\bhow did .* go\b")),
 ]
+DRY_RUN = re.compile(r"\bdry[- ]?runs?\b", re.I)
+LOOKUP_START = re.compile(r"^\s*(please\s+)?(list|show|find|count|which|what|how many|look up|search)\b")
+EXEC_VERB = re.compile(r"\b(test\w*|certif\w*|run|running|check\w*|verif\w*|execut\w*|exercis\w*|e2e)\b")
+
+
+def _only_profile_words(itext):
+    """`smoke`, `the daily`: a bare profile name is a request to run that profile."""
+    words = [w for w in re.findall(r"[a-z]+", itext) if w not in STOP]
+    return bool(words) and all(w in PROFILE_WORDS for w in words)
+
+
 NEEDS_RUN_DIR = ("validate-report", "report", "evidence", "rerun")
 
 
@@ -233,10 +244,26 @@ def resolve(request, caps, profiles, run_dir=None):
     vocab = Vocab(caps, profiles)
     text = request.strip()
     low = text.lower().replace("\u2019", "'")
-    action = next((name for name, rx in INTENTS if rx.search(_intent_text(text, vocab))), "run")
+    explain_pre = []
+    if DRY_RUN.search(text):
+        # "dry run X": a plan. Read before the vocabulary, which also holds `dry-run` as an id group.
+        action = "plan"
+        explain_pre.append({"words": "dry run", "as": "action plan (--plan-only)"})
+        text = DRY_RUN.sub(" ", text)
+    else:
+        itext = _intent_text(text, vocab)
+        action = next((name for name, rx in INTENTS if rx.search(itext)), None)
+        if action is None:
+            if LOOKUP_START.match(itext):
+                action = "select"  # "list cheap studio checks", "show crew-api.x": a lookup, never a run
+            elif EXEC_VERB.search(itext) or _only_profile_words(itext):
+                action = "run"
+            else:
+                # No execution verb ("everything about sign-in"): list what it selects; running is asked for.
+                action = "select"
     url, port, live = _live(text)
     toks = _tokens(text)
-    terms, explain, ignored, shadowed = {}, [], [], []
+    terms, explain, ignored, shadowed = {}, list(explain_pre), [], []
     literal, cost, negate = [], None, []
     profile, pword, whole = None, None, False
     i = 0

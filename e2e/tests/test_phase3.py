@@ -426,8 +426,16 @@ class ResolveEdges(unittest.TestCase):
             self.assertEqual(self.r(text, run_dir=tmp)["selection"], "id:crew-api.runs.cancel", text)
         self.assertEqual(self.r("run the smoke scenarios")["profile"], "smoke")
 
+    def test_a_request_without_an_execution_verb_only_lists(self):
+        for text in ("does the run page work?", "studio smoke", "show crew-api.standing-orders.read",
+                     "list crew-api.standing-orders.read", "everything about sign-in"):
+            out = self.r(text)
+            self.assertEqual(out["action"], "select", text)
+            self.assertFalse(any(c.startswith("e2e run") for c in out["commands"]), text)
+        self.assertEqual(self.r("dry-run the smoke")["action"], "plan")
+
     def test_a_question_read_as_a_run_always_asks(self):
-        out = self.r("does the run page work?")
+        out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")
         self.assertTrue(out["ask_before_running"])
         self.assertIn("question", out["ask_reasons"][-1] if len(out["ask_reasons"]) == 1 else " ".join(out["ask_reasons"]))
