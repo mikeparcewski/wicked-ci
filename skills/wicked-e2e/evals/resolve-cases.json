@@ -49,6 +49,8 @@
   {"request": "test plan-preview", "expect": {"action": "run", "status": "resolved", "selection": "id:*.plan-preview.*,*.plan-preview"}},
   {"request": "show me the video", "run_dir": true, "expect": {"action": "evidence", "status": "needs-input"}},
   {"request": "test studio cost<=S.", "expect": {"status": "resolved", "selection": "area:studio-ui cost<=S"}},
+  {"request": "test live checks", "expect": {"status": "resolved", "target": "fixture", "selection": "tag:livecheck"}},
+  {"request": "what's missing", "expect": {"action": "validate-coverage", "status": "resolved"}},
   {"request": "everything about sign-in in the ui", "expect": {"status": "resolved", "selection": "tag:sign-in,signin area:studio-ui"}}
  ]
 }

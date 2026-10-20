@@ -70,7 +70,7 @@ INTENTS = [
     ("rerun", re.compile(r"\b(re-?run|retry|run again)\b.*\b(fail\w*|error\w*|broke\w*|red)\b|\bfailed (ones )?again\b")),
     ("validate-coverage", re.compile(r"\bvalidate\b.*\b(catalog|surfaces?|scenarios?)\b|\bcatalog\b.*\bvalid\w*\b|"
                                      r"\bnot covered\b|\buncovered\b|\bcoverage\b|\bunmapped\b|\bgaps?\b|"
-                                     r"\bwhat'?s missing\b|\bnot mapped\b|\bno scenario\b")),
+                                     r"\bwhat'?s? missing\b|\bnot mapped\b|\bno scenario\b")),
     ("evidence", re.compile(r"\bevidence\b|\bvideos?\b|\bscreenshots?\b|\btraces?\b|\btamper\w*\b|\bhash(es)?\b|"
                             r"\btranscripts?\b")),
     ("validate-report", re.compile(r"\bvalidate\b.*\b(run|report)\b|\b(run|report)\b.*\b(complete|intact|valid)\b")),
@@ -168,7 +168,11 @@ def _live(text):
     if m:
         p = int(m.group(1))
         return "http://127.0.0.1:%d" % p, p, True
-    return None, None, bool(re.search(r"\blive\b|\bthe daemon\b|\brunning daemon\b|\breal daemon\b", text.lower()))
+    low = text.lower()
+    for ph in PHRASES:  # "live checks" is a topic, not the live target
+        low = low.replace(ph, " ")
+    low = " ".join(w for w in low.split() if not any(ch in w for ch in ".:-="))  # nor is a tag or id with "live"
+    return None, None, bool(re.search(r"\blive\b|\bthe daemon\b|\brunning daemon\b|\breal daemon\b", low))
 
 
 def _read_run(run_dir):
@@ -288,7 +292,7 @@ def resolve(request, caps, profiles, run_dir=None):
             cost, negate = None, []
         explain.append({"words": pword,
                         "as": "profile %s (%s)" % (profile, profiles.get(profile, {}).get("select", "?") or "*")})
-    if not profile and not topic and (cost or negate):
+    if not profile and not topic and (cost or negate) and action != "rerun":
         # A modifier narrows a topic or a profile; alone it would select across every area.
         explain.append({"words": "cost/manual modifier", "as": "ignored: no word names a topic to narrow"})
         cost, negate = None, []
@@ -334,7 +338,12 @@ def resolve(request, caps, profiles, run_dir=None):
             out["needs"].append("the topic words (%s) match nothing in the catalog" % ", ".join(ignored))
             bad = []
         if bad and topic_expr:
-            keep = {c["id"] for c in select(caps, topic_expr)}
+            try:
+                keep = {c["id"] for c in select(caps, topic_expr)}
+            except SelectError as e:
+                _status(out, "no-match")
+                out["needs"].append("the selection does not parse: %s" % e)
+                keep = set()
             explain.append({"words": "topic", "as": "only the failed ones that %s also selects (%d of %d)" % (
                 topic_expr, len([b for b in bad if b in keep]), len(bad))})
             bad = [b for b in bad if b in keep]

@@ -386,6 +386,19 @@ class ResolveEdges(unittest.TestCase):
         self.assertEqual(out["status"], "resolved")
         self.assertTrue(out["commands"][0].endswith(" studio-ui.agents.check-now"), out["commands"])
 
+    def test_round3_live_checks_is_a_topic_not_the_live_target(self):
+        out = self.r("test live checks")
+        self.assertEqual((out["status"], out["target"], out["selection"]), ("resolved", "fixture", "tag:livecheck"))
+        self.assertEqual(self.r("what's missing")["action"], "validate-coverage")
+
+    def test_round3_a_rerun_keeps_its_cost_modifier(self):
+        tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail", "crew-api.runs.boot-resume": "error"})
+        for text in ("re-run the cheap failures", "re-run what failed without governed runs"):
+            out = self.r(text, run_dir=tmp)
+            self.assertEqual(out["selection"], "id:crew-api.runs.cancel", text)
+        out = self.r("re-run what failed cost<=XL", run_dir=tmp)
+        self.assertEqual(out["status"], "no-match")
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])
