@@ -82,7 +82,8 @@ INTENTS = [
                           r"\bhow many capabilit\w*\b|\bwhat is in\b")),
     ("plan", re.compile(r"\bplan\b|\bwhat would run\b|\bwhat will run\b|\bdry[- ]?run\b|\bhow long\b|\bestimate\b|"
                         r"\bwould it take\b|\bwhat does .* need\b|\bprerequisites?\b")),
-    ("report", re.compile(r"\bis\b.*\bcertified\b|\bdid\b.*\b(pass|fail)\w*\b|\bsummar\w*\b|\breport\b|\bresults?\b|\bwhat (failed|passed)\b|\bverdicts?\b|"
+    ("report", re.compile(r"\bblocks? (a |the )?pass\w*\b|\bwhy\b.*\b(partial|fail\w*|skipped|error\w*|manual)\b|"
+                          r"\bis\b.*\bcertified\b|\bdid\b.*\b(pass|fail)\w*\b|\bsummar\w*\b|\breport\b|\bresults?\b|\bwhat (failed|passed)\b|\bverdicts?\b|"
                           r"\bhow did .* go\b")),
 ]
 NEEDS_RUN_DIR = ("validate-report", "report", "evidence", "rerun")
@@ -199,7 +200,16 @@ def _intent_text(text, vocab):
     word inside a capability id (`studio-ui.launch.plan-preview`) never picks the action."""
     words = []
     t = re.sub(r"'s\b", "", URL.sub(" ", text.replace("\u2019", "'")), flags=re.I)
-    for w in t.split():
+    raw = t.split()
+    multi = set()  # word positions inside a spaced multi-word tag or id group ("plan preview", "coverage domain")
+    for n in (3, 2):
+        for i in range(len(raw) - n + 1):
+            key = _norm("".join(x.strip(".,?!:;()'\"") for x in raw[i:i + n]))
+            if key and (key in vocab.tag_norm or key in vocab.seg_norm):
+                multi.update(range(i, i + n))
+    for pos, w in enumerate(raw):
+        if pos in multi:
+            continue
         bare = w.strip(".,?!:;()'\"")
         if "-" in bare and any(_norm(bare) in d for d in (vocab.tag_norm, vocab.seg_norm, vocab.area_norm)):
             continue  # a hyphenated tag or id group (plan-preview, coverage-domain) names a topic, not an action
