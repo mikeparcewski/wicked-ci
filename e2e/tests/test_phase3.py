@@ -508,6 +508,15 @@ class ResolveEdges(unittest.TestCase):
             out = self.r(text)
             self.assertEqual((out["status"], out["commands"]), ("no-match", []), text)
 
+    def test_round9_unmatched_topics_never_keep_literal_modifiers_and_bounds_intersect(self):
+        for text in ("test zorblax cost<=S", "cost<=S everything about zorblax", "test zorblax !oracle=manual",
+                     "run all the cost<=S testing checks"):
+            out = self.r(text)
+            self.assertEqual((out["status"], out["commands"]), ("no-match", []), text)
+        self.assertEqual(self.r("run smoke tag:run-page")["selection"], "tag:run-page")
+        self.assertEqual(self.r("test crew cost<=S cost<=L")["selection"], "area:crew-api cost<=S")
+        self.assertEqual(self.r("run smoke cost<=XL")["status"], "no-match")
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])
