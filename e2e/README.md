@@ -17,7 +17,7 @@ seams. The catalog points at smoke steps as scenarios where a step already exerc
 
 | Path | What it is |
 |---|---|
-| `catalog/<area>.json` | The capabilities of one area, one record each (9 areas, 1410 capabilities). |
+| `catalog/<area>.json` | The capabilities of one area, one record each (9 areas, 1411 capabilities). |
 | `catalog/SCHEMA.json` | The JSON Schema (draft 2020-12) every area file must satisfy. |
 | `surfaces/<repo>.json` | Each repo's user-facing surface elements and its test-file index, read from source at a pinned SHA. |
 | `surfaces/pins.json` | The pinned SHA per repo, and the published `wicked-crew` version whose CLI is read. |
@@ -226,9 +226,9 @@ e2e select --profile release
 | profile | selection | count (2026-10-20 pins) |
 |---|---|---:|
 | `smoke` | `tag:smoke cost<=M !oracle=manual` | 34 |
-| `daily` | `cost<=M !oracle=manual` | 859 |
-| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 358 |
-| `full` | everything (manual capabilities report `manual`) | 1410 |
+| `daily` | `cost<=M !oracle=manual` | 858 |
+| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 359 |
+| `full` | everything (manual capabilities report `manual`) | 1411 |
 
 ## How the catalog was built
 
@@ -259,10 +259,12 @@ From now on the catalog files are the source.
   - the installed-browser recorder;
   - two studio details;
   - two engine guarantees.
-- **Critic, duplicates**: 172 ids were merged into their survivor and recorded as `aliases`.
+- **Critic, duplicates**: 171 ids were merged into their survivor and recorded as `aliases`.
   - A cluster is merged only within one surface. The same feature on a different user path (API
     and UI) is kept, and the two are linked as `related`.
   - Glob-wide, parenthesised and `⊂`/`~` relations become `related`, not merges.
+  - One critic pair, host and container sign-out, is two alternative branches (one run takes
+    one), so it stays two capabilities linked as `related`.
 - **Critic, proxy paths**:
   - Every studio capability is certified against a real crew daemon (a hermetic state home with
     shimmed seats) that serves its bundled studio. The uxfix fixture journeys remain as
@@ -305,9 +307,17 @@ From now on the catalog files are the source.
     - On any other path, it expects 0, unless the text or the path names non-zero exits for other
       conditions (code lists included). Then the capability stays untyped.
   - **UI capabilities** always carry the studio controls their user path names as `dom` checks,
-    and the requests the path sends as `network` events.
+    and the request the path sends as a `network` event. When the path names several requests,
+    they are alternative branches, and none is required.
+  - A clause naming several statuses, or a conditional clause (`for`, `when`, `if`), binds no
+    status to the path's request.
+  - Shorthand never reaches a check. `[?q]` is dropped from paths. A path or request with `a|b`,
+    `<x>` or `…` is left untyped. A glob selector `[a=b-*]` becomes `[a^="b-"]`, and a
+    placeholder value is quoted (`[data-agent="{key}"]`).
+  - `validate` refuses any shorthand left in a path, a network request or a selector, and any
+    unquoted attribute value that is not a CSS identifier.
   - Hand-written oracles that omit a clause of their user path list it in `untyped` too.
-  - 19 oracles are complete, 969 partial, 312 untyped and 110 manual.
+  - 19 oracles are complete, 968 partial, 314 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.

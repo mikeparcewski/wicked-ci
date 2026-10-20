@@ -11,6 +11,7 @@
 """
 import json
 import os
+import re
 
 from .util import read_json
 from . import schema as js
@@ -157,11 +158,36 @@ def _comparison(cmp_, where):
     return []
 
 
+SHORTHAND = re.compile(r"[\[\]|<>…]")
+ATTR = re.compile(r"\[\s*[\w-]+\s*([~|^$*]?=)\s*([^\]]*?)\s*\]")
+CSS_IDENT = re.compile(r"^-?[_a-zA-Z][\w-]*$")
+
+
+def selector_problem(sel):
+    """A cheap CSS check for what the catalog writes: every unquoted attribute value must be an identifier."""
+    if sel.count("[") != sel.count("]"):
+        return "unbalanced brackets"
+    for m in ATTR.finditer(sel):
+        v = m.group(2)
+        if not (v[:1] in "'\"" and v[-1:] == v[:1]) and not CSS_IDENT.match(v):
+            return "unquoted attribute value %r is not a CSS identifier (quote it, or use ^= for a prefix)" % v
+    return None
+
+
 def check_semantics(checks):
-    """What JSON Schema (as subset here) cannot say: value-taking asserts carry values, nothing is vacuous."""
+    """What JSON Schema (as subset here) cannot say: value-taking asserts carry values, nothing is vacuous,
+    and no documentation shorthand ([optional], a|b, <name>, ...) is left where something runs it."""
     out = []
     for i, ch in enumerate(checks):
         k, w = ch.get("kind"), "oracle check %d (%s)" % (i, ch.get("kind"))
+        if k == "api" and ch.get("method") != "JSONRPC" and SHORTHAND.search(ch.get("path", "")):
+            out.append("%s path %r carries documentation shorthand" % (w, ch.get("path")))
+        if k == "event" and ch.get("source") == "network" and SHORTHAND.search(ch.get("type", "")):
+            out.append("%s network request %r carries documentation shorthand" % (w, ch.get("type")))
+        if k == "dom" and isinstance(ch.get("selector"), str):
+            prob = selector_problem(ch["selector"])
+            if prob:
+                out.append("%s selector %r: %s" % (w, ch["selector"], prob))
         if k == "dom" and ch.get("assert") in VALUE_ASSERTS and "value" not in ch:
             out.append("%s %s needs a value" % (w, ch["assert"]))
         if k == "dom" and ch.get("assert") == "attr" and "attr" not in ch:

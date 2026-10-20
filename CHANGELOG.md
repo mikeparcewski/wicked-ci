@@ -9,10 +9,10 @@ creating something through the API is not creating it in the UI, and a stub is n
 `e2e/` now holds what has to be certified and proves that list is complete. It runs nothing
 against a product. The runner, the evidence capture and the skills are phases 2 and 3.
 
-- **`e2e/catalog/<area>.json`**: 1410 capabilities in 9 areas, normalised from the 2026-10-20
+- **`e2e/catalog/<area>.json`**: 1411 capabilities in 9 areas, normalised from the 2026-10-20
   inventory (1533) and its completeness critic. The critic folds:
   - 49 capabilities added;
-  - 172 true duplicates merged and kept as `aliases` (merged only within one surface; the UI and
+  - 171 true duplicates merged and kept as `aliases` (merged only within one surface; the UI and
     API forms of a feature stay separate as `related`);
   - proxy paths converted to the real user path: studio against a real crew daemon serving its
     bundled studio, and launches that end at the run's terminal state;

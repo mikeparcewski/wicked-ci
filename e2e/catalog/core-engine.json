@@ -2432,6 +2432,71 @@
    "origin": "inventory-2026-10-20"
   },
   {
+   "id": "core.container.signout-ui",
+   "title": "Sign an agent out of container seats from studio",
+   "surface": "ui",
+   "user_path": "Studio Agents agents-signout → POST /api/v1/seats/:cli/container-logout. Terminal: broker status signed_out; seat shows sign-in needed.",
+   "deps": [
+    "crew test daemon",
+    "container runtime"
+   ],
+   "cost": "S",
+   "tags": [
+    "core-engine",
+    "container",
+    "sign-in",
+    "seats"
+   ],
+   "required_evidence": [
+    "video",
+    "screenshot",
+    "trace"
+   ],
+   "oracle": {
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=signin-warning]",
+      "assert": "visible"
+     },
+     {
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/seats/{cli}/container-logout",
+      "count": {
+       "min": 1
+      }
+     }
+    ],
+    "complete": false,
+    "untyped": [
+     "seat-login status signed_out",
+     "studio signin-warning visible"
+    ]
+   },
+   "oracle_text": "seat-login status signed_out; studio signin-warning visible",
+   "covers": [
+    "crew:route:POST /api/v1/seats/:cli/container-logout",
+    "studio:testid:agents-signout",
+    "studio:testid:signin-warning"
+   ],
+   "scenarios": [
+    {
+     "ref": "wicked-crew:packages/crew/tests/seat-container-login-route.test.ts",
+     "fidelity": "integration"
+    }
+   ],
+   "related": [
+    "studio-ui.agents.signout"
+   ],
+   "sources": [
+    "wicked-crew:packages/crew/src/api/seat-container-login.ts",
+    "wicked-core:src/seat_login.rs:sign_out_and_route"
+   ],
+   "origin": "inventory-2026-10-20"
+  },
+  {
    "id": "core.container.toolchain-cache",
    "title": "Persistent per-seat toolchain cache outside tmpfs HOME",
    "surface": "background",
@@ -6385,30 +6450,6 @@
       "kind": "event",
       "source": "bus",
       "type": "wicked.crew.membership.attached",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "POST /api/v1/projects",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "POST /api/v1/projects/{projectId}/members",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "DELETE /api/v1/projects/{projectId}/members/{mid}",
       "count": {
        "min": 1
       }

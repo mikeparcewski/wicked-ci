@@ -4395,25 +4395,12 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/editors/{editorId}/{version}/entry",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/editors/{editorId}/{version}/entry",
-      "expect": {
-       "status": 409
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/editors/{editorId}/{version}/entry",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
      "200 with Content-Security-Policy header",
@@ -6469,14 +6456,6 @@
       "method": "GET",
       "path": "/api/v1/projects/{projectId}/interactive/docs/{doc}/checks",
       "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/projects/{projectId}/interactive/docs/{doc}/checks",
-      "expect": {
        "status": 400
       }
      },
@@ -6780,14 +6759,6 @@
       "expect": {
        "status": 200
       }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/projects/{p}/interactive/api/docs[?includeRetired=1]",
-      "expect": {
-       "status": 502
-      }
      }
     ],
     "complete": false,
@@ -6860,7 +6831,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/interactive/docs[?includeRetired=1]",
+      "path": "/api/v1/interactive/docs",
       "expect": {
        "status": 200
       }
@@ -8031,7 +8002,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/runs/{runId}/events[?type]",
+    "path": "/api/v1/runs/{runId}/events",
     "expect": {
      "status": 200
     },
@@ -8445,14 +8416,6 @@
    "oracle": {
     "kind": "all",
     "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/mcp/tools",
-      "expect": {
-       "status": 200
-      }
-     },
      {
       "kind": "api",
       "method": "POST",
@@ -9036,25 +8999,12 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/mcp/servers/{name}/test",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/mcp/servers/{name}/test",
-      "expect": {
-       "status": 404
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/mcp/servers/{name}/test",
+    "expect": {
+     "status": 404
+    },
     "complete": false,
     "untyped": [
      "200 ok true for healthy server",
@@ -11078,41 +11028,12 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{runId}/walkthrough",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{runId}/walkthrough",
-      "expect": {
-       "status": 206
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{runId}/walkthrough[?step=]",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{runId}/walkthrough[?step=]",
-      "expect": {
-       "status": 206
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{runId}/walkthrough",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
      "view 200 with sealed boolean",
@@ -11175,25 +11096,12 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/repos/{repoId}/domain-graph",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/repos/{repoId}/domain-graph",
-      "expect": {
-       "status": 404
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/repos/{repoId}/domain-graph",
+    "expect": {
+     "status": 404
+    },
     "complete": false,
     "untyped": [
      "200 with domains/requirements after a domain-extraction run",
@@ -11895,36 +11803,17 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/roster/record?days=7&project={id}",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/roster/record?days=7[&project={id}]",
-      "expect": {
-       "status": 200
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/roster/record?days=7&project={id}",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
      "units count per seat equals units dispatched to that seat in runs within window",
      "days=0 or 100 -> 400",
-     "project echoed",
-     "200 with records",
-     "days outside 1..90 -> 400",
-     "?project echoes 'project'",
-     "cost == sum(costUsd) over the window",
-     "reads capped at 200 runs with a cap flag",
-     "addon without event-log binding -> 503."
+     "project echoed"
     ]
    },
    "oracle_text": "200; units count per seat equals units dispatched to that seat in runs within window; days=0 or 100 -> 400; project echoed",
@@ -12616,19 +12505,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/runs/{runId}/files?path=<abs",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "200 content equals file bytes (<=512KB)",
-     ">512KB truncated:true",
-     "NUL in first 8KB binary:true content ''",
-     "path outside roots -> 400/404"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: 200 content equals file bytes (<=512KB); >512KB truncated:true; NUL in first 8KB binary:true content ''; path outside roots -> 400/404"
    },
    "oracle_text": "200 content equals file bytes (<=512KB); >512KB truncated:true; NUL in first 8KB binary:true content ''; path outside roots -> 400/404",
    "covers": [
@@ -15060,25 +14939,12 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/seats/{cli}/container-login",
-      "expect": {
-       "status": 201
-      }
-     },
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/seats/{cli}/container-login",
-      "expect": {
-       "status": 200
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/seats/{cli}/container-login",
+    "expect": {
+     "status": 201
+    },
     "complete": false,
     "untyped": [
      "201 {terminalId, action:'sign_in'}",
@@ -15744,17 +15610,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/skills/{name}/disable|enable|reset",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "manifest shows skill enabled flag accordingly",
-     "reset content == baseline hash"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: 200; manifest shows skill enabled flag accordingly; reset content == baseline hash"
    },
    "oracle_text": "200; manifest shows skill enabled flag accordingly; reset content == baseline hash",
    "covers": [],

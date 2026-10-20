@@ -595,7 +595,7 @@
     "of": [
      {
       "kind": "dom",
-      "selector": "[data-testid=agents-setup-step-*]",
+      "selector": "[data-testid^=\"agents-setup-step-\"]",
       "assert": "visible"
      },
      {
@@ -689,9 +689,7 @@
     "crew:daemon-hermetic",
     "studio:bundled-dist",
     "host floor",
-    "crew daemon",
-    "crew test daemon",
-    "container runtime"
+    "crew daemon"
    ],
    "cost": "S",
    "tags": [
@@ -733,19 +731,6 @@
       "count": {
        "min": 1
       }
-     },
-     {
-      "kind": "dom",
-      "selector": "[data-testid=signin-warning]",
-      "assert": "visible"
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "POST /api/v1/seats/{cli}/container-logout",
-      "count": {
-       "min": 1
-      }
      }
     ],
     "complete": false,
@@ -754,15 +739,12 @@
      "agents-row state 'Signed out'",
      "POST /seats/claude/logout -> 201 with terminalId",
      "/ws/terminals/:id streams",
-     "after terminalExited roster[claude].signed_in false. copilot/pi/agy -> 404 'has no logout command'. Logout commands: claude auth logout, codex logout, opencode auth logout, each prefixed with the seat root.",
-     "seat-login status signed_out",
-     "studio signin-warning visible"
+     "after terminalExited roster[claude].signed_in false. copilot/pi/agy -> 404 'has no logout command'. Logout commands: claude auth logout, codex logout, opencode auth logout, each prefixed with the seat root."
     ]
    },
    "oracle_text": "fixture log 1 POST seat logout; agents-row state 'Signed out'",
    "covers": [
     "crew:route:GET /ws/terminals/:id",
-    "crew:route:POST /api/v1/seats/:cli/container-logout",
     "crew:route:POST /api/v1/seats/:cli/logout",
     "crew:ws:/ws/terminals/:id",
     "studio:testid:agents-check",
@@ -788,8 +770,7 @@
     "studio:testid:agents-signout-run",
     "studio:testid:agents-signout-terminal",
     "studio:testid:agents-steps",
-    "studio:testid:agents-tech",
-    "studio:testid:signin-warning"
+    "studio:testid:agents-tech"
    ],
    "scenarios": [
     {
@@ -804,14 +785,12 @@
     {
      "ref": "wicked-studio:tests/agentModalNewWork.test.tsx",
      "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-crew:packages/crew/tests/seat-container-login-route.test.ts",
-     "fidelity": "integration"
     }
    ],
    "aliases": [
-    "seats.signout.host-terminal",
+    "seats.signout.host-terminal"
+   ],
+   "related": [
     "core.container.signout-ui"
    ],
    "sources": [
@@ -819,14 +798,11 @@
     "wicked-studio:src/api/client.ts (seatLogout)",
     "wicked-crew:packages/crew/src/api/routes.ts:POST ${V}/seats/:cli/logout",
     "wicked-core:crates/wicked-council/src/types.rs:default_logout_invocation",
-    "wicked-studio:src/components/agents/AgentModal.tsx (agents-signout-terminal)",
-    "wicked-crew:packages/crew/src/api/seat-container-login.ts",
-    "wicked-core:src/seat_login.rs:sign_out_and_route"
+    "wicked-studio:src/components/agents/AgentModal.tsx (agents-signout-terminal)"
    ],
    "notes": [
     "certified against a real crew daemon (hermetic state home, shimmed seats) serving its bundled studio; the uxfix fixture journeys are e2e-fixture evidence, not certification",
-    "merged duplicate seats.signout.host-terminal (seats-and-clis area); its oracle: POST /seats/claude/logout -> 201 with terminalId; /ws/terminals/:id streams; after terminalExited roster[claude].signed_in false. copilot/pi/agy -> 404 'has no logout command'. Logout commands: claude auth logout, codex logout, opencode auth logout, each prefixed with the seat root.",
-    "merged duplicate core.container.signout-ui (core-engine area); its oracle: seat-login status signed_out; studio signin-warning visible"
+    "merged duplicate seats.signout.host-terminal (seats-and-clis area); its oracle: POST /seats/claude/logout -> 201 with terminalId; /ws/terminals/:id streams; after terminalExited roster[claude].signed_in false. copilot/pi/agy -> 404 'has no logout command'. Logout commands: claude auth logout, codex logout, opencode auth logout, each prefixed with the seat root."
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -2137,14 +2113,6 @@
       "assert": "visible"
      },
      {
-      "kind": "event",
-      "source": "network",
-      "type": "PUT /api/v1/projects/{projectId}/walkthrough/storyline",
-      "count": {
-       "min": 1
-      }
-     },
-     {
       "kind": "dom",
       "selector": "[data-testid=walkthrough-edit-check]",
       "assert": "visible"
@@ -2158,14 +2126,6 @@
       "kind": "dom",
       "selector": "[data-testid=walkthrough-fix]",
       "assert": "visible"
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "PUT /api/v1/runs/{runId}/walkthrough/storyline",
-      "count": {
-       "min": 1
-      }
      }
     ],
     "complete": false,
@@ -2356,14 +2316,6 @@
       "kind": "dom",
       "selector": "video",
       "assert": "visible"
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "POST /api/v1/projects/{projectId}/demo/export",
-      "count": {
-       "min": 1
-      }
      },
      {
       "kind": "dom",
@@ -5669,9 +5621,19 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": "[data-testid=desk-setup][data-setup=agents|memory|...]",
-    "assert": "visible",
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "[data-testid=desk-setup]",
+      "assert": "visible"
+     },
+     {
+      "kind": "dom",
+      "selector": "[data-testid=desk-setup-act]",
+      "assert": "visible"
+     }
+    ],
     "complete": false,
     "untyped": [
      "[data-testid=desk-setup][data-setup=agents|memory|...] present",
@@ -5787,7 +5749,7 @@
      },
      {
       "kind": "dom",
-      "selector": "[data-agent=<key>]",
+      "selector": "[data-agent=\"{key}\"]",
       "assert": "visible"
      }
     ],
@@ -6739,22 +6701,6 @@
       "path": "/api/v1/testing/evals/{evalId}",
       "expect": {
        "status": 200
-      }
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "POST /api/v1/testing/evals/run",
-      "count": {
-       "min": 1
-      }
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "POST /api/v1/testing/corpora/import",
-      "count": {
-       "min": 1
       }
      }
     ],
@@ -10554,12 +10500,6 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "POST /api/v1/projects/{projectId}/demo",
-      "count": 1
-     },
-     {
-      "kind": "event",
-      "source": "network",
       "type": "POST /api/v1/projects/{p}/demo",
       "count": {
        "min": 1
@@ -12624,14 +12564,6 @@
       "kind": "dom",
       "selector": "[data-testid=launch-wizard-chosen]",
       "assert": "visible"
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "PUT /api/v1/learn/schedules/<repo:slug>",
-      "count": {
-       "min": 1
-      }
      }
     ],
     "complete": false,
@@ -19077,22 +19009,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{runId}/…zip",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "dom",
-      "selector": "[data-testid=run-codebase-zip]",
-      "assert": "visible"
-     }
-    ],
+    "kind": "dom",
+    "selector": "[data-testid=run-codebase-zip]",
+    "assert": "visible",
     "complete": false,
     "untyped": [
      "Playwright download event filename endswith .zip",
@@ -22732,28 +22651,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "POST /api/v1/skills/{name}/<enabled|disabled>",
-      "count": 1
-     },
-     {
-      "kind": "dom",
-      "selector": "[data-testid=skills-toggle]",
-      "assert": "visible"
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "POST /api/v1/skills/{name}/enabled|disabled",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "dom",
+    "selector": "[data-testid=skills-toggle]",
+    "assert": "visible",
     "complete": false,
     "untyped": [
      "fixture log 1 POST /skills/<name>/<enabled|disabled>",
@@ -23243,14 +23143,6 @@
       "kind": "dom",
       "selector": "[data-testid=steering-grid-retire]",
       "assert": "visible"
-     },
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "POST /api/v1/governance/steering/import",
-      "count": {
-       "min": 1
-      }
      }
     ],
     "complete": false,

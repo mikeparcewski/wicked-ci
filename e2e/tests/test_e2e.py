@@ -147,6 +147,21 @@ class CatalogChecks(unittest.TestCase):
         fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=ok))
         self.assertEqual(fails, [])
 
+    def test_shorthand_and_invalid_selectors_are_refused(self):
+        cases = [
+            ({"kind": "api", "method": "GET", "path": "/api/v1/runs/{runId}/events[?type]", "expect": {"status": 200}, "complete": True}, "shorthand"),
+            ({"kind": "api", "method": "POST", "path": "/api/v1/skills/{name}/disable|enable", "expect": {"status": 200}, "complete": True}, "shorthand"),
+            ({"kind": "event", "source": "network", "type": "POST /api/v1/x/<id>", "count": 1, "complete": True}, "shorthand"),
+            ({"kind": "dom", "selector": "[data-testid=agents-setup-step-*]", "assert": "visible", "complete": True}, "not a CSS identifier"),
+            ({"kind": "dom", "selector": "[data-setup=agents|memory]", "assert": "visible", "complete": True}, "not a CSS identifier"),
+        ]
+        for oracle, want in cases:
+            fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=oracle))
+            self.assertTrue(any(want in f for f in fails), (oracle, fails))
+        for good in ('[data-testid^="agents-setup-step-"]', "[data-testid=desk][data-tab=work]", "[data-x='a b']", "video"):
+            fails, _ = self.run_check(cap(oracle={"kind": "dom", "selector": good, "assert": "visible", "complete": True}))
+            self.assertEqual(fails, [], good)
+
     def test_manual_precheck_is_checked_too(self):
         o = {"kind": "manual", "category": "model-output", "reason": "model output only",
              "precheck": {"kind": "api", "method": "GET", "path": "/x", "expect": {}}}

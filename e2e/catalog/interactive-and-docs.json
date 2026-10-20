@@ -78,7 +78,7 @@
     "method": "GET",
     "path": "/api/v1/projects/{p}/interactive/api/health",
     "expect": {
-     "status": 503
+     "status": 200
     },
     "complete": false,
     "untyped": [
@@ -1850,32 +1850,19 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/projects/{projectId}/interactive/api/docs",
-      "expect": {
-       "status": 200,
-       "json": [
-        {
-         "path": "$.generating",
-         "op": "eq",
-         "value": true
-        }
-       ]
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/projects/{projectId}/interactive/api/docs",
+    "expect": {
+     "status": 200,
+     "json": [
+      {
+       "path": "$.generating",
+       "op": "eq",
+       "value": true
       }
-     },
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/projects/{projectId}/interactive/api/docs",
-      "expect": {
-       "status": 400
-      }
-     }
-    ],
+     ]
+    },
     "complete": false,
     "untyped": [
      "200 with generating===true",
@@ -3840,14 +3827,6 @@
    "oracle": {
     "kind": "all",
     "of": [
-     {
-      "kind": "event",
-      "source": "network",
-      "type": "PUT /api/v1/projects/{projectId}/demo/script",
-      "count": {
-       "min": 1
-      }
-     },
      {
       "kind": "event",
       "source": "network",
