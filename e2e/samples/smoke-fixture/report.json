@@ -1,40 +1,40 @@
 {
  "version": 1,
  "run": {
-  "run_id": "20261020T145405Z-aa8b",
+  "run_id": "20261020T152853Z-dc44",
   "target": "fixture",
   "studio": null,
   "profile": "smoke",
   "selection": "tag:smoke cost<=M !oracle=manual",
-  "started": "2026-10-20T14:54:05+00:00",
-  "finished": "2026-10-20T15:02:30+00:00",
+  "started": "2026-10-20T15:28:53+00:00",
+  "finished": "2026-10-20T15:39:00+00:00",
   "checkouts": {
-   "wicked-ci": "a613dcbdf1cb8fd54be5cdd1927bc616e4e22ea7",
+   "wicked-ci": "f5833fa85abfa6711e16f2487c3022175a465c54",
    "wicked-studio": "c4151ce0288b8028f732ae12277ad80afc41364f",
    "wicked-crew": "8158e618d073b322fc945f3a24f3723f95d09e60"
   },
   "catalog_sha256": "c8ae16160345428716f916d6315270dd1167ea716d00467dba9e6c24c08354c3"
  },
  "vault": {
-  "scope": "e2e-20261020T145405Z-aa8b",
+  "scope": "e2e-20261020T152853Z-dc44",
   "index": "vault-index.json",
   "cli": "0.8.0"
  },
  "total": 33,
  "counts": {
   "skipped": 1,
-  "fail": 4,
-  "partial": 26,
-  "error": 2
+  "partial": 28,
+  "error": 2,
+  "fail": 2
  },
  "matrix": {
   "studio-ui": {
    "skipped": 1
   },
   "crew-api": {
-   "fail": 4,
-   "partial": 24,
-   "error": 2
+   "partial": 26,
+   "error": 2,
+   "fail": 2
   },
   "foundation": {
    "partial": 2
@@ -111,52 +111,6 @@
  ],
  "capabilities": [
   {
-   "id": "crew-api.campaigns.read",
-   "area": "crew-api",
-   "title": "List campaigns and read one (stats rollup)",
-   "surface": "api",
-   "cost": "S",
-   "verdict": "fail",
-   "reason": "the scenario failed; S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 \"missing field usable\")",
-   "skip": null,
-   "scenario": {
-    "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
-    "name": null,
-    "fidelity": "e2e-hermetic",
-    "adapter": "wicked-ci-smoke",
-    "status": "failed",
-    "detail": "S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 \"missing field usable\")"
-   },
-   "checks": {
-    "total": 1,
-    "held": 1,
-    "contradicted": 0,
-    "unsatisfied": 0,
-    "not_observed": 0
-   },
-   "evidence": {
-    "api-transcript": [
-     "crew-api.campaigns.read/api-transcript.json",
-     "scenarios/wicked-ci-smoke/S06/api-transcript.json"
-    ],
-    "event-log": [
-     "scenarios/wicked-ci-smoke/S06/event-log.json"
-    ],
-    "cli-transcript": [
-     "scenarios/wicked-ci-smoke/S06/cli-transcript.json"
-    ],
-    "scenario-evidence": [
-     "scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json",
-     "scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json"
-    ],
-    "file-hash": [
-     "crew-api.campaigns.read/file-hash.json"
-    ]
-   },
-   "evidence_substitutes": {},
-   "result": "crew-api.campaigns.read/result.json"
-  },
-  {
    "id": "crew-api.repos.register-local",
    "area": "crew-api",
    "title": "Register a local repo (auto-onboards)",
@@ -204,52 +158,6 @@
    },
    "evidence_substitutes": {},
    "result": "crew-api.repos.register-local/result.json"
-  },
-  {
-   "id": "crew-api.runs.cancel",
-   "area": "crew-api",
-   "title": "Cancel a running or paused run",
-   "surface": "api",
-   "cost": "S",
-   "verdict": "fail",
-   "reason": "the scenario failed; S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 \"missing field usable\")",
-   "skip": null,
-   "scenario": {
-    "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
-    "name": null,
-    "fidelity": "e2e-hermetic",
-    "adapter": "wicked-ci-smoke",
-    "status": "failed",
-    "detail": "S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 \"missing field usable\")"
-   },
-   "checks": {
-    "total": 3,
-    "held": 1,
-    "contradicted": 0,
-    "unsatisfied": 1,
-    "not_observed": 1
-   },
-   "evidence": {
-    "api-transcript": [
-     "crew-api.runs.cancel/api-transcript.json",
-     "scenarios/wicked-ci-smoke/S06/api-transcript.json"
-    ],
-    "event-log": [
-     "scenarios/wicked-ci-smoke/S06/event-log.json"
-    ],
-    "cli-transcript": [
-     "scenarios/wicked-ci-smoke/S06/cli-transcript.json"
-    ],
-    "scenario-evidence": [
-     "scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json",
-     "scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json"
-    ],
-    "file-hash": [
-     "crew-api.runs.cancel/file-hash.json"
-    ]
-   },
-   "evidence_substitutes": {},
-   "result": "crew-api.runs.cancel/result.json"
   },
   {
    "id": "crew-api.workflow.onboarding",
@@ -384,6 +292,52 @@
    },
    "evidence_substitutes": {},
    "result": "crew-api.skills.boot-seed/result.json"
+  },
+  {
+   "id": "crew-api.campaigns.read",
+   "area": "crew-api",
+   "title": "List campaigns and read one (stats rollup)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 200; campaign.nodes statuses match their runs' statuses; unknown -> 404",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S06 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.campaigns.read/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S06/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S06/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S06/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json"
+    ],
+    "file-hash": [
+     "crew-api.campaigns.read/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.campaigns.read/result.json"
   },
   {
    "id": "crew-api.chats.close",
@@ -1218,6 +1172,52 @@
    "result": "crew-api.roster.read/result.json"
   },
   {
+   "id": "crew-api.runs.cancel",
+   "area": "crew-api",
+   "title": "Cancel a running or paused run",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: GET /runs/:id status=='cancelled'; runCancelled frame; terminal run -> 409; unknown -> 404; check 1, 2 not observed; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S06 PASS"
+   },
+   "checks": {
+    "total": 3,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 1,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.runs.cancel/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S06/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S06/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S06/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json"
+    ],
+    "file-hash": [
+     "crew-api.runs.cancel/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.runs.cancel/result.json"
+  },
+  {
    "id": "crew-api.runs.diff",
    "area": "crew-api",
    "title": "Run worktree diff (HEAD, merge-base or ref; path narrowed)",
@@ -1626,7 +1626,7 @@
    "surface": "background",
    "cost": "S",
    "verdict": "partial",
-   "reason": "the oracle is partial: the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present; check 0 not observed; the runner only read the end state; no scenario drove the user's path",
+   "reason": "the oracle is partial: the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run); the runner only read the end state; no scenario drove the user's path",
    "skip": null,
    "scenario": {
     "ref": "direct",
@@ -1638,10 +1638,10 @@
    },
    "checks": {
     "total": 1,
-    "held": 0,
+    "held": 1,
     "contradicted": 0,
     "unsatisfied": 0,
-    "not_observed": 1
+    "not_observed": 0
    },
    "evidence": {
     "cli-transcript": [

@@ -1,12 +1,12 @@
-<!doctype html><html><head><meta charset='utf-8'><title>e2e run 20261020T151454Z-1492</title><style>body{font:14px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;margin:24px;color:#1f2328;max-width:1400px}
+<!doctype html><html><head><meta charset='utf-8'><title>e2e run 20261020T154030Z-ae8c</title><style>body{font:14px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;margin:24px;color:#1f2328;max-width:1400px}
 h1{font-size:20px}h2{font-size:16px;margin-top:28px}table{border-collapse:collapse;margin:8px 0}
 td,th{border:1px solid #d0d7de;padding:4px 8px;vertical-align:top;text-align:left}th{background:#f6f8fa}
 td.n{text-align:right}.v{display:inline-block;padding:1px 8px;border-radius:10px;color:#fff;font-weight:600;font-size:12px}
 .cap{border:1px solid #d0d7de;border-radius:6px;padding:8px 12px;margin:8px 0}.cap .id{font-family:ui-monospace,monospace;font-weight:600}
 .meta{color:#57606a;font-size:12px}.reason{margin:4px 0}.ev a{margin-right:10px}img.shot{max-width:240px;border:1px solid #d0d7de;margin:4px}
 video{max-width:480px;display:block;margin:4px 0}</style></head><body>
-<h1>e2e certification run 20261020T151454Z-1492</h1>
-<p class='meta'>target <b>live</b> (http://127.0.0.1:7811) · selection <code>id:crew-api.health.get,crew-api.diagnostics.*,crew-api.roster.read,crew-api.skills.manifest,crew-api.chats.list,crew-api.campaigns.read,crew-api.standing-orders.read,studio-ui.shell.desk-loads,studio-ui.rail.order,crew-api.runs.list*,crew-api.projects.crud</code> · 2026-10-20T15:14:54+00:00 → 2026-10-20T15:15:08+00:00</p>
+<h1>e2e certification run 20261020T154030Z-ae8c</h1>
+<p class='meta'>target <b>live</b> (http://127.0.0.1:7811) · selection <code>id:crew-api.health.get,crew-api.diagnostics.*,crew-api.roster.read,crew-api.skills.manifest,crew-api.chats.list,crew-api.campaigns.read,crew-api.standing-orders.read,studio-ui.shell.desk-loads,studio-ui.rail.order,crew-api.runs.list*,crew-api.projects.crud</code> · 2026-10-20T15:40:30+00:00 → 2026-10-20T15:40:37+00:00</p>
 <p>A <b>pass</b> means every typed check was observed to hold, on something tied to this path, on a complete oracle at e2e-live or e2e-hermetic fidelity, on a path a scenario drove. <b>partial</b> lists what is missing; <b>skipped</b> names the unmet dependency. <code>e2e validate --report</code> checks these results.</p>
 <h2>Summary</h2><table><tr><th>verdict</th><th>capabilities</th></tr>
 <tr><td><span class="v" style="background:#cf222e">fail</span></td><td class='n'>2</td></tr>
@@ -19,7 +19,7 @@ video{max-width:480px;display:block;margin:4px 0}</style></head><body>
 <tr><td>crew-api</td><td class='n'>2</td><td class='n'>8</td><td class='n'>3</td><td class='n'>1</td><td class='n'>14</td></tr>
 <tr><td>foundation</td><td class='n'></td><td class='n'></td><td class='n'>1</td><td class='n'></td><td class='n'>1</td></tr>
 </table>
-<p class='meta'>Evidence hashed and recorded in wicked-vault scope <code>e2e-20261020T151454Z-1492</code></p>
+<p class='meta'>Evidence hashed and recorded in wicked-vault scope <code>e2e-20261020T154030Z-ae8c</code></p>
 <p>Validation (<code>e2e validate --report</code>, when this report was written): <b>OK</b></p>
 <h2><span class="v" style="background:#cf222e">fail</span> 2</h2>
 <div class='cap'><span class='id'>crew-api.roster.read</span> <span class="v" style="background:#cf222e">fail</span> <span class='meta'>crew-api · api · S</span>
@@ -99,7 +99,7 @@ video{max-width:480px;display:block;margin:4px 0}</style></head><body>
 <div class='meta'>checks: 2 held, 0 contradicted, 0 unsatisfied on the transcript, 1 not observed, of 3</div>
 <div class='reason'>the oracle is partial: DOM order of rail link texts equals the list in desk_rail_test ORDER; absence of links to /repos,/rules,/testing,/agents in rail; check 2 not observed; the runner only read the end state; no scenario drove the user&#x27;s path</div>
 <div class='ev'><a href='scenarios/direct/pw/visit/api-transcript.json'>api-transcript 1</a> <a href='scenarios/direct/api-transcript.json'>api-transcript 2</a> <a href='scenarios/direct/pw/visit/network-events.json'>event-log 1</a> <a href='scenarios/direct/event-log.json'>event-log 2</a> <a href='scenarios/direct/pw/visit/trace/ctx-1.zip'>trace</a> <a href='studio-ui.rail.order/result.json'>result.json</a></div>
-<details><summary>video page@798d3c217995bd515e8b934ecf9241a7.webm</summary><video controls preload='none' src='scenarios/direct/pw/visit/video/page@798d3c217995bd515e8b934ecf9241a7.webm'></video></details>
+<details><summary>video page@e9011b5842c73625734ba8c43decbd62.webm</summary><video controls preload='none' src='scenarios/direct/pw/visit/video/page@e9011b5842c73625734ba8c43decbd62.webm'></video></details>
 <details><summary>2 screenshot(s)</summary><a href='scenarios/direct/pw/visit/shots/001-visit.png'><img class='shot' loading='lazy' src='scenarios/direct/pw/visit/shots/001-visit.png'></a><a href='scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png'><img class='shot' loading='lazy' src='scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png'></a></details>
 </div>
 <div class='cap'><span class='id'>studio-ui.shell.desk-loads</span> <span class="v" style="background:#bc4c00">partial</span> <span class='meta'>studio-ui · ui · S</span>
@@ -108,7 +108,7 @@ video{max-width:480px;display:block;margin:4px 0}</style></head><body>
 <div class='meta'>checks: 2 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 2</div>
 <div class='reason'>the oracle is partial: DOM: document.querySelector(&#x27;[data-shell=desk]&#x27;) present; [data-testid=desk] data-tab==&#x27;work&#x27;; rail boundingBox.width==236; 0 pageerror events; the runner only read the end state; no scenario drove the user&#x27;s path</div>
 <div class='ev'><a href='scenarios/direct/pw/visit/api-transcript.json'>api-transcript 1</a> <a href='scenarios/direct/api-transcript.json'>api-transcript 2</a> <a href='scenarios/direct/pw/visit/network-events.json'>event-log 1</a> <a href='scenarios/direct/event-log.json'>event-log 2</a> <a href='scenarios/direct/pw/visit/trace/ctx-1.zip'>trace</a> <a href='studio-ui.shell.desk-loads/result.json'>result.json</a></div>
-<details><summary>video page@798d3c217995bd515e8b934ecf9241a7.webm</summary><video controls preload='none' src='scenarios/direct/pw/visit/video/page@798d3c217995bd515e8b934ecf9241a7.webm'></video></details>
+<details><summary>video page@e9011b5842c73625734ba8c43decbd62.webm</summary><video controls preload='none' src='scenarios/direct/pw/visit/video/page@e9011b5842c73625734ba8c43decbd62.webm'></video></details>
 <details><summary>2 screenshot(s)</summary><a href='scenarios/direct/pw/visit/shots/001-visit.png'><img class='shot' loading='lazy' src='scenarios/direct/pw/visit/shots/001-visit.png'></a><a href='scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png'><img class='shot' loading='lazy' src='scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png'></a></details>
 </div>
 <h2><span class="v" style="background:#6e7781">skipped</span> 4</h2>

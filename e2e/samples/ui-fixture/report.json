@@ -1,22 +1,22 @@
 {
  "version": 1,
  "run": {
-  "run_id": "20261020T150258Z-1ed4",
+  "run_id": "20261020T153919Z-170e",
   "target": "fixture",
   "studio": null,
   "profile": null,
   "selection": "id:studio-ui.rail.*,studio-ui.shell.desk-loads area:studio-ui",
-  "started": "2026-10-20T15:02:58+00:00",
-  "finished": "2026-10-20T15:03:58+00:00",
+  "started": "2026-10-20T15:39:19+00:00",
+  "finished": "2026-10-20T15:40:18+00:00",
   "checkouts": {
-   "wicked-ci": "a613dcbdf1cb8fd54be5cdd1927bc616e4e22ea7",
+   "wicked-ci": "f5833fa85abfa6711e16f2487c3022175a465c54",
    "wicked-studio": "c4151ce0288b8028f732ae12277ad80afc41364f",
    "wicked-crew": "8158e618d073b322fc945f3a24f3723f95d09e60"
   },
   "catalog_sha256": "c8ae16160345428716f916d6315270dd1167ea716d00467dba9e6c24c08354c3"
  },
  "vault": {
-  "scope": "e2e-20261020T150258Z-1ed4",
+  "scope": "e2e-20261020T153919Z-170e",
   "index": "vault-index.json",
   "cli": "0.8.0"
  },
@@ -82,8 +82,8 @@
    },
    "evidence": {
     "video": [
-     "scenarios/wicked-studio-journeys/pw/desk_search/video/page@ad2786deb135a4538a6b095f12634aeb.webm",
-     "scenarios/wicked-studio-journeys/pw/desk_search/video/page@b99178b9724c2ad039a642c4ae879e9e.webm"
+     "scenarios/wicked-studio-journeys/pw/desk_search/video/page@1879f4e5636b4a163c85930a67acc020.webm",
+     "scenarios/wicked-studio-journeys/pw/desk_search/video/page@979a9bdb684df6ec76c0fc5da7b77d7b.webm"
     ],
     "screenshot": [
      "scenarios/wicked-studio-journeys/pw/desk_search/shots/001-desk-search-header-desk.png",
@@ -138,7 +138,7 @@
    },
    "evidence": {
     "video": [
-     "scenarios/wicked-studio-journeys/pw/desk_home/video/page@d90474f58b34f0883cbff0153fbb98c7.webm"
+     "scenarios/wicked-studio-journeys/pw/desk_home/video/page@41fc7d48bde64037561b124ce64ec431.webm"
     ],
     "screenshot": [
      "scenarios/wicked-studio-journeys/pw/desk_home/shots/001-desk-home.png",
@@ -184,7 +184,7 @@
    },
    "evidence": {
     "video": [
-     "scenarios/wicked-studio-journeys/pw/desk_rail/video/page@175edecb584cb3cf95669b055b47a8c2.webm"
+     "scenarios/wicked-studio-journeys/pw/desk_rail/video/page@ee89bf1fc8b8f966d83e5892461e9450.webm"
     ],
     "screenshot": [
      "scenarios/wicked-studio-journeys/pw/desk_rail/shots/001-desk-rail.png",
@@ -243,7 +243,7 @@
    },
    "evidence": {
     "video": [
-     "scenarios/wicked-studio-journeys/pw/desk_rail/video/page@175edecb584cb3cf95669b055b47a8c2.webm"
+     "scenarios/wicked-studio-journeys/pw/desk_rail/video/page@ee89bf1fc8b8f966d83e5892461e9450.webm"
     ],
     "screenshot": [
      "scenarios/wicked-studio-journeys/pw/desk_rail/shots/001-desk-rail.png",
@@ -302,7 +302,7 @@
    },
    "evidence": {
     "video": [
-     "scenarios/wicked-studio-journeys/pw/desk_session/video/page@fb3d5eef230bc7c8c860edf5df2a34b6.webm"
+     "scenarios/wicked-studio-journeys/pw/desk_session/video/page@4071a5a930ce9160506394f36bb0b818.webm"
     ],
     "screenshot": [
      "scenarios/wicked-studio-journeys/pw/desk_session/shots/001-desk-session.png",
@@ -348,11 +348,11 @@
    },
    "evidence": {
     "video": [
-     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@2f159a07a62acd1c0c470e9c5a345767.webm",
-     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@50c54c749520d5107810da1e4dc34a52.webm",
-     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@56dd5e69d33c69d932dd69820bc8dff7.webm",
-     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@7f17f3788fce58fbd68b2f5837fee3e3.webm",
-     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@f3a351bca8031fa6398a9fdb9a458620.webm"
+     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@37f6c2ea4408722805582e9617a33338.webm",
+     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@4a277597bb31552b312f50080c896b99.webm",
+     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@8e8defc6b2348aa98a3d10e2ec70116d.webm",
+     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@9d2322effc427a34472d82654693a38f.webm",
+     "scenarios/wicked-studio-journeys/pw/desk_settings_honest/video/page@fcb25628dc9cdf676a536393729b700f.webm"
     ],
     "screenshot": [
      "scenarios/wicked-studio-journeys/pw/desk_settings_honest/shots/001-desk-settings-honest-site-name.png",
@@ -410,7 +410,7 @@
    },
    "evidence": {
     "video": [
-     "scenarios/wicked-studio-journeys/pw/desk_home/video/page@d90474f58b34f0883cbff0153fbb98c7.webm"
+     "scenarios/wicked-studio-journeys/pw/desk_home/video/page@41fc7d48bde64037561b124ce64ec431.webm"
     ],
     "screenshot": [
      "scenarios/wicked-studio-journeys/pw/desk_home/shots/001-desk-home.png",

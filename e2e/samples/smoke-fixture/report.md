@@ -1,6 +1,6 @@
-# e2e certification run 20261020T145405Z-aa8b
+# e2e certification run 20261020T152853Z-dc44
 
-Target **fixture**, profile `smoke`. Started 2026-10-20T14:54:05+00:00, finished 2026-10-20T15:02:30+00:00.
+Target **fixture**, profile `smoke`. Started 2026-10-20T15:28:53+00:00, finished 2026-10-20T15:39:00+00:00.
 
 A `pass` means every typed check was observed to hold, on something tied to this path, on a complete oracle at e2e-live or e2e-hermetic fidelity, on a path a scenario drove. `partial` lists what is missing. `skipped` names the unmet dependency. This report restates the results; `e2e validate --report` checks them.
 
@@ -8,9 +8,9 @@ A `pass` means every typed check was observed to hold, on something tied to this
 
 | verdict | capabilities |
 |---|---:|
-| fail | 4 |
+| fail | 2 |
 | error | 2 |
-| partial | 26 |
+| partial | 28 |
 | skipped | 1 |
 | **total** | **33** |
 
@@ -19,27 +19,19 @@ A `pass` means every typed check was observed to hold, on something tied to this
 | area | fail | error | partial | skipped | total |
 |---|---:|---:|---:|---:|---:|
 | studio-ui | 0 | 0 | 0 | 1 | 1 |
-| crew-api | 4 | 2 | 24 | 0 | 30 |
+| crew-api | 2 | 2 | 26 | 0 | 30 |
 | foundation | 0 | 0 | 2 | 0 | 2 |
 
-Evidence: hashed and recorded in wicked-vault scope `e2e-20261020T145405Z-aa8b`.
+Evidence: hashed and recorded in wicked-vault scope `e2e-20261020T152853Z-dc44`.
 
 Validation (`e2e validate --report`, when this report was written): **OK**
 
-## fail (4)
+## fail (2)
 
-- **crew-api.campaigns.read** (api, S) via `wicked-ci:smoke/lib/steps/S06-campaign.mjs` at e2e-hermetic
-  - checks: 1 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 1
-  - the scenario failed; S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 "missing field usable")
-  - [api-transcript 1](crew-api.campaigns.read/api-transcript.json) · [api-transcript 2](scenarios/wicked-ci-smoke/S06/api-transcript.json) · [cli-transcript](scenarios/wicked-ci-smoke/S06/cli-transcript.json) · [event-log](scenarios/wicked-ci-smoke/S06/event-log.json) · [file-hash](crew-api.campaigns.read/file-hash.json) · [scenario-evidence 1](scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json) · [scenario-evidence 2](scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json) · [result](crew-api.campaigns.read/result.json)
 - **crew-api.repos.register-local** (api, M) via `wicked-ci:smoke/lib/steps/S03-onboard.mjs` at e2e-hermetic
   - checks: 2 held, 0 contradicted, 0 unsatisfied on the transcript, 1 not observed, of 3
   - the scenario failed; S03 EXPECTED-FAIL: failing checks no wicked/<run-id> branch left by a tool-only onboarding (F-E2E-012); no wicked-worktrees/ dir left in the clone (F-E2E-012)
   - [api-transcript 1](crew-api.repos.register-local/api-transcript.json) · [api-transcript 2](scenarios/wicked-ci-smoke/S03/api-transcript.json) · [cli-transcript](scenarios/wicked-ci-smoke/S03/cli-transcript.json) · [event-log 1](crew-api.repos.register-local/event-log.json) · [event-log 2](scenarios/wicked-ci-smoke/S03/event-log.json) · [file-hash](crew-api.repos.register-local/file-hash.json) · [scenario-evidence 1](scenarios/wicked-ci-smoke/harness/evidence/S03/git-debris.json) · [scenario-evidence 2](scenarios/wicked-ci-smoke/harness/evidence/S03/onboard-events.json) · [scenario-evidence 3](scenarios/wicked-ci-smoke/harness/evidence/S03/onboard-run.json) · [scenario-evidence 4](scenarios/wicked-ci-smoke/harness/evidence/S03/post-repos.json) · [result](crew-api.repos.register-local/result.json)
-- **crew-api.runs.cancel** (api, S) via `wicked-ci:smoke/lib/steps/S06-campaign.mjs` at e2e-hermetic
-  - checks: 1 held, 0 contradicted, 1 unsatisfied on the transcript, 1 not observed, of 3
-  - the scenario failed; S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 "missing field usable")
-  - [api-transcript 1](crew-api.runs.cancel/api-transcript.json) · [api-transcript 2](scenarios/wicked-ci-smoke/S06/api-transcript.json) · [cli-transcript](scenarios/wicked-ci-smoke/S06/cli-transcript.json) · [event-log](scenarios/wicked-ci-smoke/S06/event-log.json) · [file-hash](crew-api.runs.cancel/file-hash.json) · [scenario-evidence 1](scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json) · [scenario-evidence 2](scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json) · [result](crew-api.runs.cancel/result.json)
 - **crew-api.workflow.onboarding** (api, M) via `wicked-ci:smoke/lib/steps/S03-onboard.mjs` at e2e-hermetic
   - checks: 0 held, 0 contradicted, 0 unsatisfied on the transcript, 1 not observed, of 1
   - the scenario failed; S03 EXPECTED-FAIL: failing checks no wicked/<run-id> branch left by a tool-only onboarding (F-E2E-012); no wicked-worktrees/ dir left in the clone (F-E2E-012)
@@ -56,8 +48,12 @@ Validation (`e2e validate --report`, when this report was written): **OK**
   - required evidence not captured: event-log (the run cannot show it); the oracle is partial: after boot GET /skills current.gen >= 1; ~/.codex/skills and ~/.claude/skills unchanged (hash); diagnostics.skills.state=='published'
   - [api-transcript 1](crew-api.skills.boot-seed/api-transcript.json) · [api-transcript 2](scenarios/wicked-ci-smoke/S02/api-transcript.json) · [cli-transcript](scenarios/wicked-ci-smoke/S02/cli-transcript.json) · [file-hash](crew-api.skills.boot-seed/file-hash.json) · [scenario-evidence 1](scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills-after-stale-rules.json) · [scenario-evidence 2](scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills.json) · [scenario-evidence 3](scenarios/wicked-ci-smoke/harness/evidence/S02/skills-manifest-summary.json) · [result](crew-api.skills.boot-seed/result.json)
 
-## partial (26)
+## partial (28)
 
+- **crew-api.campaigns.read** (api, S) via `wicked-ci:smoke/lib/steps/S06-campaign.mjs` at e2e-hermetic
+  - checks: 1 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 1
+  - the oracle is partial: 200; campaign.nodes statuses match their runs' statuses; unknown -> 404
+  - [api-transcript 1](crew-api.campaigns.read/api-transcript.json) · [api-transcript 2](scenarios/wicked-ci-smoke/S06/api-transcript.json) · [cli-transcript](scenarios/wicked-ci-smoke/S06/cli-transcript.json) · [event-log](scenarios/wicked-ci-smoke/S06/event-log.json) · [file-hash](crew-api.campaigns.read/file-hash.json) · [scenario-evidence 1](scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json) · [scenario-evidence 2](scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json) · [result](crew-api.campaigns.read/result.json)
 - **crew-api.chats.close** (api, S) via `wicked-ci:smoke/lib/steps/S08-chat.mjs` at e2e-hermetic
   - checks: 3 held, 0 contradicted, 0 unsatisfied on the transcript, 1 not observed, of 4
   - the oracle is partial: chatClosed frame reason=='closed'; GET /runs/<askRun> status=='cancelled'; GET /chats omits it; check 3 not observed; check 0, 1, 2 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)
@@ -126,6 +122,10 @@ Validation (`e2e validate --report`, when this report was written): **OK**
   - checks: 1 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 1
   - the oracle is partial: login_invocation / binary paths sit inside the install root
   - [api-transcript 1](crew-api.roster.read/api-transcript.json) · [api-transcript 2](scenarios/wicked-ci-smoke/S09/api-transcript.json) · [cli-transcript](scenarios/wicked-ci-smoke/S09/cli-transcript.json) · [event-log](scenarios/wicked-ci-smoke/S09/event-log.json) · [file-hash](crew-api.roster.read/file-hash.json) · [scenario-evidence 1](scenarios/wicked-ci-smoke/harness/evidence/S09/cli-version.json) · [scenario-evidence 2](scenarios/wicked-ci-smoke/harness/evidence/S09/roster.json) · [result](crew-api.roster.read/result.json)
+- **crew-api.runs.cancel** (api, S) via `wicked-ci:smoke/lib/steps/S06-campaign.mjs` at e2e-hermetic
+  - checks: 1 held, 0 contradicted, 1 unsatisfied on the transcript, 1 not observed, of 3
+  - the oracle is partial: GET /runs/:id status=='cancelled'; runCancelled frame; terminal run -> 409; unknown -> 404; check 1, 2 not observed; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)
+  - [api-transcript 1](crew-api.runs.cancel/api-transcript.json) · [api-transcript 2](scenarios/wicked-ci-smoke/S06/api-transcript.json) · [cli-transcript](scenarios/wicked-ci-smoke/S06/cli-transcript.json) · [event-log](scenarios/wicked-ci-smoke/S06/event-log.json) · [file-hash](crew-api.runs.cancel/file-hash.json) · [scenario-evidence 1](scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json) · [scenario-evidence 2](scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json) · [result](crew-api.runs.cancel/result.json)
 - **crew-api.runs.diff** (api, S) via `wicked-ci:smoke/lib/steps/S04-bug-run.mjs` at e2e-hermetic
   - checks: 1 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 1
   - the oracle is partial: 200 json.diff string ('' for clean tree); ?base=--flag -> 400; run with no workdir -> 409; concurrent heavy -> 409 diff_busy; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)
@@ -155,8 +155,8 @@ Validation (`e2e validate --report`, when this report was written): **OK**
   - the oracle is partial: collected frames include type 'sessionStarted' with session==runId and a terminal frame in {sessionCompleted,sessionFailed,runCancelled}; a socket opened after launch receives no earlier frames; check 1, 2 not observed; check 0, 3 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)
   - [api-transcript](scenarios/wicked-ci-smoke/S08/api-transcript.json) · [cli-transcript](scenarios/wicked-ci-smoke/S08/cli-transcript.json) · [event-log 1](crew-api.ws.core-events/event-log.json) · [event-log 2](scenarios/wicked-ci-smoke/S08/event-log.json) · [file-hash](crew-api.ws.core-events/file-hash.json) · [scenario-evidence 1](scenarios/wicked-ci-smoke/harness/evidence/S08/chat-close.json) · [scenario-evidence 2](scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-close.json) · [scenario-evidence 3](scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-turn-1.json) · [scenario-evidence 4](scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-acp.json) · [scenario-evidence 5](scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-signed-out.json) · [scenario-evidence 6](scenarios/wicked-ci-smoke/harness/evidence/S08/chat-send-during-turn.json) · [result](crew-api.ws.core-events/result.json)
 - **ci.smoke.reusable** (background, S) via `direct` at e2e-live
-  - checks: 0 held, 0 contradicted, 0 unsatisfied on the transcript, 1 not observed, of 1
-  - the oracle is partial: the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present; check 0 not observed; the runner only read the end state; no scenario drove the user's path
+  - checks: 1 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 1
+  - the oracle is partial: the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run); the runner only read the end state; no scenario drove the user's path
   - [api-transcript](ci.smoke.reusable/api-transcript.json) · [cli-transcript](ci.smoke.reusable/cli-transcript.json) · [result](ci.smoke.reusable/result.json)
 - **foundation.platform.acceptance.read** (api, S) via `wicked-ci:smoke/lib/steps/S04-bug-run.mjs` at e2e-hermetic
   - checks: 1 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 1

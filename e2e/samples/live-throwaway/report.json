@@ -1,22 +1,22 @@
 {
  "version": 1,
  "run": {
-  "run_id": "20261020T151454Z-1492",
+  "run_id": "20261020T154030Z-ae8c",
   "target": "live",
   "studio": "http://127.0.0.1:7811",
   "profile": null,
   "selection": "id:crew-api.health.get,crew-api.diagnostics.*,crew-api.roster.read,crew-api.skills.manifest,crew-api.chats.list,crew-api.campaigns.read,crew-api.standing-orders.read,studio-ui.shell.desk-loads,studio-ui.rail.order,crew-api.runs.list*,crew-api.projects.crud",
-  "started": "2026-10-20T15:14:54+00:00",
-  "finished": "2026-10-20T15:15:08+00:00",
+  "started": "2026-10-20T15:40:30+00:00",
+  "finished": "2026-10-20T15:40:37+00:00",
   "checkouts": {
-   "wicked-ci": "fdecd794eea15d9c860a97a42b19adcebc8dbce7",
+   "wicked-ci": "f5833fa85abfa6711e16f2487c3022175a465c54",
    "wicked-studio": "c4151ce0288b8028f732ae12277ad80afc41364f",
    "wicked-crew": "8158e618d073b322fc945f3a24f3723f95d09e60"
   },
   "catalog_sha256": "c8ae16160345428716f916d6315270dd1167ea716d00467dba9e6c24c08354c3"
  },
  "vault": {
-  "scope": "e2e-20261020T151454Z-1492",
+  "scope": "e2e-20261020T154030Z-ae8c",
   "index": "vault-index.json",
   "cli": "0.8.0"
  },
@@ -472,7 +472,7 @@
    },
    "evidence": {
     "video": [
-     "scenarios/direct/pw/visit/video/page@798d3c217995bd515e8b934ecf9241a7.webm"
+     "scenarios/direct/pw/visit/video/page@e9011b5842c73625734ba8c43decbd62.webm"
     ],
     "screenshot": [
      "scenarios/direct/pw/visit/shots/001-visit.png",
@@ -519,7 +519,7 @@
    },
    "evidence": {
     "video": [
-     "scenarios/direct/pw/visit/video/page@798d3c217995bd515e8b934ecf9241a7.webm"
+     "scenarios/direct/pw/visit/video/page@e9011b5842c73625734ba8c43decbd62.webm"
     ],
     "screenshot": [
      "scenarios/direct/pw/visit/shots/001-visit.png",

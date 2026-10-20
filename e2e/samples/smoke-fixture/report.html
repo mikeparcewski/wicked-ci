@@ -1,47 +1,33 @@
-<!doctype html><html><head><meta charset='utf-8'><title>e2e run 20261020T145405Z-aa8b</title><style>body{font:14px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;margin:24px;color:#1f2328;max-width:1400px}
+<!doctype html><html><head><meta charset='utf-8'><title>e2e run 20261020T152853Z-dc44</title><style>body{font:14px/1.45 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;margin:24px;color:#1f2328;max-width:1400px}
 h1{font-size:20px}h2{font-size:16px;margin-top:28px}table{border-collapse:collapse;margin:8px 0}
 td,th{border:1px solid #d0d7de;padding:4px 8px;vertical-align:top;text-align:left}th{background:#f6f8fa}
 td.n{text-align:right}.v{display:inline-block;padding:1px 8px;border-radius:10px;color:#fff;font-weight:600;font-size:12px}
 .cap{border:1px solid #d0d7de;border-radius:6px;padding:8px 12px;margin:8px 0}.cap .id{font-family:ui-monospace,monospace;font-weight:600}
 .meta{color:#57606a;font-size:12px}.reason{margin:4px 0}.ev a{margin-right:10px}img.shot{max-width:240px;border:1px solid #d0d7de;margin:4px}
 video{max-width:480px;display:block;margin:4px 0}</style></head><body>
-<h1>e2e certification run 20261020T145405Z-aa8b</h1>
-<p class='meta'>target <b>fixture</b> · profile <code>smoke</code> · 2026-10-20T14:54:05+00:00 → 2026-10-20T15:02:30+00:00</p>
+<h1>e2e certification run 20261020T152853Z-dc44</h1>
+<p class='meta'>target <b>fixture</b> · profile <code>smoke</code> · 2026-10-20T15:28:53+00:00 → 2026-10-20T15:39:00+00:00</p>
 <p>A <b>pass</b> means every typed check was observed to hold, on something tied to this path, on a complete oracle at e2e-live or e2e-hermetic fidelity, on a path a scenario drove. <b>partial</b> lists what is missing; <b>skipped</b> names the unmet dependency. <code>e2e validate --report</code> checks these results.</p>
 <h2>Summary</h2><table><tr><th>verdict</th><th>capabilities</th></tr>
-<tr><td><span class="v" style="background:#cf222e">fail</span></td><td class='n'>4</td></tr>
+<tr><td><span class="v" style="background:#cf222e">fail</span></td><td class='n'>2</td></tr>
 <tr><td><span class="v" style="background:#9a6700">error</span></td><td class='n'>2</td></tr>
-<tr><td><span class="v" style="background:#bc4c00">partial</span></td><td class='n'>26</td></tr>
+<tr><td><span class="v" style="background:#bc4c00">partial</span></td><td class='n'>28</td></tr>
 <tr><td><span class="v" style="background:#6e7781">skipped</span></td><td class='n'>1</td></tr>
 <tr><td><b>total</b></td><td class='n'><b>33</b></td></tr></table>
 <h2>Coverage by area</h2><table><tr><th>area</th><th><span class="v" style="background:#cf222e">fail</span></th><th><span class="v" style="background:#9a6700">error</span></th><th><span class="v" style="background:#bc4c00">partial</span></th><th><span class="v" style="background:#6e7781">skipped</span></th><th>total</th></tr>
 <tr><td>studio-ui</td><td class='n'></td><td class='n'></td><td class='n'></td><td class='n'>1</td><td class='n'>1</td></tr>
-<tr><td>crew-api</td><td class='n'>4</td><td class='n'>2</td><td class='n'>24</td><td class='n'></td><td class='n'>30</td></tr>
+<tr><td>crew-api</td><td class='n'>2</td><td class='n'>2</td><td class='n'>26</td><td class='n'></td><td class='n'>30</td></tr>
 <tr><td>foundation</td><td class='n'></td><td class='n'></td><td class='n'>2</td><td class='n'></td><td class='n'>2</td></tr>
 </table>
-<p class='meta'>Evidence hashed and recorded in wicked-vault scope <code>e2e-20261020T145405Z-aa8b</code></p>
+<p class='meta'>Evidence hashed and recorded in wicked-vault scope <code>e2e-20261020T152853Z-dc44</code></p>
 <p>Validation (<code>e2e validate --report</code>, when this report was written): <b>OK</b></p>
-<h2><span class="v" style="background:#cf222e">fail</span> 4</h2>
-<div class='cap'><span class='id'>crew-api.campaigns.read</span> <span class="v" style="background:#cf222e">fail</span> <span class='meta'>crew-api · api · S</span>
-<div>List campaigns and read one (stats rollup)</div>
-<div class='meta'>scenario <code>wicked-ci:smoke/lib/steps/S06-campaign.mjs</code> at e2e-hermetic via wicked-ci-smoke: failed</div>
-<div class='meta'>checks: 1 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 1</div>
-<div class='reason'>the scenario failed; S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 &quot;missing field usable&quot;)</div>
-<div class='ev'><a href='crew-api.campaigns.read/api-transcript.json'>api-transcript 1</a> <a href='scenarios/wicked-ci-smoke/S06/api-transcript.json'>api-transcript 2</a> <a href='scenarios/wicked-ci-smoke/S06/cli-transcript.json'>cli-transcript</a> <a href='scenarios/wicked-ci-smoke/S06/event-log.json'>event-log</a> <a href='crew-api.campaigns.read/file-hash.json'>file-hash</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json'>scenario-evidence 1</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json'>scenario-evidence 2</a> <a href='crew-api.campaigns.read/result.json'>result.json</a></div>
-</div>
+<h2><span class="v" style="background:#cf222e">fail</span> 2</h2>
 <div class='cap'><span class='id'>crew-api.repos.register-local</span> <span class="v" style="background:#cf222e">fail</span> <span class='meta'>crew-api · api · M</span>
 <div>Register a local repo (auto-onboards)</div>
 <div class='meta'>scenario <code>wicked-ci:smoke/lib/steps/S03-onboard.mjs</code> at e2e-hermetic via wicked-ci-smoke: failed</div>
 <div class='meta'>checks: 2 held, 0 contradicted, 0 unsatisfied on the transcript, 1 not observed, of 3</div>
 <div class='reason'>the scenario failed; S03 EXPECTED-FAIL: failing checks no wicked/&lt;run-id&gt; branch left by a tool-only onboarding (F-E2E-012); no wicked-worktrees/ dir left in the clone (F-E2E-012)</div>
 <div class='ev'><a href='crew-api.repos.register-local/api-transcript.json'>api-transcript 1</a> <a href='scenarios/wicked-ci-smoke/S03/api-transcript.json'>api-transcript 2</a> <a href='scenarios/wicked-ci-smoke/S03/cli-transcript.json'>cli-transcript</a> <a href='crew-api.repos.register-local/event-log.json'>event-log 1</a> <a href='scenarios/wicked-ci-smoke/S03/event-log.json'>event-log 2</a> <a href='crew-api.repos.register-local/file-hash.json'>file-hash</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S03/git-debris.json'>scenario-evidence 1</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S03/onboard-events.json'>scenario-evidence 2</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S03/onboard-run.json'>scenario-evidence 3</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S03/post-repos.json'>scenario-evidence 4</a> <a href='crew-api.repos.register-local/result.json'>result.json</a></div>
-</div>
-<div class='cap'><span class='id'>crew-api.runs.cancel</span> <span class="v" style="background:#cf222e">fail</span> <span class='meta'>crew-api · api · S</span>
-<div>Cancel a running or paused run</div>
-<div class='meta'>scenario <code>wicked-ci:smoke/lib/steps/S06-campaign.mjs</code> at e2e-hermetic via wicked-ci-smoke: failed</div>
-<div class='meta'>checks: 1 held, 0 contradicted, 1 unsatisfied on the transcript, 1 not observed, of 3</div>
-<div class='reason'>the scenario failed; S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 &quot;missing field usable&quot;)</div>
-<div class='ev'><a href='crew-api.runs.cancel/api-transcript.json'>api-transcript 1</a> <a href='scenarios/wicked-ci-smoke/S06/api-transcript.json'>api-transcript 2</a> <a href='scenarios/wicked-ci-smoke/S06/cli-transcript.json'>cli-transcript</a> <a href='scenarios/wicked-ci-smoke/S06/event-log.json'>event-log</a> <a href='crew-api.runs.cancel/file-hash.json'>file-hash</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json'>scenario-evidence 1</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json'>scenario-evidence 2</a> <a href='crew-api.runs.cancel/result.json'>result.json</a></div>
 </div>
 <div class='cap'><span class='id'>crew-api.workflow.onboarding</span> <span class="v" style="background:#cf222e">fail</span> <span class='meta'>crew-api · api · M</span>
 <div>onboarding workflow (index, annotate) via Tool executors</div>
@@ -65,7 +51,14 @@ video{max-width:480px;display:block;margin:4px 0}</style></head><body>
 <div class='reason'>required evidence not captured: event-log (the run cannot show it); the oracle is partial: after boot GET /skills current.gen &gt;= 1; ~/.codex/skills and ~/.claude/skills unchanged (hash); diagnostics.skills.state==&#x27;published&#x27;</div>
 <div class='ev'><a href='crew-api.skills.boot-seed/api-transcript.json'>api-transcript 1</a> <a href='scenarios/wicked-ci-smoke/S02/api-transcript.json'>api-transcript 2</a> <a href='scenarios/wicked-ci-smoke/S02/cli-transcript.json'>cli-transcript</a> <a href='crew-api.skills.boot-seed/file-hash.json'>file-hash</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills-after-stale-rules.json'>scenario-evidence 1</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills.json'>scenario-evidence 2</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S02/skills-manifest-summary.json'>scenario-evidence 3</a> <a href='crew-api.skills.boot-seed/result.json'>result.json</a></div>
 </div>
-<h2><span class="v" style="background:#bc4c00">partial</span> 26</h2>
+<h2><span class="v" style="background:#bc4c00">partial</span> 28</h2>
+<div class='cap'><span class='id'>crew-api.campaigns.read</span> <span class="v" style="background:#bc4c00">partial</span> <span class='meta'>crew-api · api · S</span>
+<div>List campaigns and read one (stats rollup)</div>
+<div class='meta'>scenario <code>wicked-ci:smoke/lib/steps/S06-campaign.mjs</code> at e2e-hermetic via wicked-ci-smoke: passed</div>
+<div class='meta'>checks: 1 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 1</div>
+<div class='reason'>the oracle is partial: 200; campaign.nodes statuses match their runs&#x27; statuses; unknown -&gt; 404</div>
+<div class='ev'><a href='crew-api.campaigns.read/api-transcript.json'>api-transcript 1</a> <a href='scenarios/wicked-ci-smoke/S06/api-transcript.json'>api-transcript 2</a> <a href='scenarios/wicked-ci-smoke/S06/cli-transcript.json'>cli-transcript</a> <a href='scenarios/wicked-ci-smoke/S06/event-log.json'>event-log</a> <a href='crew-api.campaigns.read/file-hash.json'>file-hash</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json'>scenario-evidence 1</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json'>scenario-evidence 2</a> <a href='crew-api.campaigns.read/result.json'>result.json</a></div>
+</div>
 <div class='cap'><span class='id'>crew-api.chats.close</span> <span class="v" style="background:#bc4c00">partial</span> <span class='meta'>crew-api · api · S</span>
 <div>End a chat (cancels its ask run)</div>
 <div class='meta'>scenario <code>wicked-ci:smoke/lib/steps/S08-chat.mjs</code> at e2e-hermetic via wicked-ci-smoke: passed</div>
@@ -185,6 +178,13 @@ video{max-width:480px;display:block;margin:4px 0}</style></head><body>
 <div class='reason'>the oracle is partial: login_invocation / binary paths sit inside the install root</div>
 <div class='ev'><a href='crew-api.roster.read/api-transcript.json'>api-transcript 1</a> <a href='scenarios/wicked-ci-smoke/S09/api-transcript.json'>api-transcript 2</a> <a href='scenarios/wicked-ci-smoke/S09/cli-transcript.json'>cli-transcript</a> <a href='scenarios/wicked-ci-smoke/S09/event-log.json'>event-log</a> <a href='crew-api.roster.read/file-hash.json'>file-hash</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S09/cli-version.json'>scenario-evidence 1</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S09/roster.json'>scenario-evidence 2</a> <a href='crew-api.roster.read/result.json'>result.json</a></div>
 </div>
+<div class='cap'><span class='id'>crew-api.runs.cancel</span> <span class="v" style="background:#bc4c00">partial</span> <span class='meta'>crew-api · api · S</span>
+<div>Cancel a running or paused run</div>
+<div class='meta'>scenario <code>wicked-ci:smoke/lib/steps/S06-campaign.mjs</code> at e2e-hermetic via wicked-ci-smoke: passed</div>
+<div class='meta'>checks: 1 held, 0 contradicted, 1 unsatisfied on the transcript, 1 not observed, of 3</div>
+<div class='reason'>the oracle is partial: GET /runs/:id status==&#x27;cancelled&#x27;; runCancelled frame; terminal run -&gt; 409; unknown -&gt; 404; check 1, 2 not observed; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)</div>
+<div class='ev'><a href='crew-api.runs.cancel/api-transcript.json'>api-transcript 1</a> <a href='scenarios/wicked-ci-smoke/S06/api-transcript.json'>api-transcript 2</a> <a href='scenarios/wicked-ci-smoke/S06/cli-transcript.json'>cli-transcript</a> <a href='scenarios/wicked-ci-smoke/S06/event-log.json'>event-log</a> <a href='crew-api.runs.cancel/file-hash.json'>file-hash</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json'>scenario-evidence 1</a> <a href='scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json'>scenario-evidence 2</a> <a href='crew-api.runs.cancel/result.json'>result.json</a></div>
+</div>
 <div class='cap'><span class='id'>crew-api.runs.diff</span> <span class="v" style="background:#bc4c00">partial</span> <span class='meta'>crew-api · api · S</span>
 <div>Run worktree diff (HEAD, merge-base or ref; path narrowed)</div>
 <div class='meta'>scenario <code>wicked-ci:smoke/lib/steps/S04-bug-run.mjs</code> at e2e-hermetic via wicked-ci-smoke: passed</div>
@@ -238,8 +238,8 @@ video{max-width:480px;display:block;margin:4px 0}</style></head><body>
 <div class='cap'><span class='id'>ci.smoke.reusable</span> <span class="v" style="background:#bc4c00">partial</span> <span class='meta'>foundation · background · S</span>
 <div>smoke.yml: artifact-level seam smoke on the published set (S01-S10)</div>
 <div class='meta'>scenario <code>direct</code> at e2e-live via direct: passed</div>
-<div class='meta'>checks: 0 held, 0 contradicted, 0 unsatisfied on the transcript, 1 not observed, of 1</div>
-<div class='reason'>the oracle is partial: the caller&#x27;s run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present; check 0 not observed; the runner only read the end state; no scenario drove the user&#x27;s path</div>
+<div class='meta'>checks: 1 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 1</div>
+<div class='reason'>the oracle is partial: the caller&#x27;s run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run); the runner only read the end state; no scenario drove the user&#x27;s path</div>
 <div class='ev'><a href='ci.smoke.reusable/api-transcript.json'>api-transcript</a> <a href='ci.smoke.reusable/cli-transcript.json'>cli-transcript</a> <a href='ci.smoke.reusable/result.json'>result.json</a></div>
 </div>
 <div class='cap'><span class='id'>foundation.platform.acceptance.read</span> <span class="v" style="background:#bc4c00">partial</span> <span class='meta'>foundation · api · S</span>

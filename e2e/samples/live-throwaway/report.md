@@ -1,6 +1,6 @@
-# e2e certification run 20261020T151454Z-1492
+# e2e certification run 20261020T154030Z-ae8c
 
-Target **live** (http://127.0.0.1:7811), selection `id:crew-api.health.get,crew-api.diagnostics.*,crew-api.roster.read,crew-api.skills.manifest,crew-api.chats.list,crew-api.campaigns.read,crew-api.standing-orders.read,studio-ui.shell.desk-loads,studio-ui.rail.order,crew-api.runs.list*,crew-api.projects.crud`. Started 2026-10-20T15:14:54+00:00, finished 2026-10-20T15:15:08+00:00.
+Target **live** (http://127.0.0.1:7811), selection `id:crew-api.health.get,crew-api.diagnostics.*,crew-api.roster.read,crew-api.skills.manifest,crew-api.chats.list,crew-api.campaigns.read,crew-api.standing-orders.read,studio-ui.shell.desk-loads,studio-ui.rail.order,crew-api.runs.list*,crew-api.projects.crud`. Started 2026-10-20T15:40:30+00:00, finished 2026-10-20T15:40:37+00:00.
 
 A `pass` means every typed check was observed to hold, on something tied to this path, on a complete oracle at e2e-live or e2e-hermetic fidelity, on a path a scenario drove. `partial` lists what is missing. `skipped` names the unmet dependency. This report restates the results; `e2e validate --report` checks them.
 
@@ -22,7 +22,7 @@ A `pass` means every typed check was observed to hold, on something tied to this
 | crew-api | 2 | 8 | 3 | 1 | 14 |
 | foundation | 0 | 0 | 1 | 0 | 1 |
 
-Evidence: hashed and recorded in wicked-vault scope `e2e-20261020T151454Z-1492`.
+Evidence: hashed and recorded in wicked-vault scope `e2e-20261020T154030Z-ae8c`.
 
 Validation (`e2e validate --report`, when this report was written): **OK**
 
@@ -74,11 +74,11 @@ Validation (`e2e validate --report`, when this report was written): **OK**
 - **studio-ui.rail.order** (ui, S) via `direct` at e2e-live
   - checks: 2 held, 0 contradicted, 0 unsatisfied on the transcript, 1 not observed, of 3
   - the oracle is partial: DOM order of rail link texts equals the list in desk_rail_test ORDER; absence of links to /repos,/rules,/testing,/agents in rail; check 2 not observed; the runner only read the end state; no scenario drove the user's path
-  - [api-transcript 1](scenarios/direct/pw/visit/api-transcript.json) · [api-transcript 2](scenarios/direct/api-transcript.json) · [event-log 1](scenarios/direct/pw/visit/network-events.json) · [event-log 2](scenarios/direct/event-log.json) · [screenshot 1](scenarios/direct/pw/visit/shots/001-visit.png) · [screenshot 2](scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png) · [trace](scenarios/direct/pw/visit/trace/ctx-1.zip) · [video](scenarios/direct/pw/visit/video/page@798d3c217995bd515e8b934ecf9241a7.webm) · [result](studio-ui.rail.order/result.json)
+  - [api-transcript 1](scenarios/direct/pw/visit/api-transcript.json) · [api-transcript 2](scenarios/direct/api-transcript.json) · [event-log 1](scenarios/direct/pw/visit/network-events.json) · [event-log 2](scenarios/direct/event-log.json) · [screenshot 1](scenarios/direct/pw/visit/shots/001-visit.png) · [screenshot 2](scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png) · [trace](scenarios/direct/pw/visit/trace/ctx-1.zip) · [video](scenarios/direct/pw/visit/video/page@e9011b5842c73625734ba8c43decbd62.webm) · [result](studio-ui.rail.order/result.json)
 - **studio-ui.shell.desk-loads** (ui, S) via `direct` at e2e-live
   - checks: 2 held, 0 contradicted, 0 unsatisfied on the transcript, 0 not observed, of 2
   - the oracle is partial: DOM: document.querySelector('[data-shell=desk]') present; [data-testid=desk] data-tab=='work'; rail boundingBox.width==236; 0 pageerror events; the runner only read the end state; no scenario drove the user's path
-  - [api-transcript 1](scenarios/direct/pw/visit/api-transcript.json) · [api-transcript 2](scenarios/direct/api-transcript.json) · [event-log 1](scenarios/direct/pw/visit/network-events.json) · [event-log 2](scenarios/direct/event-log.json) · [screenshot 1](scenarios/direct/pw/visit/shots/001-visit.png) · [screenshot 2](scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png) · [trace](scenarios/direct/pw/visit/trace/ctx-1.zip) · [video](scenarios/direct/pw/visit/video/page@798d3c217995bd515e8b934ecf9241a7.webm) · [result](studio-ui.shell.desk-loads/result.json)
+  - [api-transcript 1](scenarios/direct/pw/visit/api-transcript.json) · [api-transcript 2](scenarios/direct/api-transcript.json) · [event-log 1](scenarios/direct/pw/visit/network-events.json) · [event-log 2](scenarios/direct/event-log.json) · [screenshot 1](scenarios/direct/pw/visit/shots/001-visit.png) · [screenshot 2](scenarios/direct/pw/visit/shots/002-final-ctx1-page0.png) · [trace](scenarios/direct/pw/visit/trace/ctx-1.zip) · [video](scenarios/direct/pw/visit/video/page@e9011b5842c73625734ba8c43decbd62.webm) · [result](studio-ui.shell.desk-loads/result.json)
 
 ## skipped (4)
 
