@@ -465,6 +465,14 @@ class ResolveEdges(unittest.TestCase):
         out = self.r("Can you test the run page on http://127.0.0.1:7801?")
         self.assertEqual((out["status"], out["studio"]), ("resolved", "http://127.0.0.1:7801"))
 
+    def test_round7_cost_bounds_intersect_and_id_globs_keep_their_question_mark(self):
+        self.assertEqual(self.r("test crew cost<=S without governed runs")["selection"], "area:crew-api cost<=S")
+        self.assertEqual(self.r("test crew cost<=L cheap")["selection"], "area:crew-api cost<=S")
+        out = self.r("run id:crew-api.runs.* !id:crew-api.runs.cance? on fixture")
+        self.assertEqual(out["selection"], "id:crew-api.runs.* !id:crew-api.runs.cance?")
+        from e2ecat.select import select
+        self.assertNotIn("crew-api.runs.cancel", [c["id"] for c in select(self.caps, out["selection"])])
+
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
         self.assertTrue(self.r("run the release profile")["ask_before_running"])

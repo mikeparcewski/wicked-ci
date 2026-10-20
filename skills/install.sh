@@ -58,6 +58,17 @@ case "$cdest/" in
 esac
 
 run mkdir -p "$dest"
+# Preflight every target before changing anything: none may be, or contain, this checkout.
+for src in "$here"/wicked-e2e*; do
+  [ -f "$src/SKILL.md" ] || continue
+  t="$dest/$(basename "$src")"
+  if [ -d "$t" ] && [ ! -L "$t" ]; then
+    ct=$(cd "$t" && pwd -P)
+    case "$root/" in
+      "$ct"/*) echo "install.sh: $t contains this checkout ($root); refusing to replace it" >&2; exit 2 ;;
+    esac
+  fi
+done
 n=0
 for src in "$here"/wicked-e2e*; do
   [ -f "$src/SKILL.md" ] || continue

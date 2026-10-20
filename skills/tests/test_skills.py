@@ -346,6 +346,22 @@ class Install(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(msk, d, "SKILL.md")))
 
     @unittest.skipIf(sys.platform.startswith("win"), "install.sh runs under Git Bash there; covered on ubuntu and macOS")
+    def test_a_checkout_living_at_a_target_is_never_replaced(self):
+        # DEST/wicked-e2e is the checkout itself: --force DEST must refuse before touching anything.
+        dest = os.path.join(self.tmp, "dest")
+        mock = os.path.join(dest, "wicked-e2e")
+        shutil.copytree(SKILLS, os.path.join(mock, "skills"), ignore=shutil.ignore_patterns("__pycache__"))
+        os.makedirs(os.path.join(mock, "e2e", "bin"))
+        with open(os.path.join(mock, "e2e", "bin", "e2e"), "w", encoding="utf-8") as fh:
+            fh.write("# stub\n")
+        r = subprocess.run([shutil.which("sh"), os.path.join(mock, "skills", "install.sh"), "--force", dest],
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertFalse(os.path.islink(mock))
+        self.assertTrue(os.path.isfile(os.path.join(mock, "skills", "wicked-e2e", "SKILL.md")))
+        self.assertEqual(sorted(os.listdir(dest)), ["wicked-e2e"], "nothing else was installed")
+
+    @unittest.skipIf(sys.platform.startswith("win"), "install.sh runs under Git Bash there; covered on ubuntu and macOS")
     def test_codex_and_a_destination_are_exclusive_in_either_order(self):
         dest = os.path.join(self.tmp, "x")
         for args in (("--codex", dest), (dest, "--codex")):

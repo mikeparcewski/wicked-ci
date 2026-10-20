@@ -100,7 +100,10 @@ def _tokens(text):
     t = PORT_WORD.sub(" ", PORT_ONLY.sub(" ", HOST_PORT.sub(" ", URL.sub(" ", t))))
     out = []
     for tok in re.findall(r"!?[A-Za-z0-9][A-Za-z0-9.\-_*:<=,?!\[\]]*", t):
-        tok = tok.rstrip(".,?!:")
+        if re.match(r"^!?id:", tok):
+            tok = tok.rstrip(".,!:")  # `?` is a glob character in an id term (`!id:crew-api.runs.cance?`)
+        else:
+            tok = tok.rstrip(".,?!:")
         out.append(tok if TERM.match(tok) else tok.lower())
     return [x for x in out if x]
 
@@ -327,6 +330,12 @@ def resolve(request, caps, profiles, run_dir=None):
         # A modifier narrows a topic or a profile; alone it would select across every area.
         explain.append({"words": "cost/manual modifier", "as": "ignored: no word names a topic to narrow"})
         cost, negate = None, []
+    lit_costs = [t[len("cost<="):] for t in literal if t.startswith("cost<=")]
+    if cost and lit_costs:
+        # cost<= terms are OR'd, so a second one would widen: keep the lower bound only (the intersection).
+        cost = min([cost] + [c for c in lit_costs if c in "SML" and len(c) == 1] or [cost], key=lambda c: "SML".index(c))
+        literal = [t for t in literal if not t.startswith("cost<=")]
+        explain.append({"words": "cost bounds", "as": "the lower one, cost<=%s (same-key terms would widen)" % cost})
     parts = ["%s:%s" % (k, ",".join(v)) for k, v in terms.items() if k in ("area", "tag", "id")]
     parts += literal + (["cost<=%s" % cost] if cost else []) + negate
     expr = " ".join(parts)
