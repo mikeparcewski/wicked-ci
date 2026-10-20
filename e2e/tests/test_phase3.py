@@ -528,6 +528,18 @@ class ResolveEdges(unittest.TestCase):
         self.assertTrue(out["ask_before_running"])
         self.assertFalse(any("--live-journeys" in c for c in self.r("test crew on http://127.0.0.1:7801")["commands"]))
 
+    def test_round16_live_journeys_only_from_a_positive_prose_request(self):
+        for text in ("test studio on http://localhost:7801/live-journeys/",
+                     "test studio !id:*live-journeys* on http://localhost:7801",
+                     "test studio on http://localhost:7801; live journeys are forbidden",
+                     "test studio on http://localhost:7801 without live journeys"):
+            out = self.r(text)
+            self.assertFalse(out["live_journeys"], text)
+            self.assertFalse(any("--live-journeys" in c for c in out["commands"]), text)
+        for text in ("run studio with live journeys on http://localhost:7801",
+                     "test studio on http://localhost:7801 --live-journeys"):
+            self.assertTrue(self.r(text)["live_journeys"], text)
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")

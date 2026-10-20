@@ -99,6 +99,18 @@ LOOKUP_START = re.compile(r"^\s*(please\s+)?(list|show|find|count|which|what|how
 EXEC_VERB = re.compile(r"\b(test\w*|certif\w*|run|running|check\w*|verif\w*|execut\w*|exercis\w*|e2e)\b")
 
 
+JOURNEYS_POS = re.compile(r"(^|\s)--live-journeys\b|\b(run|runs|running|with|use|using|enable|enabling|include|"
+                          r"including|plus|and)\b[^.;,]{0,30}?\blive[- ]journeys?\b|^\s*(please\s+)?live[- ]journeys?\b")
+JOURNEYS_NEG = re.compile(r"\b(no|not|without|never|skip|except|excluding|forbid\w*|don'?t|disable\w*)\b[^.;,]{0,30}?"
+                          r"\blive[- ]journeys?\b|\blive[- ]journeys?\b[^.;,]{0,20}?\b(forbidden|not|off|disabled|banned)\b")
+
+
+def _journeys_requested(itext):
+    """A positive request for the studio's live journeys, read only in prose (URLs, ids and literal terms are
+    already removed), never when the sentence negates them. Anything else leaves them off."""
+    return bool(JOURNEYS_POS.search(itext)) and not JOURNEYS_NEG.search(itext)
+
+
 def _only_profile_words(itext):
     """`smoke`, `the daily`: a bare profile name is a request to run that profile."""
     words = [w for w in re.findall(r"[a-z]+", itext) if w not in STOP]
@@ -279,7 +291,7 @@ def resolve(request, caps, profiles, run_dir=None):
         explain_pre.append({"words": neg.group(0),
                             "as": "a request not to run: listing only"})
         action = "select"
-    journeys = bool(re.search(r"(?<![\w])(--)?live[- ]journeys?\b", text.lower()))
+    journeys = _journeys_requested(_intent_text(text, vocab, phrases=False))
     url, port, live = _live(text)
     if action not in ("run", "plan", "rerun") and port not in OPERATOR_PORTS:
         url, port, live = None, None, False  # reports, evidence, lookups and validation take no target
