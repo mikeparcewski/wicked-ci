@@ -95,6 +95,11 @@ A capability's `oracle` is one typed check, an `all` of typed checks, or `manual
   transcript. `where` matches request-body fields (`body.workflow`), and `count: 0` asserts the
   request was never sent. An `api` check is a request the runner itself makes. On a UI path that
   is only ever a GET that reads the terminal state.
+- **Requests are real routes.** Every request a check makes or observes on crew (`/api/v1`) or
+  the bridge (`/api`, `/d/:doc`) must be a route in the pinned manifests, with a well-formed
+  query. A bridge path written without its document mount resolves to `/d/{doc}` when only that
+  form exists. A non-GET check carries `body: "{request_body}"`: the user path's own request
+  body, which the scenario's setup binds.
 - **Placeholders** in `{braces}` come from a `capture` or from the runner's own bindings
   (`{port}`, `{runId}`, `{projectId}`, `{repoId}`, `{tag}`, and seeded values a scenario's setup
   names, such as `{stale_ord}`). A path's `:id` is named after its resource (`/runs/{runId}`).
@@ -155,7 +160,7 @@ evidence is complete. It does not judge the results.
 | wicked-estate | `estate` | `mcp` (from `all_tools()` and the memory, knowledge and proposal dispatch), `mcp-resource`, `cli` (from `cli_flags::COMMANDS` and the tool-bridge rows) |
 | wicked-garden | `garden` | `skill`, `fork-skill` and `hook` (from `.claude-plugin/components.json` and `hooks/hooks.json`), `cli` (the `install.mjs` verbs), `pack` |
 | wicked-core | `core` | `cli` (from `SUBCOMMAND_USAGE` and the dispatch arms of `src/bin/wicked-core.rs`) |
-| wicked-interactive | `interactive` | `route` (the bridge's `app.<verb>()` registrations), `cli` |
+| wicked-interactive | `interactive` | `route`: the bridge root's `top.<verb>()` registrations, and each document service's `app.<verb>()` registrations under their `/d/:doc` mount; `cli` |
 | wicked-bus, wicked-vault | `bus`, `vault` | `cli` (verbs and sub-verbs, and the `*-install` bins) |
 | wicked-ledger | `ledger` | `export` (the public exports of `lib/index.mjs`; it has no CLI) |
 | wicked-installer | `installer` | `cli`, `agent` (one per `src/install-<cli>.ts`), `product`, `bundle` |
@@ -226,7 +231,7 @@ e2e select --profile release
 | profile | selection | count (2026-10-20 pins) |
 |---|---|---:|
 | `smoke` | `tag:smoke cost<=M !oracle=manual` | 33 |
-| `daily` | `cost<=M !oracle=manual` | 849 |
+| `daily` | `cost<=M !oracle=manual` | 847 |
 | `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 356 |
 | `full` | everything (manual capabilities report `manual`) | 1411 |
 
@@ -331,7 +336,7 @@ From now on the catalog files are the source.
     A roster comparison must address `$.roster`. Other response paths come from the inventory's
     wording and are not yet checked against the response types; phase 2 binds them.
   - Hand-written oracles that omit a clause of their user path list it in `untyped` too.
-  - 19 oracles are complete, 959 partial, 323 untyped and 110 manual.
+  - 19 oracles are complete, 956 partial, 326 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.

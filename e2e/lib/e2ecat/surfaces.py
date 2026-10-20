@@ -377,8 +377,10 @@ def interactive(root, ctx):
     for f in git_files_cached(ctx, root):
         if f.startswith("src/") and f.endswith((".js", ".mjs")):
             txt = read_text(os.path.join(root, f))
-            for meth, path in re.findall(r"app\.(get|post|put|patch|delete|all)\(\s*[\"']([^\"']+)[\"']", txt):
-                els.append(_el("interactive", "route", "%s %s" % (meth.upper(), path), [f]))
+            # `top` is the bridge root; `app` is one document's service, mounted at /d/:doc (top.use(`/d/${name}`, svc.app)).
+            for recv, meth, path in re.findall(r"\b(top|app)\.(get|post|put|patch|delete|all)\(\s*[\"']([^\"']+)[\"']", txt):
+                full = path if recv == "top" else "/d/:doc" + path
+                els.append(_el("interactive", "route", "%s %s" % (meth.upper(), full), [f]))
     bin_rel = "bin/wicked-interactive.js"
     b = _read(root, bin_rel)
     for c in sorted(set(re.findall(r"cmd === \"([a-z-]+)\"", b)) | {"serve"}):

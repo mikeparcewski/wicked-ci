@@ -383,19 +383,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/trace/c1",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "rows A,B,child share correlation_id 'c1'",
-     "B.parent_event_id == A.event_id",
-     "child row parent_event_id == env value",
-     "/api/trace/c1 lists all three"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: rows A,B,child share correlation_id 'c1'; B.parent_event_id == A.event_id; child row parent_event_id == env value; /api/trace/c1 lists all three"
    },
    "oracle_text": "rows A,B,child share correlation_id 'c1'; B.parent_event_id == A.event_id; child row parent_event_id == env value; /api/trace/c1 lists all three",
    "covers": [

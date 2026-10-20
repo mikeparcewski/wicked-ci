@@ -510,7 +510,8 @@
       "path": "/api/v1/editors/{editorId}",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",

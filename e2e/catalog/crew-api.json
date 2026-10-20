@@ -290,6 +290,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "mutating route -> 403",
@@ -346,6 +347,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "no Authorization + valid unit token -> 200",
@@ -722,6 +724,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 {campaignId,status}",
@@ -782,7 +785,8 @@
       "path": "/api/v1/campaigns",
       "expect": {
        "status": 201
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -1068,7 +1072,8 @@
       "path": "/api/v1/chats/{chatId}",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -1300,7 +1305,8 @@
       "path": "/api/v1/chats/{chatId}/messages",
       "expect": {
        "status": 202
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -1389,7 +1395,8 @@
       "path": "/api/v1/chats",
       "expect": {
        "status": 201
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -1401,7 +1408,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -1574,7 +1582,8 @@
       "path": "/api/v1/chats/{chatId}/seats",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -2706,7 +2715,8 @@
       "path": "/api/v1/decisions/{decisionId}/dismiss",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -2758,7 +2768,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/decisions&project=",
+    "path": "/api/v1/decisions?project=",
     "expect": {
      "status": 200
     },
@@ -2814,7 +2824,8 @@
       "path": "/api/v1/decisions/{decisionId}/remember",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -2873,6 +2884,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 {rule_id?}",
@@ -2919,6 +2931,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 ok",
@@ -2970,6 +2983,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 rule_id present in GET /governance/rules"
@@ -3185,6 +3199,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "GET freeze {frozen:true,since,by,reason}",
@@ -3301,6 +3316,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 json.prUrl non-empty",
@@ -3514,7 +3530,8 @@
       "path": "/api/v1/runs/{runId}/demo/document",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -3538,7 +3555,7 @@
    "oracle_text": "200 with doc id; bridge down -> 503; unknown -> 404",
    "covers": [
     "crew:route:POST /api/v1/runs/:id/demo/document",
-    "interactive:route:GET /api/demo/cut"
+    "interactive:route:GET /d/:doc/api/demo/cut"
    ],
    "scenarios": [
     {
@@ -3586,7 +3603,8 @@
       "path": "/api/v1/runs/{runId}/demo/export",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -3665,6 +3683,7 @@
       "expect": {
        "status": 201
       },
+      "body": "{request_body}",
       "capture": {
        "runId": "$.runId"
       }
@@ -3697,6 +3716,7 @@
       "expect": {
        "status": 201
       },
+      "body": "{request_body}",
       "capture": {
        "runId": "$.runId"
       }
@@ -3773,6 +3793,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 {bytes}",
@@ -4287,6 +4308,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 enabled matches",
@@ -4514,7 +4536,8 @@
       "path": "/api/v1/editors",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -4526,7 +4549,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -4660,7 +4684,8 @@
       "path": "/api/v1/editors/{editorId}",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -4762,7 +4787,8 @@
       "path": "/api/v1/runs/{runId}/gate",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -4972,7 +4998,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/gates/decided&limit=",
+    "path": "/api/v1/gates/decided?limit=",
     "expect": {
      "status": 200
     },
@@ -5752,6 +5778,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 replayed count == outbox lines",
@@ -5923,6 +5950,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "steering engine -> 410",
@@ -6090,6 +6118,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "GET rules?status=retired contains id",
@@ -6142,7 +6171,8 @@
       "path": "/api/v1/governance/rules",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -6488,7 +6518,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -6503,7 +6534,8 @@
    "oracle_text": "2xx json.id non-empty, or 503 with code 'bridge_unavailable'; invalid body 400; response within budget",
    "covers": [
     "crew:route:POST /api/v1/projects/:projectId/interactive/*",
-    "crew:route:POST /api/v1/projects/:projectId/interactive/api/docs"
+    "crew:route:POST /api/v1/projects/:projectId/interactive/api/docs",
+    "interactive:route:POST /api/docs"
    ],
    "scenarios": [
     {
@@ -6571,7 +6603,8 @@
       "path": "/api/v1/projects/{projectId}/interactive/docs/{doc}",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -6583,7 +6616,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -6682,7 +6716,8 @@
    "oracle_text": "200 array; bridge down -> 503; unknown project 404",
    "covers": [
     "crew:route:GET /api/v1/projects/:projectId/interactive/*",
-    "crew:route:GET /api/v1/projects/:projectId/interactive/api/docs"
+    "crew:route:GET /api/v1/projects/:projectId/interactive/api/docs",
+    "interactive:route:GET /api/docs"
    ],
    "scenarios": [
     {
@@ -6819,7 +6854,8 @@
       "path": "/api/v1/projects/{projectId}/interactive-events",
       "expect": {
        "status": 202
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -6827,7 +6863,8 @@
       "path": "/api/v1/projects/{p}/interactive-events",
       "expect": {
        "status": 202
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -6908,7 +6945,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -6941,7 +6979,9 @@
     "crew:route:PUT /api/v1/projects/:projectId/interactive/*",
     "crew:route:QUERY /api/v1/projects/:projectId/interactive/*",
     "crew:route:TRACE /api/v1/projects/:projectId/interactive/*",
-    "interactive:route:GET /api/versions"
+    "interactive:route:GET /",
+    "interactive:route:GET /api/events",
+    "interactive:route:GET /d/:doc/api/versions"
    ],
    "scenarios": [
     {
@@ -7003,7 +7043,8 @@
    },
    "oracle_text": "run workflow 'interactive-chat'; reply event on bus; flag --no-interactive-chat-events disables",
    "covers": [
-    "crew:mcp:ask"
+    "crew:mcp:ask",
+    "interactive:route:POST /api/events"
    ],
    "scenarios": [
     {
@@ -7346,6 +7387,7 @@
       "expect": {
        "status": 200
       },
+      "body": "{request_body}",
       "capture": {
        "runId": "$.runId"
       }
@@ -7464,6 +7506,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "PUT 200 LearnSchedule",
@@ -7562,6 +7605,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "issues[].ref includes '#12'",
@@ -7617,6 +7661,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "result has status",
@@ -7985,6 +8030,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "201 with serverInfo/capabilities",
@@ -8042,6 +8088,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "POST 200 rulesChanged",
@@ -8100,6 +8147,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "POST 200 JSON-RPC result",
@@ -8163,7 +8211,8 @@
       "path": "/api/v1/mcp/call",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -8183,7 +8232,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -8279,15 +8329,8 @@
         201,
         202
        ]
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/mcp/tools?token=",
-      "expect": {
-       "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "exit",
@@ -8299,8 +8342,6 @@
     "untyped": [
      "200 tools[] == approved tools for unit",
      "bad token 401",
-     "response tools[] excludes certain-deny subjects",
-     "decisions log unchanged",
      "exit 0 JSON tools[]",
      "outside a governed unit (no WICKED_MCP_TOKEN/WICKED_CREW_URL) exit 2 no_mcp_channel and nothing sent"
     ]
@@ -8432,6 +8473,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 with allow/ask/deny arrays matching rules",
@@ -8534,6 +8576,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "PATCH 200",
@@ -8582,6 +8625,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 tools[] and previewHash",
@@ -8698,7 +8742,8 @@
       "path": "/api/v1/mcp/servers",
       "expect": {
        "status": 201
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -8760,6 +8805,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 set true",
@@ -8810,6 +8856,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 ok true for healthy server",
@@ -8856,6 +8903,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "GET servers shows tool state",
@@ -8900,7 +8948,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/mcp/usage&since=",
+    "path": "/api/v1/mcp/usage?since=",
     "expect": {
      "status": 200
     },
@@ -8997,7 +9045,8 @@
       "path": "/api/v1/memory/edit",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -9051,7 +9100,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/memory&facets={json}&limit=",
+    "path": "/api/v1/memory?facets={json}&limit=",
     "expect": {
      "status": 200
     },
@@ -9100,6 +9149,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 erased 1",
@@ -9149,7 +9199,8 @@
       "path": "/api/v1/memory/retire",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -9210,6 +9261,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "inside run workdir/repo root -> 200",
@@ -9305,6 +9357,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "foreign Origin write -> 403 origin_refused",
@@ -9359,6 +9412,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "band in engine band set",
@@ -9510,7 +9564,8 @@
       "path": "/api/v1/runs",
       "expect": {
        "status": 201
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -9522,7 +9577,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -9716,6 +9772,7 @@
       "expect": {
        "status": 201
       },
+      "body": "{request_body}",
       "capture": {
        "runId": "$.runId"
       }
@@ -9806,6 +9863,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "POST 201 id",
@@ -9868,6 +9926,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "POST 201/200",
@@ -9926,6 +9985,7 @@
       "expect": {
        "status": 202
       },
+      "body": "{request_body}",
       "capture": {
        "runId": "$.runId"
       }
@@ -10054,7 +10114,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -10135,7 +10196,8 @@
       "path": "/api/v1/proposals/{proposalId}/approve",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -10259,7 +10321,8 @@
       "path": "/api/v1/proposals",
       "expect": {
        "status": 201
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -10315,7 +10378,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/proposals&state=pending",
+    "path": "/api/v1/proposals?state=pending",
     "expect": {
      "status": 200
     },
@@ -10367,7 +10430,8 @@
       "path": "/api/v1/proposals/{proposalId}/reject",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -10588,6 +10652,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "health.capabilities.qeAcceptance reflects setting",
@@ -11109,6 +11174,7 @@
     "expect": {
      "status": 201
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "201 repo.root_path exists with .git",
@@ -11645,7 +11711,8 @@
       "path": "/api/v1/runs/{runId}/cancel",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -12320,7 +12387,8 @@
       "path": "/api/v1/runs/{runId}/guidance",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -12382,7 +12450,8 @@
       "path": "/api/v1/runs/{runId}/inject",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -12677,6 +12746,7 @@
       "expect": {
        "status": 201
       },
+      "body": "{request_body}",
       "capture": {
        "runId": "$.runId"
       }
@@ -12951,6 +13021,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "json.linkedIssues[0].ref=='#12' and resolved true with title, or error string",
@@ -13008,6 +13079,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "201 and GET /runs/:id units ids match plan step ids",
@@ -13155,7 +13227,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -13312,6 +13385,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "flagged: session.reduced_assurance true and GateDecisionResult.assurance labels reduced",
@@ -13509,7 +13583,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -13606,7 +13681,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -13838,6 +13914,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 {status, proposal_id, band}",
@@ -13894,7 +13971,8 @@
       "path": "/api/v1/runs/{runId}/reassign",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -13971,7 +14049,8 @@
       "path": "/api/v1/runs/{runId}/resume",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -14138,7 +14217,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -14356,6 +14436,7 @@
     "expect": {
      "status": 201
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "file at path with content hash equal",
@@ -14535,6 +14616,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "201 {terminalId, action:'sign_in'}",
@@ -14611,7 +14693,8 @@
       "path": "/api/v1/seats/{cli}/container-logout",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -14623,7 +14706,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -14753,7 +14837,8 @@
       "path": "/api/v1/seats/{cli}/logout",
       "expect": {
        "status": 201
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -14984,6 +15069,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "GET reflects",
@@ -15050,6 +15136,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 verdict ok",
@@ -15101,6 +15188,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 findings[]",
@@ -15299,7 +15387,8 @@
       "path": "/api/v1/skills/publish",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -15422,6 +15511,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "baseline version == installed garden version",
@@ -15476,6 +15566,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 SkillMutationResult revision+1",
@@ -15526,6 +15617,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 away true awaySince set",
@@ -15571,6 +15663,7 @@
     "expect": {
      "status": 201
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "201 {order}",
@@ -15616,6 +15709,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "GET omits id",
@@ -15900,7 +15994,8 @@
       "path": "/api/v1/governance/steering/import",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -16108,7 +16203,8 @@
       "path": "/api/v1/team/outbox/replay",
       "expect": {
        "status": 200
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -16120,7 +16216,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": false,
@@ -16184,6 +16281,7 @@
     "expect": {
      "status": 201
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "201 id",
@@ -16240,6 +16338,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "resize 200 (stty size in PTY matches)",
@@ -16299,6 +16398,7 @@
       "expect": {
        "status": 201
       },
+      "body": "{request_body}",
       "capture": {
        "runId": "$.runId"
       }
@@ -16383,6 +16483,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 imported count == samples.length",
@@ -16482,6 +16583,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "summary counts == results.length partitioned by verdict",
@@ -16547,7 +16649,8 @@
       "path": "/api/v1/testing/recon",
       "expect": {
        "status": 201
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -16698,6 +16801,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "feed shows item dismissed",
@@ -16792,7 +16896,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/watch&limit=",
+    "path": "/api/v1/watch?limit=",
     "expect": {
      "status": 200
     },
@@ -16896,6 +17000,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "units phases == [triage,reproduce,fix,verify,deliver]",
@@ -17020,6 +17125,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "phases == [explore]",
@@ -17306,6 +17412,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "units phases match def",
@@ -17414,6 +17521,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "phases == [scope,research,synthesize,walkthrough,author,review]",
@@ -17530,6 +17638,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "units phases == [plan,execute,cutover,verify,cleanup(+deliver)]",
@@ -17643,6 +17752,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "phases == [recon,author,verify,review(+deliver)]",
@@ -17699,6 +17809,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "phases == [analyze,propose]",
@@ -17851,6 +17962,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "410",
@@ -18100,6 +18212,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "first binary frame contains output written before attach (e.g. echo marker)",

@@ -34,7 +34,8 @@
         201,
         202
        ]
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -349,6 +350,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "HTTP 409 with that error text",

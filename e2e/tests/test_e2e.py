@@ -182,6 +182,20 @@ class CatalogChecks(unittest.TestCase):
         fails, _ = self.run_check(cap(surface="cli", required_evidence=["cli-transcript"], oracle=o))
         self.assertEqual(fails, [])
 
+    def test_requests_must_be_routes_in_the_manifests(self):
+        self.surf["wicked-crew"] = {"repo": "wicked-crew", "sha": "c" * 40, "tests": [], "elements": [
+            {"key": "crew:route:GET /api/v1/runs/:id", "kind": "route", "name": "GET /api/v1/runs/:id", "files": []},
+            {"key": "crew:route:GET /api/v1/decisions", "kind": "route", "name": "GET /api/v1/decisions", "files": []}]}
+        api = lambda m, p: {"kind": "api", "method": m, "path": p, "expect": {"status": 200}, "complete": True}
+        for o, want in ((api("GET", "/api/v1/testing/corpora"), "is not a route"),
+                        (api("POST", "/api/v1/runs/{runId}"), "is not a route"),
+                        (api("GET", "/api/v1/decisions&project=x"), "no `?`")):
+            fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=o))
+            self.assertTrue(any(want in f for f in fails), (o, fails))
+        for o in (api("GET", "/api/v1/runs/{runId}"), api("GET", "/api/v1/decisions?project=x"), api("GET", "https://example.com/")):
+            fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=o))
+            self.assertEqual(fails, [], o)
+
     def test_manual_precheck_is_checked_too(self):
         o = {"kind": "manual", "category": "model-output", "reason": "model output only",
              "precheck": {"kind": "api", "method": "GET", "path": "/x", "expect": {}}}

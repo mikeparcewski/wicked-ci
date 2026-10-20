@@ -108,6 +108,7 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
             aliases[a] = c["id"]
     elements = {e["key"] for m in surfaces.values() for e in m["elements"]}
     verbs = cli_verbs(surfaces)
+    routes = route_index(surfaces)
     tests = {m["repo"]: set(m["tests"]) for m in surfaces.values()}
     tests["wicked-ci"] = set(local_test_index(repo_root))
     for c in caps:
@@ -121,6 +122,7 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
         if isinstance(o, dict) and o.get("kind") in TYPED:
             fails += ["%s: %s" % (cid, f) for f in check_semantics(_checks(o))]
             fails += ["%s: %s" % (cid, f) for f in check_verbs(_checks(o), verbs)]
+            fails += ["%s: %s" % (cid, f) for f in check_routes(_checks(o), routes)]
             if "complete" not in o:
                 fails.append("%s: a typed oracle must say whether it is complete" % cid)
             elif o["complete"] and o.get("untyped"):
@@ -248,6 +250,50 @@ def check_verbs(checks, verbs):
             continue  # a refusal check may run an unknown verb on purpose (`wicked-crew frobnicate` -> exit 1)
         if b in verbs and verbs[b] and len(toks) > 1 and not toks[1].startswith(("-", "{")) and toks[1] not in verbs[b]:
             out.append("oracle check %d (exit) runs `%s %s`, a verb %s's manifest does not list" % (i, b, toks[1], b))
+    return out
+
+
+def route_index(surfaces):
+    """[(method, [segments])] for crew's /api/v1 and interactive's routes, from the manifests."""
+    out = []
+    for repo in ("wicked-crew", "wicked-interactive"):
+        for e in surfaces.get(repo, {}).get("elements", []):
+            if e["kind"] == "route":
+                meth, path = e["name"].split(" ", 1)
+                out.append((meth, path.strip("/").split("/")))
+    return out
+
+
+def route_known(routes, meth, path):
+    segs = path.split("?")[0].strip("/").split("/")
+    for m, rs in routes:
+        if m not in (meth, "ALL"):
+            continue
+        if rs and rs[-1] == "*":
+            if len(segs) >= len(rs) - 1 and all(a == b or b.startswith(":") for a, b in zip(segs, rs[:-1])):
+                return True
+        elif len(rs) == len(segs) and all(a == b or b.startswith(":") or a.startswith("{") for a, b in zip(segs, rs)):
+            return True
+    return False
+
+
+def check_routes(checks, routes):
+    """Every request a check makes or observes on crew (/api/v1) or the bridge (/api, /d/:doc) must be a route
+    the pinned manifests list, with a well-formed query."""
+    out = []
+    for i, ch in enumerate(checks):
+        if ch.get("kind") == "api" and ch.get("method") != "JSONRPC":
+            meth, path = ch.get("method"), ch.get("path", "")
+        elif ch.get("kind") == "event" and ch.get("source") == "network" and " " in ch.get("type", ""):
+            meth, path = ch["type"].split(" ", 1)
+        else:
+            continue
+        if not path.startswith(("/api/", "/d/")):
+            continue
+        if "&" in path.split("?")[0]:
+            out.append("oracle check %d: %s %s has a query parameter with no `?`" % (i, meth, path))
+        elif routes and not route_known(routes, meth, path):
+            out.append("oracle check %d: %s %s is not a route in the pinned crew/interactive manifests" % (i, meth, path))
     return out
 
 

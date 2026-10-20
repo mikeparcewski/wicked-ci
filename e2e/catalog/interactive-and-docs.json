@@ -33,6 +33,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "status 422 and body.code",
@@ -42,7 +43,8 @@
    "oracle_text": "status 422 and body.code; no chat.posted on the bus for that doc in the window",
    "covers": [
     "crew:mcp:ask",
-    "crew:route:POST /api/v1/projects/:projectId/interactive/*"
+    "crew:route:POST /api/v1/projects/:projectId/interactive/*",
+    "interactive:route:POST /api/events"
    ],
    "scenarios": [
     {
@@ -93,7 +95,8 @@
    },
    "oracle_text": "<root>/.wi-serve.json pid stable across two requests; proxied /api/health.root === resolved root; 503 body.code==='bridge_unavailable' when spawn fails",
    "covers": [
-    "crew:route:GET /api/v1/projects/:projectId/interactive/*"
+    "crew:route:GET /api/v1/projects/:projectId/interactive/*",
+    "interactive:route:POST /api/studio-origin"
    ],
    "scenarios": [
     {
@@ -374,6 +377,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "bridge 200 {event_id} with version defaulted to head",
@@ -384,7 +388,9 @@
     ]
    },
    "oracle_text": "bridge 200 {event_id} with version defaulted to head; review root ledger has N rows stamped crew_run_id; N review.completed events; run roster excludes draft-run creator seats; second identical request launches no new run",
-   "covers": [],
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
    "scenarios": [
     {
      "ref": "wicked-crew:packages/crew/tests/interactive-review-events.test.ts",
@@ -482,7 +488,11 @@
     ]
    },
    "oracle_text": "JSON shapes: /api/projects.projects[0].current===true; /api/crew/projects.available boolean; POST status 200 {id,name} | 4xx passthrough | 503",
-   "covers": [],
+   "covers": [
+    "interactive:route:GET /api/crew/projects",
+    "interactive:route:GET /api/projects",
+    "interactive:route:POST /api/crew/projects"
+   ],
    "scenarios": [
     {
      "ref": "wicked-interactive:test/instances.test.js",
@@ -573,6 +583,9 @@
       "kind": "api",
       "method": "POST",
       "path": "/api/demo/browser/install",
+      "body": {
+       "headless": true
+      },
       "expect": {
        "status": 200,
        "json": [
@@ -587,7 +600,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/demo/status",
+      "path": "/d/{doc}/api/demo/status",
       "expect": {
        "status": 200,
        "json": [
@@ -604,7 +617,8 @@
    },
    "oracle_text": "status 200 with ok:true and recorder components present, or 503 with code/remedy fields; subsequent GET /d/:doc/api/demo/status browser.ok===true",
    "covers": [
-    "interactive:route:GET /api/demo/status"
+    "interactive:route:GET /d/:doc/api/demo/status",
+    "interactive:route:POST /api/demo/browser/install"
    ],
    "scenarios": [
     {
@@ -644,6 +658,7 @@
     "expect": {
      "status": 200
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "first GET: 200 text/html containing 'serves the API'",
@@ -654,7 +669,9 @@
     ]
    },
    "oracle_text": "first GET: 200 text/html containing 'serves the API'; POST /api/studio-origin 200 {ok:true,studio_origin}; second GET: 302 with Location starting with recorded origin; non-loopback POST -> 403; invalid origin -> 400",
-   "covers": [],
+   "covers": [
+    "interactive:route:POST /api/studio-origin"
+   ],
    "scenarios": [
     {
      "ref": "wicked-interactive:test/shell-retirement.test.js",
@@ -981,7 +998,8 @@
    },
    "oracle_text": "exit code 0; JSON-parse <root>/.wi-serve.json and assert pid alive + port integer >=4400; GET /api/health -> 200 with body.ok===true and body.root===resolve(root) and body.pid===lock.pid",
    "covers": [
-    "interactive:cli:serve"
+    "interactive:cli:serve",
+    "interactive:route:GET /api/health"
    ],
    "scenarios": [
     {
@@ -1197,7 +1215,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/deck/review",
+    "path": "/d/{doc}/api/deck/review",
     "expect": {
      "status": 200
     },
@@ -1209,7 +1227,7 @@
    },
    "oracle_text": "GET /api/deck/review audience/proposal fields; events audience.changed states in order",
    "covers": [
-    "interactive:route:GET /api/deck/review"
+    "interactive:route:GET /d/:doc/api/deck/review"
    ],
    "scenarios": [
     {
@@ -1322,7 +1340,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/deck/review",
+    "path": "/d/{doc}/api/deck/review",
     "expect": {
      "status": 200
     },
@@ -1335,7 +1353,7 @@
    },
    "oracle_text": "GET /api/deck/review JSON decision state per slide; deck-review.json; event slide.decided {slide_id, version, decision}",
    "covers": [
-    "interactive:route:GET /api/deck/review"
+    "interactive:route:GET /d/:doc/api/deck/review"
    ],
    "scenarios": [
     {
@@ -1513,6 +1531,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "files exist with nonzero size",
@@ -1522,7 +1541,9 @@
     ]
    },
    "oracle_text": "files exist with nonzero size; ffprobe duration > 0; demo/status.state==='recorded' and .version===n; events in order preflight->recording->version.created",
-   "covers": [],
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
    "scenarios": [
     {
      "ref": "wicked-interactive:test/demo.test.js",
@@ -1617,7 +1638,8 @@
    },
    "oracle_text": "JSON active boolean flips true->false; run.id equals the crew run id from GET /api/v1/runs?doc=<doc>",
    "covers": [
-    "crew:route:GET /api/v1/runs"
+    "crew:route:GET /api/v1/runs",
+    "interactive:route:GET /api/docs/:doc/activity"
    ],
    "scenarios": [
     {
@@ -1660,6 +1682,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "response fields",
@@ -1668,7 +1691,9 @@
     ]
    },
    "oracle_text": "response fields; versions.json.kind==='demo'; invalid url -> 400 'a valid http(s) url is required'",
-   "covers": [],
+   "covers": [
+    "interactive:route:POST /api/docs"
+   ],
    "scenarios": [
     {
      "ref": "wicked-interactive:test/demo.test.js",
@@ -1726,7 +1751,8 @@
    "oracle_text": "response 200 name/head; versions.json.head===0 and .style===requested; _v0.html contains data-wid attributes; bus/WS event wicked.interactive.doc.created with payload.document_id",
    "covers": [
     "crew:route:POST /api/v1/projects/:projectId/interactive/*",
-    "crew:route:POST /api/v1/projects/:projectId/interactive/api/docs"
+    "crew:route:POST /api/v1/projects/:projectId/interactive/api/docs",
+    "interactive:route:POST /api/docs"
    ],
    "scenarios": [
     {
@@ -1832,6 +1858,7 @@
       }
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 with generating===true",
@@ -1840,7 +1867,9 @@
     ]
    },
    "oracle_text": "200 with generating===true; <doc>/conversation.jsonl line 1 role 'user' text===brief; 400 'add at least one source path or a brief' for empty",
-   "covers": [],
+   "covers": [
+    "interactive:route:POST /api/docs"
+   ],
    "scenarios": [
     {
      "ref": "wicked-interactive:test/generation.test.js",
@@ -2068,7 +2097,9 @@
    },
    "oracle_text": "status codes 200/200/410/409; event count of wicked.interactive.doc.retired for the doc ===1; versions.json has retired_at; _v*.html files still exist; no .pending-retire marker left",
    "covers": [
-    "interactive:route:GET /api/versions"
+    "interactive:route:DELETE /api/docs/:doc",
+    "interactive:route:GET /d/:doc/api/versions",
+    "interactive:route:POST /api/events"
    ],
    "scenarios": [
     {
@@ -2120,7 +2151,7 @@
    },
    "oracle_text": "versions.json-equal manifest; /doc body === _v<head>.html bytes; /doc/999 -> 404",
    "covers": [
-    "interactive:route:GET /api/versions"
+    "interactive:route:GET /d/:doc/api/versions"
    ],
    "scenarios": [
     {
@@ -2171,7 +2202,9 @@
     ]
    },
    "oracle_text": "stream contains 'event: ready' then 'event: wicked.interactive.version.created' with data.payload.document_id; ping within 16 s",
-   "covers": [],
+   "covers": [
+    "interactive:route:GET /api/events"
+   ],
    "scenarios": [
     {
      "ref": "wicked-interactive:test/bridge.test.js",
@@ -2218,6 +2251,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "status codes per case",
@@ -2226,7 +2260,9 @@
     ]
    },
    "oracle_text": "status codes per case; for (e) bus event payload.project_id === project.json id or undefined; producer==='wi-ui'",
-   "covers": [],
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
    "scenarios": [
     {
      "ref": "wicked-interactive:test/events.test.js",
@@ -2469,6 +2505,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "versions.json head incremented by exactly 1",
@@ -2478,7 +2515,9 @@
     ]
    },
    "oracle_text": "versions.json head incremented by exactly 1; new HTML element text === value; feedback.processed.applied===1; for no-op: head unchanged, feedback.processed.unchanged===true",
-   "covers": [],
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
    "scenarios": [
     {
      "ref": "wicked-interactive:test/handlers.test.js",
@@ -2823,17 +2862,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/sources.sources",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "GET /api/sources.sources length 0->1->1(updated)->0",
-     "requests/sources.json matches"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: GET /api/sources.sources length 0->1->1(updated)->0; requests/sources.json matches"
    },
    "oracle_text": "GET /api/sources.sources length 0->1->1(updated)->0; requests/sources.json matches",
    "covers": [],
@@ -2885,6 +2916,7 @@
       202
      ]
     },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "event sequence",
@@ -2893,7 +2925,9 @@
     ]
    },
    "oracle_text": "event sequence; render_path file exists with %PDF magic; private/loopback URL -> no theme.learned, status.posted.state==='error'",
-   "covers": [],
+   "covers": [
+    "interactive:route:POST /api/events"
+   ],
    "scenarios": [
     {
      "ref": "wicked-interactive:test/theme-grab.test.js",
@@ -3619,7 +3653,7 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "POST /api/deck/decisions",
+      "type": "POST /d/{doc}/api/deck/decisions",
       "count": {
        "min": 1
       }
@@ -3627,7 +3661,7 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "POST /api/deck/proposal",
+      "type": "POST /d/{doc}/api/deck/proposal",
       "count": {
        "min": 1
       }
@@ -3635,7 +3669,7 @@
      {
       "kind": "event",
       "source": "network",
-      "type": "POST /api/fork",
+      "type": "POST /d/{doc}/api/fork",
       "count": {
        "min": 1
       }
@@ -3643,7 +3677,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/deck/review",
+      "path": "/d/{doc}/api/deck/review",
       "expect": {
        "status": 200
       }
@@ -3698,10 +3732,10 @@
    "oracle_text": "network: POST /api/deck/decisions, one structural feedback batch with expect_head, POST /api/deck/proposal, /proposal/close, POST /api/fork on drop; GET /api/deck/review state matches DOM badges",
    "covers": [
     "crew:mcp:ask",
-    "interactive:route:GET /api/deck/review",
-    "interactive:route:POST /api/deck/decisions",
-    "interactive:route:POST /api/deck/proposal",
-    "interactive:route:POST /api/fork",
+    "interactive:route:GET /d/:doc/api/deck/review",
+    "interactive:route:POST /d/:doc/api/deck/decisions",
+    "interactive:route:POST /d/:doc/api/deck/proposal",
+    "interactive:route:POST /d/:doc/api/fork",
     "studio:testid-computed:testid",
     "studio:testid:deck-audience",
     "studio:testid:deck-audience-adapt",
