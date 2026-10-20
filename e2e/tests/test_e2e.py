@@ -158,6 +158,15 @@ class CatalogChecks(unittest.TestCase):
         for oracle, want in cases:
             fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=oracle))
             self.assertTrue(any(want in f for f in fails), (oracle, fails))
+        for bad_cmd in ("node dist/install-claude.js uninstall {ids}|--all --json", "wicked-core coverage [--json] --db F",
+                        "wicked-core rules ingest <dir>"):
+            o = {"kind": "exit", "cmd": bad_cmd, "code": 0, "complete": True}
+            fails, _ = self.run_check(cap(surface="cli", required_evidence=["cli-transcript"], oracle=o))
+            self.assertTrue(any("usage-synopsis" in f for f in fails), (bad_cmd, fails))
+        for good_cmd in ("python3 hooks/scripts/pre_tool.py < {hook_input_json}", "echo '{}' | python3 x.py"):
+            o = {"kind": "exit", "cmd": good_cmd, "code": 0, "complete": True}
+            fails, _ = self.run_check(cap(surface="cli", required_evidence=["cli-transcript"], oracle=o))
+            self.assertEqual(fails, [], good_cmd)
         for good in ('[data-testid^="agents-setup-step-"]', "[data-testid=desk][data-tab=work]", "[data-x='a b']", "video"):
             fails, _ = self.run_check(cap(oracle={"kind": "dom", "selector": good, "assert": "visible", "complete": True}))
             self.assertEqual(fails, [], good)

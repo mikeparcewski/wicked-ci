@@ -27,7 +27,11 @@
     "method": "POST",
     "path": "/api/v1/projects/{p}/interactive/api/events",
     "expect": {
-     "status": 422
+     "status": [
+      200,
+      201,
+      202
+     ]
     },
     "complete": false,
     "untyped": [
@@ -364,7 +368,11 @@
     "method": "POST",
     "path": "/api/v1/projects/{projectId}/interactive/api/events",
     "expect": {
-     "status": 200
+     "status": [
+      200,
+      201,
+      202
+     ]
     },
     "complete": false,
     "untyped": [
@@ -630,25 +638,12 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/studio-origin",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/studio-origin",
-      "expect": {
-       "status": 302
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/studio-origin",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
      "first GET: 200 text/html containing 'serves the API'",
@@ -975,22 +970,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "node bin/wicked-interactive.js serve --daemon --root $TMP/wi-docs",
-      "code": 0
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/health",
-      "expect": {
-       "status": 200
-      }
-     }
-    ],
+    "kind": "exit",
+    "cmd": "node bin/wicked-interactive.js serve --daemon --root $TMP/wi-docs",
+    "code": 0,
     "complete": false,
     "untyped": [
      "JSON-parse <root>/.wi-serve.json and assert pid alive + port integer >=4400",
@@ -1727,25 +1709,12 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/projects/{projectId}/interactive/api/docs",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "event",
-      "source": "bus",
-      "type": "wicked.interactive.doc.created",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.interactive.doc.created",
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
      "response 200 name/head",
@@ -2082,25 +2051,12 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "DELETE",
-      "path": "/api/docs/{doc}",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "event",
-      "source": "bus",
-      "type": "wicked.interactive.doc.retired",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.interactive.doc.retired",
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
      "status codes 200/200/410/409",

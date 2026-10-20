@@ -1044,13 +1044,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "python3 scripts/ci/sync_components.py",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "git diff --exit-code .claude-plugin/components.json == 0 on main"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: git diff --exit-code .claude-plugin/components.json == 0 on main"
    },
    "oracle_text": "git diff --exit-code .claude-plugin/components.json == 0 on main",
    "covers": [],
@@ -1980,14 +1976,6 @@
    "oracle": {
     "kind": "all",
     "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/health",
-      "expect": {
-       "status": 200
-      }
-     },
      {
       "kind": "api",
       "method": "POST",
@@ -4265,14 +4253,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "python3 hooks/scripts/pre_tool.py < {hook_input_json}",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "pre_tool deny with challenge-gate reason",
-     "WG_CHALLENGE_GATE=off allows"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: pre_tool deny with challenge-gate reason; WG_CHALLENGE_GATE=off allows"
    },
    "oracle_text": "pre_tool deny with challenge-gate reason; WG_CHALLENGE_GATE=off allows",
    "covers": [],
@@ -4348,14 +4331,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "python3 hooks/scripts/pre_tool.py < {hook_input_json}",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "pre_tool {tool_name:Write,file_path:'x/MEMORY.md'} → deny mentioning wicked-garden-mem",
-     "'notMEMORY.md' allowed"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: pre_tool {tool_name:Write,file_path:'x/MEMORY.md'} → deny mentioning wicked-garden-mem; 'notMEMORY.md' allowed"
    },
    "oracle_text": "pre_tool {tool_name:Write,file_path:'x/MEMORY.md'} → deny mentioning wicked-garden-mem; 'notMEMORY.md' allowed",
    "covers": [
@@ -4430,13 +4408,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "python3 hooks/scripts/pre_tool.py < {hook_input_json}",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "pre_tool stdin {tool_name:EnterPlanMode} → hookSpecificOutput.permissionDecision=='deny' with reason naming wicked-garden-archetype (or the active crew project)"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: pre_tool stdin {tool_name:EnterPlanMode} → hookSpecificOutput.permissionDecision=='deny' with reason naming wicked-garden-archetype (or the active crew project)"
    },
    "oracle_text": "pre_tool stdin {tool_name:EnterPlanMode} → hookSpecificOutput.permissionDecision=='deny' with reason naming wicked-garden-archetype (or the active crew project)",
    "covers": [
@@ -4653,14 +4627,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "python3 hooks/scripts/prompt_submit.py < {hook_input_json}",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "prompt_submit additionalContext/systemMessage contains the onboarding directive naming wicked-garden-core setup",
-     "does not exit 2"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: prompt_submit additionalContext/systemMessage contains the onboarding directive naming wicked-garden-core setup; does not exit 2"
    },
    "oracle_text": "prompt_submit additionalContext/systemMessage contains the onboarding directive naming wicked-garden-core setup; does not exit 2",
    "covers": [
@@ -4697,14 +4666,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "python3 hooks/scripts/prompt_submit.py < {hook_input_json}",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "prompt_submit exits 2 when config missing or setup_complete!=true",
-     "exits 0 once config has setup_complete=true"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: prompt_submit exits 2 when config missing or setup_complete!=true; exits 0 once config has setup_complete=true"
    },
    "oracle_text": "prompt_submit exits 2 when config missing or setup_complete!=true; exits 0 once config has setup_complete=true",
    "covers": [
@@ -4976,14 +4940,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "python3 hooks/scripts/task_completed.py < {hook_input_json}",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "task_completed stdout {ok:true} + systemMessage asking to evaluate storable learnings",
-     "counter memory_compliance_tasks_completed incremented"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: task_completed stdout {ok:true} + systemMessage asking to evaluate storable learnings; counter memory_compliance_tasks_completed incremented"
    },
    "oracle_text": "task_completed stdout {ok:true} + systemMessage asking to evaluate storable learnings; counter memory_compliance_tasks_completed incremented",
    "covers": [
@@ -6134,27 +6093,14 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "npx wicked-garden pack check {pack_dir}",
-      "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "npx wicked-garden pack check {dir}",
-      "code": 0
-     }
-    ],
+    "kind": "exit",
+    "cmd": "npx wicked-garden pack check {pack_dir}",
+    "code": 0,
     "complete": false,
     "untyped": [
      "conformant pack exit 0",
      "broken pack exit 1 with PKxxx codes (PK001 missing manifest, PK011/12/13 naming, PK020 oversize router, PK069 bad surfaces)",
-     "usage exit 2",
-     "exit 0 for a conformant pack (warnings allowed), 1 with PK001-PK072 codes otherwise",
-     "--json prints {ok, errors[], warnings[]}",
-     "e.g. missing manifest => PK001, dir name mismatch => PK017, editor hash mismatch / entry outside pack / outside reference => PK06x"
+     "usage exit 2"
     ]
    },
    "oracle_text": "conformant pack exit 0; broken pack exit 1 with PKxxx codes (PK001 missing manifest, PK011/12/13 naming, PK020 oversize router, PK069 bad surfaces); usage exit 2",

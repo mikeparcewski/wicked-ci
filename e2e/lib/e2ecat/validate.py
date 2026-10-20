@@ -161,6 +161,8 @@ def _comparison(cmp_, where):
 SHORTHAND = re.compile(r"[\[\]|<>…]")
 ATTR = re.compile(r"\[\s*[\w-]+\s*([~|^$*]?=)\s*([^\]]*?)\s*\]")
 CSS_IDENT = re.compile(r"^-?[_a-zA-Z][\w-]*$")
+# usage alternatives glue to their neighbours (`{ids}|--all`); a shell pipe or redirect has spaces.
+CMD_SYNOPSIS = re.compile(r"(?<=\S)\|(?=\S)|\[[^\]]*\]|…|<[A-Za-z][\w .:/-]*>")
 
 
 def selector_problem(sel):
@@ -184,6 +186,9 @@ def check_semantics(checks):
             out.append("%s path %r carries documentation shorthand" % (w, ch.get("path")))
         if k == "event" and ch.get("source") == "network" and SHORTHAND.search(ch.get("type", "")):
             out.append("%s network request %r carries documentation shorthand" % (w, ch.get("type")))
+        if k == "exit" and isinstance(ch.get("cmd"), str) and CMD_SYNOPSIS.search(ch["cmd"]):
+            out.append("%s command %r carries usage-synopsis syntax ([optional], a|b, <name>, …); give one invocation"
+                       % (w, ch["cmd"]))
         if k == "dom" and isinstance(ch.get("selector"), str):
             prob = selector_problem(ch["selector"])
             if prob:

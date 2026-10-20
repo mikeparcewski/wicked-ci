@@ -225,9 +225,9 @@ e2e select --profile release
 
 | profile | selection | count (2026-10-20 pins) |
 |---|---|---:|
-| `smoke` | `tag:smoke cost<=M !oracle=manual` | 34 |
-| `daily` | `cost<=M !oracle=manual` | 858 |
-| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 359 |
+| `smoke` | `tag:smoke cost<=M !oracle=manual` | 33 |
+| `daily` | `cost<=M !oracle=manual` | 850 |
+| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 356 |
 | `full` | everything (manual capabilities report `manual`) | 1411 |
 
 ## How the catalog was built
@@ -270,7 +270,7 @@ From now on the catalog files are the source.
     shimmed seats) that serves its bundled studio. The uxfix fixture journeys remain as
     `e2e-fixture` scenarios.
   - Launch-only and stub-terminal capabilities now end at the run's terminal state
-    (`session.status == completed` plus one `sessionCompleted`).
+    (`run.session.status == completed` from `GET /api/v1/runs/{runId}`, plus one `sessionCompleted`).
   - UI-tagged engine capabilities whose path was the API start from their studio address.
   - Permissive disjunctions lost their failure branch.
   - Tautological oracles got seeded expected values.
@@ -309,15 +309,20 @@ From now on the catalog files are the source.
   - **UI capabilities** always carry the studio controls their user path names as `dom` checks,
     and the request the path sends as a `network` event. When the path names several requests,
     they are alternative branches, and none is required.
-  - A clause naming several statuses, or a conditional clause (`for`, `when`, `if`), binds no
-    status to the path's request.
+  - A bare status (`404`) binds to the path's request only when the clause starts with it, the
+    clause is unconditional (no `for`, `when`, `if`, `once`, error condition or arrow), and the
+    path names exactly one request. A clause naming several statuses or requests binds none.
   - Shorthand never reaches a check. `[?q]` is dropped from paths. A path or request with `a|b`,
     `<x>` or `…` is left untyped. A glob selector `[a=b-*]` becomes `[a^="b-"]`, and a
     placeholder value is quoted (`[data-agent="{key}"]`).
-  - `validate` refuses any shorthand left in a path, a network request or a selector, and any
-    unquoted attribute value that is not a CSS identifier.
+  - `validate` refuses any shorthand left in a path, a network request, a selector or a command
+    (`[optional]`, `a|b`, `<name>`, `…`; a shell pipe with spaces is fine), and any unquoted
+    attribute value that is not a CSS identifier.
+  - Response paths follow the wire. `GET /api/v1/runs/{runId}` answers `{run: {session, units}}`.
+    A roster comparison must address `$.roster`. Other response paths come from the inventory's
+    wording and are not yet checked against the response types; phase 2 binds them.
   - Hand-written oracles that omit a clause of their user path list it in `untyped` too.
-  - 19 oracles are complete, 968 partial, 314 untyped and 110 manual.
+  - 19 oracles are complete, 960 partial, 322 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.

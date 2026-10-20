@@ -2601,25 +2601,12 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{runId}/acceptance",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{runId}/acceptance",
-      "expect": {
-       "status": 404
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{runId}/acceptance",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
      "HTTP 200 for known run, 404 unknown",
@@ -2955,14 +2942,6 @@
       "kind": "file",
       "path": "db>.bus/bus.db",
       "assert": "exists"
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/health",
-      "expect": {
-       "status": 200
-      }
      }
     ],
     "complete": false,

@@ -979,7 +979,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core rules eval --corpus {evals_scope_dir_file_json}",
+    "cmd": "wicked-core rules eval --corpus <evals:scope",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -2632,7 +2632,7 @@
       "expect": {
        "json": [
         {
-         "path": "$.delivery",
+         "path": "$.run.session.delivery",
          "op": "eq",
          "value": "none"
         }

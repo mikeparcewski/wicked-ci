@@ -7120,15 +7120,11 @@
       "method": "POST",
       "path": "/api/v1/projects/{projectId}/graph/refresh",
       "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/projects/{projectId}/graph",
-      "expect": {
-       "status": 409
+       "status": [
+        200,
+        201,
+        202
+       ]
       }
      },
      {

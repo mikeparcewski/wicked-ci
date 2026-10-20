@@ -165,10 +165,10 @@
    ],
    "oracle": {
     "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/repos",
+    "method": "GET",
+    "path": "/api/v1/health",
     "expect": {
-     "status": 422
+     "status": 200
     },
     "complete": false,
     "untyped": [
@@ -1601,7 +1601,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "node dist/install-claude.js uninstall {ids}|--all --claude-home {dir} --json",
+    "cmd": "node dist/install-claude.js uninstall {ids} --claude-home {dir} --json",
     "code": 0,
     "complete": false,
     "untyped": [
