@@ -87,6 +87,9 @@ INTENTS = [
                           r"\bhow did .* go\b")),
 ]
 # Prose only: never inside an id or a literal term (`interactive.cli.dry-run`, `id:...dry-run`).
+EXCEPT_WORDS = ("except", "excluding", "besides")
+# How-to and explanation requests ask for information, never a run.
+HOW_TO = re.compile(r"\b(how (do|can|should|would) (i|we|you)|how to|tell me|explain|describe|what does it take to)\b")
 DRY_RUN = re.compile(r"(?<![\w.:*-])dry[- ]?runs?(?![\w.*-])", re.I)
 NEG_EXEC = re.compile(r"\b(do not|don'?t|never|no need to|not to|stop|cancel)\s+(\w+\s+)?(re-?)?(run|test|certify|check|verify|execute)\w*\b")
 LOOKUP_START = re.compile(r"^\s*(please\s+)?(list|show|find|count|which|what|how many|look up|search)\b")
@@ -256,7 +259,7 @@ def resolve(request, caps, profiles, run_dir=None):
         itext = _intent_text(text, vocab)
         action = next((name for name, rx in INTENTS if rx.search(itext)), None)
         if action is None:
-            if LOOKUP_START.match(itext):
+            if LOOKUP_START.match(itext) or HOW_TO.search(itext):
                 action = "select"  # "list cheap studio checks", "show crew-api.x": a lookup, never a run
             elif EXEC_VERB.search(itext) or _only_profile_words(itext):
                 action = "run"
@@ -271,6 +274,7 @@ def resolve(request, caps, profiles, run_dir=None):
     url, port, live = _live(text)
     toks = _tokens(text)
     terms, explain, ignored, shadowed = {}, list(explain_pre), [], []
+    neg_next = False
     literal, cost, negate = [], None, []
     profile, pword, whole = None, None, False
     i = 0
@@ -290,6 +294,13 @@ def resolve(request, caps, profiles, run_dir=None):
                 explain.append({"words": " ".join(toks[i:i + n]), "as": "cost<=M"})
                 i += n
                 continue
+        if toks[i] in EXCEPT_WORDS or (toks[i] in ("but", "other", "apart") and i + 1 < len(toks)
+                                       and toks[i + 1] in ("not", "than", "from")):
+            # "except studio", "but not plugins": the next catalog term is excluded, never selected.
+            skip = 2 if toks[i] in ("but", "other", "apart") else 1
+            neg_next = True
+            i += skip
+            continue
         hit = None
         for segments in (False, True):
             for n in (4, 3, 2, 1):
@@ -303,6 +314,12 @@ def resolve(request, caps, profiles, run_dir=None):
                 break
         if hit:
             key, vals, label = hit
+            if neg_next and key != "literal":
+                literal.append("!%s:%s" % (key, ",".join(vals)))
+                explain.append({"words": " ".join(toks[i:i + n]), "as": "excluded: !%s:%s" % (key, ",".join(vals))})
+                neg_next = False
+                i += n
+                continue
             if key == "literal":
                 literal.extend(vals)
             else:

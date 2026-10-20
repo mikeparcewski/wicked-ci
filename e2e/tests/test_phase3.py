@@ -446,6 +446,19 @@ class ResolveEdges(unittest.TestCase):
         self.assertEqual((out["action"], out["status"], out["count"]), ("run", "resolved", 1))
         self.assertEqual(self.r("dry run the smoke")["action"], "plan")
 
+    def test_round12_how_to_and_exclusions(self):
+        out = self.r("tell me how to test crew-api.standing-orders.read")
+        self.assertEqual(out["action"], "select")
+        self.assertFalse(any(c.startswith("e2e run") for c in out["commands"]))
+        from e2ecat.select import select
+        out = self.r("run all cheap tests except studio")
+        sel = select(self.caps, out["selection"])
+        self.assertTrue(sel and all(c["_area"] != "studio-ui" and c["cost"] == "S" for c in sel))
+        out = self.r("test crew but not crew-api.runs.cancel")
+        self.assertNotIn("crew-api.runs.cancel", [c["id"] for c in select(self.caps, out["selection"])])
+        self.assertEqual(report.blocks(cap("x.y.z"), {"verdict": "skipped", "skip": {"dep": "adapter:live-journeys"}}),
+                         ["skipped: the adapter needs live-journeys"])
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")

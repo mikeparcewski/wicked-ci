@@ -34,10 +34,13 @@ as `python3 <wicked-ci>/e2e/bin/e2e` from `<wicked-ci>`. If it is missing, stop 
 2. If the plan (or `e2e resolve`) printed `ask before running`, show its reasons and the estimate
    and wait for the operator's explicit yes. A yes for a different selection or target does not
    count.
-3. **Live target**: only with a `--studio URL` the operator gave. Never ports 7701 or 7721, never
+3. If the selection came from a free-text request (not an exact selection, profile or capability
+   id the operator wrote), the operator has confirmed the resolved selection, even when nothing in
+   it costs more than `S`.
+4. **Live target**: only with a `--studio URL` the operator gave. Never ports 7701 or 7721, never
    `--allow-daemon-port`. Add `--live-journeys` only when the operator asked for live journeys by
    name, because they drive the daemon for real and some launch governed runs.
-4. Cost `L` items are governed runs. Run one such selection at a time, never two runs in
+5. Cost `L` items are governed runs. Run one such selection at a time, never two runs in
    parallel.
 
 ## Run

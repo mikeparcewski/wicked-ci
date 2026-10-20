@@ -110,8 +110,11 @@ def blocks(cap, res):
         dep = str((res.get("skip") or {}).get("dep") or "?")
         if dep == "scenario:planned":
             return ["skipped: no scenario exists yet (planned)"]
+        if dep == "adapter:none":
+            return ["skipped: no adapter runs the scenario (adapter:none)"]
         if dep.startswith("adapter:"):
-            return ["skipped: no adapter runs the scenario (%s)" % dep]
+            # An adapter exists; a prerequisite or an explicit opt-in (live journeys) is missing.
+            return ["skipped: the adapter needs %s" % dep[len("adapter:"):]]
         if dep.startswith("checkout:"):
             return ["skipped: missing checkout (%s; pass --src or --checkout)" % dep[len("checkout:"):]]
         if dep.startswith("evidence:"):

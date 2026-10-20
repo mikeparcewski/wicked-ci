@@ -52,6 +52,10 @@ in them (`e2e/coverage-baseline.json`) resolve.
   `ask before running`, show the plan and get an explicit yes before `e2e run`. That covers any
   selected capability at cost `M` (a live seat turn) or `L` (a governed run), and every live
   target.
+- **A read-back is never consent.** A free-text request is resolved by keywords, and keywords can
+  misread. Unless the operator gave the exact selection, profile or capability id, say what was
+  resolved (action, selection, count) and run only after they confirm it. Cheap fixture runs
+  included.
 - **Live needs a URL the operator gave you.** Never guess a daemon URL. Never pass
   `--allow-daemon-port`, and never target port 7701 or 7721 (the operator's daemons). Never add
   `--live-journeys` without asking: those journeys drive the daemon for real.

@@ -243,6 +243,10 @@ class HonestyGuards(unittest.TestCase):
             self.assertIn("--allow-daemon-port", b, d)
             self.assertIn("--live-journeys", b, d)
 
+    def test_a_free_text_resolution_is_confirmed_before_any_run(self):
+        self.assertIn("A read-back is never consent", self.body("wicked-e2e"))
+        self.assertIn("the operator has confirmed the resolved selection", self.body("wicked-e2e-run"))
+
     def test_plan_never_starts_the_run(self):
         b = self.body("wicked-e2e-plan")
         self.assertIn("--plan-only", b)
