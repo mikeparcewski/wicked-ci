@@ -107,6 +107,7 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
                 fails.append("%s: alias %s already belongs to %s" % (c["id"], a, aliases[a]))
             aliases[a] = c["id"]
     elements = {e["key"] for m in surfaces.values() for e in m["elements"]}
+    verbs = cli_verbs(surfaces)
     tests = {m["repo"]: set(m["tests"]) for m in surfaces.values()}
     tests["wicked-ci"] = set(local_test_index(repo_root))
     for c in caps:
@@ -119,6 +120,7 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
         o = c.get("oracle")
         if isinstance(o, dict) and o.get("kind") in TYPED:
             fails += ["%s: %s" % (cid, f) for f in check_semantics(_checks(o))]
+            fails += ["%s: %s" % (cid, f) for f in check_verbs(_checks(o), verbs)]
             if "complete" not in o:
                 fails.append("%s: a typed oracle must say whether it is complete" % cid)
             elif o["complete"] and o.get("untyped"):
@@ -162,7 +164,7 @@ SHORTHAND = re.compile(r"[\[\]|<>…]")
 ATTR = re.compile(r"\[\s*[\w-]+\s*([~|^$*]?=)\s*([^\]]*?)\s*\]")
 CSS_IDENT = re.compile(r"^-?[_a-zA-Z][\w-]*$")
 # usage alternatives glue to their neighbours (`{ids}|--all`); a shell pipe or redirect has spaces.
-CMD_SYNOPSIS = re.compile(r"(?<=\S)\|(?=\S)|\[[^\]]*\]|…|<[A-Za-z][\w .:/-]*>")
+CMD_SYNOPSIS = re.compile(r"(?<=\S)\|(?=\S)|\[[^\]]*\]|…|<[A-Za-z]")  # `<name` opens a placeholder; a redirect is `< file`
 
 
 def selector_problem(sel):
@@ -215,6 +217,37 @@ def check_semantics(checks):
             cnt = ch["count"]
             if cnt.get("min", 0) < 1 and "max" not in cnt:
                 out.append("%s count %s is vacuous (no min >= 1 and no max)" % (w, cnt))
+    return out
+
+
+BIN_PREFIX = {"wicked-crew": "crew", "wicked-estate": "estate", "wicked-core": "core", "wicked-bus": "bus",
+              "wicked-vault": "vault", "wicked-installer": "installer", "wicked-garden": "garden",
+              "wicked-interactive": "interactive"}
+
+
+def cli_verbs(surfaces):
+    """binary -> its first-word verbs, from the surface manifests (the commands a check may run)."""
+    out = {}
+    for b, prefix in BIN_PREFIX.items():
+        out[b] = {e["name"].split()[0] for m in surfaces.values() for e in m["elements"]
+                  if e["kind"] == "cli" and e["key"].startswith(prefix + ":")}
+    return out
+
+
+def check_verbs(checks, verbs):
+    """A command on a wicked binary must use a verb that binary's manifest lists."""
+    out = []
+    for i, ch in enumerate(checks):
+        if ch.get("kind") != "exit" or not isinstance(ch.get("cmd"), str):
+            continue
+        toks = re.sub(r"^(?:[A-Z_]+=\S+\s+)*(?:npx\s+(?:-y\s+)?)?", "", ch["cmd"]).split()
+        if not toks:
+            continue
+        b = re.sub(r"@.*$", "", toks[0])
+        if ch.get("code") != 0:
+            continue  # a refusal check may run an unknown verb on purpose (`wicked-crew frobnicate` -> exit 1)
+        if b in verbs and verbs[b] and len(toks) > 1 and not toks[1].startswith(("-", "{")) and toks[1] not in verbs[b]:
+            out.append("oracle check %d (exit) runs `%s %s`, a verb %s's manifest does not list" % (i, b, toks[1], b))
     return out
 
 

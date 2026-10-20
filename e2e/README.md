@@ -226,7 +226,7 @@ e2e select --profile release
 | profile | selection | count (2026-10-20 pins) |
 |---|---|---:|
 | `smoke` | `tag:smoke cost<=M !oracle=manual` | 33 |
-| `daily` | `cost<=M !oracle=manual` | 850 |
+| `daily` | `cost<=M !oracle=manual` | 849 |
 | `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 356 |
 | `full` | everything (manual capabilities report `manual`) | 1411 |
 
@@ -312,6 +312,15 @@ From now on the catalog files are the source.
   - A bare status (`404`) binds to the path's request only when the clause starts with it, the
     clause is unconditional (no `for`, `when`, `if`, `once`, error condition or arrow), and the
     path names exactly one request. A clause naming several statuses or requests binds none.
+  - A status binds only to a request it follows in its clause. An error status (4xx/5xx) is
+    never extracted, because it needs its specific bad input, which prose does not give. Only
+    hand-written checks that carry their body expect one. Empty query parameters (`?step=`) are
+    dropped.
+  - A choice list in a synopsis (`<agy|opencode|pi>`) becomes its first choice. A literal port of
+    the operator's live daemons (7701, 7721) becomes `{port}`.
+  - A success check on a verb the binary's surface manifest does not list is dropped (the prose
+    named a script, not the CLI). `validate` refuses one too; a refusal check, with a non-zero
+    exit, may run an unknown verb on purpose.
   - Shorthand never reaches a check. `[?q]` is dropped from paths. A path or request with `a|b`,
     `<x>` or `…` is left untyped. A glob selector `[a=b-*]` becomes `[a^="b-"]`, and a
     placeholder value is quoted (`[data-agent="{key}"]`).
@@ -322,7 +331,7 @@ From now on the catalog files are the source.
     A roster comparison must address `$.roster`. Other response paths come from the inventory's
     wording and are not yet checked against the response types; phase 2 binds them.
   - Hand-written oracles that omit a clause of their user path list it in `untyped` too.
-  - 19 oracles are complete, 960 partial, 322 untyped and 110 manual.
+  - 19 oracles are complete, 959 partial, 323 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.

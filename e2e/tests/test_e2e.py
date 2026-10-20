@@ -159,7 +159,8 @@ class CatalogChecks(unittest.TestCase):
             fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=oracle))
             self.assertTrue(any(want in f for f in fails), (oracle, fails))
         for bad_cmd in ("node dist/install-claude.js uninstall {ids}|--all --json", "wicked-core coverage [--json] --db F",
-                        "wicked-core rules ingest <dir>"):
+                        "wicked-core rules ingest <dir>", "wicked-core rules eval --corpus <evals:scope",
+                        "node dist/install-<agy"):
             o = {"kind": "exit", "cmd": bad_cmd, "code": 0, "complete": True}
             fails, _ = self.run_check(cap(surface="cli", required_evidence=["cli-transcript"], oracle=o))
             self.assertTrue(any("usage-synopsis" in f for f in fails), (bad_cmd, fails))
@@ -170,6 +171,16 @@ class CatalogChecks(unittest.TestCase):
         for good in ('[data-testid^="agents-setup-step-"]', "[data-testid=desk][data-tab=work]", "[data-x='a b']", "video"):
             fails, _ = self.run_check(cap(oracle={"kind": "dom", "selector": good, "assert": "visible", "complete": True}))
             self.assertEqual(fails, [], good)
+
+    def test_exit_verbs_must_exist_in_the_manifest(self):
+        self.surf["wicked-installer"] = {"repo": "wicked-installer", "sha": "b" * 40, "tests": [],
+                                         "elements": [{"key": "installer:cli:install", "kind": "cli", "name": "install", "files": []}]}
+        o = {"kind": "exit", "cmd": "npx wicked-installer install-agy wicked-garden", "code": 0, "complete": True}
+        fails, _ = self.run_check(cap(surface="cli", required_evidence=["cli-transcript"], oracle=o))
+        self.assertTrue(any("a verb wicked-installer's manifest does not list" in f for f in fails), fails)
+        o = dict(o, cmd="npx -y wicked-installer install wicked-garden")
+        fails, _ = self.run_check(cap(surface="cli", required_evidence=["cli-transcript"], oracle=o))
+        self.assertEqual(fails, [])
 
     def test_manual_precheck_is_checked_too(self):
         o = {"kind": "manual", "category": "model-output", "reason": "model output only",

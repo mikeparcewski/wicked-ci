@@ -13967,7 +13967,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/memory?q=",
+      "path": "/api/v1/memory",
       "expect": {
        "status": 200
       }

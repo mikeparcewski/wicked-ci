@@ -4,7 +4,7 @@
  "prefix": "core",
  "sha": "a56cf1861bd97244fc4e37c6898bcddaa5350fb0",
  "meta": {},
- "counts": {"cli": 27},
+ "counts": {"cli": 28},
  "elements": [
   {"files": ["src/bin/wicked-core.rs"], "key": "core:cli:approve-validator", "kind": "cli", "name": "approve-validator"},
   {"files": ["src/bin/wicked-core.rs"], "key": "core:cli:cancel", "kind": "cli", "name": "cancel"},
@@ -12,6 +12,7 @@
   {"files": ["src/bin/wicked-core.rs"], "key": "core:cli:domain-graph", "kind": "cli", "name": "domain-graph"},
   {"files": ["src/bin/wicked-core.rs"], "key": "core:cli:gate-hook", "kind": "cli", "name": "gate-hook"},
   {"files": ["src/bin/wicked-core.rs"], "key": "core:cli:gate-phase", "kind": "cli", "name": "gate-phase"},
+  {"files": ["src/bin/wicked-core.rs"], "key": "core:cli:help", "kind": "cli", "name": "help"},
   {"files": ["src/bin/wicked-core.rs"], "key": "core:cli:launch", "kind": "cli", "name": "launch"},
   {"files": ["src/bin/wicked-core.rs"], "key": "core:cli:output-gate-hook", "kind": "cli", "name": "output-gate-hook"},
   {"files": ["src/bin/wicked-core.rs"], "key": "core:cli:provision-validator", "kind": "cli", "name": "provision-validator"},

@@ -245,25 +245,12 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/runs",
-      "expect": {
-       "status": 409
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs",
-      "expect": {
-       "status": 200
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
      "HTTP 409 and body.code=='no_eligible_seat'",
@@ -972,15 +959,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "npx wicked-installer install-<agy wicked-garden",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "each installed skill dir has SKILL.md whose name matches",
-     "`wicked-garden doctor` exit 0 naming the plugin root and interpreter",
-     "skill text passes portability rules."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: each installed skill dir has SKILL.md whose name matches; `wicked-garden doctor` exit 0 naming the plugin root and interpreter; skill text passes portability rules."
    },
    "oracle_text": "each installed skill dir has SKILL.md whose name matches; `wicked-garden doctor` exit 0 naming the plugin root and interpreter; skill text passes portability rules.",
    "covers": [

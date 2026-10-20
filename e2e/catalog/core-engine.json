@@ -799,7 +799,9 @@
     ]
    },
    "oracle_text": "exit 0; usage text present; no new file in cwd / no decisions.ndjson line; domain-graph --help writes no requirements_graph.json",
-   "covers": [],
+   "covers": [
+    "core:cli:help"
+   ],
    "scenarios": [
     {
      "ref": "wicked-core:tests/cli_smoke.rs",
@@ -979,7 +981,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-core rules eval --corpus <evals:scope",
+    "cmd": "wicked-core rules eval --corpus {evals_scope}",
     "code": 0,
     "complete": false,
     "untyped": [

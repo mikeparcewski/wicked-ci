@@ -365,6 +365,8 @@ def core(root, _ctx):
         cmds.discard(top)
     for c in re.findall(r"^        Some\(\"([a-z-]+)\"\) =>", main, re.M):
         cmds.add(c)
+    for arm in re.findall(r"^        ((?:Some\(\"[a-z-]+\"\)\s*\|\s*)+Some\(\"[a-z-]+\"\)) =>", src, re.M):
+        cmds.update(re.findall(r"Some\(\"([a-z][a-z-]*)\"\)", arm))  # `Some("--help") | Some("-h") | Some("help")`
     return [_el("core", "cli", c, [rel]) for c in sorted(cmds)], {}
 
 

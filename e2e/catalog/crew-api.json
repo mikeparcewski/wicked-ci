@@ -1825,7 +1825,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "wicked-crew serve --install-service --port 7701",
+    "cmd": "wicked-crew serve --install-service --port {port}",
     "code": 0,
     "complete": false,
     "untyped": [
@@ -2758,7 +2758,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/decisions?state=&project=",
+    "path": "/api/v1/decisions&project=",
     "expect": {
      "status": 200
     },
@@ -2961,10 +2961,14 @@
    ],
    "oracle": {
     "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/governance/rules",
+    "method": "POST",
+    "path": "/api/v1/decisions/{decisionId}/widen",
     "expect": {
-     "status": 200
+     "status": [
+      200,
+      201,
+      202
+     ]
     },
     "complete": false,
     "untyped": [
@@ -4968,7 +4972,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/gates/decided?runId=&limit=",
+    "path": "/api/v1/gates/decided&limit=",
     "expect": {
      "status": 200
     },
@@ -8896,7 +8900,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/mcp/usage?runId=&since=",
+    "path": "/api/v1/mcp/usage&since=",
     "expect": {
      "status": 200
     },
@@ -9047,7 +9051,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/memory?query=&scope_prefix=&facets={json}&limit=",
+    "path": "/api/v1/memory&facets={json}&limit=",
     "expect": {
      "status": 200
     },
@@ -10311,7 +10315,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/proposals?kind_type=&state=pending",
+    "path": "/api/v1/proposals&state=pending",
     "expect": {
      "status": 200
     },
@@ -10632,25 +10636,12 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{runId}/walkthrough/storyline",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/runs/{runId}/walkthrough/storyline?step=",
-      "expect": {
-       "status": 409
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/runs/{runId}/walkthrough/storyline",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
      "GET 200 storyline",
@@ -13008,10 +12999,14 @@
    ],
    "oracle": {
     "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/runs/{runId}",
+    "method": "POST",
+    "path": "/api/v1/runs",
     "expect": {
-     "status": 201
+     "status": [
+      200,
+      201,
+      202
+     ]
     },
     "complete": false,
     "untyped": [
@@ -16428,7 +16423,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/testing/evals?type=&corpus=",
+    "path": "/api/v1/testing/evals",
     "expect": {
      "status": 200
     },
@@ -16797,7 +16792,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/watch?project=&kind=&run=&since=&limit=",
+    "path": "/api/v1/watch&limit=",
     "expect": {
      "status": 200
     },
