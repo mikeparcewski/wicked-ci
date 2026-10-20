@@ -49,7 +49,8 @@ tool tools work works working against target fixture id profile profiles new
 plan planned estimate dry long how take takes need needs needed prerequisite prerequisites cost time
 report reports result results summary summarise summarize verdict verdicts last latest previous went go
 evidence video videos screenshot screenshots trace traces transcript transcripts hash hashes tamper tampered open proof
-validate valid complete intact coverage covered uncovered missing gap gaps mapped unmapped not scenario
+validate valid complete intact coverage covered uncovered missing gap gaps mapped unmapped not scenario scenarios
+surface surfaces catalog
 live daemon re-run rerun retry again failed fail failing failures errors error broken red""".split())
 # Words that are fillers alone but name a group as a phrase ("run page", "testing page", "everything page"),
 # and "runs", which is a tag (the runs list) and never a filler.
@@ -176,7 +177,8 @@ def _live(text):
     low = text.lower()
     for ph in PHRASES:  # "live checks" is a topic, not the live target
         low = low.replace(ph, " ")
-    low = " ".join(w for w in low.split() if not any(ch in w for ch in ".:-="))  # nor is a tag or id with "live"
+    low = " ".join(b for b in (w.strip(".,?!:;()'\"") for w in low.split())
+                   if b and not any(ch in b for ch in ".:-="))  # nor is a tag or id with "live" ("live." is a word)
     return None, None, bool(re.search(r"\blive\b|\bthe daemon\b|\brunning daemon\b|\breal daemon\b", low))
 
 
@@ -223,7 +225,7 @@ def resolve(request, caps, profiles, run_dir=None):
     toks = _tokens(text)
     terms, explain, ignored, shadowed = {}, [], [], []
     literal, cost, negate = [], None, []
-    profile, pword = None, None
+    profile, pword, whole = None, None, False
     i = 0
     while i < len(toks):
         # "without manual", "no governed runs": exclusions are read before the vocabulary, which also
@@ -267,6 +269,8 @@ def resolve(request, caps, profiles, run_dir=None):
         if w in ("cheap", "quick", "fast", "hermetic", "seconds"):
             cost = "S"
             explain.append({"words": w, "as": "cost<=S"})
+        elif w in FULL_WORDS and action == "rerun":
+            pass  # "re-run all failures": the re-run is the failed ids; "all" is not the full profile
         elif w in PROFILE_WORDS or w in FULL_WORDS:
             if not profile:
                 profile, pword = PROFILE_WORDS.get(w, "full"), w
@@ -291,13 +295,17 @@ def resolve(request, caps, profiles, run_dir=None):
         # "everything about signon": the topic word matched nothing, so the profile word must not widen to it.
         explain.append({"words": pword, "as": "profile word ignored: the request's other words matched nothing"})
         profile = None
+    elif profile == "full" and (cost or negate):
+        # "run all cheap tests": the whole catalog narrowed by the modifier, as a selection.
+        explain.append({"words": pword, "as": "every capability, narrowed by the modifier"})
+        profile, whole = None, True
     elif profile:
         if cost or negate:
             explain.append({"words": "cost/manual modifier", "as": "ignored with a profile (use --select to narrow)"})
             cost, negate = None, []
         explain.append({"words": pword,
                         "as": "profile %s (%s)" % (profile, profiles.get(profile, {}).get("select", "?") or "*")})
-    if not profile and not topic and (cost or negate) and action != "rerun":
+    if not profile and not topic and (cost or negate) and action != "rerun" and not whole:
         # A modifier narrows a topic or a profile; alone it would select across every area.
         explain.append({"words": "cost/manual modifier", "as": "ignored: no word names a topic to narrow"})
         cost, negate = None, []

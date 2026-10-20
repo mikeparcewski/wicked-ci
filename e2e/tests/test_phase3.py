@@ -349,7 +349,7 @@ class ResolveEdges(unittest.TestCase):
     def test_manual_exclusion_is_read_before_the_vocabulary(self):
         from e2ecat.select import select
         out = self.r("run full without manual")
-        self.assertEqual((out["profile"], out["selection"]), ("full", None), "a modifier is ignored with a profile")
+        self.assertEqual((out["profile"], out["selection"]), (None, "!oracle=manual"), "the whole catalog, narrowed")
         out = self.r("test crew without manual")
         self.assertEqual(out["selection"], "area:crew-api !oracle=manual")
         self.assertTrue(all(c["oracle"]["kind"] != "manual" for c in select(self.caps, out["selection"])))
@@ -410,6 +410,21 @@ class ResolveEdges(unittest.TestCase):
         out = self.r("re-run what failed", run_dir=tmp)
         self.assertEqual(out["status"], "needs-input")
         self.assertEqual(out["commands"], [], "no run command for a live target with no URL")
+
+    def test_round5_punctuated_live_words_still_mean_live(self):
+        for text in ("Test the run page on live.", "Run the studio checks against the daemon.",
+                     "Certify studio on the running daemon."):
+            out = self.r(text)
+            self.assertEqual((out["target"], out["status"]), ("live", "needs-input"), text)
+
+    def test_round5_all_and_everything_keep_their_modifiers(self):
+        out = self.r("run all cheap tests")
+        self.assertEqual((out["profile"], out["selection"]), (None, "cost<=S"))
+        self.assertEqual(self.r("run everything without governed runs")["selection"], "cost<=M")
+        tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail", "crew-api.runs.boot-resume": "error"})
+        for text in ("re-run all cheap failures", "re-run everything that failed without governed runs"):
+            self.assertEqual(self.r(text, run_dir=tmp)["selection"], "id:crew-api.runs.cancel", text)
+        self.assertEqual(self.r("run the smoke scenarios")["profile"], "smoke")
 
     def test_the_plan_action_never_asks_but_the_run_does(self):
         self.assertFalse(self.r("plan the release profile")["ask_before_running"])
