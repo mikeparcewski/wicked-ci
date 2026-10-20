@@ -1736,16 +1736,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-crew gate --run <id> --amend 'focus tests'",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit 0 + stdout line",
-     "run leaves awaiting_human",
-     "no --run -> usage exit 1",
-     "no daemon -> one remedy line, exit 1"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 0 + stdout line; run leaves awaiting_human; no --run -> usage exit 1; no daemon -> one remedy line, exit 1"
    },
    "oracle_text": "exit 0 + stdout line; run leaves awaiting_human; no --run -> usage exit 1; no daemon -> one remedy line, exit 1",
    "covers": [
@@ -2095,16 +2088,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "CREW_PORT=7799 wicked-crew status",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "request hits resolved port",
-     "Authorization header present when token set",
-     "401 -> stderr advice to set WICKED_CREW_TOKEN",
-     "invalid port -> exit 1 naming source"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: request hits resolved port; Authorization header present when token set; 401 -> stderr advice to set WICKED_CREW_TOKEN; invalid port -> exit 1 naming source"
    },
    "oracle_text": "request hits resolved port; Authorization header present when token set; 401 -> stderr advice to set WICKED_CREW_TOKEN; invalid port -> exit 1 naming source",
    "covers": [
@@ -2147,14 +2133,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-crew resume --session <id>",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "ready line status present",
-     "without --session exit 1 and usage on stderr"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: ready line status present; without --session exit 1 and usage on stderr"
    },
    "oracle_text": "ready line status present; without --session exit 1 and usage on stderr",
    "covers": [
@@ -2480,11 +2461,6 @@
       "kind": "exit",
       "cmd": "wicked-crew status",
       "code": 0
-     },
-     {
-      "kind": "exit",
-      "cmd": "wicked-crew serve",
-      "code": 1
      }
     ],
     "complete": false,
@@ -5415,7 +5391,7 @@
    "id": "crew-api.gate.ord-check",
    "title": "Stale gate decisions refused (409 gate_changed)",
    "surface": "api",
-   "user_path": "POST gate {approve:true, ord:<old ord>} after the run moved to a new gate. Terminal: 409 gate_changed; open gate untouched",
+   "user_path": "Read the open gate (bind its ord as {stale_ord}); let the run move to a new gate (bind {current_ord}); POST /api/v1/runs/{runId}/gate {approve: true, ord: {stale_ord}}. Terminal: 409 gate_changed; the open gate is untouched.",
    "deps": [
     "daemon",
     "real-engine"
@@ -5436,6 +5412,10 @@
       "kind": "api",
       "method": "POST",
       "path": "/api/v1/runs/{runId}/gate",
+      "body": {
+       "approve": true,
+       "ord": "{stale_ord}"
+      },
       "expect": {
        "status": 409,
        "json": [
@@ -5467,7 +5447,8 @@
    },
    "oracle_text": "409 json.code=='gate_changed'; GET /runs/:id/gate unchanged",
    "covers": [
-    "crew:route:GET /api/v1/runs/:id/gate"
+    "crew:route:GET /api/v1/runs/:id/gate",
+    "crew:route:POST /api/v1/runs/:id/gate"
    ],
    "scenarios": [
     {
@@ -5563,8 +5544,19 @@
     "kind": "api",
     "method": "POST",
     "path": "/api/v1/runs/{runId}/gate",
+    "body": {
+     "approve": true,
+     "ord": "{stale_ord}"
+    },
     "expect": {
-     "status": 409
+     "status": 409,
+     "json": [
+      {
+       "path": "$.code",
+       "op": "eq",
+       "value": "gate_changed"
+      }
+     ]
     },
     "complete": true
    },

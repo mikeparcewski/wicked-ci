@@ -225,8 +225,8 @@ e2e select --profile release
 | profile | selection | count (2026-10-20 pins) |
 |---|---|---:|
 | `smoke` | `tag:smoke cost<=M !oracle=manual` | 34 |
-| `daily` | `cost<=M !oracle=manual` | 916 |
-| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 391 |
+| `daily` | `cost<=M !oracle=manual` | 876 |
+| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 373 |
 | `full` | everything (manual capabilities report `manual`) | 1410 |
 
 ## How the catalog was built
@@ -286,13 +286,15 @@ From now on the catalog files are the source.
     clause (comparisons, counts, negations, request-body fields, prose) stays in `untyped`, even
     when it also produced a check. A negated clause yields no check, except a negated UI request,
     which becomes a `count: 0` network event.
-  - **Exits**: a clause's exit code binds to a command named in that clause. The path's own
-    command binds only to an unconditional `exit 0`.
+  - **Exits**: a clause's exit code binds to a command named in that clause, before the exit
+    and outside any quoted message. The path's own command binds only to an unconditional
+    `exit 0`, and never on a rejection path.
   - **Fallback**: when no clause yields a check, the capability's own request, tool, command or
-    terminal control is the necessary check. A command expects the text's single exit code, or 0
-    on a path that is not a rejection.
+    terminal control is the necessary check. On a rejection path, a command expects the single
+    non-zero code its unconditional clauses state. On any other path, it expects 0, unless the
+    text names non-zero exits for other conditions; then the capability stays untyped.
   - Hand-written oracles that omit a clause of their user path list it in `untyped` too.
-  - 20 oracles are complete, 1031 partial, 249 untyped and 110 manual.
+  - 19 oracles are complete, 992 partial, 289 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.

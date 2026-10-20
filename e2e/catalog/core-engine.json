@@ -887,14 +887,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core output-gate-hook --scope S --phase P",
-    "code": 2,
-    "complete": false,
-    "untyped": [
-     "exit 2 when WICKED_DECISIONS_PATH unset (fail closed)",
-     "exit 2 for an output violating an ingested policy, with recalled obligations in the decision line"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 2 when WICKED_DECISIONS_PATH unset (fail closed); exit 2 for an output violating an ingested policy, with recalled obligations in the decision line"
    },
    "oracle_text": "exit 2 when WICKED_DECISIONS_PATH unset (fail closed); exit 2 for an output violating an ingested policy, with recalled obligations in the decision line",
    "covers": [
@@ -1088,14 +1083,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core rules ingest <dir>",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit 0 and `rules list --json` shows ingested ids",
-     "empty dir / empty applies_to / typo'd field / bad regex each exit non-zero"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 0 and `rules list --json` shows ingested ids; empty dir / empty applies_to / typo'd field / bad regex each exit non-zero"
    },
    "oracle_text": "exit 0 and `rules list --json` shows ingested ids; empty dir / empty applies_to / typo'd field / bad regex each exit non-zero",
    "covers": [
@@ -1373,15 +1363,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core seat-image status",
-    "code": 2,
-    "complete": false,
-    "untyped": [
-     "stdout lines per CLI with present/missing",
-     "WICKED_SEAT_IMAGE_<CLI> override shown as the tag",
-     "bad verb exits 2 with usage"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: stdout lines per CLI with present/missing; WICKED_SEAT_IMAGE_<CLI> override shown as the tag; bad verb exits 2 with usage"
    },
    "oracle_text": "stdout lines per CLI with present/missing; WICKED_SEAT_IMAGE_<CLI> override shown as the tag; bad verb exits 2 with usage",
    "covers": [
@@ -1603,14 +1587,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core seat-login status <cli>",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "stdout JSON status tag",
-     "exit code 0 unless status==unknown"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: stdout JSON status tag; exit code 0 unless status==unknown"
    },
    "oracle_text": "stdout JSON status tag; exit code 0 unless status==unknown",
    "covers": [
@@ -1761,16 +1740,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-core provision-validator --criterion \"...\"",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "missing --criterion / --pin exits non-zero with usage",
-     "approve returns a pin",
-     "load_validator(pin) round-trips approved=true",
-     "editing the script changes the pin"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: missing --criterion / --pin exits non-zero with usage; approve returns a pin; load_validator(pin) round-trips approved=true; editing the script changes the pin"
    },
    "oracle_text": "missing --criterion / --pin exits non-zero with usage; approve returns a pin; load_validator(pin) round-trips approved=true; editing the script changes the pin",
    "covers": [

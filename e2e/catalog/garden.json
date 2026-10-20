@@ -1085,7 +1085,10 @@
       "stdout_matches": "{tag}"
      }
     ],
-    "complete": true
+    "complete": false,
+    "untyped": [
+     "the notify-installer run for the tag concluded success"
+    ]
    },
    "oracle_text": "`npm view wicked-garden version` == tag; notify-installer run success",
    "covers": [],
@@ -1261,7 +1264,7 @@
      },
      {
       "kind": "exit",
-      "cmd": "npx wicked-installer install wicked-garden",
+      "cmd": "npx wicked-garden install [--claude-home <dir>] [--dry-run]",
       "code": 0
      }
     ],
@@ -1414,28 +1417,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "npx wicked-garden status --claude-home <tmp>",
-      "code": 1
-     },
-     {
-      "kind": "exit",
-      "cmd": "npx wicked-garden status [--claude-home <dir>]",
-      "code": 0
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "stdout 'wicked-garden: installed (copy)' + 'version: 12.58.0' when installed, 'not installed' otherwise",
-     "corrupt manifest exits 1",
-     "leftover transient dirs listed",
-     "exit 0 with each config dir's copy state and version",
-     "transient leftover trees listed",
-     "`status --dry-run` is a usage error exit 2"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: stdout 'wicked-garden: installed (copy)' + 'version: 12.58.0' when installed, 'not installed' otherwise; corrupt manifest exits 1; leftover transient dirs listed"
    },
    "oracle_text": "stdout 'wicked-garden: installed (copy)' + 'version: 12.58.0' when installed, 'not installed' otherwise; corrupt manifest exits 1; leftover transient dirs listed",
    "covers": [
@@ -1578,16 +1562,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "git push",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "manifest.triggers[].trigger=='pre-push-hook' status created|appended",
-     "hook executable",
-     "push blocked when gate.py exits nonzero",
-     "foreign hook preserved"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: manifest.triggers[].trigger=='pre-push-hook' status created|appended; hook executable; push blocked when gate.py exits nonzero; foreign hook preserved"
    },
    "oracle_text": "manifest.triggers[].trigger=='pre-push-hook' status created|appended; hook executable; push blocked when gate.py exits nonzero; foreign hook preserved",
    "covers": [],
@@ -2276,15 +2253,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden run scripts/data/data_profiler.py fixture.csv",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "profiler JSON column stats",
-     "validator reports seeded invalid row",
-     "exit nonzero on violations"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: profiler JSON column stats; validator reports seeded invalid row; exit nonzero on violations"
    },
    "oracle_text": "profiler JSON column stats; validator reports seeded invalid row; exit nonzero on violations",
    "covers": [
@@ -5396,15 +5367,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden root",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "root prints dir containing .claude-plugin/plugin.json name wicked-garden",
-     "path prints existing absolute path",
-     "missing target exits nonzero"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: root prints dir containing .claude-plugin/plugin.json name wicked-garden; path prints existing absolute path; missing target exits nonzero"
    },
    "oracle_text": "root prints dir containing .claude-plugin/plugin.json name wicked-garden; path prints existing absolute path; missing target exits nonzero",
    "covers": [
@@ -5492,15 +5457,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden root",
-    "code": 2,
-    "complete": false,
-    "untyped": [
-     "override wins",
-     "invalid override exits 2 with JSON reason and no fallback",
-     "foreign CLAUDE_PLUGIN_ROOT skipped"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: override wins; invalid override exits 2 with JSON reason and no fallback; foreign CLAUDE_PLUGIN_ROOT skipped"
    },
    "oracle_text": "override wins; invalid override exits 2 with JSON reason and no fallback; foreign CLAUDE_PLUGIN_ROOT skipped",
    "covers": [
@@ -5546,16 +5505,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden run scripts/where_am_i.py",
-    "code": 2,
-    "complete": false,
-    "untyped": [
-     "exit == child exit",
-     "child env has WICKED_GARDEN_ROOT and CLAUDE_PLUGIN_ROOT == resolved root",
-     "cwd preserved",
-     "absolute/escaping path → exit 2 JSON {ok:false}"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit == child exit; child env has WICKED_GARDEN_ROOT and CLAUDE_PLUGIN_ROOT == resolved root; cwd preserved; absolute/escaping path → exit 2 JSON {ok:false}"
    },
    "oracle_text": "exit == child exit; child env has WICKED_GARDEN_ROOT and CLAUDE_PLUGIN_ROOT == resolved root; cwd preserved; absolute/escaping path → exit 2 JSON {ok:false}",
    "covers": [
@@ -5655,14 +5607,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden run scripts/learn/check.py --repo .",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "check exit 0/nonzero by provenance rules",
-     "index with WICKED_RUN_ID set refuses"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: check exit 0/nonzero by provenance rules; index with WICKED_RUN_ID set refuses"
    },
    "oracle_text": "check exit 0/nonzero by provenance rules; index with WICKED_RUN_ID set refuses",
    "covers": [
@@ -6301,14 +6248,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "npx wicked-garden pack floors --json",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "JSON row per declared floor with met true/false",
-     "exit 0 even when peers missing"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: JSON row per declared floor with met true/false; exit 0 even when peers missing"
    },
    "oracle_text": "JSON row per declared floor with met true/false; exit 0 even when peers missing",
    "covers": [
@@ -8796,15 +8738,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "node scripts/qe/lib/campaign-rerun.mjs --strategy <dir>",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "rerun exits 1 on regression",
-     "quarantine requires owner+deadline",
-     "scoreboard never sources grade from executor claim"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: rerun exits 1 on regression; quarantine requires owner+deadline; scoreboard never sources grade from executor claim"
    },
    "oracle_text": "rerun exits 1 on regression; quarantine requires owner+deadline; scoreboard never sources grade from executor claim",
    "covers": [
@@ -8853,14 +8789,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden run scripts/qe/campaign_dispatch.py wicked-testing-flaky-test-hunter",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "retired name → nonzero with garden replacement named",
-     "bare qe-<role> expands to wicked-garden-qe-<role> exit 0"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: retired name → nonzero with garden replacement named; bare qe-<role> expands to wicked-garden-qe-<role> exit 0"
    },
    "oracle_text": "retired name → nonzero with garden replacement named; bare qe-<role> expands to wicked-garden-qe-<role> exit 0",
    "covers": [
@@ -10870,15 +10801,9 @@
     "ledger-entry"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "git config core.hooksPath .githooks",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "first push exit 1 blocked",
-     "after prove (stamps sentinel ledger) push passes",
-     "feature branch always passes"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: first push exit 1 blocked; after prove (stamps sentinel ledger) push passes; feature branch always passes"
    },
    "oracle_text": "first push exit 1 blocked; after prove (stamps sentinel ledger) push passes; feature branch always passes",
    "covers": [],

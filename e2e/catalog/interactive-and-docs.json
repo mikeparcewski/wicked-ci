@@ -807,11 +807,6 @@
     "of": [
      {
       "kind": "exit",
-      "cmd": "wicked-interactive create --from-file content.json --out a.html",
-      "code": 0
-     },
-     {
-      "kind": "exit",
       "cmd": "wicked-interactive validate a.html",
       "code": 0
      },
@@ -823,6 +818,7 @@
     ],
     "complete": false,
     "untyped": [
+     "exit 0",
      "output file parses and `wicked-interactive validate a.html` exits 0",
      "with --project: <root>/<name>/versions.json and project.json exist",
      "with WICKED_CREW_API unset + --project: exit 1 and no dir"
@@ -1162,14 +1158,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-interactive validate a.html",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "exit code 0/1",
-     "stdout/stderr JSON error code names the failing check"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit code 0/1; stdout/stderr JSON error code names the failing check"
    },
    "oracle_text": "exit code 0/1; stdout/stderr JSON error code names the failing check",
    "covers": [

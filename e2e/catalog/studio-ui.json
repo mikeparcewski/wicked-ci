@@ -3040,6 +3040,11 @@
       "kind": "exit",
       "cmd": "npm test -- testidInventory",
       "code": 0
+     },
+     {
+      "kind": "exit",
+      "cmd": "npm test -- testidRemovals",
+      "code": 0
      }
     ],
     "complete": true
@@ -6612,23 +6617,10 @@
       "assert": "visible"
      },
      {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/testing/evals/run",
-      "expect": {
-       "status": 200,
-       "json": [
-        {
-         "path": "$.results[0].verdict",
-         "op": "in",
-         "value": [
-          "caught",
-          "gap",
-          "false-positive"
-         ]
-        }
-       ]
-      }
+      "kind": "event",
+      "source": "network",
+      "type": "POST /api/v1/testing/evals/run",
+      "count": 1
      },
      {
       "kind": "api",
@@ -6641,7 +6633,7 @@
     ],
     "complete": false,
     "untyped": [
-     "every row's verdict equals the API result for the seeded corpus; a gap row links its nearest rule",
+     "every row's verdict is one of caught / gap / false-positive and equals that run's result for the seeded corpus (the network transcript's response); a gap row links its nearest rule",
      "GET /api/v1/testing/evals/:id verdict counts equal per-sample results",
      "read-only on rules store"
     ]

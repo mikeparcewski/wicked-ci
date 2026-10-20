@@ -394,17 +394,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-estate blast-radius <fn> --depth 3 --json",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "--json rows carry depth from the target and confidence",
-     "envelope counts dependency edges only",
-     "--depth 25 -> exit != 0 'maximum of'",
-     "--depth 24 accepted",
-     "result equals MCP BlastRadius"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: --json rows carry depth from the target and confidence; envelope counts dependency edges only; --depth 25 -> exit != 0 'maximum of'; --depth 24 accepted; result equals MCP BlastRadius"
    },
    "oracle_text": "--json rows carry depth from the target and confidence; envelope counts dependency edges only; --depth 25 -> exit != 0 'maximum of'; --depth 24 accepted; result equals MCP BlastRadius",
    "covers": [
@@ -607,15 +599,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-estate context <fn> --budget 3000 --json",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "total chars <= 3000",
-     "seed symbol included first",
-     "missing --budget -> exit != 0"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: total chars <= 3000; seed symbol included first; missing --budget -> exit != 0"
    },
    "oracle_text": "total chars <= 3000; seed symbol included first; missing --budget -> exit != 0",
    "covers": [
@@ -648,15 +634,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-estate correspond --db-a old.db --db-b new.db [--kind Function] [--top 20] [--min-score 0.35] [--explain] [--json]",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "--json pairs each with score >= min-score, len <= top",
-     "--explain adds per-signal breakdown",
-     "missing --db-b -> exit != 0 '--db-b is required'"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: --json pairs each with score >= min-score, len <= top; --explain adds per-signal breakdown; missing --db-b -> exit != 0 '--db-b is required'"
    },
    "oracle_text": "--json pairs each with score >= min-score, len <= top; --explain adds per-signal breakdown; missing --db-b -> exit != 0 '--db-b is required'",
    "covers": [
@@ -1120,15 +1100,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-estate rank --json",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "alias hotspots output == rank output for same args",
-     "unknown seed -> exit != 0 naming it",
-     "rows equal MCP RankHotspots"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: alias hotspots output == rank output for same args; unknown seed -> exit != 0 naming it; rows equal MCP RankHotspots"
    },
    "oracle_text": "alias hotspots output == rank output for same args; unknown seed -> exit != 0 naming it; rows equal MCP RankHotspots",
    "covers": [
@@ -1248,14 +1222,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-estate index FX --embeddings",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "rows non-empty with scores non-increasing",
-     "on a db without embeddings -> clear error, exit != 0"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: rows non-empty with scores non-increasing; on a db without embeddings -> clear error, exit != 0"
    },
    "oracle_text": "rows non-empty with scores non-increasing; on a db without embeddings -> clear error, exit != 0",
    "covers": [
@@ -1288,15 +1257,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-estate semantics <id> --requirement REQ-1 --validated true --validated-by qe-seat",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "read-back shows requirement REQ-1, requirement_validated true, validated_by qe-seat",
-     "--validated without --validated-by -> exit != 0",
-     "by-requirement REQ-1 lists the symbol"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: read-back shows requirement REQ-1, requirement_validated true, validated_by qe-seat; --validated without --validated-by -> exit != 0; by-requirement REQ-1 lists the symbol"
    },
    "oracle_text": "read-back shows requirement REQ-1, requirement_validated true, validated_by qe-seat; --validated without --validated-by -> exit != 0; by-requirement REQ-1 lists the symbol",
    "covers": [
@@ -1470,14 +1433,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-estate nodes --bogus-flag zzz",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "each invalid case exit != 0, stderr names the offending field, stdout empty, no db file created or grown (dir hash unchanged)",
-     "banner lists every dispatch arm in cli_flags::COMMANDS and tool_bridge::COMMANDS"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: each invalid case exit != 0, stderr names the offending field, stdout empty, no db file created or grown (dir hash unchanged); banner lists every dispatch arm in cli_flags::COMMANDS and tool_bridge::COMMANDS"
    },
    "oracle_text": "each invalid case exit != 0, stderr names the offending field, stdout empty, no db file created or grown (dir hash unchanged); banner lists every dispatch arm in cli_flags::COMMANDS and tool_bridge::COMMANDS",
    "covers": [
@@ -1597,15 +1555,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-estate traverse <sym> --depth 2 --direction dependents --json",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "exactly one JSON document on stdout",
-     "unknown/repeated flag -> exit != 0",
-     "equals MCP TraverseGraph content"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exactly one JSON document on stdout; unknown/repeated flag -> exit != 0; equals MCP TraverseGraph content"
    },
    "oracle_text": "exactly one JSON document on stdout; unknown/repeated flag -> exit != 0; equals MCP TraverseGraph content",
    "covers": [
@@ -6482,15 +6434,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden run scripts/estate_mcp.mjs",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "with binary: initialize response serverInfo.name == wicked-estate",
-     "without: exit code 1 and stderr parses as JSON with ok==false and non-empty tried[]",
-     "with WICKED_ESTATE_READONLY=1 the spawned argv contains --readonly"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: with binary: initialize response serverInfo.name == wicked-estate; without: exit code 1 and stderr parses as JSON with ok==false and non-empty tried[]; with WICKED_ESTATE_READONLY=1 the spawned argv contains --readonly"
    },
    "oracle_text": "with binary: initialize response serverInfo.name == wicked-estate; without: exit code 1 and stderr parses as JSON with ok==false and non-empty tried[]; with WICKED_ESTATE_READONLY=1 the spawned argv contains --readonly",
    "covers": [
@@ -6936,16 +6882,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-garden run scripts/_estate_client.py --readonly <action> ",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "health -> ok true when binary + store reachable",
-     "list-tools tools == tools/list names",
-     "propose returns a proposal id visible in proposal.list pending",
-     "unknown action -> usage error, exit != 0"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: health -> ok true when binary + store reachable; list-tools tools == tools/list names; propose returns a proposal id visible in proposal.list pending; unknown action -> usage error, exit != 0"
    },
    "oracle_text": "health -> ok true when binary + store reachable; list-tools tools == tools/list names; propose returns a proposal id visible in proposal.list pending; unknown action -> usage error, exit != 0",
    "covers": [
@@ -7149,15 +7088,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-estate supports owners --json",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "each --json document equals what GraphRead::support_owners / edge_supports returns on the same SQLite file",
-     "after retract, edge_supports for that producer is empty",
-     "missing required flag -> exit != 0"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: each --json document equals what GraphRead::support_owners / edge_supports returns on the same SQLite file; after retract, edge_supports for that producer is empty; missing required flag -> exit != 0"
    },
    "oracle_text": "each --json document equals what GraphRead::support_owners / edge_supports returns on the same SQLite file; after retract, edge_supports for that producer is empty; missing required flag -> exit != 0",
    "covers": [

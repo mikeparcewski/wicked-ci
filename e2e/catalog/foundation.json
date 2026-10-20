@@ -648,15 +648,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus subscribe --cursor-id C --once",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "recover: one WB-003 notice with reanchored_to == MIN(event_id) and swept_past, then events delivered, exit 0",
-     "fail: exit 3 with WB-003",
-     "`--on-stale` without value exits 1 WB-001"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: recover: one WB-003 notice with reanchored_to == MIN(event_id) and swept_past, then events delivered, exit 0; fail: exit 3 with WB-003; `--on-stale` without value exits 1 WB-001"
    },
    "oracle_text": "recover: one WB-003 notice with reanchored_to == MIN(event_id) and swept_past, then events delivered, exit 0; fail: exit 3 with WB-003; `--on-stale` without value exits 1 WB-001",
    "covers": [
@@ -696,9 +690,16 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "manual",
-    "category": "untyped",
-    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: cursor last_event_id == K-1 after replay; next subscribe yields first id K; unknown cursor exit 6 stderr WB-006; K < MIN(event_id) exit 3 stderr WB-003"
+    "kind": "exit",
+    "cmd": "wicked-bus replay --cursor-id C --from-event-id K",
+    "code": 3,
+    "complete": false,
+    "untyped": [
+     "cursor last_event_id == K-1 after replay",
+     "next subscribe yields first id K",
+     "unknown cursor exit 6 stderr WB-006",
+     "K < MIN(event_id) exit 3 stderr WB-003"
+    ]
    },
    "oracle_text": "cursor last_event_id == K-1 after replay; next subscribe yields first id K; unknown cursor exit 6 stderr WB-006; K < MIN(event_id) exit 3 stderr WB-003",
    "covers": [
@@ -968,17 +969,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus dlq replay --dl-id D --dry-run",
-    "code": 6,
-    "complete": false,
-    "untyped": [
-     "dry-run JSON .dry_run==true and .would_replay.dl_id==D with dead_letters unchanged",
-     "replay JSON {replayed:true,dl_id:D}",
-     "replay_requested_at set",
-     "after next poll cycle handler receives event_id and dead_letters row D is deleted",
-     "unknown D exits 6 WB-006"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: dry-run JSON .dry_run==true and .would_replay.dl_id==D with dead_letters unchanged; replay JSON {replayed:true,dl_id:D}; replay_requested_at set; after next poll cycle handler receives event_id and dead_letters row D is deleted; unknown D exits 6 WB-006"
    },
    "oracle_text": "dry-run JSON .dry_run==true and .would_replay.dl_id==D with dead_letters unchanged; replay JSON {replayed:true,dl_id:D}; replay_requested_at set; after next poll cycle handler receives event_id and dead_letters row D is deleted; unknown D exits 6 WB-006",
    "covers": [
@@ -1436,15 +1429,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus register --plugin prov --role provider",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "list JSON contains prov before deregister, absent after",
-     "--include-deregistered shows it with non-null deregistered_at",
-     "`deregister --role` with no value exits 1"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: list JSON contains prov before deregister, absent after; --include-deregistered shows it with non-null deregistered_at; `deregister --role` with no value exits 1"
    },
    "oracle_text": "list JSON contains prov before deregister, absent after; --include-deregistered shows it with non-null deregistered_at; `deregister --role` with no value exits 1",
    "covers": [
@@ -1497,16 +1484,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-bus cleanup --unacked-policy archive",
-    "code": "nonzero",
-    "complete": false,
-    "untyped": [
-     "archive: owed expired row moved to events_archive (count +1) and gone from events",
-     "discard: deleted, not archived",
-     "retain+cap: archived with reason 'retention_cap' in .unacked report",
-     "invalid policy string exits non-zero"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: archive: owed expired row moved to events_archive (count +1) and gone from events; discard: deleted, not archived; retain+cap: archived with reason 'retention_cap' in .unacked report; invalid policy string exits non-zero"
    },
    "oracle_text": "archive: owed expired row moved to events_archive (count +1) and gone from events; discard: deleted, not archived; retain+cap: archived with reason 'retention_cap' in .unacked report; invalid policy string exits non-zero",
    "covers": [
@@ -3344,36 +3324,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-garden run scripts/compiler/compile.py <repo> --trigger hook,ci",
-      "code": "nonzero"
-     },
-     {
-      "kind": "file",
-      "path": "{repo}/.wicked/{bindings.json",
-      "assert": "exists"
-     },
-     {
-      "kind": "exit",
-      "cmd": "python3 .wicked/gate.py",
-      "code": 0
-     }
-    ],
-    "complete": false,
-    "untyped": [
-     "emitted gate files exist in repo",
-     "gate exits non-zero when latest artifact fails (REJECT) and 0 when passing (PASS)",
-     "contract source_pin == detected test command",
-     "<repo>/.wicked/{bindings.json,contract.json,gate.py,README.md} exist",
-     "manifest JSON lists claims (tests-pass/lint-clean/build-clean) and needs_review",
-     "gate.py imports nothing from wicked-garden",
-     "exit 0 on passing repo",
-     "nonzero on failing tests or lint",
-     "killswitch fails closed"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: emitted gate files exist in repo; gate exits non-zero when latest artifact fails (REJECT) and 0 when passing (PASS); contract source_pin == detected test command"
    },
    "oracle_text": "emitted gate files exist in repo; gate exits non-zero when latest artifact fails (REJECT) and 0 when passing (PASS); contract source_pin == detected test command",
    "covers": [
@@ -3967,7 +3920,7 @@
    "oracle": {
     "kind": "exit",
     "cmd": "wicked-vault attest <id> --opinion pass --rationale r --evaluator gemini-reviewer --model gemini/2.5-pro",
-    "code": 0,
+    "code": 1,
     "complete": false,
     "untyped": [
      "independent: exit 0 JSON attestation_id, opinion 'pass'",
@@ -4333,22 +4286,12 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "wicked-vault cross-check --scope s --phase build",
-      "code": 0
-     },
-     {
-      "kind": "event",
-      "source": "bus",
-      "type": "wicked.contract.checked",
-      "count": {
-       "min": 1
-      }
-     }
-    ],
+    "kind": "event",
+    "source": "bus",
+    "type": "wicked.contract.checked",
+    "count": {
+     "min": 1
+    },
     "complete": false,
     "untyped": [
      "(a) overall 'PASS' exit 0",
@@ -4675,14 +4618,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "wicked-vault record --scope s --phase build --claim log-clean --kind log --source build.log --artifact build.log --criteria @criteria.md --verifier 'not_contains:ERROR'",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "payload_sha256 == sha256(build.log)",
-     "acceptance_criteria in entry == contents of criteria.md (@file resolved)"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 0; payload_sha256 == sha256(build.log); acceptance_criteria in entry == contents of criteria.md (@file resolved)"
    },
    "oracle_text": "exit 0; payload_sha256 == sha256(build.log); acceptance_criteria in entry == contents of criteria.md (@file resolved)",
    "covers": [

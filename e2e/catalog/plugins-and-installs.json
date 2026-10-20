@@ -1366,19 +1366,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "exit",
-      "cmd": "npx wicked-installer install wicked-garden",
-      "code": 0
-     },
-     {
-      "kind": "file",
-      "path": "~/.claude/plugins/wicked-garden/.claude-plugin/plugin.json",
-      "assert": "exists"
-     }
-    ],
+    "kind": "file",
+    "path": "~/.claude/plugins/wicked-garden/.claude-plugin/plugin.json",
+    "assert": "exists",
     "complete": false,
     "untyped": [
      "(a) exit 0, delivery 'copied', ~/.claude/plugins/wicked-garden/.claude-plugin/plugin.json exists",
@@ -1687,16 +1677,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "npx wicked-installer install wicked-garden --source-root <dir>",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "known_marketplaces.json wicked-garden source points at <dir>/wicked-garden",
-     "install record present",
-     "invalid --source-root (no .claude-plugin/marketplace.json) exits 1 before any dependency install",
-     "--source-root without Claude Code exits 1 (no npx fallback)"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: known_marketplaces.json wicked-garden source points at <dir>/wicked-garden; install record present; invalid --source-root (no .claude-plugin/marketplace.json) exits 1 before any dependency install; --source-root without Claude Code exits 1 (no npx fallback)"
    },
    "oracle_text": "known_marketplaces.json wicked-garden source points at <dir>/wicked-garden; install record present; invalid --source-root (no .claude-plugin/marketplace.json) exits 1 before any dependency install; --source-root without Claude Code exits 1 (no npx fallback)",
    "covers": [
@@ -1792,18 +1775,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "npx wicked-installer cleanup-legacy --dry-run --json",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "envelope verb=='cleanup-legacy'",
-     "dry-run: every removal 'planned' and tree unchanged",
-     "live: bare plugins/wicked-garden and marker-recorded skills/hooks/json-keys gone, marker record dropped",
-     "dir not 'registered' => 'blocked' exit 1, nothing removed",
-     "any refused entry => dir 'failed', nothing removed, exit 1",
-     "symlink anywhere => refused"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: envelope verb=='cleanup-legacy'; dry-run: every removal 'planned' and tree unchanged; live: bare plugins/wicked-garden and marker-recorded skills/hooks/json-keys gone, marker record dropped; dir not 'registered' => 'blocked' exit 1, nothing removed; any refused entry => dir 'failed', nothing removed"
    },
    "oracle_text": "envelope verb=='cleanup-legacy'; dry-run: every removal 'planned' and tree unchanged; live: bare plugins/wicked-garden and marker-recorded skills/hooks/json-keys gone, marker record dropped; dir not 'registered' => 'blocked' exit 1, nothing removed; any refused entry => dir 'failed', nothing removed, exit 1; symlink anywhere => refused",
    "covers": [
@@ -2939,14 +2913,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "npx wicked-installer mcp upsert acme-notes --command node --cli pi,antigravity --json",
-    "code": 0,
-    "complete": false,
-    "untyped": [
-     "each clis[] entry result 'unsupported' (antigravity detail 'no stated MCP target (INTERFACE §8.3)')",
-     "no file under the pi or gemini home changed"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: exit 0; each clis[] entry result 'unsupported' (antigravity detail 'no stated MCP target (INTERFACE §8.3)'); no file under the pi or gemini home changed"
    },
    "oracle_text": "exit 0; each clis[] entry result 'unsupported' (antigravity detail 'no stated MCP target (INTERFACE §8.3)'); no file under the pi or gemini home changed",
    "covers": [
@@ -3342,15 +3311,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "exit",
-    "cmd": "npx wicked-installer pack add ./acme-broken",
-    "code": 1,
-    "complete": false,
-    "untyped": [
-     "without --force: exit 1, PK error codes printed, nothing under packs/installed or ~/.claude/skills",
-     "with --force: installed",
-     "traversal-shaped manifest names refused"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: without --force: exit 1, PK error codes printed, nothing under packs/installed or ~/.claude/skills; with --force: installed; traversal-shaped manifest names refused"
    },
    "oracle_text": "without --force: exit 1, PK error codes printed, nothing under packs/installed or ~/.claude/skills; with --force: installed; traversal-shaped manifest names refused",
    "covers": [

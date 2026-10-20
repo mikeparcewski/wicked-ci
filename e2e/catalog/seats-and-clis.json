@@ -945,7 +945,7 @@
    ],
    "oracle": {
     "kind": "exit",
-    "cmd": "npm i -g wicked-garden",
+    "cmd": "codex plugin marketplace add \"$(npm root -g)/wicked-garden\"",
     "code": 0,
     "complete": false,
     "untyped": [
