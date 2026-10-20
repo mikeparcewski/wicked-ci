@@ -252,6 +252,14 @@ class RunReport(unittest.TestCase):
         self.edit("crew-api.c.d", verdict="skipped")
         self.assertTrue(any("skipped" in f for f in self.check()))
 
+    def test_relative_run_dir(self):
+        cwd = os.getcwd()
+        try:
+            os.chdir(self.d)
+            self.assertEqual(v.check_report(".", self.caps, {})[0], [])
+        finally:
+            os.chdir(cwd)
+
     def test_selection_by_profile(self):
         self.write("run.json", {"version": 1, "profile": "p"})
         fails, _ = v.check_report(self.d, self.caps, {"p": {"select": "area:crew-api"}})
@@ -273,7 +281,8 @@ class Extractors(unittest.TestCase):
             os.makedirs(os.path.join(d, "src"))
             write_text(os.path.join(d, "src", "a.rs"), "#[cfg(test)]\nmod t {}\n")
             write_text(os.path.join(d, "src", "b.rs"), "fn main() {}\n")
-            files = ["src/a.rs", "src/b.rs", "tests/x.ts", "pkg/y.test.ts", ".github/workflows/ci.yml", "README.md"]
+            files = ["src/a.rs", "src/b.rs", "tests/x.ts", "pkg/y.test.ts", ".github/workflows/ci.yml", "README.md",
+                     "tests/fixtures/f.ts", "tests/data.json", "scenarios/a.md"]
             self.assertEqual(surfaces.test_index(d, files), ["src/a.rs", "tests/x.ts", "pkg/y.test.ts", ".github/workflows/ci.yml"])
         finally:
             shutil.rmtree(d)

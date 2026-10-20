@@ -295,8 +295,9 @@ def check_report(run_dir, caps, profiles):
                 fails.append("%s: required evidence %s missing" % (cid, kind))
                 continue
             for p in paths if isinstance(paths, list) else [paths]:
-                full = os.path.normpath(os.path.join(run_dir, p))
-                if not full.startswith(os.path.normpath(run_dir) + os.sep):
+                base = os.path.abspath(run_dir)
+                full = os.path.abspath(os.path.join(base, p))
+                if not full.startswith(base + os.sep):
                     fails.append("%s: evidence %s escapes the run dir" % (cid, p))
                 elif not os.path.isfile(full) or os.path.getsize(full) == 0:
                     fails.append("%s: evidence %s (%s) missing or empty" % (cid, p, kind))

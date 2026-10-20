@@ -54,7 +54,6 @@ jobs:
         run: |
           out="$RUNNER_TEMP/pinned"
           mkdir -p "$out"
-          cp e2e/surfaces/pins.json "$out/"
           python3 e2e/bin/e2e surfaces --clone pinned --out "$out"
           rc=0
           for f in e2e/surfaces/wicked-*.json; do

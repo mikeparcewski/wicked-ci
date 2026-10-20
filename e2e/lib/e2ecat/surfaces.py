@@ -62,16 +62,20 @@ def git_sha(root):
                           check=True).stdout.strip()
 
 
-TEST_DIRS = {"test", "tests", "e2e", "__tests__", "spec", "scenarios", "smoke", "evidence", "fixtures"}
+TEST_DIRS = {"test", "tests", "e2e", "__tests__", "spec", "smoke", "evidence"}
 TEST_NAME = re.compile(r"(^test_|_test\.|\.test\.|\.spec\.|_spec\.|^tests?\.)")
 RUST_TEST = re.compile(r"#\[(cfg\(test\)|test|tokio::test)\]")
+# A scenario must be something that runs: data files, fixtures and markdown scenario write-ups are not tests.
+EXECUTABLE = (".py", ".ts", ".tsx", ".mts", ".cts", ".js", ".mjs", ".cjs", ".sh", ".bash", ".rs", ".yml", ".yaml")
 
 
 def test_index(root, files):
-    """Tracked files that hold tests: test dirs/names, CI workflows, and Rust files with test items."""
+    """Tracked, executable files that hold tests: test dirs/names, CI workflows, Rust files with test items."""
     idx = []
     for p in files:
         segs = p.split("/")
+        if not p.endswith(EXECUTABLE) or "fixtures" in segs[:-1]:
+            continue
         if p.startswith(".github/workflows/") or TEST_DIRS.intersection(segs[:-1]) or TEST_NAME.search(segs[-1]):
             idx.append(p)
         elif p.endswith(".rs"):

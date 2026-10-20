@@ -31,7 +31,6 @@
   "test/prove-on-memos.sh",
   "test/runtime-profile.sh",
   "test/types/consumer.mts",
-  "test/types/tsconfig.json",
   "test/verifiers.sh"
  ]
 }

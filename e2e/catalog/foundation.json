@@ -589,14 +589,13 @@
     {
      "ref": "wicked-bus:tests/unit/config.test.js",
      "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-bus:tests/fixtures/malformed-config.json",
-     "fidelity": "integration"
     }
    ],
    "sources": [
     "wicked-bus:lib/config.js:loadConfig validation"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: wicked-bus/tests/fixtures/malformed-config.json"
    ],
    "origin": "inventory-2026-10-20"
   },

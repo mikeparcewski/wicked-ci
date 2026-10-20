@@ -35,7 +35,6 @@
   ".github/workflows/release.yml",
   "test/coherence.mjs",
   "test/smoke.mjs",
-  "test/types/consumer.mts",
-  "test/types/tsconfig.json"
+  "test/types/consumer.mts"
  ]
 }

@@ -107,8 +107,9 @@ def cmd_select(a):
 
 def cmd_surfaces(a):
     out = a.out or os.path.join(a.e2e, "surfaces")
-    pins_p = os.path.join(out, "pins.json")
-    pins = read_json(pins_p) if os.path.isfile(pins_p) else {"repos": {}, "npm": {}}
+    src_pins = os.path.join(a.e2e, "surfaces", "pins.json")  # the pins are always read from the repo
+    pins_p = os.path.join(out, "pins.json")                   # and written next to the manifests (--write-pins)
+    pins = read_json(src_pins) if os.path.isfile(src_pins) else {"repos": {}, "npm": {}}
     crew_npm = a.crew_npm or pins.get("npm", {}).get("wicked-crew")
     if crew_npm == "latest":
         npm = shutil.which("npm") or shutil.which("npm.cmd")
@@ -126,7 +127,7 @@ def cmd_surfaces(a):
                 root = os.path.join(tmp, repo)
                 sha = pins.get("repos", {}).get(repo) if a.clone == "pinned" else None
                 if a.clone == "pinned" and not sha:
-                    print("%s: no pinned sha in %s" % (repo, pins_p), file=sys.stderr)
+                    print("%s: no pinned sha in %s" % (repo, src_pins), file=sys.stderr)
                     rc = 1
                     continue
                 sf.clone(repo, sha, root)

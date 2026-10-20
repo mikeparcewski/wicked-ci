@@ -42,13 +42,13 @@
     "garden:skill:agentic"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/agentic/02-trust-safety-audit.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/agentic/refs/audit.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/agentic/02-trust-safety-audit.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -90,13 +90,13 @@
     "garden:skill:agentic"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/agentic/04-five-layer-design.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/agentic/refs/design.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/agentic/04-five-layer-design.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -139,14 +139,14 @@
     "garden:skill:agentic"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/agentic/03-framework-comparison.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/agentic/refs/frameworks.md",
     "wicked-garden:skills/agentic/frameworks/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/agentic/03-framework-comparison.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -191,15 +191,15 @@
     "garden:skill:agentic"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/agentic/01-architecture-review.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/agentic/refs/review.md",
     "wicked-garden:scripts/agentic/detect_framework.py",
     "wicked-garden:scripts/agentic/analyze_agents.py"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/agentic/01-architecture-review.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -298,13 +298,13 @@
     "garden:skill:archetype"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/crew/01-end-to-end-feature.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/archetype/refs/build.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/crew/01-end-to-end-feature.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -914,17 +914,16 @@
    "oracle_text": "bus has wicked.garden.archetype.created / advanced events; BUS_EVENT_MAP entries all match ^wicked\\.[a-z]+\\.[a-z_]+\\.[a-z_]+$; no crash when bus absent",
    "covers": [],
    "scenarios": [
-    {
-     "ref": "wicked-garden:.wicked-qe/scenarios/garden-self-test.md",
-     "name": "A2",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:WICKED_GARDEN_BUS_EVENTS.md",
     "wicked-garden:scripts/_bus.py",
     "wicked-garden:scripts/_bus_emit.py",
     "wicked-garden:scripts/_bus_catalog_gen.py"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: .wicked-qe/scenarios/garden-self-test.md (A2)"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -1741,14 +1740,7 @@
     "garden:skill:core"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/core/01-fresh-install.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/core/guard-fresh-install.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "aliases": [
     "plugins.garden.core-install-action"
@@ -1758,6 +1750,8 @@
     "wicked-garden:scripts/setup/detect_state.py"
    ],
    "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: wicked-garden/scenarios/core/01-fresh-install.md",
+    "inventory test reference not found as a test file at the pinned SHA: wicked-garden/scenarios/core/guard-fresh-install.md",
     "merged duplicate plugins.garden.core-install-action (plugins-and-installs area); its oracle: `wicked-vault --version` exits 0 afterwards; `npm ls -g wicked-vault` lists it; the action printed the installed-vs-latest garden version line"
    ],
    "origin": "inventory-2026-10-20"
@@ -1896,14 +1890,7 @@
     "garden:skill:core"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/core/01-fresh-install.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/core/wizard-environment-scan.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "aliases": [
     "plugins.garden.core-setup"
@@ -1914,6 +1901,9 @@
     "wicked-garden:scripts/setup/onboarding.py"
    ],
    "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/core/01-fresh-install.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/core/wizard-environment-scan.md",
+    "inventory test reference not found as a test file at the pinned SHA: wicked-garden/scenarios/core/01-fresh-install.md",
     "merged duplicate plugins.garden.core-setup (plugins-and-installs area); its oracle: `wicked-garden run scripts/setup/detect_state.py` reports setup complete; setup blocks iff `wicked-vault` is absent from PATH"
    ],
    "origin": "inventory-2026-10-20"
@@ -2122,21 +2112,15 @@
     "garden:skill:data"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/data/01-csv-profiling-analysis.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/data/04-exploratory-analysis-insights.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/data/06-large-file-sql-analysis.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/data/refs/analyze.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/data/01-csv-profiling-analysis.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/data/04-exploratory-analysis-insights.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/data/06-large-file-sql-analysis.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -2179,13 +2163,13 @@
     "garden:skill:data"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/data/05-ml-model-review.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/data/refs/ml.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/data/05-ml-model-review.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -2268,14 +2252,14 @@
     "garden:skill:data-engineer"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/data/03-pipeline-design-review.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/data/refs/pipeline.md",
     "wicked-garden:skills/data-engineer/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/data/03-pipeline-design-review.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -2311,15 +2295,15 @@
     "garden:skill:data"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/data/02-data-quality-assessment.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:scripts/data/data_profiler.py",
     "wicked-garden:scripts/data/schema_validator.py",
     "wicked-garden:skills/data/refs/data.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/data/02-data-quality-assessment.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -3237,13 +3221,13 @@
     "garden:skill:engineering"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/engineering/03-architecture-analysis.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/engineering/refs/arch.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/engineering/03-architecture-analysis.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -3275,13 +3259,13 @@
     "garden:skill:engineering"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/engineering/02-systematic-debugging.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/engineering/refs/debug.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/engineering/02-systematic-debugging.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -3409,17 +3393,15 @@
     "garden:skill:engineering"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/engineering/01-add-field-propagation.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:scripts/engineering/patch/patch.py",
     "wicked-garden:scripts/engineering/patch/generators"
    ],
    "notes": [
-    "inventory test reference not found as a test file at the pinned SHA: scripts/engineering/patch/tests/"
+    "inventory test reference not found as a test file at the pinned SHA: scripts/engineering/patch/tests/",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/engineering/01-add-field-propagation.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -3450,14 +3432,14 @@
     "garden:skill:engineering"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/engineering/05-patch-save-and-apply.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:scripts/engineering/patch/patch.py",
     "wicked-garden:scripts/engineering/patch/safety.py"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/engineering/05-patch-save-and-apply.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -3573,13 +3555,13 @@
     "garden:skill:engineering"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/engineering/04-remove-field-cleanup.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:scripts/engineering/patch/patch.py"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/engineering/04-remove-field-cleanup.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -3615,16 +3597,14 @@
     "garden:skill:engineering"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/engineering/02-rename-symbol-across-codebase.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:scripts/engineering/patch/patch.py"
    ],
    "notes": [
-    "inventory test reference not found as a test file at the pinned SHA: scripts/engineering/patch/tests/"
+    "inventory test reference not found as a test file at the pinned SHA: scripts/engineering/patch/tests/",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/engineering/02-rename-symbol-across-codebase.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -3667,17 +3647,14 @@
     "garden:skill:engineering"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/engineering/06-implementation-planning.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/engineering/03-change-plan-impact-analysis.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/engineering/refs/plan.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/engineering/06-implementation-planning.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/engineering/03-change-plan-impact-analysis.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -3720,14 +3697,14 @@
     "garden:skill:engineering"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/engineering/01-code-review-pr.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/engineering/SKILL.md#review",
     "wicked-garden:skills/engineering/refs/review.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/engineering/01-code-review-pr.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -4310,14 +4287,13 @@
     {
      "ref": "wicked-garden:tests/hooks/test_bus_emit_lint.py",
      "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/crew/bus-emit-lint-blocks-orphan-write.md",
-     "fidelity": "unit"
     }
    ],
    "sources": [
     "wicked-garden:hooks/scripts/pre_tool.py:_check_bus_emit_lint"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/crew/bus-emit-lint-blocks-orphan-write.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -4355,13 +4331,13 @@
    "oracle_text": "pre_tool deny with challenge-gate reason; WG_CHALLENGE_GATE=off allows",
    "covers": [],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/crew/challenge-gate-enforcement.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:hooks/scripts/pre_tool.py:_check_challenge_gate"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/crew/challenge-gate-enforcement.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -4397,13 +4373,13 @@
    "oracle_text": "pre_tool deny with gate preflight reason; non-approve Bash allow <1ms",
    "covers": [],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/crew/gate-enforcement-adversarial.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:hooks/scripts/pre_tool.py:_crew_gate_preflight"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/crew/gate-enforcement-adversarial.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -4479,13 +4455,13 @@
    "oracle_text": "permissionDecision allow + systemMessage orchestrator warning",
    "covers": [],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/crew/orchestrator-no-inline-work.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:hooks/scripts/pre_tool.py:_check_orchestrator_write"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/crew/orchestrator-no-inline-work.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -4745,13 +4721,13 @@
     "garden:skill:core"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/core/guard-needs-onboarding.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:hooks/scripts/prompt_submit.py (~L566-600)"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/core/guard-needs-onboarding.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -4793,14 +4769,13 @@
      "ref": "wicked-garden:tests/e2e/test_e2e_bootstrap_routing.py",
      "name": "test_unconfigured_project_setup_gate_blocks_and_cannot_be_bypassed",
      "fidelity": "integration"
-    },
-    {
-     "ref": "wicked-garden:scenarios/core/guard-fresh-install.md",
-     "fidelity": "unit"
     }
    ],
    "sources": [
     "wicked-garden:hooks/scripts/prompt_submit.py (setup gate ~L457-530)"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/core/guard-fresh-install.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -4842,14 +4817,6 @@
     {
      "ref": "wicked-garden:tests/test_heavy_cadence_redesign.py",
      "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/delivery/07-spc-drift-detected.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/delivery/08-spc-stable-no-flag.md",
-     "fidelity": "unit"
     }
    ],
    "sources": [
@@ -4858,6 +4825,10 @@
     "wicked-garden:scripts/delivery/drift.py",
     "wicked-garden:scripts/platform/guard_pipeline.py",
     "wicked-garden:scripts/_heavy_cadence.py"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/delivery/07-spc-drift-detected.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/delivery/08-spc-stable-no-flag.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -5135,20 +5106,17 @@
     "garden:skill:jam-brainstorm-facilitator"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/jam/01-architecture-decision.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/jam/persona-transcript-session-retrieval.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/jam/SKILL.md",
     "wicked-garden:skills/jam-brainstorm-facilitator/SKILL.md",
     "wicked-garden:scripts/jam/jam.py",
     "wicked-garden:scripts/jam/save_transcript.py"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/jam/01-architecture-decision.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/jam/persona-transcript-session-retrieval.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -5191,19 +5159,16 @@
     "garden:skill:jam-council"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/jam/council-consensus.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/jam/02-multi-ai-design-review.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/jam-council/SKILL.md",
     "wicked-garden:scripts/jam/consensus.py",
     "wicked-garden:skills/jam/refs/council-verdict.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/jam/council-consensus.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/jam/02-multi-ai-design-review.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -5309,13 +5274,13 @@
     "garden:skill:jam"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/jam/quick-facilitator-shape.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/jam/refs/quick.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/jam/quick-facilitator-shape.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -5359,13 +5324,13 @@
     "garden:skill:jam"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/jam/04-integration-with-wicked-mem.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/jam/refs/revisit.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/jam/04-integration-with-wicked-mem.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -6205,10 +6170,6 @@
      "ref": "wicked-garden:tests/mem/test_estate_memory.py",
      "name": "test_live_ingest_yields_cited_sources",
      "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/search/document-extraction.md",
-     "fidelity": "unit"
     }
    ],
    "related": [
@@ -6217,6 +6178,9 @@
    "sources": [
     "wicked-garden:skills/mem-ingest/SKILL.md",
     "wicked-garden:scripts/mem/estate_memory.py:do_ingest"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/search/document-extraction.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -6813,13 +6777,13 @@
     "garden:skill:platform"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/platform/03-incident-response-triage.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/platform/incident/refs/incident.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/platform/03-incident-response-triage.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -6898,16 +6862,14 @@
     "garden:skill:platform"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/platform/obs-contract-assert.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:scripts/platform/observability/assert_contracts.py",
     "wicked-garden:schemas/assert_contracts.json"
    ],
    "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/platform/obs-contract-assert.md",
     "critic 2026-10-20 (permissive disjunction): the failure branch no longer passes; every result must be pass; timeout/empty/malformed are FAILs."
    ],
    "origin": "inventory-2026-10-20"
@@ -6946,14 +6908,14 @@
     "garden:skill:platform"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/platform/obs-health-probe.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:scripts/platform/observability/health_probe.py",
     "wicked-garden:schemas/health_probe.json"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/platform/obs-health-probe.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -7101,13 +7063,13 @@
     "garden:skill:platform"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/platform/02-security-vulnerability-scan.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/platform/refs/security-scan.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/platform/02-security-vulnerability-scan.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -7154,28 +7116,18 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-garden:scenarios/platform/01-ci-workflow-generation.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/platform/04-compliance-audit-preparation.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/platform/05-system-health-assessment.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/platform/06-workflow-troubleshooting.md",
-     "fidelity": "unit"
-    },
-    {
      "ref": "wicked-garden:tests/core/test_inventory_report_codebook.py",
      "fidelity": "unit"
     }
    ],
    "sources": [
     "wicked-garden:skills/platform/*/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/platform/01-ci-workflow-generation.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/platform/04-compliance-audit-preparation.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/platform/05-system-health-assessment.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/platform/06-workflow-troubleshooting.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -7210,14 +7162,14 @@
     "garden:skill:platform"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/platform/obs-trace-capture.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/platform/traces/refs/traces.md",
     "wicked-garden:scripts/platform/observability/ops_log_viewer.py"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/platform/obs-trace-capture.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -7977,13 +7929,13 @@
     "garden:skill:product"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/product/03-accessibility-audit.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/product/refs/a11y.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/product/03-accessibility-audit.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -8073,13 +8025,13 @@
     "garden:skill:product"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/product/05-stakeholder-alignment.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/product/refs/align.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/product/05-stakeholder-alignment.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -8121,20 +8073,17 @@
     "garden:skill:product"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/product/02-customer-voice-analysis.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/product/02-product-feedback.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/product/refs/listen.md",
     "wicked-garden:skills/product/refs/analyze.md",
     "wicked-garden:skills/product/refs/synthesize.md",
     "wicked-garden:scripts/resolve_path.py"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/product/02-customer-voice-analysis.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/product/02-product-feedback.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -8181,14 +8130,14 @@
     "garden:skill:product-requirements-analyst"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/product/01-requirements-elicitation.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/product/refs/elicit.md",
     "wicked-garden:skills/product-requirements-analyst/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/product/01-requirements-elicitation.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -8313,19 +8262,16 @@
     "garden:skill:product"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/product/07-requirements-graph-authoring.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/product/08-requirements-graph-navigation.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/product/requirements-graph/SKILL.md",
     "wicked-garden:skills/product/requirements-migrate/SKILL.md",
     "wicked-garden:skills/product/requirements-navigate/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/product/07-requirements-graph-authoring.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/product/08-requirements-graph-navigation.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -8416,14 +8362,14 @@
     "garden:skill:product-value-strategist"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/product/04-strategic-investment-analysis.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/product/refs/strategy.md",
     "wicked-garden:skills/product-value-strategist/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/product/04-strategic-investment-analysis.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -8466,14 +8412,14 @@
     "garden:skill:product"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/product/06-ux-flow-review.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/product/refs/ux.md",
     "wicked-garden:skills/product/refs/ux-review.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/product/06-ux-flow-review.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -8768,14 +8714,6 @@
     {
      "ref": "wicked-garden:tests/qe/test_crew_run_stamp.py",
      "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/qe/03-acceptance-testing-pipeline.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:evidence/th6-dod/README.md",
-     "fidelity": "integration"
     }
    ],
    "related": [
@@ -8785,6 +8723,10 @@
    ],
    "sources": [
     "wicked-garden:skills/qe/refs/accept.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/03-acceptance-testing-pipeline.md",
+    "inventory test reference not found as a test file at the pinned SHA: evidence/th6-dod/README.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -8827,13 +8769,13 @@
     "garden:skill:qe"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/qe/02-test-generation.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/qe/refs/author.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/02-test-generation.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -9046,14 +8988,14 @@
     "garden:skill:qe-scenario-executor"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:.wicked-qe/scenarios/garden-self-test.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/qe/refs/execute.md",
     "wicked-garden:skills/qe-scenario-executor/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: .wicked-qe/scenarios/garden-self-test.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -9204,13 +9146,13 @@
     "garden:skill:qe"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/qe/01-qe-shift-left.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/qe/refs/plan.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/01-qe-shift-left.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -9399,13 +9341,13 @@
     "garden:skill:qe-a11y-test-engineer"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/qe/a11y-wcag-check.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/qe-a11y-test-engineer/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/a11y-wcag-check.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -9920,13 +9862,13 @@
     "garden:skill:qe-iac-test-engineer"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/qe/infra-container-scan.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/qe-iac-test-engineer/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/infra-container-scan.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -10163,13 +10105,13 @@
     "garden:skill:qe-load-performance-engineer"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/qe/perf-load-test.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/qe-load-performance-engineer/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/perf-load-test.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -10367,17 +10309,14 @@
     "garden:skill:qe-scenario-executor"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/qe/api-health-check.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/qe/hook-script-lints.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/qe-scenario-executor/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/api-health-check.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/hook-script-lints.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -10422,13 +10361,13 @@
     "garden:skill:qe-security-test-engineer"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/qe/security-sast-scan.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/qe-security-test-engineer/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/security-sast-scan.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -10664,14 +10603,14 @@
     "garden:skill:qe-visual-regression-engineer"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/qe/browser-page-audit.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/qe-ui-component-test-engineer/SKILL.md",
     "wicked-garden:skills/qe-visual-regression-engineer/SKILL.md"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/qe/browser-page-audit.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -10864,10 +10803,7 @@
     "garden:skill:search"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/search/onboarding-unfamiliar-codebase.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "aliases": [
     "garden.search.service-map",
@@ -10883,6 +10819,7 @@
    ],
    "notes": [
     "merged duplicate garden.search.service-map (garden area); its oracle: reply lists services each traced to a file path that exists",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/search/onboarding-unfamiliar-codebase.md",
     "merged duplicate garden.search.narrate (garden area); its oracle: Skill wicked-garden-search-codebase-narrator loaded; reply sections for layout/key modules/data flows; every cited path exists"
    ],
    "origin": "inventory-2026-10-20"
@@ -10922,18 +10859,15 @@
     "garden:skill:search"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/search/index-and-search.md",
-     "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-garden:scenarios/search/incremental-indexing.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "sources": [
     "wicked-garden:skills/search/SKILL.md#Index / freshness",
     "wicked-garden:.wicked-estate-extractors/archetype.toml"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/search/index-and-search.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/search/incremental-indexing.md"
    ],
    "origin": "inventory-2026-10-20"
   },

@@ -2233,10 +2233,7 @@
     "garden:skill:search"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/search/blast-radius-analysis.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "aliases": [
     "garden.search.blast-radius"
@@ -2246,6 +2243,8 @@
     "wicked-garden:scenarios/search/blast-radius-analysis.md"
    ],
    "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: wicked-garden/scenarios/search/blast-radius-analysis.md",
+    "inventory test reference not found as a test file at the pinned SHA: scenarios/search/blast-radius-analysis.md",
     "merged duplicate garden.search.blast-radius (garden area); its oracle: dependents non-empty for a known-imported file; complete==true; reply names path 'shim'"
    ],
    "origin": "inventory-2026-10-20"
@@ -2286,10 +2285,7 @@
     "garden:skill:search"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/search/onboarding-unfamiliar-codebase.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "related": [
     "garden.search.hotspots"
@@ -2298,6 +2294,9 @@
     "wicked-garden:skills/search/refs/hotspots.md",
     "wicked-garden:skills/search/refs/service-map.md",
     "wicked-garden:skills/search/codebase-narrator"
+   ],
+   "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: wicked-garden/scenarios/search/onboarding-unfamiliar-codebase.md"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -2341,10 +2340,7 @@
     "garden:skill:search"
    ],
    "scenarios": [
-    {
-     "ref": "wicked-garden:scenarios/search/cross-reference-detection.md",
-     "fidelity": "unit"
-    }
+    "planned"
    ],
    "aliases": [
     "garden.search.lineage",
@@ -2356,6 +2352,7 @@
     "wicked-garden:skills/search/SKILL.md#Path"
    ],
    "notes": [
+    "inventory test reference not found as a test file at the pinned SHA: wicked-garden/scenarios/search/cross-reference-detection.md",
     "merged duplicate garden.search.lineage (garden area); its oracle: Lineage dependencies + BlastRadius dependents both returned; complete flag reported",
     "merged duplicate garden.search.path (garden area); its oracle: hops[] ordered, each with kind/confidence/provenance; first hop from==A, last to==B"
    ],
