@@ -174,6 +174,17 @@ class Evidence(Fixture):
         self.assertEqual(cp.returncode, 1)
         self.assertFalse(json.loads(cp.stdout)["intact"])
 
+    def test_an_evidence_path_outside_the_run_is_not_read(self):
+        self.execute(no_vault=True)
+        p = os.path.join(self.out, "crew-api.health.ok", "result.json")
+        r = read_json(p)
+        r["evidence"]["api-transcript"] = ["../../../../etc/hosts"]
+        write_json(p, r)
+        out = evm.inspect(self.out, "crew-api.health.ok", use_cli=False)
+        self.assertEqual(out["evidence"][0]["status"], "outside")
+        self.assertIsNone(out["evidence"][0]["sha256"])
+        self.assertFalse(out["intact"])
+
     def test_an_unsealed_run_is_never_intact(self):
         self.execute(no_vault=True)
         out = evm.inspect(self.out, "crew-api.health.ok")

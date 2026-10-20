@@ -44,6 +44,7 @@ path, then `result.json`, the vault entry and `integrity: INTACT` or `NOT INTACT
 | `changed` | the file was edited after the run |
 | `gone` | the file was deleted |
 | `not-recorded` | the result lists a file the frozen manifest does not |
+| `outside` | the result points at a path outside the run directory; it is not read |
 | `unverified` | the run was never sealed, so nothing can be checked |
 
 Give the operator the paths to open: the `.webm` video and `.png` screenshots play and show in any

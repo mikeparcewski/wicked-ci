@@ -229,7 +229,8 @@ def inspect(run_dir, cid, use_cli=True, vault_argv=None):
 
     Returns {"id", "verdict", "scenario", "evidence": [{"kind", "path", "abs", "sha256", "status"}],
     "result": {...}, "vault": {...}, "intact": bool, "problems": [...]}. A file's status is `ok` (its hash
-    matches the frozen copy), `changed`, `gone` or `not-recorded`; `intact` is true only when the run is
+    matches the frozen copy), `changed`, `gone`, `not-recorded` or `outside` (the path escapes the run
+    directory, so it is not read); `intact` is true only when the run is
     sealed, every file and result.json match, and (with the CLI) `wicked-vault verify` passes."""
     run_dir = os.path.abspath(run_dir)
     with open(os.path.join(run_dir, "run.json"), encoding="utf-8") as fh:
@@ -266,8 +267,15 @@ def inspect(run_dir, cid, use_cli=True, vault_argv=None):
     for kind, paths in sorted((res.get("evidence") or {}).items()):
         for p in (paths if isinstance(paths, list) else [paths]):
             full = os.path.join(run_dir, p)
-            h = sha256_file(full) if os.path.isfile(full) else None
-            if h is None:
+            real, base = os.path.realpath(full), os.path.realpath(run_dir)
+            try:
+                inside = os.path.commonpath([base, real]) == base and real != base
+            except ValueError:  # another drive on Windows
+                inside = False
+            h = sha256_file(full) if inside and os.path.isfile(full) else None
+            if not inside:
+                st = "outside"
+            elif h is None:
                 st = "gone"
             elif not man:
                 st = "unverified"
@@ -277,7 +285,7 @@ def inspect(run_dir, cid, use_cli=True, vault_argv=None):
                 st = "changed"
             else:
                 st = "ok"
-            if st in ("gone", "not-recorded", "changed"):
+            if st in ("gone", "not-recorded", "changed", "outside"):
                 problems.append("%s %s: %s" % (kind, p, st))
             rows.append({"kind": kind, "path": p, "abs": full, "sha256": h, "status": st})
     for p in sorted(set(files) - {r["path"] for r in rows}):
