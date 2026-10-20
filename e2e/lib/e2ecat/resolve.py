@@ -419,6 +419,8 @@ def resolve(request, caps, profiles, run_dir=None):
         if costly:
             out["ask_reasons"].append("cost %s (M = a live seat turn, L = a governed run)" % ", ".join(
                 "%s x%d" % kv for kv in sorted(costly.items())))
+        if re.match(r"^\s*(what|which|how|is|are|does|do|did|can|could|has|have)\b", low) or low.rstrip().endswith("?"):
+            out["ask_reasons"].append("the request is a question, read here as a run: confirm a run is wanted")
         if out["target"] == "live":
             out["ask_reasons"].append("the live target %s (direct GETs; journeys only with --live-journeys)" % (out["studio"] or "?"))
         out["ask_before_running"] = bool(out["ask_reasons"])

@@ -73,6 +73,8 @@ ask before running, and the next commands. It exits 0 only when `status` is `res
 - `no-match`: say which words matched nothing. Offer the closest areas or tags from
   `refs/<area>.md`, or a selection the operator writes (`e2e select 'tag:<x>'` lists what it
   picks). Never widen to everything on your own.
+- A question ("what", "which", "how many", "is", "does", "did") asks for information, not a run.
+  If `e2e resolve` reads one as `run` or `rerun`, show what it selected and ask before running it.
 - `refused`: the request targets an operator daemon. Say so and offer a throwaway daemon.
 - Read the `explain` lines back to the operator in one sentence ("'run page' is the tag run-page,
   15 capabilities in studio-ui") so a misreading is caught before anything runs. Name any word

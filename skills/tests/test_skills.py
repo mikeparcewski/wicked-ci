@@ -413,7 +413,9 @@ class RouterEvals(unittest.TestCase):
             out = rs.resolve(case["request"], self.caps, self.profiles, run_dir=self.tmp if case.get("run_dir") else None)
             if out["action"] in ("run", "rerun") and out["count"]:
                 costly = any(k in ("M", "L") for k in out["cost"])
-                self.assertEqual(out["ask_before_running"], costly or out["target"] == "live", case["request"])
+                question = bool(re.match(r"^\s*(what|which|how|is|are|does|do|did|can|could|has|have)\b",
+                                         case["request"].lower())) or case["request"].rstrip().endswith("?")
+                self.assertEqual(out["ask_before_running"], costly or out["target"] == "live" or question, case["request"])
 
     def test_an_unmatched_request_never_widens_to_everything(self):
         out = rs.resolve("please test the zorblax", self.caps, self.profiles)
