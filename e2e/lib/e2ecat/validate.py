@@ -122,7 +122,7 @@ def check_catalog(sch, docs, caps, surfaces, repo_root=REPO_ROOT):
         if isinstance(o, dict) and o.get("kind") in TYPED:
             fails += ["%s: %s" % (cid, f) for f in check_semantics(_checks(o))]
             fails += ["%s: %s" % (cid, f) for f in check_verbs(_checks(o), verbs)]
-            fails += ["%s: %s" % (cid, f) for f in check_routes(_checks(o), routes)]
+            fails += ["%s: %s" % (cid, f) for f in check_routes(_checks(o), routes, bridge=c.get("_area") == "interactive-and-docs")]
             if "complete" not in o:
                 fails.append("%s: a typed oracle must say whether it is complete" % cid)
             elif o["complete"] and o.get("untyped"):
@@ -277,21 +277,27 @@ def route_known(routes, meth, path):
     return False
 
 
-def check_routes(checks, routes):
-    """Every request a check makes or observes on crew (/api/v1) or the bridge (/api, /d/:doc) must be a route
-    the pinned manifests list, with a well-formed query."""
+def check_routes(checks, routes, bridge=False):
+    """Every request a check makes or observes on crew (/api/v1) or the bridge (/api, /d/:doc; any relative path
+    on a document-engine capability) must be a route the pinned manifests list, with a well-formed query; a
+    request the runner makes with a non-GET method must carry a body (or the {request_body} binding)."""
     out = []
     for i, ch in enumerate(checks):
+        if ch.get("kind") == "api" and ch.get("method") not in ("JSONRPC", "GET") and "body" not in ch:
+            out.append("oracle check %d: %s %s has no body (give it one, or {request_body})" % (i, ch["method"], ch.get("path")))
         if ch.get("kind") == "api" and ch.get("method") != "JSONRPC":
             meth, path = ch.get("method"), ch.get("path", "")
         elif ch.get("kind") == "event" and ch.get("source") == "network" and " " in ch.get("type", ""):
             meth, path = ch["type"].split(" ", 1)
         else:
             continue
-        if not path.startswith(("/api/", "/d/")):
+        if not (path.startswith(("/api/", "/d/")) or (bridge and path.startswith("/") and path != "/")):
             continue
+        q = path.split("?", 1)[1] if "?" in path else ""
         if "&" in path.split("?")[0]:
             out.append("oracle check %d: %s %s has a query parameter with no `?`" % (i, meth, path))
+        elif any(kv.endswith("=") for kv in q.split("&") if kv):
+            out.append("oracle check %d: %s %s has an empty query parameter" % (i, meth, path))
         elif routes and not route_known(routes, meth, path):
             out.append("oracle check %d: %s %s is not a route in the pinned crew/interactive manifests" % (i, meth, path))
     return out

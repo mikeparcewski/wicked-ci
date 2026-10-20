@@ -8857,24 +8857,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/runs/{runId}/gate",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
-    "body": "{request_body}",
-    "complete": false,
-    "untyped": [
-     "approve → set runs unchanged",
-     "amend directive edits plan deterministically",
-     "reject cancels",
-     "decision body matches gate schema"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: approve → set runs unchanged; amend directive edits plan deterministically; reject cancels; decision body matches gate schema"
    },
    "oracle_text": "approve → set runs unchanged; amend directive edits plan deterministically; reject cancels; decision body matches gate schema",
    "covers": [

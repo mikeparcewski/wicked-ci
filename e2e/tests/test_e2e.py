@@ -192,7 +192,14 @@ class CatalogChecks(unittest.TestCase):
                         (api("GET", "/api/v1/decisions&project=x"), "no `?`")):
             fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=o))
             self.assertTrue(any(want in f for f in fails), (o, fails))
-        for o in (api("GET", "/api/v1/runs/{runId}"), api("GET", "/api/v1/decisions?project=x"), api("GET", "https://example.com/")):
+        self.surf["wicked-crew"]["elements"].append(
+            {"key": "crew:route:POST /api/v1/repos", "kind": "route", "name": "POST /api/v1/repos", "files": []})
+        for o, want in ((api("POST", "/api/v1/repos"), "has no body"),
+                        (api("GET", "/api/v1/decisions?limit="), "empty query parameter")):
+            fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=o))
+            self.assertTrue(any(want in f for f in fails), (o, fails))
+        for o in (api("GET", "/api/v1/runs/{runId}"), api("GET", "/api/v1/decisions?project=x"), api("GET", "https://example.com/"),
+                  dict(api("POST", "/api/v1/repos"), body="{request_body}")):
             fails, _ = self.run_check(cap(surface="api", required_evidence=["api-transcript"], oracle=o))
             self.assertEqual(fails, [], o)
 

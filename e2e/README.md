@@ -98,8 +98,11 @@ A capability's `oracle` is one typed check, an `all` of typed checks, or `manual
 - **Requests are real routes.** Every request a check makes or observes on crew (`/api/v1`) or
   the bridge (`/api`, `/d/:doc`) must be a route in the pinned manifests, with a well-formed
   query. A bridge path written without its document mount resolves to `/d/{doc}` when only that
-  form exists. A non-GET check carries `body: "{request_body}"`: the user path's own request
-  body, which the scenario's setup binds.
+  form exists. On a document-engine capability, every relative path must be a bridge route.
+- **Bodies and queries**: every non-GET check carries a body, either its own or
+  `"{request_body}"` (the user path's own request body, bound by the scenario's setup). A query
+  has no empty parameter. On a refusal path, a request whose clause states no refusal status
+  gets no defaulted success status.
 - **Placeholders** in `{braces}` come from a `capture` or from the runner's own bindings
   (`{port}`, `{runId}`, `{projectId}`, `{repoId}`, `{tag}`, and seeded values a scenario's setup
   names, such as `{stale_ord}`). A path's `:id` is named after its resource (`/runs/{runId}`).
@@ -231,8 +234,8 @@ e2e select --profile release
 | profile | selection | count (2026-10-20 pins) |
 |---|---|---:|
 | `smoke` | `tag:smoke cost<=M !oracle=manual` | 33 |
-| `daily` | `cost<=M !oracle=manual` | 847 |
-| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 356 |
+| `daily` | `cost<=M !oracle=manual` | 834 |
+| `release` | `cost<=L tag:launch,gates,deliver,qe,sign-in,install,plugins,smoke !oracle=manual` | 351 |
 | `full` | everything (manual capabilities report `manual`) | 1411 |
 
 ## How the catalog was built
@@ -336,7 +339,7 @@ From now on the catalog files are the source.
     A roster comparison must address `$.roster`. Other response paths come from the inventory's
     wording and are not yet checked against the response types; phase 2 binds them.
   - Hand-written oracles that omit a clause of their user path list it in `untyped` too.
-  - 19 oracles are complete, 956 partial, 326 untyped and 110 manual.
+  - 19 oracles are complete, 942 partial, 340 untyped and 110 manual.
 - **`covers`**: it was seeded two ways.
   - Explicit mention: a testid, route, command, tool, skill or hook named in the capability's
     text.

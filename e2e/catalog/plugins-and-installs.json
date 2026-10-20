@@ -164,17 +164,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/health",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "health carries a blocking skills.garden finding naming found vs required",
-     "POST /repos and launch answer 422 garden_required / base_skill_refused (assert only on a proof daemon)"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: health carries a blocking skills.garden finding naming found vs required; POST /repos and launch answer 422 garden_required / base_skill_refused (assert only on a proof daemon)"
    },
    "oracle_text": "health carries a blocking skills.garden finding naming found vs required; POST /repos and launch answer 422 garden_required / base_skill_refused (assert only on a proof daemon)",
    "covers": [

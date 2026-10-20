@@ -23056,7 +23056,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/governance/rules?type=",
+      "path": "/api/v1/governance/rules",
       "expect": {
        "status": 200
       }

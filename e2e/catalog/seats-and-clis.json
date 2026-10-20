@@ -340,22 +340,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/chats/{chatId}/messages",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
-    "body": "{request_body}",
-    "complete": false,
-    "untyped": [
-     "HTTP 409 with that error text",
-     "no chatReply emitted."
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: HTTP 409 with that error text; no chatReply emitted."
    },
    "oracle_text": "HTTP 409 with that error text; no chatReply emitted.",
    "covers": [
@@ -1682,7 +1669,8 @@
       "path": "/api/v1/seats/agy/container-login",
       "expect": {
        "status": 404
-      }
+      },
+      "body": "{request_body}"
      }
     ],
     "complete": true

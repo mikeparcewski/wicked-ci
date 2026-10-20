@@ -1387,39 +1387,18 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/chats",
-      "expect": {
-       "status": 201
-      },
-      "body": "{request_body}"
-     },
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/chats",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      },
-      "body": "{request_body}"
-     }
-    ],
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/chats",
+    "expect": {
+     "status": 201
+    },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "chatId non-empty",
      "seats[] each admitted per chatSeatAdmission",
-     "council-disabled seat appears in refused[]",
-     "seats only include keys whose roster chat_admission for the scope kind is admitted",
-     "every requested-or-defaulted seat not warm is in refused with a source",
-     "exactly one warm seat => singleSeat {degraded:true, warmed, refused, refusalsKnown:true}."
+     "council-disabled seat appears in refused[]"
     ]
    },
    "oracle_text": "201; chatId non-empty; seats[] each admitted per chatSeatAdmission; council-disabled seat appears in refused[]",
@@ -2768,7 +2747,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/decisions?project=",
+    "path": "/api/v1/decisions",
     "expect": {
      "status": 200
     },
@@ -4245,18 +4224,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/diagnostics",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "diagnostics.stateHome.unclassified[] contains the planted entry name",
-     "refuses flag true",
-     "removing it and re-reading clears it"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: diagnostics.stateHome.unclassified[] contains the planted entry name; refuses flag true; removing it and re-reading clears it"
    },
    "oracle_text": "diagnostics.stateHome.unclassified[] contains the planted entry name; refuses flag true; removing it and re-reading clears it",
    "covers": [
@@ -4528,42 +4498,19 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/editors",
-      "expect": {
-       "status": 200
-      },
-      "body": "{request_body}"
-     },
-     {
-      "kind": "api",
-      "method": "POST",
-      "path": "/api/v1/editors",
-      "expect": {
-       "status": [
-        200,
-        201,
-        202
-       ]
-      },
-      "body": "{request_body}"
-     }
-    ],
+    "kind": "api",
+    "method": "POST",
+    "path": "/api/v1/editors",
+    "expect": {
+     "status": 200
+    },
+    "body": "{request_body}",
     "complete": false,
     "untyped": [
      "200 installed true and conformance all pass",
      "daemon-editors.json contains editor at pinned hash",
      "failed case -> 422",
-     "pack_ships_skills_or_blocks -> 501",
-     "worker actor => 403",
-     "body not {packRoot, enabled?} => 400",
-     "garden missing => check fails 'garden-missing'",
-     "garden < 12.40.0 => 'garden-too-old'",
-     "success => 200 InstallEditorResponse with editors[] and granted[] when mcp.session declared"
+     "pack_ships_skills_or_blocks -> 501"
     ]
    },
    "oracle_text": "200 installed true and conformance all pass; daemon-editors.json contains editor at pinned hash; failed case -> 422; pack_ships_skills_or_blocks -> 501",
@@ -4998,7 +4945,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/gates/decided?limit=",
+    "path": "/api/v1/gates/decided",
     "expect": {
      "status": 200
     },
@@ -5646,25 +5593,12 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "all",
-    "of": [
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/governance/claims?runId=",
-      "expect": {
-       "status": 200
-      }
-     },
-     {
-      "kind": "api",
-      "method": "GET",
-      "path": "/api/v1/governance/claims",
-      "expect": {
-       "status": 200
-      }
-     }
-    ],
+    "kind": "api",
+    "method": "GET",
+    "path": "/api/v1/governance/claims",
+    "expect": {
+     "status": 200
+    },
     "complete": false,
     "untyped": [
      "claims for a governed run cite rule ids present in /governance/rules",
@@ -6058,7 +5992,7 @@
      {
       "kind": "api",
       "method": "GET",
-      "path": "/api/v1/governance/rules/preview?",
+      "path": "/api/v1/governance/rules/preview",
       "expect": {
        "status": 200
       }
@@ -6342,18 +6276,9 @@
     "vault-entry"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/health",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "json.warnings[] includes an entry whose kind/code is 'skills.base-skill' (no garden) or 'vault.unresolvable'/'vault.off' (no vault)",
-     "entry.message non-empty",
-     "absent warnings key on a healthy daemon"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: json.warnings[] includes an entry whose kind/code is 'skills.base-skill' (no garden) or 'vault.unresolvable'/'vault.off' (no vault); entry.message non-empty; absent warnings key on a healthy daemon"
    },
    "oracle_text": "json.warnings[] includes an entry whose kind/code is 'skills.base-skill' (no garden) or 'vault.unresolvable'/'vault.off' (no vault); entry.message non-empty; absent warnings key on a healthy daemon",
    "covers": [
@@ -6498,7 +6423,8 @@
       },
       "capture": {
        "docId": "$.id"
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -8684,7 +8610,8 @@
          "op": "exists"
         }
        ]
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "event",
@@ -8948,7 +8875,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/mcp/usage?since=",
+    "path": "/api/v1/mcp/usage",
     "expect": {
      "status": 200
     },
@@ -8995,7 +8922,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/memory/coverage?scope_prefix=",
+    "path": "/api/v1/memory/coverage",
     "expect": {
      "status": 200
     },
@@ -9100,7 +9027,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/memory?facets={json}&limit=",
+    "path": "/api/v1/memory?facets={json}",
     "expect": {
      "status": 200
     },
@@ -9303,18 +9230,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/runs",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "HTTP 403",
-     "json.code=='origin_refused'",
-     "same request with Host 127.0.0.1 -> 200"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: HTTP 403; json.code=='origin_refused'; same request with Host 127.0.0.1 -> 200"
    },
    "oracle_text": "HTTP 403; json.code=='origin_refused'; same request with Host 127.0.0.1 -> 200",
    "covers": [],
@@ -11090,7 +11008,8 @@
       "capture": {
        "runId": "$.onboardRunId",
        "repoId": "$.repo.id"
-      }
+      },
+      "body": "{request_body}"
      },
      {
       "kind": "api",
@@ -15126,23 +15045,9 @@
     "file-hash"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/skills",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
-    "body": "{request_body}",
-    "complete": false,
-    "untyped": [
-     "200 verdict ok",
-     "GET files shows new content",
-     "injected write failure -> old files unchanged (hash)"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: 200 verdict ok; GET files shows new content; injected write failure -> old files unchanged (hash)"
    },
    "oracle_text": "200 verdict ok; GET files shows new content; injected write failure -> old files unchanged (hash)",
    "covers": [
@@ -15823,7 +15728,8 @@
         "op": "exists"
        }
       ]
-     }
+     },
+     "body": "{request_body}"
     }
    },
    "oracle_text": "200 with rule object (action/scope) and seat key; seat timeout -> 502/409; unparseable -> 422",
@@ -16896,7 +16802,7 @@
    "oracle": {
     "kind": "api",
     "method": "GET",
-    "path": "/api/v1/watch?limit=",
+    "path": "/api/v1/watch",
     "expect": {
      "status": 200
     },
@@ -17952,22 +17858,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/workflows",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
-    "body": "{request_body}",
-    "complete": false,
-    "untyped": [
-     "410",
-     "body mentions '/presets/'"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: 410; body mentions '/presets/'"
    },
    "oracle_text": "410; body mentions '/presets/'",
    "covers": [

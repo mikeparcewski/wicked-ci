@@ -23,22 +23,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "POST",
-    "path": "/api/v1/projects/{p}/interactive/api/events",
-    "expect": {
-     "status": [
-      200,
-      201,
-      202
-     ]
-    },
-    "body": "{request_body}",
-    "complete": false,
-    "untyped": [
-     "status 422 and body.code",
-     "no chat.posted on the bus for that doc in the window"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: status 422 and body.code; no chat.posted on the bus for that doc in the window"
    },
    "oracle_text": "status 422 and body.code; no chat.posted on the bus for that doc in the window",
    "covers": [
@@ -427,18 +414,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/v1/runs/{runId}/acceptance",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "acceptance.walkthrough present",
-     "each check.passed boolean mirrors result.json",
-     "summary counts equal"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: acceptance.walkthrough present; each check.passed boolean mirrors result.json; summary counts equal"
    },
    "oracle_text": "acceptance.walkthrough present; each check.passed boolean mirrors result.json; summary counts equal",
    "covers": [
@@ -474,18 +452,9 @@
     "api-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/api/projects",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "JSON shapes: /api/projects.projects[0].current===true",
-     "/api/crew/projects.available boolean",
-     "POST status 200 {id,name} | 4xx passthrough | 503"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: JSON shapes: /api/projects.projects[0].current===true; /api/crew/projects.available boolean; POST status 200 {id,name} | 4xx passthrough | 503"
    },
    "oracle_text": "JSON shapes: /api/projects.projects[0].current===true; /api/crew/projects.available boolean; POST status 200 {id,name} | 4xx passthrough | 503",
    "covers": [
@@ -1083,17 +1052,9 @@
     "cli-transcript"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "GET / -> 200 text/html containing the frontend/dist index script tag (assets/index-*.js)",
-     "without the flag the same GET returns the redirect/no-origin page"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: GET / -> 200 text/html containing the frontend/dist index script tag (assets/index-*.js); without the flag the same GET returns the redirect/no-origin page"
    },
    "oracle_text": "GET / -> 200 text/html containing the frontend/dist index script tag (assets/index-*.js); without the flag the same GET returns the redirect/no-origin page",
    "covers": [],
@@ -1993,17 +1954,9 @@
     "event-log"
    ],
    "oracle": {
-    "kind": "api",
-    "method": "GET",
-    "path": "/d-less",
-    "expect": {
-     "status": 200
-    },
-    "complete": false,
-    "untyped": [
-     "array rows",
-     "a retired doc absent by default and present with includeRetired=1"
-    ]
+    "kind": "manual",
+    "category": "untyped",
+    "reason": "deterministic in principle, but the inventory states it as prose (library calls, SQL, multi-step sequences) that the normaliser could not reduce to dom/api/event/file/exit checks; restate it as typed checks before it can certify: array rows; a retired doc absent by default and present with includeRetired=1"
    },
    "oracle_text": "array rows; a retired doc absent by default and present with includeRetired=1",
    "covers": [],
