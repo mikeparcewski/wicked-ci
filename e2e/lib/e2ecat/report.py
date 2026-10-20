@@ -103,7 +103,9 @@ def blocks(cap, res):
     if v == "manual":
         return ["manual oracle (never a pass)"]
     if v == "error":
-        if "required evidence not captured" in str(res.get("reason")):
+        have = res.get("evidence") or {}
+        if (res.get("scenario") or {}).get("status") == "passed" and any(
+                k not in have for k in cap.get("required_evidence", [])):  # ran, but a required kind is absent
             return ["error: required evidence not captured by the adapter"]
         return ["error: the scenario could not run"]
     if v == "skipped":

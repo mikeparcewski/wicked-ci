@@ -131,6 +131,11 @@ class Blockers(Fixture):
                                            "scenario": {"adapter": "smoke", "fidelity": "e2e-hermetic"}}),
                          ["partial: a check held only on something not tied to this path (wildcard)"])
         self.assertEqual(report.blocks(c, {}), ["no result.json (the run did not record it)"])
+        base = {"verdict": "error", "evidence": {}, "scenario": {"status": "error"}}
+        self.assertEqual(report.blocks(c, dict(base, reason="required evidence not captured: x")),
+                         report.blocks(c, dict(base, reason="adapter crashed")), "reason text never classifies")
+        self.assertEqual(report.blocks(c, {"verdict": "error", "evidence": {}, "scenario": {"status": "passed"}}),
+                         ["error: required evidence not captured by the adapter"])
 
 
 class PlanAndBlockerReasons(Fixture):
