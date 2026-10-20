@@ -66,7 +66,8 @@ def cmd_validate(a):
     summ = v.summary(caps, surfaces, unmapped)
     report = None
     if a.report:
-        rfails, counts = v.check_report(a.report, caps, profiles)
+        rfails, counts = v.check_report(a.report, caps, profiles, vault=not a.allow_unvaulted,
+                                        vault_cli=not a.no_vault_cli)
         fails += ["report: %s" % f for f in rfails]
         report = {"run_dir": a.report, "verdicts": counts, "failures": len(rfails)}
         notes.append("run report %s: verdicts %s; %d completeness failures" % (a.report, counts, len(rfails)))
@@ -83,6 +84,48 @@ def cmd_validate(a):
         t["capabilities"], t["with_scenario"], t["planned"], t["manual"], t["untyped"],
         sum(len(x) for x in unmapped.values()), "OK" if not fails else "%d FAILURES" % len(fails)))
     return 0 if not fails else 1
+
+
+def cmd_run(a):
+    from . import run as runmod
+    _, _, caps = v.load_catalog(a.e2e)
+    profiles = _profiles(a.e2e)
+    expr, prof = a.select, None
+    if a.profile:
+        if a.profile not in profiles:
+            print("unknown profile %r" % a.profile, file=sys.stderr)
+            return 2
+        if a.select:
+            print("e2e run: give --select or --profile, not both", file=sys.stderr)
+            return 2
+        prof, expr = a.profile, profiles[a.profile]["select"]
+    try:
+        run_dir, rc = runmod.execute(a, a.e2e, caps, profiles, expr or "", prof)
+    except (runmod.RunError, SelectError) as e:
+        print("e2e run: %s" % e, file=sys.stderr)
+        return 2
+    if a.plan_only:
+        print("e2e run: plan written to %s" % os.path.join(run_dir, "plan.json"))
+        return rc
+    from . import report as rep
+    doc = rep.build(run_dir, {c["id"]: c for c in caps})
+    print("e2e run: %d capabilities: %s -> %s" % (doc["total"], ", ".join(
+        "%s %d" % (k, n) for k, n in sorted(doc["counts"].items())), os.path.join(run_dir, "report.html")))
+    return rc
+
+
+def cmd_report(a):
+    from . import report as rep
+    _, _, caps = v.load_catalog(a.e2e)
+    if not os.path.isfile(os.path.join(a.run_dir, "run.json")):
+        print("e2e report: %s has no run.json" % a.run_dir, file=sys.stderr)
+        return 2
+    val = rep.validation(a.run_dir, caps, _profiles(a.e2e))
+    doc = rep.write(a.run_dir, {c["id"]: c for c in caps}, val)
+    print("e2e report: %d capabilities (%s) -> %s/report.{md,html,json}; validation %s" % (
+        doc["total"], ", ".join("%s %d" % kv for kv in sorted(doc["counts"].items())), a.run_dir,
+        "OK" if val["ok"] else "%d FAILURES" % len(val["failures"])))
+    return 0
 
 
 def cmd_select(a):
@@ -213,6 +256,36 @@ def main(argv):
     pv.add_argument("--out", help="write coverage.md + coverage.json here")
     pv.add_argument("-v", "--verbose", action="store_true", help="print the Markdown summary even with --out")
     pv.add_argument("--surfaces", help="read surface manifests from this directory instead of e2e/surfaces")
+    pv.add_argument("--allow-unvaulted", action="store_true",
+                    help="with --report: do not require (or re-derive) the wicked-vault evidence hashes")
+    pv.add_argument("--no-vault-cli", action="store_true",
+                    help="with --report: re-derive the hashes offline only (skip `wicked-vault verify`)")
+    pr = sub.add_parser("run", help="run the selected capabilities' scenarios and write a run directory")
+    g = pr.add_mutually_exclusive_group(required=True)
+    g.add_argument("--select", help="a selection expression (see e2e/README.md)")
+    g.add_argument("--profile", help="a profile from profiles.json (smoke, daily, release, full)")
+    pr.add_argument("--target", choices=["fixture", "live"], default="fixture")
+    pr.add_argument("--studio", help="the live target: the URL of a crew daemon that serves the studio")
+    pr.add_argument("--out", required=True, help="the run directory to create (must be new or empty)")
+    pr.add_argument("--src", help="a directory holding wicked-studio / wicked-crew / wicked-core checkouts")
+    pr.add_argument("--checkout", action="append", metavar="REPO=PATH", help="one checkout (repeatable)")
+    pr.add_argument("--python", help="the Python with Playwright for studio journeys (default: this one)")
+    pr.add_argument("--playwright-browsers", help="PLAYWRIGHT_BROWSERS_PATH for the journeys")
+    pr.add_argument("--build-slot", help="a command prefix that serialises heavy builds (cargo, vitest)")
+    pr.add_argument("--step-timeout", type=int, default=900, help="the smoke harness's per-step ceiling (s)")
+    pr.add_argument("--unit-timeout", type=int, default=5400, help="one unit's wall-clock ceiling (s)")
+    pr.add_argument("--smoke-arg", action="append", help="pass one argument through to wicked-smoke (repeatable)")
+    pr.add_argument("--cargo-target-dir", help="CARGO_TARGET_DIR for core tests (default: the checkout's target/)")
+    pr.add_argument("--studio-rebuild", action="store_true", help="rebuild the studio's dist-sameorigin first")
+    pr.add_argument("--keep-work", action="store_true", help="keep the smoke temp root and work dirs")
+    pr.add_argument("--plan-only", action="store_true", help="write plan.json and stop (nothing runs)")
+    pr.add_argument("--no-vault", action="store_true", help="do not record the evidence in wicked-vault")
+    pr.add_argument("--live-journeys", action="store_true",
+                    help="on the live target, run the studio's e2e-live journeys (they drive the daemon for real)")
+    pr.add_argument("--allow-daemon-port", action="store_true",
+                    help="allow --studio on an operator daemon port (7701/7721); refused by default")
+    prr = sub.add_parser("report", help="regenerate report.md/.html/.json for a run directory")
+    prr.add_argument("run_dir")
     pd = sub.add_parser("drift", help="compare the pinned manifests with freshly extracted ones (report only)")
     pd.add_argument("--against", required=True, help="a directory of freshly extracted manifests")
     pd.add_argument("--out", help="write drift.md + drift.json here")
@@ -232,4 +305,4 @@ def main(argv):
     pb.add_argument("--write", action="store_true")
     a = p.parse_args(argv)
     return {"validate": cmd_validate, "select": cmd_select, "surfaces": cmd_surfaces, "baseline": cmd_baseline,
-            "drift": cmd_drift}[a.cmd](a)
+            "drift": cmd_drift, "run": cmd_run, "report": cmd_report}[a.cmd](a)

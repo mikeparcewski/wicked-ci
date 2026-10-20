@@ -1,0 +1,1760 @@
+{
+ "version": 1,
+ "run": {
+  "run_id": "20261020T145405Z-aa8b",
+  "target": "fixture",
+  "studio": null,
+  "profile": "smoke",
+  "selection": "tag:smoke cost<=M !oracle=manual",
+  "started": "2026-10-20T14:54:05+00:00",
+  "finished": "2026-10-20T15:02:30+00:00",
+  "checkouts": {
+   "wicked-ci": "a613dcbdf1cb8fd54be5cdd1927bc616e4e22ea7",
+   "wicked-studio": "c4151ce0288b8028f732ae12277ad80afc41364f",
+   "wicked-crew": "8158e618d073b322fc945f3a24f3723f95d09e60"
+  },
+  "catalog_sha256": "c8ae16160345428716f916d6315270dd1167ea716d00467dba9e6c24c08354c3"
+ },
+ "vault": {
+  "scope": "e2e-20261020T145405Z-aa8b",
+  "index": "vault-index.json",
+  "cli": "0.8.0"
+ },
+ "total": 33,
+ "counts": {
+  "skipped": 1,
+  "fail": 4,
+  "partial": 26,
+  "error": 2
+ },
+ "matrix": {
+  "studio-ui": {
+   "skipped": 1
+  },
+  "crew-api": {
+   "fail": 4,
+   "partial": 24,
+   "error": 2
+  },
+  "foundation": {
+   "partial": 2
+  }
+ },
+ "plan": [
+  {
+   "unit": "wicked-ci-smoke",
+   "adapter": "wicked-ci-smoke",
+   "scenarios": [
+    "wicked-ci:smoke/lib/steps/S01-boot.mjs",
+    "wicked-ci:smoke/lib/steps/S02-skills.mjs",
+    "wicked-ci:smoke/lib/steps/S03-onboard.mjs",
+    "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+    "wicked-ci:smoke/lib/steps/S05-bus-health.mjs",
+    "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+    "wicked-ci:smoke/lib/steps/S07-interactive.mjs",
+    "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+    "wicked-ci:smoke/lib/steps/S09-packaging.mjs"
+   ],
+   "capabilities": [
+    "crew-api.campaigns.read",
+    "crew-api.chats.close",
+    "crew-api.chats.list",
+    "crew-api.chats.message",
+    "crew-api.chats.open",
+    "crew-api.cli.packaging",
+    "crew-api.cli.serve",
+    "crew-api.cli.version",
+    "crew-api.diagnostics.components",
+    "crew-api.diagnostics.recent-errors",
+    "crew-api.diagnostics.skills",
+    "crew-api.gate.approve",
+    "crew-api.health.get",
+    "crew-api.interactive.doc-create",
+    "crew-api.interactive.doc-delete",
+    "crew-api.projects.activity",
+    "crew-api.projects.crud",
+    "crew-api.projects.members",
+    "crew-api.repos.register-local",
+    "crew-api.roster.read",
+    "crew-api.runs.cancel",
+    "crew-api.runs.diff",
+    "crew-api.runs.events",
+    "crew-api.runs.resume",
+    "crew-api.runs.unit-output",
+    "crew-api.skills.boot-seed",
+    "crew-api.skills.manifest",
+    "crew-api.workflow.onboarding",
+    "crew-api.ws.core-events",
+    "foundation.platform.acceptance.read"
+   ]
+  },
+  {
+   "unit": "wicked-crew-vitest:packages/crew/tests/reassign-route.test.ts",
+   "adapter": "wicked-crew-vitest",
+   "scenarios": [
+    "wicked-crew:packages/crew/tests/reassign-route.test.ts"
+   ],
+   "capabilities": [
+    "crew-api.runs.reassign"
+   ]
+  },
+  {
+   "unit": "direct",
+   "adapter": "direct",
+   "scenarios": [
+    "direct"
+   ],
+   "capabilities": [
+    "ci.smoke.reusable"
+   ]
+  }
+ ],
+ "capabilities": [
+  {
+   "id": "crew-api.campaigns.read",
+   "area": "crew-api",
+   "title": "List campaigns and read one (stats rollup)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "fail",
+   "reason": "the scenario failed; S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 \"missing field usable\")",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "failed",
+    "detail": "S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 \"missing field usable\")"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.campaigns.read/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S06/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S06/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S06/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json"
+    ],
+    "file-hash": [
+     "crew-api.campaigns.read/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.campaigns.read/result.json"
+  },
+  {
+   "id": "crew-api.repos.register-local",
+   "area": "crew-api",
+   "title": "Register a local repo (auto-onboards)",
+   "surface": "api",
+   "cost": "M",
+   "verdict": "fail",
+   "reason": "the scenario failed; S03 EXPECTED-FAIL: failing checks no wicked/<run-id> branch left by a tool-only onboarding (F-E2E-012); no wicked-worktrees/ dir left in the clone (F-E2E-012)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S03-onboard.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "failed",
+    "detail": "S03 EXPECTED-FAIL: failing checks no wicked/<run-id> branch left by a tool-only onboarding (F-E2E-012); no wicked-worktrees/ dir left in the clone (F-E2E-012)"
+   },
+   "checks": {
+    "total": 3,
+    "held": 2,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.repos.register-local/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S03/api-transcript.json"
+    ],
+    "event-log": [
+     "crew-api.repos.register-local/event-log.json",
+     "scenarios/wicked-ci-smoke/S03/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S03/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S03/git-debris.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S03/onboard-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S03/onboard-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S03/post-repos.json"
+    ],
+    "file-hash": [
+     "crew-api.repos.register-local/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.repos.register-local/result.json"
+  },
+  {
+   "id": "crew-api.runs.cancel",
+   "area": "crew-api",
+   "title": "Cancel a running or paused run",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "fail",
+   "reason": "the scenario failed; S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 \"missing field usable\")",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "failed",
+    "detail": "S06 FAIL: failing checks POST /testing/recon 201 (F-086: not a 500 \"missing field usable\")"
+   },
+   "checks": {
+    "total": 3,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 1,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.runs.cancel/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S06/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S06/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S06/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S06/campaign.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S06/recon.json"
+    ],
+    "file-hash": [
+     "crew-api.runs.cancel/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.runs.cancel/result.json"
+  },
+  {
+   "id": "crew-api.workflow.onboarding",
+   "area": "crew-api",
+   "title": "onboarding workflow (index, annotate) via Tool executors",
+   "surface": "api",
+   "cost": "M",
+   "verdict": "fail",
+   "reason": "the scenario failed; S03 EXPECTED-FAIL: failing checks no wicked/<run-id> branch left by a tool-only onboarding (F-E2E-012); no wicked-worktrees/ dir left in the clone (F-E2E-012)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S03-onboard.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "failed",
+    "detail": "S03 EXPECTED-FAIL: failing checks no wicked/<run-id> branch left by a tool-only onboarding (F-E2E-012); no wicked-worktrees/ dir left in the clone (F-E2E-012)"
+   },
+   "checks": {
+    "total": 1,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "scenarios/wicked-ci-smoke/S03/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S03/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S03/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S03/git-debris.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S03/onboard-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S03/onboard-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S03/post-repos.json"
+    ],
+    "file-hash": [
+     "crew-api.workflow.onboarding/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.workflow.onboarding/result.json"
+  },
+  {
+   "id": "crew-api.health.get",
+   "area": "crew-api",
+   "title": "Daemon liveness + capabilities (GET /health)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "error",
+   "reason": "required evidence not captured: event-log (the run cannot show it); the oracle is partial: json.status=='ok'; json.version==packages/crew/package.json version; json.ping in {'ok','busy'}; json.capabilities.qeAcceptance in {'required','off'}; json.baseSkill.present is boolean",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S01 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.health.get/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S01/api-transcript.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S01/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S01/diagnostics.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S01/health.json"
+    ],
+    "file-hash": [
+     "crew-api.health.get/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.health.get/result.json"
+  },
+  {
+   "id": "crew-api.skills.boot-seed",
+   "area": "crew-api",
+   "title": "Boot seeds skills root from the live garden plugin and publishes first snapshot",
+   "surface": "background",
+   "cost": "S",
+   "verdict": "error",
+   "reason": "required evidence not captured: event-log (the run cannot show it); the oracle is partial: after boot GET /skills current.gen >= 1; ~/.codex/skills and ~/.claude/skills unchanged (hash); diagnostics.skills.state=='published'",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S02-skills.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S02 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.skills.boot-seed/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S02/api-transcript.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S02/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills-after-stale-rules.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S02/skills-manifest-summary.json"
+    ],
+    "file-hash": [
+     "crew-api.skills.boot-seed/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.skills.boot-seed/result.json"
+  },
+  {
+   "id": "crew-api.chats.close",
+   "area": "crew-api",
+   "title": "End a chat (cancels its ask run)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: chatClosed frame reason=='closed'; GET /runs/<askRun> status=='cancelled'; GET /chats omits it; check 3 not observed; check 0, 1, 2 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S08 PASS"
+   },
+   "checks": {
+    "total": 4,
+    "held": 3,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.chats.close/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S08/api-transcript.json"
+    ],
+    "event-log": [
+     "crew-api.chats.close/event-log.json",
+     "scenarios/wicked-ci-smoke/S08/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S08/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-acp.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-signed-out.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-send-during-turn.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-slow.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-after-end.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-events-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/ws-chat-frames.json"
+    ],
+    "file-hash": [
+     "crew-api.chats.close/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.chats.close/result.json"
+  },
+  {
+   "id": "crew-api.chats.list",
+   "area": "crew-api",
+   "title": "List live chats",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 200 contains chatId from open; after DELETE absent; check 0 not observed",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S08 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "scenarios/wicked-ci-smoke/S08/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S08/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S08/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-acp.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-signed-out.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-send-during-turn.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-slow.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-after-end.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-events-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/ws-chat-frames.json"
+    ],
+    "file-hash": [
+     "crew-api.chats.list/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.chats.list/result.json"
+  },
+  {
+   "id": "crew-api.chats.message",
+   "area": "crew-api",
+   "title": "Send a chat message: first launches the ask run (answer-1), reply folds to one chatReply",
+   "surface": "api",
+   "cost": "M",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 202 turnId; exactly one chatReply frame with turn_id==turnId and run_id==ask run; GET /runs/<run_id> unit ids 'answer-1','answer-2'; check 1 not observed; check 0, 2 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S08 PASS"
+   },
+   "checks": {
+    "total": 3,
+    "held": 2,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.chats.message/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S08/api-transcript.json"
+    ],
+    "event-log": [
+     "crew-api.chats.message/event-log.json",
+     "scenarios/wicked-ci-smoke/S08/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S08/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-acp.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-signed-out.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-send-during-turn.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-slow.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-after-end.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-events-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/ws-chat-frames.json"
+    ],
+    "file-hash": [
+     "crew-api.chats.message/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.chats.message/result.json"
+  },
+  {
+   "id": "crew-api.chats.open",
+   "area": "crew-api",
+   "title": "Open a chat (ask path) with admitted seats and scope",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: chatId non-empty; seats[] each admitted per chatSeatAdmission; council-disabled seat appears in refused[]",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S08 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.chats.open/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S08/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S08/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S08/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-acp.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-signed-out.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-send-during-turn.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-slow.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-after-end.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-events-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/ws-chat-frames.json"
+    ],
+    "file-hash": [
+     "crew-api.chats.open/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.chats.open/result.json"
+  },
+  {
+   "id": "crew-api.cli.packaging",
+   "area": "crew-api",
+   "title": "Installed tarball: prebuilt core-ts platform package, studio dist, no operator paths",
+   "surface": "cli",
+   "cost": "M",
+   "verdict": "partial",
+   "reason": "the oracle is partial: require.resolve of platform package succeeds with version == pin; dist/studio/index.html exists; every roster headless_invocation/login_invocation/binary path under temp root",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S09-packaging.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S09 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "scenarios/wicked-ci-smoke/S09/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S09/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S09/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S09/cli-version.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S09/roster.json"
+    ],
+    "file-hash": [
+     "crew-api.cli.packaging/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.cli.packaging/result.json"
+  },
+  {
+   "id": "crew-api.cli.serve",
+   "area": "crew-api",
+   "title": "wicked-crew serve boots the daemon and prints WICKED_CREW_READY",
+   "surface": "cli",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: ready line JSON parses; port == --port; stages sum ~= startupMs; GET /health 200; URL-form WICKED_ESTATE_DB without --governance-db refuses boot",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S01 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.cli.serve/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S01/api-transcript.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S01/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S01/diagnostics.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S01/health.json"
+    ],
+    "file-hash": [
+     "crew-api.cli.serve/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.cli.serve/result.json"
+  },
+  {
+   "id": "crew-api.cli.version",
+   "area": "crew-api",
+   "title": "wicked-crew version | --version | -V",
+   "surface": "cli",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: stdout lines match installed package.json versions and dist/studio testid-inventory studioVersion",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S09-packaging.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S09 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "scenarios/wicked-ci-smoke/S09/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S09/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S09/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S09/cli-version.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S09/roster.json"
+    ],
+    "file-hash": [
+     "crew-api.cli.version/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.cli.version/result.json"
+  },
+  {
+   "id": "crew-api.diagnostics.components",
+   "area": "crew-api",
+   "title": "Diagnostics report component versions of the running daemon",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: components.crew == crew package.json version; components.coreTs == installed wicked-core-ts version; components.studioBundle == dist/studio/testid-inventory.json studioVersion (null when headless); daemon.port == bound port",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S01 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.diagnostics.components/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S01/api-transcript.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S01/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S01/diagnostics.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S01/health.json"
+    ],
+    "file-hash": [
+     "crew-api.diagnostics.components/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.diagnostics.components/result.json"
+  },
+  {
+   "id": "crew-api.diagnostics.recent-errors",
+   "area": "crew-api",
+   "title": "Diagnostics surface recent daemon errors (bus/SQLite faults visible)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: after the seeded bus error the entry matches the daemon log line; daemon stdout has 0 'malformed' repeats; check 0 not observed",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S05-bus-health.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S05 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 1,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.diagnostics.recent-errors/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S05/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S05/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S05/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S05/bus-timeline.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S05/diagnostics-after-loop.json"
+    ],
+    "file-hash": [
+     "crew-api.diagnostics.recent-errors/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.diagnostics.recent-errors/result.json"
+  },
+  {
+   "id": "crew-api.diagnostics.skills",
+   "area": "crew-api",
+   "title": "Diagnostics report the skills seam outcome (published/fallback/blocked/config-error)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "check 0 not observed",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S02-skills.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S02 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 1,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.diagnostics.skills/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S02/api-transcript.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S02/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills-after-stale-rules.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S02/skills-manifest-summary.json"
+    ],
+    "file-hash": [
+     "crew-api.diagnostics.skills/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.diagnostics.skills/result.json"
+  },
+  {
+   "id": "crew-api.gate.approve",
+   "area": "crew-api",
+   "title": "Approve a gate",
+   "surface": "api",
+   "cost": "M",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 200 GateDecisionResult.status != 'awaiting_human' (or next gate); /audit action 'gate.decided'; next unitDispatched frame; check 0 not observed; check 1 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S04 PASS"
+   },
+   "checks": {
+    "total": 2,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "scenarios/wicked-ci-smoke/S04/api-transcript.json"
+    ],
+    "event-log": [
+     "crew-api.gate.approve/event-log.json",
+     "scenarios/wicked-ci-smoke/S04/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S04/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/acceptance.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-roster-no-opencode.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/delivery.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/diff.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/health-capabilities.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/judge-unavailable.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/repo-checks.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-after-mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-before-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/seat-routing.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-all.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-mixed.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/verdict-gate.json"
+    ],
+    "file-hash": [
+     "crew-api.gate.approve/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.gate.approve/result.json"
+  },
+  {
+   "id": "crew-api.interactive.doc-create",
+   "area": "crew-api",
+   "title": "Create an interactive doc through the proxy (honest bridge errors)",
+   "surface": "api",
+   "cost": "M",
+   "verdict": "partial",
+   "reason": "the oracle is partial: the created doc is listed; an invalid body answers 400; status + body.code per case; crew-grounding.json content; bridge never saw refused creates (no doc dir); forwarded body has no repo_ref; check 0, 1, 2 not observed",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S07-interactive.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S07 PASS"
+   },
+   "checks": {
+    "total": 3,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 2,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.interactive.doc-create/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S07/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S07/event-log.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S07/doc-create.json"
+    ],
+    "file-hash": [
+     "crew-api.interactive.doc-create/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.interactive.doc-create/result.json"
+  },
+  {
+   "id": "crew-api.interactive.doc-delete",
+   "area": "crew-api",
+   "title": "Delete an interactive doc (ledger rows dropped)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: doc absent from list (present with includeRetired); doc with active run -> 409; bridge down -> 503; response.ledger.ok===true; grep of interactive-{draft,edit,chat,demo}-ledger.json finds no '<doc>' / '<doc>:' keys; bridge doc retired; check 0, 1 not observed",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S07-interactive.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S07 PASS"
+   },
+   "checks": {
+    "total": 2,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 2
+   },
+   "evidence": {
+    "api-transcript": [
+     "scenarios/wicked-ci-smoke/S07/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S07/event-log.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S07/doc-create.json"
+    ],
+    "file-hash": [
+     "crew-api.interactive.doc-delete/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.interactive.doc-delete/result.json"
+  },
+  {
+   "id": "crew-api.projects.activity",
+   "area": "crew-api",
+   "title": "Project activity feed (no SQLite lock damage)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 200 items[]; daemon log has no 'database disk image is malformed'; PRAGMA integrity_check ok; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S05-bus-health.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S05 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.projects.activity/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S05/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S05/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S05/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S05/bus-timeline.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S05/diagnostics-after-loop.json"
+    ],
+    "file-hash": [
+     "crew-api.projects.activity/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.projects.activity/result.json"
+  },
+  {
+   "id": "crew-api.projects.crud",
+   "area": "crew-api",
+   "title": "Create, list, get, update, archive projects",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: POST 201 id; GET list contains it; PATCH 200 status 'archived'; audit project.created/project.archived; bad body 400",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S05-bus-health.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S05 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.projects.crud/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S05/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S05/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S05/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S05/bus-timeline.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S05/diagnostics-after-loop.json"
+    ],
+    "file-hash": [
+     "crew-api.projects.crud/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.projects.crud/result.json"
+  },
+  {
+   "id": "crew-api.projects.members",
+   "area": "crew-api",
+   "title": "Attach/detach project members (<product>.<noun>)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: POST 201/200; GET contains {kind,ref}; bad kind -> 400; DELETE 200 then absent; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S05-bus-health.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S05 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.projects.members/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S05/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S05/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S05/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S05/bus-timeline.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S05/diagnostics-after-loop.json"
+    ],
+    "file-hash": [
+     "crew-api.projects.members/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.projects.members/result.json"
+  },
+  {
+   "id": "crew-api.roster.read",
+   "area": "crew-api",
+   "title": "Roster of seats with health, standing, sign-in, admission",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: login_invocation / binary paths sit inside the install root",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S09-packaging.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S09 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.roster.read/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S09/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S09/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S09/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S09/cli-version.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S09/roster.json"
+    ],
+    "file-hash": [
+     "crew-api.roster.read/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.roster.read/result.json"
+  },
+  {
+   "id": "crew-api.runs.diff",
+   "area": "crew-api",
+   "title": "Run worktree diff (HEAD, merge-base or ref; path narrowed)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 200 json.diff string ('' for clean tree); ?base=--flag -> 400; run with no workdir -> 409; concurrent heavy -> 409 diff_busy; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S04 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.runs.diff/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S04/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S04/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S04/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/acceptance.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-roster-no-opencode.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/delivery.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/diff.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/health-capabilities.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/judge-unavailable.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/repo-checks.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-after-mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-before-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/seat-routing.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-all.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-mixed.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/verdict-gate.json"
+    ],
+    "file-hash": [
+     "crew-api.runs.diff/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.runs.diff/result.json"
+  },
+  {
+   "id": "crew-api.runs.events",
+   "area": "crew-api",
+   "title": "Durable per-run event log read-back with ?type filter",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: every returned event.type=='gateEvaluated'; unfiltered list contains sessionStarted; unknown run -> 404; addon without binding -> 503; check 0 not observed; check 1, 2 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S08 PASS"
+   },
+   "checks": {
+    "total": 3,
+    "held": 2,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "api-transcript": [
+     "scenarios/wicked-ci-smoke/S08/api-transcript.json"
+    ],
+    "event-log": [
+     "crew-api.runs.events/event-log.json",
+     "scenarios/wicked-ci-smoke/S08/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S08/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-acp.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-signed-out.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-send-during-turn.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-slow.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-after-end.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-events-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/ws-chat-frames.json"
+    ],
+    "file-hash": [
+     "crew-api.runs.events/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.runs.events/result.json"
+  },
+  {
+   "id": "crew-api.runs.reassign",
+   "area": "crew-api",
+   "title": "Reassign the cursor unit to another seat (manual recovery)",
+   "surface": "api",
+   "cost": "M",
+   "verdict": "partial",
+   "reason": "the oracle is partial: unitReassigned frame cli=='codex'; non-executing -> 409; unknown cli -> 400; check 1 not observed; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run); fidelity integration is not certification (needs e2e-live or e2e-hermetic)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-crew:packages/crew/tests/reassign-route.test.ts",
+    "name": null,
+    "fidelity": "integration",
+    "adapter": "wicked-crew-vitest",
+    "status": "passed",
+    "detail": "8 tests passed (exit 0)"
+   },
+   "checks": {
+    "total": 2,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "test-report": [
+     "scenarios/wicked-crew-vitest_packages_crew_tests_reassign-route.test.ts/vitest-report.json",
+     "scenarios/wicked-crew-vitest_packages_crew_tests_reassign-route.test.ts/vitest.log"
+    ],
+    "api-transcript": [
+     "crew-api.runs.reassign/api-transcript.json",
+     "scenarios/wicked-crew-vitest_packages_crew_tests_reassign-route.test.ts/wicked-crew_packages_crew_tests_reassign-route.test.ts-api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-crew-vitest_packages_crew_tests_reassign-route.test.ts/vitest-report.json",
+     "scenarios/wicked-crew-vitest_packages_crew_tests_reassign-route.test.ts/vitest.log"
+    ]
+   },
+   "evidence_substitutes": {
+    "event-log": "test-report"
+   },
+   "result": "crew-api.runs.reassign/result.json"
+  },
+  {
+   "id": "crew-api.runs.resume",
+   "area": "crew-api",
+   "title": "Resume / advance a run (gated -> confirm, otherwise re-enter cursor)",
+   "surface": "api",
+   "cost": "M",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 200 and new unitDispatched frame; terminal run -> 409; vacuous resume (nothing to do) reports so; check 0, 1 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S04 PASS"
+   },
+   "checks": {
+    "total": 2,
+    "held": 2,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.runs.resume/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S04/api-transcript.json"
+    ],
+    "event-log": [
+     "crew-api.runs.resume/event-log.json",
+     "scenarios/wicked-ci-smoke/S04/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S04/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/acceptance.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-roster-no-opencode.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/delivery.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/diff.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/health-capabilities.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/judge-unavailable.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/repo-checks.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-after-mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-before-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/seat-routing.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-all.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-mixed.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/verdict-gate.json"
+    ],
+    "file-hash": [
+     "crew-api.runs.resume/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.runs.resume/result.json"
+  },
+  {
+   "id": "crew-api.runs.unit-output",
+   "area": "crew-api",
+   "title": "A unit's captured transcript, with honest outputUnavailable causes",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: 200 with output string or outputUnavailable.reason; never {output:null} bare; unknown key -> 404 whose body lists the run's unit keys; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S04 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.runs.unit-output/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S04/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S04/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S04/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/acceptance.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-roster-no-opencode.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/delivery.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/diff.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/health-capabilities.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/judge-unavailable.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/repo-checks.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-after-mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-before-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/seat-routing.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-all.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-mixed.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/verdict-gate.json"
+    ],
+    "file-hash": [
+     "crew-api.runs.unit-output/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.runs.unit-output/result.json"
+  },
+  {
+   "id": "crew-api.skills.manifest",
+   "area": "crew-api",
+   "title": "Skills manifest (root, revision, current generation, rules staleness)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: root == <state home>/skills; current.gen integer; rules.stale boolean",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S02-skills.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S02 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "crew-api.skills.manifest/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S02/api-transcript.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S02/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills-after-stale-rules.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S02/diagnostics-skills.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S02/skills-manifest-summary.json"
+    ],
+    "file-hash": [
+     "crew-api.skills.manifest/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.skills.manifest/result.json"
+  },
+  {
+   "id": "crew-api.ws.core-events",
+   "area": "crew-api",
+   "title": "/ws streams engine CoreEvent frames live (no replay)",
+   "surface": "api",
+   "cost": "M",
+   "verdict": "partial",
+   "reason": "the oracle is partial: collected frames include type 'sessionStarted' with session==runId and a terminal frame in {sessionCompleted,sessionFailed,runCancelled}; a socket opened after launch receives no earlier frames; check 1, 2 not observed; check 0, 3 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S08 PASS"
+   },
+   "checks": {
+    "total": 4,
+    "held": 2,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 2
+   },
+   "evidence": {
+    "api-transcript": [
+     "scenarios/wicked-ci-smoke/S08/api-transcript.json"
+    ],
+    "event-log": [
+     "crew-api.ws.core-events/event-log.json",
+     "scenarios/wicked-ci-smoke/S08/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S08/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-close.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-detail-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-acp.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-open-signed-out.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-send-during-turn.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup-send.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-followup.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/chat-turn-slow.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-after-end.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/run-events-after-turn-1.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S08/ws-chat-frames.json"
+    ],
+    "file-hash": [
+     "crew-api.ws.core-events/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "crew-api.ws.core-events/result.json"
+  },
+  {
+   "id": "ci.smoke.reusable",
+   "area": "foundation",
+   "title": "smoke.yml: artifact-level seam smoke on the published set (S01-S10)",
+   "surface": "background",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: the caller's run used this workflow at the pinned tag and its own outputs (verdict, comment, release) are present; check 0 not observed; the runner only read the end state; no scenario drove the user's path",
+   "skip": null,
+   "scenario": {
+    "ref": "direct",
+    "name": null,
+    "fidelity": "e2e-live",
+    "adapter": "direct",
+    "status": "passed",
+    "detail": "direct reads"
+   },
+   "checks": {
+    "total": 1,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 1
+   },
+   "evidence": {
+    "cli-transcript": [
+     "ci.smoke.reusable/cli-transcript.json"
+    ],
+    "api-transcript": [
+     "ci.smoke.reusable/api-transcript.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "ci.smoke.reusable/result.json"
+  },
+  {
+   "id": "foundation.platform.acceptance.read",
+   "area": "foundation",
+   "title": "Crew acceptance route re-derives the QE gate from the ledger (deny-dominates)",
+   "surface": "api",
+   "cost": "S",
+   "verdict": "partial",
+   "reason": "the oracle is partial: HTTP 200 for known run, 404 unknown; .gate.satisfied true only for attributed PASS; .gate.reason prefixes: 'workflow declares no acceptance requirement', 'records no verdict (missing ⇒ deny)', 'holds no verdict attributed to this run', 'PASS — ', 'FAIL — ', 'PARTIAL —', 'out-of-enum value'; keys runId,repo,requirement,acceptance,gate,summary,conformance (confirmed live on crew 0.15.4); always 200 for a known run; gate.satisfied true only when attributed verdict == PASS; no ledger -> deny with reason; unknown run 404; check 0 held only on something not tied to this path (an unbound placeholder, a shared event window, the latest workflow run)",
+   "skip": null,
+   "scenario": {
+    "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+    "name": null,
+    "fidelity": "e2e-hermetic",
+    "adapter": "wicked-ci-smoke",
+    "status": "passed",
+    "detail": "S04 PASS"
+   },
+   "checks": {
+    "total": 1,
+    "held": 1,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {
+    "api-transcript": [
+     "foundation.platform.acceptance.read/api-transcript.json",
+     "scenarios/wicked-ci-smoke/S04/api-transcript.json"
+    ],
+    "event-log": [
+     "scenarios/wicked-ci-smoke/S04/event-log.json"
+    ],
+    "cli-transcript": [
+     "scenarios/wicked-ci-smoke/S04/cli-transcript.json"
+    ],
+    "scenario-evidence": [
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/acceptance.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-roster-no-opencode.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/default-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/delivery.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/diff.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/health-capabilities.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/judge-unavailable.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-events.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/nojudge-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/repo-checks.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-after-mixed-run.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/roster-before-launch.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/seat-routing.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-all.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/shim-calls-mixed.json",
+     "scenarios/wicked-ci-smoke/harness/evidence/S04/verdict-gate.json"
+    ],
+    "file-hash": [
+     "foundation.platform.acceptance.read/file-hash.json"
+    ]
+   },
+   "evidence_substitutes": {},
+   "result": "foundation.platform.acceptance.read/result.json"
+  },
+  {
+   "id": "studio-ui.testing.recon-fanout",
+   "area": "studio-ui",
+   "title": "Testing › Campaigns: Run recon fan-out across repos",
+   "surface": "ui",
+   "cost": "M",
+   "verdict": "skipped",
+   "reason": "skipped: evidence:video,screenshot,trace (wicked-ci-smoke cannot capture video, screenshot, trace)",
+   "skip": {
+    "dep": "evidence:video,screenshot,trace",
+    "class": null,
+    "detail": "wicked-ci-smoke cannot capture video, screenshot, trace",
+    "candidates": [
+     {
+      "scenario": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+      "dep": "evidence:video,screenshot,trace",
+      "detail": "wicked-ci-smoke cannot capture video, screenshot, trace"
+     }
+    ]
+   },
+   "scenario": null,
+   "checks": {
+    "total": 0,
+    "held": 0,
+    "contradicted": 0,
+    "unsatisfied": 0,
+    "not_observed": 0
+   },
+   "evidence": {},
+   "evidence_substitutes": {},
+   "result": "studio-ui.testing.recon-fanout/result.json"
+  }
+ ],
+ "validation": {
+  "ok": true,
+  "failures": []
+ }
+}

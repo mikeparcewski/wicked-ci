@@ -3,6 +3,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { IS_WIN } from './env.mjs';
+import { tap } from './tap.mjs';
 
 /** Run `argv` to completion; returns {status, stdout, stderr}. Never throws on a non-zero exit. */
 export function run(argv, { cwd, env, timeoutMs = 600_000, input } = {}) {
@@ -16,13 +17,15 @@ export function run(argv, { cwd, env, timeoutMs = 600_000, input } = {}) {
     maxBuffer: 64 * 1024 * 1024,
     windowsHide: true,
   });
-  return {
+  const out = {
     status: r.status,
     signal: r.signal,
     error: r.error ? String(r.error.message ?? r.error) : null,
     stdout: r.stdout ?? '',
     stderr: r.stderr ?? '',
   };
+  tap('cli', { argv, code: out.status, signal: out.signal, stdout: out.stdout.slice(-16384), stderr: out.stderr.slice(-16384) });
+  return out;
 }
 
 /** Like {@link run} but throws with the tail of both streams when the exit is non-zero. */
@@ -38,7 +41,10 @@ export function mustRun(argv, opts = {}) {
 /** Spawn detached-from-terminal but tracked; stdout+stderr appended to `logFd`. */
 export function spawnLogged(argv, { cwd, env, logFd }) {
   const [cmd, ...args] = argv;
-  return spawn(cmd, args, { cwd, env, stdio: ['ignore', logFd, logFd], windowsHide: true });
+  const child = spawn(cmd, args, { cwd, env, stdio: ['ignore', logFd, logFd], windowsHide: true });
+  tap('cli', { argv, spawned: true, pid: child.pid ?? null, code: null, stdout: '(to the log file)', stderr: '' });
+  child.on('exit', (code, signal) => tap('cli', { argv, exited: true, code, signal, stdout: '(to the log file)', stderr: '' }));
+  return child;
 }
 
 /** git with a pinned no-sign identity, in `cwd`. Throws on failure. */

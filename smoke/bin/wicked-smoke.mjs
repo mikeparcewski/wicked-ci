@@ -16,6 +16,7 @@ import { apiClient } from '../lib/http.mjs';
 import { ExpectPolicy } from '../lib/expect.mjs';
 import { STATUS, StepTrace, classify, printStep, writeSummaryIfCi } from '../lib/report.mjs';
 import { compareHome, snapshotHome } from '../lib/hermetic.mjs';
+import { tapStep } from '../lib/tap.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 /** Built-in per-step ceilings (seconds); `--step-timeout` RAISES them when larger, never lowers. S01's
@@ -122,6 +123,7 @@ async function main() {
       results.push({ id: stepId, name: mod.name, status: STATUS.SKIP, ms: 0, checks: [], notes: [{ name: 'skipped', detail: 'not in --steps' }], error: null });
       continue;
     }
+    tapStep(stepId);
     const t = new StepTrace(stepId, L.evidence, log);
     const t0 = Date.now();
     let error = null;

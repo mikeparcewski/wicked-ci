@@ -4,6 +4,7 @@
 // daemon — so a step that asserts a chat turn reads them here, the way the studio does. Late-join
 // gets no replay: open the socket BEFORE the action whose frames you want.
 import { sleep } from './proc.mjs';
+import { tap } from './tap.mjs';
 
 /**
  * Open `/ws` on `origin` and collect every JSON frame. Returns {frames, waitFor, close}.
@@ -23,9 +24,11 @@ export async function openFrames(origin, { openTimeoutMs = 10_000, max = 5000 } 
     try {
       const frame = JSON.parse(data);
       if (frames.length < max) frames.push(frame);
+      tap('ws', { frame });
     } catch { /* not JSON — not ours */ }
   });
-  ws.addEventListener('close', () => { closed = true; });
+  tap('ws', { open: url });
+  ws.addEventListener('close', () => { closed = true; tap('ws', { close: url }); });
   ws.addEventListener('error', () => { closed = true; });
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`/ws did not open within ${openTimeoutMs} ms (${url})`)), openTimeoutMs);
