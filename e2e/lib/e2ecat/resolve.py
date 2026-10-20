@@ -91,7 +91,7 @@ EXCEPT_WORDS = ("except", "excluding", "besides")
 # How-to and explanation requests ask for information, never a run.
 HOW_TO = re.compile(r"\b(how (do|can|should|would) (i|we|you)|how to|tell me|explain|describe|what does it take to)\b")
 DRY_RUN = re.compile(r"(?<![\w.:*-])dry[- ]?runs?(?![\w.*-])", re.I)
-NEG_EXEC = re.compile(r"\b(do not|don'?t|never|no need to|not to|stop|cancel)\s+(\w+\s+)?(re-?)?(run|test|certify|check|verify|execute)\w*\b")
+NEG_EXEC = re.compile(r"\b(do not|don'?t|never|no need to|not to)\s+(\w+\s+)?(re-?)?(run|test|certify|check|verify|execute)\w*\b")
 LOOKUP_START = re.compile(r"^\s*(please\s+)?(list|show|find|count|which|what|how many|look up|search)\b")
 EXEC_VERB = re.compile(r"\b(test\w*|certif\w*|run|running|check\w*|verif\w*|execut\w*|exercis\w*|e2e)\b")
 
@@ -347,7 +347,7 @@ def resolve(request, caps, profiles, run_dir=None):
     # A profile word is a profile only when nothing else names the topic ("smoke" alone, "studio smoke" is a tag).
     # A literal area:/tag:/id: term names a topic; a literal bound or exclusion (cost<=, surface=, oracle=,
     # any `!` term) only narrows, so with a profile it narrows the profile instead of replacing it.
-    lit_topic = [t for t in literal if re.match(r"^(area:|tag:|id:)", t)]
+    lit_topic = [t for t in literal if re.match(r"^(area:|tag:|id:|surface=|oracle=)", t)]
     lit_mod = [t for t in literal if t not in lit_topic]
     # A malformed literal is left for the selection parser to refuse: it is never merged away or dropped.
     bad_literal = [t for t in literal if re.match(r"^!?cost<=", t) and t.split("<=", 1)[1] not in ("S", "M", "L")]
@@ -390,8 +390,9 @@ def resolve(request, caps, profiles, run_dir=None):
     elif profile:
         explain.append({"words": pword,
                         "as": "profile %s (%s)" % (profile, profiles.get(profile, {}).get("select", "?") or "*")})
-    if not profile and not topic and action != "rerun" and not whole and (ignored or topical_shadow) and lit_mod:
-        # "test zorblax cost<=S": the topic word matched nothing, so a literal bound must not widen to it either.
+    if not profile and not topic and action != "rerun" and not whole and lit_mod:
+        # "test cost<=S", "test zorblax cost<=S": a bound or an exclusion narrows a topic or a profile; alone it
+        # would select across the whole catalog (say "all" or "everything" for that).
         explain.append({"words": " ".join(lit_mod), "as": "ignored: the request's topic words matched nothing"})
         literal = [t for t in literal if t in lit_topic]
         lit_mod = []

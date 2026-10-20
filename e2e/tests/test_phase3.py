@@ -459,6 +459,16 @@ class ResolveEdges(unittest.TestCase):
         self.assertEqual(report.blocks(cap("x.y.z"), {"verdict": "skipped", "skip": {"dep": "adapter:live-journeys"}}),
                          ["skipped: the adapter needs live-journeys"])
 
+    def test_round12_literal_bounds_need_a_scope_and_cancel_is_a_topic(self):
+        for text in ("test cost<=S", "test cheap !oracle=manual", "test !id:crew-api.runs.cancel"):
+            out = self.r(text)
+            self.assertEqual((out["status"], out["commands"]), ("no-match", []), text)
+        self.assertEqual(self.r("test surface=ui zorblax")["selection"], "surface=ui")
+        self.assertEqual(self.r("run all cost<=S")["selection"], "cost<=S")
+        self.assertEqual(self.r("test cancel run")["action"], "run")
+        tmp = self.run_dir({"target": "fixture"}, {"crew-api.runs.cancel": "fail"})
+        self.assertEqual(self.r("re-run the cancel test failures", run_dir=tmp)["action"], "rerun")
+
     def test_a_question_read_as_a_run_always_asks(self):
         out = self.r("does running the run page work?")
         self.assertEqual(out["action"], "run")
