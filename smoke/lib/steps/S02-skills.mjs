@@ -9,11 +9,28 @@ import { join } from 'node:path';
 export const id = 'S02';
 export const name = 'skills';
 
+// crew >= 0.16.2 (crew#1146) listens BEFORE the skills snapshot is verified: the boot ladder publishes
+// in the background, and /diagnostics reports skills `publishing` (with a transient base-skill finding)
+// until it lands, about 2-13 s after ready. Read the skills verdict once that ladder has landed; an older
+// crew is never `publishing`, so this returns its first answer at once.
+const SKILLS_SETTLE_MS = 120_000;
+async function settledDiagnostics(api, t, label) {
+  const t0 = Date.now();
+  let diag = await api.get('/diagnostics');
+  while (diag.json?.skills?.state === 'publishing' && Date.now() - t0 < SKILLS_SETTLE_MS) {
+    await new Promise((r) => setTimeout(r, 500));
+    diag = await api.get('/diagnostics');
+  }
+  const waited = Date.now() - t0;
+  if (waited >= 500) t.info(`skills settle (${label})`, `state ${diag.json?.skills?.state} after ${waited} ms of background publishing`);
+  return diag;
+}
+
 export async function run(ctx, t) {
   await ctx.ensureDaemon();
   let api = ctx.api();
 
-  const diag = await api.get('/diagnostics');
+  const diag = await settledDiagnostics(api, t, 'boot');
   const skills = diag.json?.skills ?? null;
   const ev = t.evidence('diagnostics-skills', skills);
   t.check('skills.state == published', skills?.state === 'published', `state ${skills?.state}; findings ${JSON.stringify(skills?.findings ?? []).slice(0, 300)}`, { evidence: ev });
@@ -82,7 +99,7 @@ export async function run(ctx, t) {
     t.info('stale-rules injection', `snapshot.json rulesVersion -> ${snap.rulesVersion}, rulesSha256 -> zeros; manifest.json published.snapshotHash re-stamped=${restamped}; restarting daemon`);
     await ctx.daemon.restart();
     api = ctx.api();
-    const diag2 = await api.get('/diagnostics');
+    const diag2 = await settledDiagnostics(api, t, 'after the stale-rules restart');
     const s2 = diag2.json?.skills ?? null;
     const ev3 = t.evidence('diagnostics-skills-after-stale-rules', s2);
     const stale = (s2?.findings ?? []).filter((f) => f.kind === 'skills.stale-rules');
@@ -103,7 +120,7 @@ export async function run(ctx, t) {
       if (origRootBytes) writeFileSync(rootManifestPath, origRootBytes);
       await ctx.daemon.restart();
       api = ctx.api();
-      const d3 = await api.get('/diagnostics');
+      const d3 = await settledDiagnostics(api, t, 'after the restore');
       t.info('root restored', `after restoring the original bytes: skills.state ${d3.json?.skills?.state}`);
     }
   }

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### smoke — S02 reads the skills verdict after crew's background publish lands
+
+- crew 0.16.2 (crew#1146) listens before the skills snapshot is verified: the boot ladder publishes in the
+  background and `/diagnostics` reports skills `publishing` (with a transient base-skill finding) for about
+  2-13 s after ready. S02 read `/diagnostics` once, right after `/health`, so crew 0.16.2's release smoke
+  (run 40277224745) failed S02 on both OSes with `state publishing` while every other step passed. S02 now
+  polls `/diagnostics` while the state is `publishing` (500 ms, up to 120 s) before each of its three reads
+  (boot, after the stale-rules restart, after a restore) and notes the wait. An older crew is never
+  `publishing`, so its first answer is used at once. The assertions are unchanged.
+
 ### e2e — phase 3: the wicked-e2e skills, `e2e resolve`, `e2e evidence`, plan summaries and pass blockers
 
 - **`skills/`**: six portable skills over the `e2e` CLI: `wicked-e2e` (router), `wicked-e2e-plan`,
