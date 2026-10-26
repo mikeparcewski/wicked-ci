@@ -13,24 +13,53 @@ export const name = 'skills';
 // in the background, and /diagnostics reports skills `publishing` (with a transient base-skill finding)
 // until it lands, about 2-13 s after ready. Read the skills verdict once that ladder has landed; an older
 // crew is never `publishing`, so this returns its first answer at once.
-const SKILLS_SETTLE_MS = 120_000;
-async function settledDiagnostics(api, t, label) {
+//
+// The wait is bounded as a whole (`budgetMs`, also by the step's own deadline): each request is raced
+// against what is left (at least 1 s), and a request that outlives it reads as `status 0`, which the
+// caller's checks fail on. It honours the step's abort `signal` (captured by the caller before its first await, since the
+// runner replaces `ctx.signal` for the next step): an aborted S02 throws instead of going on to rewrite
+// the skills root and restart the daemon under the next step.
+export const SKILLS_SETTLE_MS = 120_000;
+export async function settledDiagnostics(api, t, label, { signal = null, budgetMs = SKILLS_SETTLE_MS, deadline = null, pollMs = 500 } = {}) {
   const t0 = Date.now();
-  let diag = await api.get('/diagnostics');
-  while (diag.json?.skills?.state === 'publishing' && Date.now() - t0 < SKILLS_SETTLE_MS) {
-    await new Promise((r) => setTimeout(r, 500));
-    diag = await api.get('/diagnostics');
+  const end = Math.min(t0 + budgetMs, deadline ?? Infinity);
+  const aborted = () => { if (signal?.aborted) throw new Error(`S02 aborted while waiting for skills to publish (${label})`); };
+  const get = async () => {
+    aborted();
+    // What is left of the budget, never under 1 s, so a request started near the end still gets an answer.
+    const left = Math.max(end - Date.now(), 1_000);
+    let timer;
+    const r = await Promise.race([
+      api.get('/diagnostics'),
+      new Promise((res) => { timer = setTimeout(() => res({ status: 0, json: null, text: `/diagnostics did not answer within the ${budgetMs} ms settle budget` }), left); }),
+    ]).finally(() => clearTimeout(timer));
+    aborted();
+    return r;
+  };
+  let diag = await get();
+  let polls = 0;
+  while (diag.json?.skills?.state === 'publishing' && Date.now() + pollMs < end) {
+    await new Promise((res) => {
+      const onAbort = () => { clearTimeout(timer); res(); };
+      const timer = setTimeout(() => { signal?.removeEventListener('abort', onAbort); res(); }, pollMs);
+      signal?.addEventListener('abort', onAbort, { once: true });
+    });
+    aborted();
+    if (Date.now() >= end) break; // keep the last real answer rather than a request with no time left
+    polls += 1;
+    diag = await get();
   }
-  const waited = Date.now() - t0;
-  if (waited >= 500) t.info(`skills settle (${label})`, `state ${diag.json?.skills?.state} after ${waited} ms of background publishing`);
+  if (polls > 0) t.info(`skills settle (${label})`, `state ${diag.json?.skills?.state ?? `unread (status ${diag.status})`} after ${Date.now() - t0} ms of background publishing (${polls} poll(s))`);
   return diag;
 }
 
 export async function run(ctx, t) {
+  // Captured before the first await: the runner replaces ctx.signal for the next step.
+  const settle = { signal: ctx.signal, deadline: ctx.stepDeadline ? ctx.stepDeadline - 5_000 : null };
   await ctx.ensureDaemon();
   let api = ctx.api();
 
-  const diag = await settledDiagnostics(api, t, 'boot');
+  const diag = await settledDiagnostics(api, t, 'boot', settle);
   const skills = diag.json?.skills ?? null;
   const ev = t.evidence('diagnostics-skills', skills);
   t.check('skills.state == published', skills?.state === 'published', `state ${skills?.state}; findings ${JSON.stringify(skills?.findings ?? []).slice(0, 300)}`, { evidence: ev });
@@ -99,7 +128,7 @@ export async function run(ctx, t) {
     t.info('stale-rules injection', `snapshot.json rulesVersion -> ${snap.rulesVersion}, rulesSha256 -> zeros; manifest.json published.snapshotHash re-stamped=${restamped}; restarting daemon`);
     await ctx.daemon.restart();
     api = ctx.api();
-    const diag2 = await settledDiagnostics(api, t, 'after the stale-rules restart');
+    const diag2 = await settledDiagnostics(api, t, 'after the stale-rules restart', settle);
     const s2 = diag2.json?.skills ?? null;
     const ev3 = t.evidence('diagnostics-skills-after-stale-rules', s2);
     const stale = (s2?.findings ?? []).filter((f) => f.kind === 'skills.stale-rules');
@@ -120,7 +149,7 @@ export async function run(ctx, t) {
       if (origRootBytes) writeFileSync(rootManifestPath, origRootBytes);
       await ctx.daemon.restart();
       api = ctx.api();
-      const d3 = await settledDiagnostics(api, t, 'after the restore');
+      const d3 = await settledDiagnostics(api, t, 'after the restore', settle);
       t.info('root restored', `after restoring the original bytes: skills.state ${d3.json?.skills?.state}`);
     }
   }
