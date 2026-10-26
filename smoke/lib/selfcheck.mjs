@@ -122,4 +122,49 @@ if (sqlite) {
 } else {
   console.log('selfcheck: node:sqlite unavailable — WAL-truncation demonstration skipped');
 }
+// S02's skills settle (crew >= 0.16.2 publishes skills in the background after listen; wicked-ci#59).
+{
+  const { settledDiagnostics } = await import(pathToFileURL(join(here, 'steps', 'S02-skills.mjs')).href);
+  const answer = (state) => ({ status: 200, json: { skills: { state } } });
+  const fakeApi = (states, { hangFrom = Infinity } = {}) => {
+    let n = 0;
+    return { calls: () => n, get: async () => { const i = n++; if (i >= hangFrom) return new Promise(() => {}); return answer(states[Math.min(i, states.length - 1)]); } };
+  };
+  const infos = [];
+  const t = { info: (k, v) => infos.push([k, v]) };
+  // An older crew (never `publishing`): one read, no wait, no note.
+  let api = fakeApi(['published']);
+  let d = await settledDiagnostics(api, t, 'old', { pollMs: 5 });
+  if (d.json.skills.state !== 'published' || api.calls() !== 1 || infos.length !== 0) throw new Error('settle: an older crew must be read once, with no note');
+  // A terminal non-published state is returned at once (never masked by waiting).
+  api = fakeApi(['config-error']);
+  d = await settledDiagnostics(api, t, 'refused', { pollMs: 5 });
+  if (d.json.skills.state !== 'config-error' || api.calls() !== 1) throw new Error('settle: a refused state must be returned at once');
+  // publishing -> published: waits it out and notes the wait once.
+  api = fakeApi(['publishing', 'publishing', 'published']);
+  d = await settledDiagnostics(api, t, 'boot', { pollMs: 5 });
+  if (d.json.skills.state !== 'published' || api.calls() !== 3 || infos.length !== 1) throw new Error(`settle: publishing must be waited out (calls ${api.calls()}, notes ${infos.length})`);
+  // Stuck publishing: bounded by the budget, the last answer (still publishing) is returned for the checks to fail on.
+  api = fakeApi(['publishing']);
+  let t0 = Date.now();
+  d = await settledDiagnostics(api, t, 'stuck', { pollMs: 5, budgetMs: 60 });
+  if (d.json.skills.state !== 'publishing' || Date.now() - t0 > 1_000) throw new Error('settle: a stuck publish must end at the budget');
+  // A request that never answers is bounded by the budget too (status 0, no state).
+  api = fakeApi(['publishing'], { hangFrom: 1 });
+  t0 = Date.now();
+  d = await settledDiagnostics(api, t, 'hung', { pollMs: 5, budgetMs: 80 });
+  if (d.status !== 0 || d.json !== null || Date.now() - t0 > 2_500) throw new Error('settle: a hung request must end at the budget (+ at most 1 s) with status 0');
+  // The step's abort stops the wait with a throw, so S02 never goes on to mutate the skills root.
+  const ac = new AbortController();
+  api = fakeApi(['publishing']);
+  setTimeout(() => ac.abort(), 30);
+  let threw = false;
+  try { await settledDiagnostics(api, t, 'aborted', { pollMs: 5, budgetMs: 10_000, signal: ac.signal }); } catch { threw = true; }
+  if (!threw) throw new Error('settle: an aborted step must throw');
+  // An already-aborted signal throws before the first request.
+  api = fakeApi(['published']);
+  threw = false;
+  try { await settledDiagnostics(api, t, 'pre-aborted', { signal: AbortSignal.abort() }); } catch { threw = true; }
+  if (!threw || api.calls() !== 0) throw new Error('settle: a pre-aborted step must not read');
+}
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);
