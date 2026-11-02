@@ -25,10 +25,22 @@
   (`[power mode] You are the ORCHESTRATOR` / `[power mode] Turn N of at most M`). The first turn applies the
   corpus fix and ends `HANDOFF:`. A turn over a tree that already holds the fix declares `NO CHANGE NEEDED:`
   and hands off. Phased prompts are answered exactly as before.
+- `--steps` ranges are numeric (`S01..S11` selects every step 1 to 11) and run in `ALL_STEPS` order. A
+  positional slice of the run order would have silently dropped S05-S10.
+- S11 fails, never passes vacuously, on any of these:
+  - a broken `/health`, or a launch answer without a `runId`;
+  - an orchestrator without a named seat on the creator unit, a turn log, and a last turn that handed off;
+  - a hand-off row without step, unit or round, a missing `checks` or evaluator step, or a second round;
+  - an evaluator-verdict gate (nothing is armed for S11, so the shared helper's S04 retry is off:
+    `launchAndFollow(…, { retryArmedVerdict: false })`);
+  - a deliver gate that is not the wire kind, or that sees the branch already pushed or the PR already opened;
+  - a `gh pr create` that is not `--head <run_branch>` from the run's own worktree.
 - `selfcheck.mjs` checks:
-  - the step registry as a set, plus the run order (S11 after S04, S10 last);
+  - the step registry as a set, plus the run order (S11 after S04, S10 last), and the numeric ranges;
   - the orchestrator protocol (fix + `HANDOFF:`, `NO CHANGE NEEDED:` + `HANDOFF:` on a fixed tree, and a
-    phased prompt unchanged).
+    phased prompt unchanged);
+  - S11's judgements against the recorded good run and each adversarial wire above;
+  - S11 against a 500 `/health` and a 201 launch without a `runId`.
   It fails without the shim change.
 
 ### smoke — S02 reads the skills verdict after crew's background publish lands

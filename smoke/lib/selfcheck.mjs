@@ -28,6 +28,10 @@ for (const f of readdirSync(join(here, '..', 'shims')).filter((f) => f.endsWith(
   if (r.status !== 0) throw new Error(`${f}: ${r.stderr}`);
 }
 if (parseSteps('S01..S03').join(',') !== 'S01,S02,S03') throw new Error('parseSteps range');
+// Ranges are NUMERIC, ordered by the run order (S11 runs right after S04): no step is silently dropped.
+if (parseSteps('S01..S11').length !== ALL_STEPS.length || !parseSteps('S01..S11').includes('S10')) throw new Error(`parseSteps S01..S11: ${parseSteps('S01..S11')}`);
+if (parseSteps('S05..S11').join(',') !== 'S11,S05,S06,S07,S08,S09,S10') throw new Error(`parseSteps S05..S11: ${parseSteps('S05..S11')}`);
+if (parseSteps('S10..S11').join(',') !== 'S11,S10' || parseSteps('S04..S05').join(',') !== 'S04,S05') throw new Error('parseSteps S10..S11 / S04..S05');
 if (compare('0.7.32', '0.7.33') !== -1) throw new Error('semver compare');
 if (!satisfies('0.7.23', '^0.7.23') || satisfies('0.8.0', '^0.7.23')) throw new Error('semver satisfies');
 // The re-bound rules hold on the last affected version and stop on the fix (no silent expiry).
@@ -197,5 +201,51 @@ if (sqlite) {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+// S11's judgements read the real wire and fail on missing evidence (codex on #61).
+{
+  const { orchestratorHandedOff, handoffPassed, prForRun } = await import(pathToFileURL(join(here, 'steps', 'S11-power-bug-run.mjs')).href);
+  const units = [{ ord: 1, role: 'neutral' }, { ord: 3, role: 'creator' }, { ord: 4, role: 'evaluator' }, { ord: 5, role: 'evaluator' }, { ord: 7, role: 'neutral' }];
+  const good = {
+    orchestrator: { cli: 'claude', ord: 3, turns: 1 },
+    turnLog: [{ turn: 1, outcome: 'handoff' }],
+    handoff: { round: 1, steps: [
+      { step: 'rescore', ord: 3, round: 1, status: 'passed' }, { step: 'checks', ord: 3, round: 1, status: 'passed' },
+      { step: 'qe', ord: 4, round: 1, status: 'running' }, { step: 'qe', ord: 4, round: 1, status: 'passed' },
+      { step: 'review', ord: 5, round: 1, status: 'running' }, { step: 'review', ord: 5, round: 1, status: 'passed' }] },
+  };
+  const o = orchestratorHandedOff(good, units);
+  if (!o.ok || !handoffPassed(good, units, o.buildUnit).ok) throw new Error('S11: the recorded good run must pass');
+  if (orchestratorHandedOff({ orchestrator: { turns: 1 } }, units).ok) throw new Error('S11: a bare turn count must not prove a hand-off');
+  if (orchestratorHandedOff({ ...good, turnLog: [{ turn: 1, outcome: 'checkpoint' }] }, units).ok) throw new Error('S11: a build that ended on a checkpoint must not pass');
+  if (orchestratorHandedOff({ ...good, orchestrator: { cli: 'claude', ord: 4, turns: 1 } }, units).ok) throw new Error('S11: the orchestrator must sit on the creator unit');
+  if (orchestratorHandedOff({ ...good, orchestrator: { cli: 'claude', ord: 3, turns: 12 }, turnLog: Array.from({ length: 12 }, (_, i) => ({ turn: i + 1, outcome: i === 11 ? 'handoff' : 'checkpoint' })) }, units).ok) throw new Error('S11: a hand-off at the turn cap must not pass');
+  if (handoffPassed({ handoff: { round: 1, steps: [{ status: 'passed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a row without identity must not pass');
+  if (handoffPassed({ handoff: { round: 1, steps: [{ step: 'rescore', ord: 3, round: 1, status: 'passed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a lone rescore must not pass');
+  if (handoffPassed({ handoff: { round: 1, steps: good.handoff.steps.filter((r) => r.ord !== 5) } }, units, o.buildUnit).ok) throw new Error('S11: a missing evaluator unit must not pass');
+  if (handoffPassed({ handoff: { round: 2, steps: good.handoff.steps.map((r) => ({ ...r, round: 2 })) } }, units, o.buildUnit).ok) throw new Error('S11: a second round must not pass');
+  if (handoffPassed({ handoff: { round: 1, steps: [...good.handoff.steps, { step: 'review', ord: 5, round: 1, status: 'failed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a final failed record must not pass');
+  const calls = [{ argv: ['pr', 'create', '--head', 'wicked/run-a', '--title', 't'], cwd: '/w/run-a' }];
+  if (!prForRun(calls, 'wicked/run-a', '/w/run-a')) throw new Error('S11: this run\'s PR must be found');
+  if (prForRun(calls, 'wicked/run-b', '/w/run-b') || prForRun([{ argv: ['pr', 'create', '--head', 'wicked/run-a'], cwd: '/w/other' }], 'wicked/run-a', '/w/run-a') || prForRun(calls, null, '/w/run-a')) throw new Error('S11: another run\'s PR (head or worktree) must not count');
+}
+// S11 never passes on a broken /health or a launch without a runId (codex on #61).
+{
+  const { run: runS11 } = await import(pathToFileURL(join(here, 'steps', 'S11-power-bug-run.mjs')).href);
+  const trace = () => { const checks = []; return { checks, check: (name, ok) => checks.push({ name, ok: Boolean(ok) }), info: () => {}, evidence: () => '<evidence>' }; };
+  const ctxWith = (api) => ({ ensureDaemon: async () => {}, api: () => api, env: {}, state: { corpus: '/nonexistent/corpus', origin: '/nonexistent/origin' }, shimCalls: () => [], versions: { crew: '0.16.12' } });
+  let t = trace();
+  await runS11(ctxWith({ get: async () => ({ status: 500, json: null, text: 'boom' }) }), t);
+  if (!t.checks.some((c) => c.name.startsWith('GET /health') && !c.ok)) throw new Error('S11: a 500 /health must fail, not skip');
+  t = trace();
+  await runS11(ctxWith({ get: async () => ({ status: 200, json: { capabilities: {} } }) }), t);
+  if (t.checks.length !== 1 || !t.checks[0].ok) throw new Error('S11: a valid /health without powerMode is noted, not judged');
+  t = trace();
+  const roster = { roster: [{ key: 'claude' }, { key: 'opencode' }, { key: 'smoke-judge' }] };
+  await runS11(ctxWith({
+    get: async (path) => (path === '/health' ? { status: 200, json: { capabilities: { powerMode: true } } } : { status: 200, json: roster }),
+    post: async () => ({ status: 201, json: {}, text: '{}' }),
+  }), t);
+  if (!t.checks.some((c) => c.name === 'the power launch answered a runId' && !c.ok)) throw new Error('S11: a 201 without a runId must fail');
 }
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);

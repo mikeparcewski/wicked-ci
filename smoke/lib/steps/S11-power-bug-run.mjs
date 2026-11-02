@@ -13,6 +13,7 @@
 //   - the human DELIVER gate still pauses the run before the push, and the run delivers: the run branch
 //     on the local bare origin carries `a + b` and the `gh` shim opened the PR.
 // It runs right after S04 (the same daemon, roster and corpus; S10's teardown stays last) and needs S03.
+import { realpathSync } from 'node:fs';
 import { ISSUE_TEXT, branches } from '../corpus.mjs';
 import { gitTry } from '../proc.mjs';
 import { eventsOfType, phaseOf } from '../runs.mjs';
@@ -27,6 +28,52 @@ const MAX_TURNS = 12;
 /** Hand-off step statuses that are not a failure (crew-api-types HandoffStep.status). */
 const HANDOFF_OK = new Set(['passed', 'skipped']);
 
+/**
+ * Did the build run as one orchestrator session that HANDED OFF? A named seat on the plan's build unit
+ * (role creator), a turn log as long as its turn counter, the last turn's outcome a hand-off, before the
+ * cap. Missing evidence is a "no" (codex on #61: `{turns: 1}` alone must not pass).
+ */
+export function orchestratorHandedOff(power, units) {
+  const orch = power?.orchestrator ?? null;
+  const turnLog = Array.isArray(power?.turnLog) ? power.turnLog : null;
+  const lastTurn = turnLog?.at(-1) ?? null;
+  const buildUnit = typeof orch?.ord === 'number' ? (units ?? []).find((u) => u.ord === orch.ord) ?? null : null;
+  const ok = typeof orch?.cli === 'string' && orch.cli !== '' && buildUnit?.role === 'creator'
+    && typeof orch.turns === 'number' && orch.turns >= 1 && orch.turns < MAX_TURNS
+    && turnLog !== null && turnLog.length === orch.turns && lastTurn?.outcome === 'handoff' && lastTurn?.turn === orch.turns;
+  return { ok, orch, buildUnit, lastTurn };
+}
+
+/**
+ * Did the hand-off run every step of the composed plan and pass in ONE round? Every row names its step,
+ * unit and round; all are round 1; the build's own floor (`checks`) ran on the build unit; every
+ * evaluator unit has a row; each (unit, step)'s LAST record (the log keeps `running`, then the result)
+ * passed or was skipped. A row without identity, or a missing step, is a "no" (codex on #61).
+ */
+export function handoffPassed(power, units, buildUnit) {
+  const handoff = power?.handoff ?? null;
+  const rows = Array.isArray(handoff?.steps) ? handoff.steps : [];
+  const rowsValid = rows.length > 0 && rows.every((r) => typeof r?.step === 'string' && r.step !== '' && typeof r.round === 'number' && typeof r.ord === 'number' && typeof r.status === 'string');
+  const finalOf = new Map();
+  for (const r of rows) finalOf.set(`${r?.ord}/${r?.step}`, r?.status);
+  const evaluatorOrds = (units ?? []).filter((u) => u.role === 'evaluator').map((u) => u.ord);
+  const missing = [
+    ...(buildUnit && rows.some((r) => r?.ord === buildUnit.ord && r?.step === 'checks') ? [] : ['checks on the build unit']),
+    ...evaluatorOrds.filter((o) => !rows.some((r) => r?.ord === o)).map((o) => `evaluator unit ${o}`),
+  ];
+  const ok = rowsValid && handoff?.round === 1 && rows.every((r) => r.round === 1) && evaluatorOrds.length > 0 && missing.length === 0
+    && [...finalOf.values()].every((v) => HANDOFF_OK.has(v));
+  return { ok, round: handoff?.round ?? null, finalOf, missing, rowsValid };
+}
+
+/** Is there a `gh pr create --head <runBranch>` call made from the run's own worktree? (codex on #61) */
+export function prForRun(ghCalls, runBranch, workdir, real = (p) => p) {
+  if (typeof runBranch !== 'string' || runBranch === '' || typeof workdir !== 'string') return false;
+  const wd = real(workdir);
+  const headOf = (argv) => { const i = argv.indexOf('--head'); return i >= 0 ? argv[i + 1] ?? null : null; };
+  return (ghCalls ?? []).some((c) => Array.isArray(c?.argv) && c.argv[0] === 'pr' && c.argv[1] === 'create' && headOf(c.argv) === runBranch && real(c.cwd) === wd);
+}
+
 export async function run(ctx, t) {
   await ctx.ensureDaemon();
   const api = ctx.api();
@@ -37,7 +84,11 @@ export async function run(ctx, t) {
 
   const health = await api.get('/health');
   const caps = health.json?.capabilities ?? null;
-  t.evidence('health-capabilities', { crew: ctx.versions.crew, coreTs: ctx.versions.coreTs, capabilities: caps });
+  t.evidence('health-capabilities', { crew: ctx.versions.crew, coreTs: ctx.versions.coreTs, status: health.status, capabilities: caps });
+  // A broken /health is a failure, never "an older crew": only a valid answer may skip the step.
+  const healthOk = health.status === 200 && health.json !== null && typeof health.json === 'object';
+  t.check('GET /health 200 with a JSON body', healthOk, `status ${health.status} ${String(health.text ?? '').slice(0, 200)}`);
+  if (!healthOk) return;
   if (caps?.powerMode !== true) {
     t.info('power mode', `crew ${ctx.versions.crew} does not advertise capabilities.powerMode; there is no power run to prove (S04 covers the phased run)`);
     return;
@@ -57,7 +108,18 @@ export async function run(ctx, t) {
   if (caps?.qeAcceptanceOverride === true) body.skipQeAcceptance = { reason: 'wicked-smoke S11: the hermetic corpus has no QE ledger; this step proves the power build and delivery, not QE acceptance' };
 
   const shimOffset = ctx.shimCalls().length;
-  const pipe = await launchAndFollow(ctx, api, t, 'power', body);
+  const prCreateCalls = (from) => ctx.shimCalls().slice(from).filter((c) => c.shim === 'gh' && c.argv[0] === 'pr' && c.argv[1] === 'create');
+  // What had happened when the run paused at its deliver gate (wire kind only): nothing may be pushed
+  // or opened yet. Recorded before the harness approves the gate.
+  let atDeliver = null;
+  const beforeDeliverApprove = async (v, rec) => {
+    if (rec.kindSource !== 'wire' || atDeliver !== null) return;
+    const branch = v?.session?.run_branch ?? null;
+    atDeliver = { runBranch: branch, onOrigin: branch !== null && branches(origin, env, 'wicked/').includes(branch), prCreates: prCreateCalls(shimOffset).length };
+  };
+  // Nothing is armed for this run: an evaluator-verdict gate is a failure here, never a retry.
+  const pipe = await launchAndFollow(ctx, api, t, 'power', body, { retryArmedVerdict: false, beforeDeliverApprove });
+  t.check('the power launch answered a runId', pipe !== null && typeof pipe.runId === 'string' && pipe.runId !== '', pipe ? `runId ${pipe.runId}` : 'no runId in the launch answer');
   if (!pipe) return;
   const view = pipe.view;
   const session = view?.session ?? null;
@@ -68,27 +130,24 @@ export async function run(ctx, t) {
   t.check('power run reached a terminal state within the budget', !pipe.timedOut && view !== null, `status ${session?.status} after ${pipe.gates.length} gate(s)${pipe.aborted ? ' (aborted at the step ceiling)' : ''}`, { evidence: evRun });
   t.check('the launch is a power run (session.power.on)', power?.on === true, `power: ${JSON.stringify(power ? { available: power.available, on: power.on, refusedReason: power.refusedReason } : null)}`, { evidence: evRun });
 
-  const turns = power?.orchestrator?.turns ?? null;
-  t.check(`the build ran as one orchestrator session that handed off before the turn cap (turns < ${MAX_TURNS})`, typeof turns === 'number' && turns >= 1 && turns < MAX_TURNS, `orchestrator: ${JSON.stringify(power?.orchestrator ?? null)}`, { evidence: evRun });
+  const { ok: handedOff, orch, buildUnit, lastTurn } = orchestratorHandedOff(power, pipe.units);
+  t.check(`the build ran as one orchestrator session that handed off before the turn cap (${MAX_TURNS})`, handedOff, `orchestrator: ${JSON.stringify(orch)}; build unit: ${buildUnit ? `${buildUnit.ord}/${buildUnit.role}` : 'none'}; last turn: ${JSON.stringify(lastTurn)}`, { evidence: evRun });
 
-  // The hand-off log keeps every record of a step (`running`, then its result), in order: a step's
-  // outcome is its LAST record in the round.
-  const steps = Array.isArray(power?.handoff?.steps) ? power.handoff.steps : [];
-  const roundOf = (s) => (typeof s.round === 'number' ? s.round : 1);
-  const lastRound = steps.reduce((m, s) => Math.max(m, roundOf(s)), 0);
-  const outcome = new Map();
-  for (const s of steps) if (roundOf(s) === lastRound) outcome.set(s.step, s.status);
-  t.check('the hand-off ran and passed in one round (no send-back)', power?.handoff?.round === 1 && outcome.size > 0 && [...outcome.values()].every((v) => HANDOFF_OK.has(v)), `round ${power?.handoff?.round ?? null}: ${[...outcome].map(([k, v]) => `${k}=${v}`).join(', ') || 'no steps'}`, { evidence: evRun });
+  const ho = handoffPassed(power, pipe.units, buildUnit);
+  t.check('the hand-off ran every step of the composed plan and passed in one round (no send-back)', ho.ok, `round ${ho.round}; ${[...ho.finalOf].map(([k, v]) => `${k}=${v}`).join(', ') || 'no steps'}${ho.missing.length ? `; missing: ${ho.missing.join(', ')}` : ''}${ho.rowsValid ? '' : '; a row lacks step/ord/round/status'}`, { evidence: evRun });
 
   const completed = session?.status === 'completed';
   t.check('power run completed', completed, `status ${session?.status}; ${pipe.denials.join(' | ').slice(0, 400)}`, { evidence: evRun });
-  t.check('power run: no failure escalation', pipe.escalation === null && pipe.deadSeatEscalations.length === 0, pipe.escalation ?? 'none', { evidence: evRun });
+  const verdictFails = ctx.shimCalls().slice(shimOffset).filter((c) => c.kind === 'verdict' && c.verdict === 'FAIL').length;
+  t.check('power run: no failure escalation and no evaluator-verdict gate', pipe.escalation === null && pipe.deadSeatEscalations.length === 0 && pipe.verdictGate === null && verdictFails === 0, pipe.escalation ?? (pipe.verdictGate ? `verdict gate ${JSON.stringify(pipe.verdictGate)}` : verdictFails ? `${verdictFails} evaluator FAIL answer(s)` : 'none'), { evidence: evRun });
   if (!completed) worktreeEvidence(ctx, t, 'power', view);
   t.info('power run units', pipe.units.map((u) => `${phaseOf(u)}=${u.status} (${u.assigned_cli})`).join(', '));
   t.info('power run gate kinds', pipe.gates.map((g) => `${g.phase}: ${g.kind} (${g.kindSource}) → ${g.decision}`).join(', ') || 'none');
 
   const reachedDeliver = pipe.units.some((u) => phaseOf(u) === 'deliver' && u.status !== 'pending' && u.status !== 'distributed') || pipe.deliverGateSeen || completed;
-  if (reachedDeliver) t.check('a human DELIVER gate paused the power run before any push', pipe.deliverGateSeen, pipe.gates.map((g) => `${g.phase}/${g.kind}`).join(',') || 'none', { evidence: evRun });
+  const deliverWire = pipe.gates.some((g) => g.kind === 'deliver' && g.kindSource === 'wire');
+  t.evidence('at-deliver-gate', atDeliver);
+  if (reachedDeliver) t.check('a human DELIVER gate (wire kind) paused the power run before any push or PR', deliverWire && atDeliver !== null && atDeliver.onOrigin === false && atDeliver.prCreates === 0, `gates: ${pipe.gates.map((g) => `${g.phase}/${g.kind} (${g.kindSource})`).join(',') || 'none'}; at the gate: ${JSON.stringify(atDeliver)}`, { evidence: evRun });
   else t.info('deliver gate', `not judged — the power run ended before the deliver phase (${pipe.denials[0]?.slice(0, 160) ?? session?.status})`);
 
   const checks = eventsOfType(pipe.events, 'repoChecksEvaluated');
@@ -101,10 +160,12 @@ export async function run(ctx, t) {
   const pushed = runBranch && originBranches.includes(runBranch) ? runBranch : null;
   const lsRemote = gitTry(corpus, env, 'ls-remote', '--heads', 'origin', runBranch ?? 'wicked/*');
   const ghCalls = pcalls.filter((c) => c.shim === 'gh');
-  const prCreated = ghCalls.some((c) => c.argv[0] === 'pr' && c.argv[1] === 'create');
+  // The PR must be THIS run's: `gh pr create --head <run_branch>` from the run's own worktree.
+  const real = (p) => { try { return realpathSync(p); } catch { return p; } };
+  const prCreated = prForRun(ghCalls, runBranch, session?.workdir ?? null, real);
   const pushedFix = pushed ? gitTry(origin, env, 'show', `${pushed}:src/add.js`).stdout : '';
   const evDelivery = t.evidence('delivery', { runBranch, originBranches, lsRemote: lsRemote.stdout.trim().slice(0, 300), prCreated, ghCalls: ghCalls.map((c) => c.argv.slice(0, 4)), productDelivery: session?.delivery ?? null });
   t.check('power run branch pushed to the local bare origin (git ls-remote evidence)', pushed !== null && lsRemote.stdout.includes(`refs/heads/${runBranch}`), `origin refs: ${originBranches.join(',')}; run_branch ${runBranch}`, { evidence: evDelivery });
-  t.check('gh shim opened the PR for the power run (no GitHub reached)', prCreated, ghCalls.map((c) => c.argv.slice(0, 2).join(' ')).join(' | ') || 'no gh calls', { evidence: evDelivery });
+  t.check('gh shim opened THIS run\'s PR (--head <run_branch>, from the run worktree; no GitHub reached)', prCreated, ghCalls.map((c) => `${c.argv.slice(0, 4).join(' ')} @ ${c.cwd}`).join(' | ') || 'no gh calls', { evidence: evDelivery });
   t.check('the pushed power-run branch carries the correction (src/add.js returns a + b)', /a\s*\+\s*b/.test(pushedFix), pushedFix.trim().slice(0, 120), { evidence: evDelivery });
 }

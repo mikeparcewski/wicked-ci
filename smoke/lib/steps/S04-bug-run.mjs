@@ -112,8 +112,15 @@ const isJudgeUnavailableGate = (e) => e?.type === 'gateEscalated' && (e.conditio
 /** The engine that fails closed on a benched-out judge pool instead of skipping the judge. */
 const JUDGE_FAIL_CLOSED_CORE_TS = '0.7.40';
 
-/** Launch + follow one run, answering gates by kind the way an operator would. */
-export async function launchAndFollow(ctx, api, t, label, body) {
+/**
+ * Launch + follow one run, answering gates by kind the way an operator would.
+ * `opts.retryArmedVerdict` (default true, S04's S-L1 arm): approve ONE evaluator-verdict gate as the
+ * retry of the harness's own armed FAIL. A caller that armed nothing (S11) passes false, and any verdict
+ * gate is then a failure escalation, cancelled. `opts.beforeDeliverApprove(view, rec)` runs before a
+ * deliver gate is approved, so a caller can record what had (not) happened before the push.
+ */
+export async function launchAndFollow(ctx, api, t, label, body, opts = {}) {
+  const retryArmedVerdict = opts.retryArmedVerdict !== false;
   const launch = await api.post('/runs', body);
   t.evidence(`${label}-launch`, { request: body, status: launch.status, response: launch.json ?? launch.text });
   t.check(`POST /runs 201 (${label})`, launch.status === 201, `status ${launch.status} ${launch.text?.slice(0, 300)}`);
@@ -143,6 +150,7 @@ export async function launchAndFollow(ctx, api, t, label, body) {
           return 'approve';
         case 'deliver':
           out.deliverGateSeen = true;
+          if (typeof opts.beforeDeliverApprove === 'function') await opts.beforeDeliverApprove(v, rec);
           return 'approve'; // the push goes to the LOCAL bare origin; `gh` is the shim
         case 'terminal':
           return 'approve';
@@ -169,6 +177,11 @@ export async function launchAndFollow(ctx, api, t, label, body) {
             return 'cancel';
           }
           const vg = latest !== null && isVerdictGate(latest, armedFails) ? latest : null;
+          if (vg && !retryArmedVerdict) {
+            out.verdictGate = out.verdictGate ?? { phase, ord: unit.ord, assignedCli: unit.assigned_cli ?? null, condition: vg.condition ?? null, denialSource: vg.denialSource ?? null };
+            out.escalation = out.escalation ?? `${phase}: an evaluator-verdict gate (nothing was armed): ${prompt.slice(0, 300)}`;
+            return 'cancel';
+          }
           if (vg) {
             if (out.verdictGate === null) {
               out.verdictGate = { phase, ord: unit.ord, assignedCli: unit.assigned_cli ?? null, condition: vg.condition ?? null, denialSource: vg.denialSource ?? null, attempt: vg.attempt ?? v.session.attempt ?? null, kind: rec.kind, kindSource: rec.kindSource, prompt: prompt.slice(0, 300), eventIndex: frames.indexOf(vg) };

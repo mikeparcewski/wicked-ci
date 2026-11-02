@@ -97,10 +97,12 @@ export function parseSteps(spec) {
   for (const part of s.split(',').map((p) => p.trim()).filter(Boolean)) {
     const range = part.match(/^(S\d\d)\.\.(S\d\d)$/i);
     if (range) {
-      const a = ALL_STEPS.indexOf(range[1].toUpperCase());
-      const b = ALL_STEPS.indexOf(range[2].toUpperCase());
-      if (a < 0 || b < 0 || a > b) throw new Error(`bad step range ${part}`);
-      for (const id of ALL_STEPS.slice(a, b + 1)) out.add(id);
+      // A range is NUMERIC (S01..S11 = every step from 1 to 11), never a slice of the run order:
+      // ALL_STEPS runs S11 right after S04, so a positional slice would drop S05-S10 (codex on #61).
+      const lo = Number(range[1].slice(1));
+      const hi = Number(range[2].slice(1));
+      if (!ALL_STEPS.includes(range[1].toUpperCase()) || !ALL_STEPS.includes(range[2].toUpperCase()) || lo > hi) throw new Error(`bad step range ${part}`);
+      for (const id of ALL_STEPS) if (Number(id.slice(1)) >= lo && Number(id.slice(1)) <= hi) out.add(id);
     } else {
       const id = part.toUpperCase();
       if (!ALL_STEPS.includes(id)) throw new Error(`unknown step ${part}`);

@@ -241,13 +241,15 @@ from a guess (a guessed escalation is approved once and re-judged).
 
 ## Adding a step
 
-1. Create `lib/steps/S11-<name>.mjs` exporting `id`, `name` and `async run(ctx, t)`.
+1. Create `lib/steps/S<NN>-<name>.mjs` with the next unused id (S12 at the time of writing) exporting `id`, `name` and
+   `async run(ctx, t)`.
 2. Assert the WIRE: `t.check(name, ok, detail, { finding, evidence })`; write what you read with
    `t.evidence(name, obj)`; `t.info` for observations that are not verdicts.
 3. Tag a check with the finding it detects; add a rule to `lib/expect.mjs` only if the current published
    version is known to exhibit it.
 4. Register the id in `lib/args.mjs` (`ALL_STEPS`, and `DEFAULT_STEPS` unless it needs the network or
-   more than ~60 s); `npm run check` verifies the registry.
+   more than ~60 s). `ALL_STEPS` is the RUN order (S10's teardown stays last; a step that needs S04's state goes right
+   after it, as S11 does); `--steps` ranges are numeric. `npm run check` verifies the registry and the order.
 5. Keep the whole default set ≤ 8 minutes on a GitHub runner (S04 is the budget's owner).
 
 `ctx` gives you the layout (`ctx.L`), the hermetic `env`, the `daemon` (start/stop/restart/log
