@@ -1,9 +1,9 @@
 // CLI argument parsing for wicked-smoke. No dependencies; every flag takes `--flag value`.
 
-export const ALL_STEPS = ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10'];
+export const ALL_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10'];
 /** Steps that run without `--steps`: S07 (interactive) stays opt-in (a cold `npx` fetch); S08 (chat)
  *  joined the default set in v2 with the ACP-speaking seat shim — see README. */
-export const DEFAULT_STEPS = ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S08', 'S09', 'S10'];
+export const DEFAULT_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S08', 'S09', 'S10'];
 
 export const HELP = `wicked-smoke — artifact-level smoke harness for the wicked-* seams
 
@@ -25,7 +25,7 @@ usage: node bin/wicked-smoke.mjs [options]
   --no-expect-fail        disable every built-in expected-fail rule (strict mode)
   --allow-unexpected-pass do not fail the run when a labelled check unexpectedly passes (it is still printed)
   --assert-hermetic       fail if anything under the real $HOME changed during the run
-  --step-timeout <secs>   per-step ceiling; raises the built-in ceilings (S01 boot 300 s, S04 540 s, S05 420 s) when
+  --step-timeout <secs>   per-step ceiling; raises the built-in ceilings (S01 boot 300 s, S04 540 s, S11 540 s, S05 420 s) when
                           larger (default: 300) — also the daemon's boot wait (a cold first boot publishes the
                           garden bundle with uv; minutes on a loaded workstation, seconds on a runner)
   --verbose               echo every HTTP call and shim invocation
@@ -97,10 +97,12 @@ export function parseSteps(spec) {
   for (const part of s.split(',').map((p) => p.trim()).filter(Boolean)) {
     const range = part.match(/^(S\d\d)\.\.(S\d\d)$/i);
     if (range) {
-      const a = ALL_STEPS.indexOf(range[1].toUpperCase());
-      const b = ALL_STEPS.indexOf(range[2].toUpperCase());
-      if (a < 0 || b < 0 || a > b) throw new Error(`bad step range ${part}`);
-      for (const id of ALL_STEPS.slice(a, b + 1)) out.add(id);
+      // A range is NUMERIC (S01..S11 = every step from 1 to 11), never a slice of the run order:
+      // ALL_STEPS runs S11 right after S04, so a positional slice would drop S05-S10 (codex on #61).
+      const lo = Number(range[1].slice(1));
+      const hi = Number(range[2].slice(1));
+      if (!ALL_STEPS.includes(range[1].toUpperCase()) || !ALL_STEPS.includes(range[2].toUpperCase()) || lo > hi) throw new Error(`bad step range ${part}`);
+      for (const id of ALL_STEPS) if (Number(id.slice(1)) >= lo && Number(id.slice(1)) <= hi) out.add(id);
     } else {
       const id = part.toUpperCase();
       if (!ALL_STEPS.includes(id)) throw new Error(`unknown step ${part}`);

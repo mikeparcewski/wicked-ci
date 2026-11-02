@@ -2,6 +2,58 @@
 
 ## Unreleased
 
+### smoke — S04 runs phased on a power-mode crew; S11 proves the power-mode bug run
+
+- crew 0.16.11 made power mode the default for a repository launch, and crew 0.16.12's release smoke (run
+  41428295027) failed S04 on both OSes: the launch sent no `power` field, so the run was a power run. Its plan
+  was `pa-scope, architecture, fix, verify, review, security_review, deliver`, not the preset phases S04
+  asserts. The seat shims did not know the orchestrator turn protocol: they never ended a turn with
+  `HANDOFF:`, so the build ran all 12 turns. After a hand-off send-back the shim answered "nothing to change"
+  without the engine's `no change needed` declaration, so the build unit was rejected ("the build step changed
+  nothing in the worktree").
+- S04 now sends `power: false` when `GET /health.capabilities.powerMode` is true (an older crew never sees the
+  field), so its phased assertions stand unchanged.
+- New step **S11 bug-run (power mode)**, run right after S04 (S10's teardown stays last; `ALL_STEPS` is the
+  run order). It launches the same issue with `power: true` on the live seats and proves:
+  - the power run;
+  - an orchestrator hand-off before the turn cap;
+  - a one-round passing hand-off;
+  - completion with no escalation and the human deliver gate;
+  - delivery of `a + b` to the local origin, with the PR opened by the `gh` shim.
+  A crew without `capabilities.powerMode` is noted and not judged.
+- The seat shims answer the orchestrator protocol (wicked-core `src/power.rs`), only on orchestrator prompts
+  (`[power mode] You are the ORCHESTRATOR` / `[power mode] Turn N of at most M`). The first turn applies the
+  corpus fix and ends `HANDOFF:`. A turn over a tree that already holds the fix declares `NO CHANGE NEEDED:`
+  and hands off. Phased prompts are answered exactly as before.
+- `--steps` ranges are numeric (`S01..S11` selects every step 1 to 11) and run in `ALL_STEPS` order. A
+  positional slice of the run order would have silently dropped S05-S10.
+- S11 fails, never passes vacuously, on any of these:
+  - a broken or malformed `/health` (not a JSON object), or a launch answer without a `runId`;
+  - an orchestrator that is not the creator unit's seat, turns on another seat, out of order or after a
+    session restart, or a last turn that did not hand off;
+  - a hand-off row without step, unit or round, a second round, or a missing `rescore` or `checks` on the build
+    unit;
+  - a hand-off that does not run every evaluator phase the DECLARED plan requires (`power.plan.handoff`:
+    tests → verify, a distinct-seat or design review → review, security → security_review). Each phase must be
+    recorded under its own step (`qe`, `review`, `security`) by the unit's assigned seat, and that seat must not
+    be the orchestrator's (evaluator ≠ creator);
+  - a build floor whose LAST `repoChecksEvaluated` on the build unit did not pass with a passing test check;
+  - a `gateEscalated` anywhere in the run's event history, even one the poll missed between views;
+  - an evaluator-verdict gate (nothing is armed for S11, so the shared helper's S04 retry is off:
+    `launchAndFollow(…, { retryArmedVerdict: false })`);
+  - a deliver gate that is not the wire kind, or whose pause does not name the run's branch, or sees it
+    already on the origin or a PR already opened;
+  - a `gh pr create` that is not `--head <run_branch>` from the run's own worktree.
+- `selfcheck.mjs` checks:
+  - the step registry as a set, plus the run order (S11 after S04, S10 last), and the numeric ranges;
+  - the orchestrator protocol (fix + `HANDOFF:`, `NO CHANGE NEEDED:` + `HANDOFF:` on a fixed tree, and a
+    phased prompt unchanged);
+  - S11's judgements (exported pure functions) against the recorded good run and each adversarial wire above;
+  - S11 against a 500 or array `/health` and a 201 launch without a `runId`.
+  It fails without the shim change. The two `launchAndFollow` options (the verdict retry opt-out and the
+  deliver-pause hook) run inside its gate-polling loop. They are exercised by the live smoke, not by
+  `selfcheck.mjs`.
+
 ### smoke — S02 reads the skills verdict after crew's background publish lands
 
 - crew 0.16.2 (crew#1146) listens before the skills snapshot is verified: the boot ladder publishes in the

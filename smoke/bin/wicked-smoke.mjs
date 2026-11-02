@@ -21,7 +21,7 @@ import { tapStep } from '../lib/tap.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 /** Built-in per-step ceilings (seconds); `--step-timeout` RAISES them when larger, never lowers. S01's
  *  ceiling is also the daemon's BOOT wait (a cold first boot publishes the garden bundle). */
-const STEP_CEILINGS = { S01: 300, S04: 540, S05: 420 };
+const STEP_CEILINGS = { S01: 300, S04: 540, S11: 540, S05: 420 };
 
 /** chmod u+w every directory under `dir` (no symlink following) so a recursive remove can proceed. */
 function makeWritable(dir) {
