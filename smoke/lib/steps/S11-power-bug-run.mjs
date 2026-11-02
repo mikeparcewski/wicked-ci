@@ -29,18 +29,21 @@ const MAX_TURNS = 12;
 const HANDOFF_OK = new Set(['passed', 'skipped']);
 
 /**
- * Did the build run as one orchestrator session that HANDED OFF? A named seat on the plan's build unit
- * (role creator), a turn log as long as its turn counter, the last turn's outcome a hand-off, before the
- * cap. Missing evidence is a "no" (codex on #61: `{turns: 1}` alone must not pass).
+ * Did the build run as ONE orchestrator session that HANDED OFF? The creator unit's seat is the
+ * orchestrator, every turn ran on it, turns are numbered 1..n with no session restart, and the last turn's
+ * outcome is a hand-off, before the cap. Missing evidence is a "no" (codex on #61).
  */
 export function orchestratorHandedOff(power, units) {
   const orch = power?.orchestrator ?? null;
   const turnLog = Array.isArray(power?.turnLog) ? power.turnLog : null;
   const lastTurn = turnLog?.at(-1) ?? null;
   const buildUnit = typeof orch?.ord === 'number' ? (units ?? []).find((u) => u.ord === orch.ord) ?? null : null;
-  const ok = typeof orch?.cli === 'string' && orch.cli !== '' && buildUnit?.role === 'creator'
+  // ONE session on ONE seat: the creator unit's seat, every turn on it, turns numbered 1..n, no restart.
+  const ok = typeof orch?.cli === 'string' && orch.cli !== '' && buildUnit?.role === 'creator' && buildUnit.assigned_cli === orch.cli
+    && orch.sessionRestarts === 0
     && typeof orch.turns === 'number' && orch.turns >= 1 && orch.turns < MAX_TURNS
-    && turnLog !== null && turnLog.length === orch.turns && lastTurn?.outcome === 'handoff' && lastTurn?.turn === orch.turns;
+    && turnLog !== null && turnLog.length === orch.turns && turnLog.every((tl, i) => tl?.turn === i + 1 && tl?.cli === orch.cli)
+    && lastTurn?.outcome === 'handoff';
   return { ok, orch, buildUnit, lastTurn };
 }
 
@@ -57,13 +60,38 @@ export function handoffPassed(power, units, buildUnit) {
   const finalOf = new Map();
   for (const r of rows) finalOf.set(`${r?.ord}/${r?.step}`, r?.status);
   const evaluatorOrds = (units ?? []).filter((u) => u.role === 'evaluator').map((u) => u.ord);
+  // The build's own steps (the re-score and its floor) on the build unit, and an EVALUATOR step (not a
+  // build step under another ordinal) for every evaluator unit of the composed plan.
+  const BUILD_STEPS = ['rescore', 'checks'];
   const missing = [
-    ...(buildUnit && rows.some((r) => r?.ord === buildUnit.ord && r?.step === 'checks') ? [] : ['checks on the build unit']),
-    ...evaluatorOrds.filter((o) => !rows.some((r) => r?.ord === o)).map((o) => `evaluator unit ${o}`),
+    ...BUILD_STEPS.filter((st) => !(buildUnit && rows.some((r) => r?.ord === buildUnit.ord && r?.step === st))).map((st) => `${st} on the build unit`),
+    ...evaluatorOrds.filter((o) => !rows.some((r) => r?.ord === o && typeof r?.step === 'string' && !BUILD_STEPS.includes(r.step))).map((o) => `an evaluator step for unit ${o}`),
   ];
   const ok = rowsValid && handoff?.round === 1 && rows.every((r) => r.round === 1) && evaluatorOrds.length > 0 && missing.length === 0
     && [...finalOf.values()].every((v) => HANDOFF_OK.has(v));
   return { ok, round: handoff?.round ?? null, finalOf, missing, rowsValid };
+}
+
+/** A /health answer the step may interpret: 200 and a JSON object (an array or null is not one). */
+export function healthUsable(health) {
+  return health?.status === 200 && health.json !== null && typeof health.json === 'object' && !Array.isArray(health.json);
+}
+
+/**
+ * Was the run paused at its deliver gate BEFORE any push or PR? The pause must name the run branch (the
+ * same one the run finally delivers), the branch must be absent from the origin then, and no PR may have
+ * been created. Missing identity is a "no" (codex on #61).
+ */
+export function deliverPauseClean(atDeliver, finalRunBranch) {
+  return atDeliver !== null && typeof atDeliver?.runBranch === 'string' && atDeliver.runBranch !== '' && atDeliver.runBranch === finalRunBranch
+    && atDeliver.onOrigin === false && atDeliver.prCreates === 0;
+}
+
+/** The build unit's OWN floor passed: its `repoChecksEvaluated` (same ord) passed, with a passing test check. */
+export function creatorFloorPassed(events, buildUnit) {
+  if (!buildUnit) return false;
+  return (events ?? []).some((e) => e?.type === 'repoChecksEvaluated' && e.ord === buildUnit.ord && e.passed === true && e.outcome === 'passed'
+    && Array.isArray(e.checks) && e.checks.some((c) => c?.name === 'test' && c.outcome === 'passed'));
 }
 
 /** Is there a `gh pr create --head <runBranch>` call made from the run's own worktree? (codex on #61) */
@@ -86,7 +114,7 @@ export async function run(ctx, t) {
   const caps = health.json?.capabilities ?? null;
   t.evidence('health-capabilities', { crew: ctx.versions.crew, coreTs: ctx.versions.coreTs, status: health.status, capabilities: caps });
   // A broken /health is a failure, never "an older crew": only a valid answer may skip the step.
-  const healthOk = health.status === 200 && health.json !== null && typeof health.json === 'object';
+  const healthOk = healthUsable(health);
   t.check('GET /health 200 with a JSON body', healthOk, `status ${health.status} ${String(health.text ?? '').slice(0, 200)}`);
   if (!healthOk) return;
   if (caps?.powerMode !== true) {
@@ -115,7 +143,7 @@ export async function run(ctx, t) {
   const beforeDeliverApprove = async (v, rec) => {
     if (rec.kindSource !== 'wire' || atDeliver !== null) return;
     const branch = v?.session?.run_branch ?? null;
-    atDeliver = { runBranch: branch, onOrigin: branch !== null && branches(origin, env, 'wicked/').includes(branch), prCreates: prCreateCalls(shimOffset).length };
+    atDeliver = { runBranch: branch, onOrigin: typeof branch === 'string' && branch !== '' ? branches(origin, env, 'wicked/').includes(branch) : null, prCreates: prCreateCalls(shimOffset).length };
   };
   // Nothing is armed for this run: an evaluator-verdict gate is a failure here, never a retry.
   const pipe = await launchAndFollow(ctx, api, t, 'power', body, { retryArmedVerdict: false, beforeDeliverApprove });
@@ -147,11 +175,11 @@ export async function run(ctx, t) {
   const reachedDeliver = pipe.units.some((u) => phaseOf(u) === 'deliver' && u.status !== 'pending' && u.status !== 'distributed') || pipe.deliverGateSeen || completed;
   const deliverWire = pipe.gates.some((g) => g.kind === 'deliver' && g.kindSource === 'wire');
   t.evidence('at-deliver-gate', atDeliver);
-  if (reachedDeliver) t.check('a human DELIVER gate (wire kind) paused the power run before any push or PR', deliverWire && atDeliver !== null && atDeliver.onOrigin === false && atDeliver.prCreates === 0, `gates: ${pipe.gates.map((g) => `${g.phase}/${g.kind} (${g.kindSource})`).join(',') || 'none'}; at the gate: ${JSON.stringify(atDeliver)}`, { evidence: evRun });
+  if (reachedDeliver) t.check('a human DELIVER gate (wire kind) paused the power run before any push or PR', deliverWire && deliverPauseClean(atDeliver, session?.run_branch ?? null), `gates: ${pipe.gates.map((g) => `${g.phase}/${g.kind} (${g.kindSource})`).join(',') || 'none'}; at the gate: ${JSON.stringify(atDeliver)}`, { evidence: evRun });
   else t.info('deliver gate', `not judged — the power run ended before the deliver phase (${pipe.denials[0]?.slice(0, 160) ?? session?.status})`);
 
   const checks = eventsOfType(pipe.events, 'repoChecksEvaluated');
-  t.check('repo-checks floor ran on the power build (repoChecksEvaluated emitted)', checks.length > 0, `${checks.length} evaluation(s)`, { evidence: evRun });
+  t.check('the power build\'s own floor passed (repoChecksEvaluated on the build unit, test check passed)', creatorFloorPassed(pipe.events, buildUnit), checks.map((e) => `ord ${e.ord}: ${e.outcome} [${(e.checks ?? []).map((c) => `${c.name}=${c.outcome}`).join(',')}]`).join(' | ') || 'no evaluations', { evidence: evRun });
 
   // Delivery — judged from the LOCAL bare origin first (the artifact), then the gh shim's own record.
   const pcalls = ctx.shimCalls().slice(shimOffset);

@@ -28,20 +28,26 @@
 - `--steps` ranges are numeric (`S01..S11` selects every step 1 to 11) and run in `ALL_STEPS` order. A
   positional slice of the run order would have silently dropped S05-S10.
 - S11 fails, never passes vacuously, on any of these:
-  - a broken `/health`, or a launch answer without a `runId`;
-  - an orchestrator without a named seat on the creator unit, a turn log, and a last turn that handed off;
-  - a hand-off row without step, unit or round, a missing `checks` or evaluator step, or a second round;
+  - a broken or malformed `/health` (not a JSON object), or a launch answer without a `runId`;
+  - an orchestrator that is not the creator unit's seat, turns on another seat, out of order or after a
+    session restart, or a last turn that did not hand off;
+  - a hand-off row without step, unit or round, a second round, a missing `rescore` or `checks` on the build
+    unit, or an evaluator unit without an evaluator step;
+  - a build floor (`repoChecksEvaluated` on the build unit) that did not pass with a passing test check;
   - an evaluator-verdict gate (nothing is armed for S11, so the shared helper's S04 retry is off:
     `launchAndFollow(…, { retryArmedVerdict: false })`);
-  - a deliver gate that is not the wire kind, or that sees the branch already pushed or the PR already opened;
+  - a deliver gate that is not the wire kind, or whose pause does not name the run's branch, or sees it
+    already on the origin or a PR already opened;
   - a `gh pr create` that is not `--head <run_branch>` from the run's own worktree.
 - `selfcheck.mjs` checks:
   - the step registry as a set, plus the run order (S11 after S04, S10 last), and the numeric ranges;
   - the orchestrator protocol (fix + `HANDOFF:`, `NO CHANGE NEEDED:` + `HANDOFF:` on a fixed tree, and a
     phased prompt unchanged);
-  - S11's judgements against the recorded good run and each adversarial wire above;
-  - S11 against a 500 `/health` and a 201 launch without a `runId`.
-  It fails without the shim change.
+  - S11's judgements (exported pure functions) against the recorded good run and each adversarial wire above;
+  - S11 against a 500 or array `/health` and a 201 launch without a `runId`.
+  It fails without the shim change. The two `launchAndFollow` options (the verdict retry opt-out and the
+  deliver-pause hook) run inside its gate-polling loop. They are exercised by the live smoke, not by
+  `selfcheck.mjs`.
 
 ### smoke — S02 reads the skills verdict after crew's background publish lands
 

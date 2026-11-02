@@ -204,11 +204,11 @@ if (sqlite) {
 }
 // S11's judgements read the real wire and fail on missing evidence (codex on #61).
 {
-  const { orchestratorHandedOff, handoffPassed, prForRun } = await import(pathToFileURL(join(here, 'steps', 'S11-power-bug-run.mjs')).href);
-  const units = [{ ord: 1, role: 'neutral' }, { ord: 3, role: 'creator' }, { ord: 4, role: 'evaluator' }, { ord: 5, role: 'evaluator' }, { ord: 7, role: 'neutral' }];
+  const { orchestratorHandedOff, handoffPassed, prForRun, healthUsable, deliverPauseClean, creatorFloorPassed } = await import(pathToFileURL(join(here, 'steps', 'S11-power-bug-run.mjs')).href);
+  const units = [{ ord: 1, role: 'neutral', assigned_cli: 'claude' }, { ord: 3, role: 'creator', assigned_cli: 'claude' }, { ord: 4, role: 'evaluator', assigned_cli: 'smoke-judge' }, { ord: 5, role: 'evaluator', assigned_cli: 'smoke-judge' }, { ord: 7, role: 'neutral', assigned_cli: 'bash' }];
   const good = {
-    orchestrator: { cli: 'claude', ord: 3, turns: 1 },
-    turnLog: [{ turn: 1, outcome: 'handoff' }],
+    orchestrator: { cli: 'claude', ord: 3, turns: 1, sessionRestarts: 0 },
+    turnLog: [{ turn: 1, cli: 'claude', outcome: 'handoff' }],
     handoff: { round: 1, steps: [
       { step: 'rescore', ord: 3, round: 1, status: 'passed' }, { step: 'checks', ord: 3, round: 1, status: 'passed' },
       { step: 'qe', ord: 4, round: 1, status: 'running' }, { step: 'qe', ord: 4, round: 1, status: 'passed' },
@@ -217,14 +217,29 @@ if (sqlite) {
   const o = orchestratorHandedOff(good, units);
   if (!o.ok || !handoffPassed(good, units, o.buildUnit).ok) throw new Error('S11: the recorded good run must pass');
   if (orchestratorHandedOff({ orchestrator: { turns: 1 } }, units).ok) throw new Error('S11: a bare turn count must not prove a hand-off');
-  if (orchestratorHandedOff({ ...good, turnLog: [{ turn: 1, outcome: 'checkpoint' }] }, units).ok) throw new Error('S11: a build that ended on a checkpoint must not pass');
-  if (orchestratorHandedOff({ ...good, orchestrator: { cli: 'claude', ord: 4, turns: 1 } }, units).ok) throw new Error('S11: the orchestrator must sit on the creator unit');
-  if (orchestratorHandedOff({ ...good, orchestrator: { cli: 'claude', ord: 3, turns: 12 }, turnLog: Array.from({ length: 12 }, (_, i) => ({ turn: i + 1, outcome: i === 11 ? 'handoff' : 'checkpoint' })) }, units).ok) throw new Error('S11: a hand-off at the turn cap must not pass');
+  if (orchestratorHandedOff({ ...good, turnLog: [{ turn: 1, cli: 'claude', outcome: 'checkpoint' }] }, units).ok) throw new Error('S11: a build that ended on a checkpoint must not pass');
+  if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, ord: 4 } }, units).ok) throw new Error('S11: the orchestrator must sit on the creator unit');
+  if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, turns: 12 }, turnLog: Array.from({ length: 12 }, (_, i) => ({ turn: i + 1, cli: 'claude', outcome: i === 11 ? 'handoff' : 'checkpoint' })) }, units).ok) throw new Error('S11: a hand-off at the turn cap must not pass');
+  if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, turns: 2, sessionRestarts: 1 }, turnLog: [{ turn: 1, cli: 'claude', outcome: 'checkpoint' }, { turn: 2, cli: 'smoke-judge', outcome: 'handoff' }] }, units).ok) throw new Error('S11: a second seat or a session restart must not pass as one session');
+  if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, cli: 'smoke-judge' }, turnLog: [{ turn: 1, cli: 'smoke-judge', outcome: 'handoff' }] }, units).ok) throw new Error('S11: an orchestrator other than the creator unit\'s seat must not pass');
+  if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, turns: 2 }, turnLog: [{ turn: 2, cli: 'claude', outcome: 'checkpoint' }, { turn: 1, cli: 'claude', outcome: 'handoff' }] }, units).ok) throw new Error('S11: out-of-order turns must not pass');
   if (handoffPassed({ handoff: { round: 1, steps: [{ status: 'passed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a row without identity must not pass');
   if (handoffPassed({ handoff: { round: 1, steps: [{ step: 'rescore', ord: 3, round: 1, status: 'passed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a lone rescore must not pass');
   if (handoffPassed({ handoff: { round: 1, steps: good.handoff.steps.filter((r) => r.ord !== 5) } }, units, o.buildUnit).ok) throw new Error('S11: a missing evaluator unit must not pass');
   if (handoffPassed({ handoff: { round: 2, steps: good.handoff.steps.map((r) => ({ ...r, round: 2 })) } }, units, o.buildUnit).ok) throw new Error('S11: a second round must not pass');
   if (handoffPassed({ handoff: { round: 1, steps: [...good.handoff.steps, { step: 'review', ord: 5, round: 1, status: 'failed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a final failed record must not pass');
+  if (handoffPassed({ handoff: { round: 1, steps: good.handoff.steps.map((r) => (r.ord > 3 ? { ...r, step: 'checks' } : r)) } }, units, o.buildUnit).ok) throw new Error('S11: build steps under evaluator ordinals must not stand for evaluator steps');
+  if (handoffPassed({ handoff: { round: 1, steps: good.handoff.steps.filter((r) => r.step !== 'rescore') } }, units, o.buildUnit).ok) throw new Error('S11: a hand-off without its re-score must not pass');
+  // /health: only a JSON object may be interpreted (an array is malformed); an older crew's object without capabilities is usable.
+  if (!healthUsable({ status: 200, json: { ok: true } }) || healthUsable({ status: 200, json: [] }) || healthUsable({ status: 200, json: null }) || healthUsable({ status: 500, json: {} })) throw new Error('S11: healthUsable');
+  // The deliver pause names the final branch, before any push or PR.
+  const pause = { runBranch: 'wicked/run-a', onOrigin: false, prCreates: 0 };
+  if (!deliverPauseClean(pause, 'wicked/run-a')) throw new Error('S11: a clean deliver pause must pass');
+  if (deliverPauseClean({ ...pause, runBranch: null, onOrigin: null }, 'wicked/run-a') || deliverPauseClean(pause, 'wicked/run-b') || deliverPauseClean({ ...pause, onOrigin: true }, 'wicked/run-a') || deliverPauseClean({ ...pause, prCreates: 1 }, 'wicked/run-a') || deliverPauseClean(null, 'wicked/run-a')) throw new Error('S11: a pause without the branch, after a push or PR, or for another branch must not pass');
+  // The build's own floor: its ord, passed, with a passing test check.
+  const floorEv = { type: 'repoChecksEvaluated', ord: 3, passed: true, outcome: 'passed', checks: [{ name: 'install', outcome: 'passed' }, { name: 'test', outcome: 'passed' }] };
+  if (!creatorFloorPassed([floorEv], o.buildUnit)) throw new Error('S11: the build floor must pass');
+  if (creatorFloorPassed([{ ...floorEv, ord: 4 }], o.buildUnit) || creatorFloorPassed([{ ...floorEv, passed: false, outcome: 'failed' }], o.buildUnit) || creatorFloorPassed([{ ...floorEv, outcome: 'not_run' }], o.buildUnit) || creatorFloorPassed([{ ...floorEv, checks: [] }], o.buildUnit) || creatorFloorPassed([floorEv], null)) throw new Error('S11: another unit\'s, a failed, an unrun or an empty floor must not pass');
   const calls = [{ argv: ['pr', 'create', '--head', 'wicked/run-a', '--title', 't'], cwd: '/w/run-a' }];
   if (!prForRun(calls, 'wicked/run-a', '/w/run-a')) throw new Error('S11: this run\'s PR must be found');
   if (prForRun(calls, 'wicked/run-b', '/w/run-b') || prForRun([{ argv: ['pr', 'create', '--head', 'wicked/run-a'], cwd: '/w/other' }], 'wicked/run-a', '/w/run-a') || prForRun(calls, null, '/w/run-a')) throw new Error('S11: another run\'s PR (head or worktree) must not count');
@@ -237,6 +252,9 @@ if (sqlite) {
   let t = trace();
   await runS11(ctxWith({ get: async () => ({ status: 500, json: null, text: 'boom' }) }), t);
   if (!t.checks.some((c) => c.name.startsWith('GET /health') && !c.ok)) throw new Error('S11: a 500 /health must fail, not skip');
+  t = trace();
+  await runS11(ctxWith({ get: async () => ({ status: 200, json: [] }) }), t);
+  if (!t.checks.some((c) => c.name.startsWith('GET /health') && !c.ok)) throw new Error('S11: a malformed 200 /health (an array) must fail, not skip');
   t = trace();
   await runS11(ctxWith({ get: async () => ({ status: 200, json: { capabilities: {} } }) }), t);
   if (t.checks.length !== 1 || !t.checks[0].ok) throw new Error('S11: a valid /health without powerMode is noted, not judged');
