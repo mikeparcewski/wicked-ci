@@ -204,15 +204,16 @@ if (sqlite) {
 }
 // S11's judgements read the real wire and fail on missing evidence (codex on #61).
 {
-  const { orchestratorHandedOff, handoffPassed, prForRun, healthUsable, deliverPauseClean, creatorFloorPassed } = await import(pathToFileURL(join(here, 'steps', 'S11-power-bug-run.mjs')).href);
-  const units = [{ ord: 1, role: 'neutral', assigned_cli: 'claude' }, { ord: 3, role: 'creator', assigned_cli: 'claude' }, { ord: 4, role: 'evaluator', assigned_cli: 'smoke-judge' }, { ord: 5, role: 'evaluator', assigned_cli: 'smoke-judge' }, { ord: 7, role: 'neutral', assigned_cli: 'bash' }];
+  const { orchestratorHandedOff, handoffPassed, prForRun, healthUsable, deliverPauseClean, creatorFloorPassed, noEscalationEvents } = await import(pathToFileURL(join(here, 'steps', 'S11-power-bug-run.mjs')).href);
+  const units = [{ ord: 1, id: 'r:pa-scope', role: 'neutral', assigned_cli: 'claude' }, { ord: 3, id: 'r:fix', role: 'creator', assigned_cli: 'claude' }, { ord: 4, id: 'r:verify', role: 'evaluator', assigned_cli: 'smoke-judge' }, { ord: 5, id: 'r:review', role: 'evaluator', assigned_cli: 'smoke-judge' }, { ord: 7, id: 'r:deliver', role: 'neutral', assigned_cli: 'bash' }];
   const good = {
     orchestrator: { cli: 'claude', ord: 3, turns: 1, sessionRestarts: 0 },
     turnLog: [{ turn: 1, cli: 'claude', outcome: 'handoff' }],
+    plan: { handoff: { tests: 'full', reviews: [{ kind: 'distinct_seat' }, { kind: 'design' }] } },
     handoff: { round: 1, steps: [
-      { step: 'rescore', ord: 3, round: 1, status: 'passed' }, { step: 'checks', ord: 3, round: 1, status: 'passed' },
-      { step: 'qe', ord: 4, round: 1, status: 'running' }, { step: 'qe', ord: 4, round: 1, status: 'passed' },
-      { step: 'review', ord: 5, round: 1, status: 'running' }, { step: 'review', ord: 5, round: 1, status: 'passed' }] },
+      { step: 'rescore', ord: 3, round: 1, status: 'passed', seat: null }, { step: 'checks', ord: 3, round: 1, status: 'passed', seat: 'claude' },
+      { step: 'qe', ord: 4, round: 1, status: 'running', seat: 'smoke-judge' }, { step: 'qe', ord: 4, round: 1, status: 'passed', seat: 'smoke-judge' },
+      { step: 'review', ord: 5, round: 1, status: 'running', seat: 'smoke-judge' }, { step: 'review', ord: 5, round: 1, status: 'passed', seat: 'smoke-judge' }] },
   };
   const o = orchestratorHandedOff(good, units);
   if (!o.ok || !handoffPassed(good, units, o.buildUnit).ok) throw new Error('S11: the recorded good run must pass');
@@ -228,8 +229,16 @@ if (sqlite) {
   if (handoffPassed({ handoff: { round: 1, steps: good.handoff.steps.filter((r) => r.ord !== 5) } }, units, o.buildUnit).ok) throw new Error('S11: a missing evaluator unit must not pass');
   if (handoffPassed({ handoff: { round: 2, steps: good.handoff.steps.map((r) => ({ ...r, round: 2 })) } }, units, o.buildUnit).ok) throw new Error('S11: a second round must not pass');
   if (handoffPassed({ handoff: { round: 1, steps: [...good.handoff.steps, { step: 'review', ord: 5, round: 1, status: 'failed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a final failed record must not pass');
-  if (handoffPassed({ handoff: { round: 1, steps: good.handoff.steps.map((r) => (r.ord > 3 ? { ...r, step: 'checks' } : r)) } }, units, o.buildUnit).ok) throw new Error('S11: build steps under evaluator ordinals must not stand for evaluator steps');
-  if (handoffPassed({ handoff: { round: 1, steps: good.handoff.steps.filter((r) => r.step !== 'rescore') } }, units, o.buildUnit).ok) throw new Error('S11: a hand-off without its re-score must not pass');
+  const withSteps = (steps, extra = {}) => ({ ...good, handoff: { round: 1, steps }, ...extra });
+  if (handoffPassed(withSteps(good.handoff.steps.map((r) => (r.ord > 3 ? { ...r, step: 'checks' } : r))), units, o.buildUnit).ok) throw new Error('S11: build steps under evaluator ordinals must not stand for evaluator steps');
+  if (handoffPassed(withSteps(good.handoff.steps.filter((r) => r.step !== 'rescore')), units, o.buildUnit).ok) throw new Error('S11: a hand-off without its re-score must not pass');
+  if (handoffPassed(withSteps(good.handoff.steps.map((r) => (r.ord > 3 ? { ...r, step: 'qe' } : r))), units, o.buildUnit).ok) throw new Error('S11: a review recorded as qe must not pass (step identity follows the unit phase)');
+  if (handoffPassed({ ...good, plan: { handoff: { tests: 'full', reviews: [{ kind: 'distinct_seat' }, { kind: 'security' }] } } }, units, o.buildUnit).ok) throw new Error('S11: a security review the plan requires but no unit runs must not pass');
+  if (handoffPassed({ ...good, plan: undefined }, units, o.buildUnit).ok) throw new Error('S11: a hand-off without a declared plan must not pass');
+  const selfReview = units.map((u) => (u.role === 'evaluator' ? { ...u, assigned_cli: 'claude' } : u));
+  if (handoffPassed(withSteps(good.handoff.steps.map((r) => (r.ord > 3 ? { ...r, seat: 'claude' } : r))), selfReview, o.buildUnit).ok) throw new Error('S11: evaluators on the orchestrator\'s seat (self-review) must not pass');
+  if (handoffPassed(withSteps(good.handoff.steps.map((r) => (r.ord > 3 ? { ...r, seat: 'claude' } : r))), units, o.buildUnit).ok) throw new Error('S11: a hand-off row on a seat other than the unit\'s must not pass');
+  if (!noEscalationEvents([{ type: 'awaitingHuman' }, { type: 'gateDecided' }]) || noEscalationEvents([{ type: 'gateEscalated', ord: 4 }])) throw new Error('S11: noEscalationEvents');
   // /health: only a JSON object may be interpreted (an array is malformed); an older crew's object without capabilities is usable.
   if (!healthUsable({ status: 200, json: { ok: true } }) || healthUsable({ status: 200, json: [] }) || healthUsable({ status: 200, json: null }) || healthUsable({ status: 500, json: {} })) throw new Error('S11: healthUsable');
   // The deliver pause names the final branch, before any push or PR.
@@ -239,6 +248,7 @@ if (sqlite) {
   // The build's own floor: its ord, passed, with a passing test check.
   const floorEv = { type: 'repoChecksEvaluated', ord: 3, passed: true, outcome: 'passed', checks: [{ name: 'install', outcome: 'passed' }, { name: 'test', outcome: 'passed' }] };
   if (!creatorFloorPassed([floorEv], o.buildUnit)) throw new Error('S11: the build floor must pass');
+  if (creatorFloorPassed([floorEv, { ...floorEv, passed: false, outcome: 'failed', checks: [{ name: 'test', outcome: 'failed' }] }], o.buildUnit)) throw new Error('S11: a later failed build floor must not be masked by an earlier pass');
   if (creatorFloorPassed([{ ...floorEv, ord: 4 }], o.buildUnit) || creatorFloorPassed([{ ...floorEv, passed: false, outcome: 'failed' }], o.buildUnit) || creatorFloorPassed([{ ...floorEv, outcome: 'not_run' }], o.buildUnit) || creatorFloorPassed([{ ...floorEv, checks: [] }], o.buildUnit) || creatorFloorPassed([floorEv], null)) throw new Error('S11: another unit\'s, a failed, an unrun or an empty floor must not pass');
   const calls = [{ argv: ['pr', 'create', '--head', 'wicked/run-a', '--title', 't'], cwd: '/w/run-a' }];
   if (!prForRun(calls, 'wicked/run-a', '/w/run-a')) throw new Error('S11: this run\'s PR must be found');

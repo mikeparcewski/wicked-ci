@@ -31,9 +31,14 @@
   - a broken or malformed `/health` (not a JSON object), or a launch answer without a `runId`;
   - an orchestrator that is not the creator unit's seat, turns on another seat, out of order or after a
     session restart, or a last turn that did not hand off;
-  - a hand-off row without step, unit or round, a second round, a missing `rescore` or `checks` on the build
-    unit, or an evaluator unit without an evaluator step;
-  - a build floor (`repoChecksEvaluated` on the build unit) that did not pass with a passing test check;
+  - a hand-off row without step, unit or round, a second round, or a missing `rescore` or `checks` on the build
+    unit;
+  - a hand-off that does not run every evaluator phase the DECLARED plan requires (`power.plan.handoff`:
+    tests → verify, a distinct-seat or design review → review, security → security_review). Each phase must be
+    recorded under its own step (`qe`, `review`, `security`) by the unit's assigned seat, and that seat must not
+    be the orchestrator's (evaluator ≠ creator);
+  - a build floor whose LAST `repoChecksEvaluated` on the build unit did not pass with a passing test check;
+  - a `gateEscalated` anywhere in the run's event history, even one the poll missed between views;
   - an evaluator-verdict gate (nothing is armed for S11, so the shared helper's S04 retry is off:
     `launchAndFollow(…, { retryArmedVerdict: false })`);
   - a deliver gate that is not the wire kind, or whose pause does not name the run's branch, or sees it

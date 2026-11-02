@@ -47,27 +47,52 @@ export function orchestratorHandedOff(power, units) {
   return { ok, orch, buildUnit, lastTurn };
 }
 
+/** The hand-off step a power run records for each evaluator phase of the bug workflow (wicked-core power.rs). */
+const EVALUATOR_STEP = { verify: 'qe', review: 'review', security_review: 'security' };
+
+/** The evaluator phases the DECLARED hand-off plan (`power.plan.handoff`) requires: tests → verify, a distinct-seat or design review → review, security → security_review. */
+export function requiredEvaluatorPhases(plan) {
+  const ho = plan?.handoff ?? null;
+  if (!ho || typeof ho !== 'object') return null;
+  const kinds = new Set((Array.isArray(ho.reviews) ? ho.reviews : []).map((r) => r?.kind));
+  return [
+    ...(ho.tests ? ['verify'] : []),
+    ...(kinds.has('distinct_seat') || kinds.has('design') ? ['review'] : []),
+    ...(kinds.has('security') ? ['security_review'] : []),
+  ];
+}
+
 /**
- * Did the hand-off run every step of the composed plan and pass in ONE round? Every row names its step,
- * unit and round; all are round 1; the build's own floor (`checks`) ran on the build unit; every
- * evaluator unit has a row; each (unit, step)'s LAST record (the log keeps `running`, then the result)
- * passed or was skipped. A row without identity, or a missing step, is a "no" (codex on #61).
+ * Did the hand-off run every step the declared plan requires, on DISTINCT seats, and pass in ONE round?
+ * - every row names its step, unit and round; all are round 1 (no send-back);
+ * - the build's re-score and floor (`rescore`, `checks`) ran on the build unit;
+ * - every evaluator phase the plan requires has its unit, recorded under ITS step (verify → qe, review →
+ *   review, security_review → security), on the unit's assigned seat, which is not the orchestrator's
+ *   (evaluator ≠ creator); every evaluator unit present is held to the same;
+ * - each (unit, step)'s LAST record (the log keeps `running`, then the result) passed or was skipped.
+ * Missing evidence is a "no" (codex on #61).
  */
-export function handoffPassed(power, units, buildUnit) {
+export function handoffPassed(power, units, buildUnit, orchCli = power?.orchestrator?.cli ?? null) {
   const handoff = power?.handoff ?? null;
   const rows = Array.isArray(handoff?.steps) ? handoff.steps : [];
   const rowsValid = rows.length > 0 && rows.every((r) => typeof r?.step === 'string' && r.step !== '' && typeof r.round === 'number' && typeof r.ord === 'number' && typeof r.status === 'string');
   const finalOf = new Map();
   for (const r of rows) finalOf.set(`${r?.ord}/${r?.step}`, r?.status);
-  const evaluatorOrds = (units ?? []).filter((u) => u.role === 'evaluator').map((u) => u.ord);
-  // The build's own steps (the re-score and its floor) on the build unit, and an EVALUATOR step (not a
-  // build step under another ordinal) for every evaluator unit of the composed plan.
-  const BUILD_STEPS = ['rescore', 'checks'];
-  const missing = [
-    ...BUILD_STEPS.filter((st) => !(buildUnit && rows.some((r) => r?.ord === buildUnit.ord && r?.step === st))).map((st) => `${st} on the build unit`),
-    ...evaluatorOrds.filter((o) => !rows.some((r) => r?.ord === o && typeof r?.step === 'string' && !BUILD_STEPS.includes(r.step))).map((o) => `an evaluator step for unit ${o}`),
-  ];
-  const ok = rowsValid && handoff?.round === 1 && rows.every((r) => r.round === 1) && evaluatorOrds.length > 0 && missing.length === 0
+  const required = requiredEvaluatorPhases(power?.plan);
+  const evaluators = (units ?? []).filter((u) => u.role === 'evaluator');
+  const phaseOfUnit = (u) => { const id = String(u?.id ?? ''); const i = id.lastIndexOf(':'); return i >= 0 ? id.slice(i + 1) : id; };
+  const missing = [];
+  for (const st of ['rescore', 'checks']) if (!(buildUnit && rows.some((r) => r?.ord === buildUnit.ord && r?.step === st))) missing.push(`${st} on the build unit`);
+  if (required === null) missing.push('the declared hand-off plan (power.plan.handoff)');
+  for (const ph of required ?? []) if (!evaluators.some((u) => phaseOfUnit(u) === ph)) missing.push(`the ${ph} unit the plan requires`);
+  for (const u of evaluators) {
+    const ph = phaseOfUnit(u);
+    const step = EVALUATOR_STEP[ph];
+    if (!step) { missing.push(`a known evaluator phase for unit ${u.ord} (${ph})`); continue; }
+    if (typeof u.assigned_cli !== 'string' || u.assigned_cli === '' || u.assigned_cli === orchCli) missing.push(`a seat other than the orchestrator's for ${ph} (unit ${u.ord}: ${u.assigned_cli})`);
+    if (!rows.some((r) => r?.ord === u.ord && r?.step === step && r?.seat === u.assigned_cli)) missing.push(`${step} on unit ${u.ord} by its seat ${u.assigned_cli}`);
+  }
+  const ok = rowsValid && handoff?.round === 1 && rows.every((r) => r.round === 1) && evaluators.length > 0 && missing.length === 0
     && [...finalOf.values()].every((v) => HANDOFF_OK.has(v));
   return { ok, round: handoff?.round ?? null, finalOf, missing, rowsValid };
 }
@@ -87,11 +112,18 @@ export function deliverPauseClean(atDeliver, finalRunBranch) {
     && atDeliver.onOrigin === false && atDeliver.prCreates === 0;
 }
 
-/** The build unit's OWN floor passed: its `repoChecksEvaluated` (same ord) passed, with a passing test check. */
+/** The build unit's OWN floor passed: its LAST `repoChecksEvaluated` (same ord) passed, with a passing test check. */
 export function creatorFloorPassed(events, buildUnit) {
   if (!buildUnit) return false;
-  return (events ?? []).some((e) => e?.type === 'repoChecksEvaluated' && e.ord === buildUnit.ord && e.passed === true && e.outcome === 'passed'
-    && Array.isArray(e.checks) && e.checks.some((c) => c?.name === 'test' && c.outcome === 'passed'));
+  // The build's LAST evaluation decides: an earlier pass never masks a later failed or unrun floor.
+  const last = (events ?? []).filter((e) => e?.type === 'repoChecksEvaluated' && e.ord === buildUnit.ord).at(-1) ?? null;
+  return last !== null && last.passed === true && last.outcome === 'passed'
+    && Array.isArray(last.checks) && last.checks.some((c) => c?.name === 'test' && c.outcome === 'passed');
+}
+
+/** The run's whole event history holds no failure escalation (a gate the poll may have missed between views). */
+export function noEscalationEvents(events) {
+  return !(events ?? []).some((e) => e?.type === 'gateEscalated');
 }
 
 /** Is there a `gh pr create --head <runBranch>` call made from the run's own worktree? (codex on #61) */
@@ -161,13 +193,13 @@ export async function run(ctx, t) {
   const { ok: handedOff, orch, buildUnit, lastTurn } = orchestratorHandedOff(power, pipe.units);
   t.check(`the build ran as one orchestrator session that handed off before the turn cap (${MAX_TURNS})`, handedOff, `orchestrator: ${JSON.stringify(orch)}; build unit: ${buildUnit ? `${buildUnit.ord}/${buildUnit.role}` : 'none'}; last turn: ${JSON.stringify(lastTurn)}`, { evidence: evRun });
 
-  const ho = handoffPassed(power, pipe.units, buildUnit);
-  t.check('the hand-off ran every step of the composed plan and passed in one round (no send-back)', ho.ok, `round ${ho.round}; ${[...ho.finalOf].map(([k, v]) => `${k}=${v}`).join(', ') || 'no steps'}${ho.missing.length ? `; missing: ${ho.missing.join(', ')}` : ''}${ho.rowsValid ? '' : '; a row lacks step/ord/round/status'}`, { evidence: evRun });
+  const ho = handoffPassed(power, pipe.units, buildUnit, orch?.cli ?? null);
+  t.check('the hand-off ran every step the plan declares, each evaluator on its own seat (not the orchestrator), and passed in one round', ho.ok, `round ${ho.round}; ${[...ho.finalOf].map(([k, v]) => `${k}=${v}`).join(', ') || 'no steps'}${ho.missing.length ? `; missing: ${ho.missing.join(', ')}` : ''}${ho.rowsValid ? '' : '; a row lacks step/ord/round/status'}`, { evidence: evRun });
 
   const completed = session?.status === 'completed';
   t.check('power run completed', completed, `status ${session?.status}; ${pipe.denials.join(' | ').slice(0, 400)}`, { evidence: evRun });
   const verdictFails = ctx.shimCalls().slice(shimOffset).filter((c) => c.kind === 'verdict' && c.verdict === 'FAIL').length;
-  t.check('power run: no failure escalation and no evaluator-verdict gate', pipe.escalation === null && pipe.deadSeatEscalations.length === 0 && pipe.verdictGate === null && verdictFails === 0, pipe.escalation ?? (pipe.verdictGate ? `verdict gate ${JSON.stringify(pipe.verdictGate)}` : verdictFails ? `${verdictFails} evaluator FAIL answer(s)` : 'none'), { evidence: evRun });
+  t.check('power run: no failure escalation and no evaluator-verdict gate', pipe.escalation === null && pipe.deadSeatEscalations.length === 0 && pipe.verdictGate === null && verdictFails === 0 && noEscalationEvents(pipe.events), pipe.escalation ?? (pipe.verdictGate ? `verdict gate ${JSON.stringify(pipe.verdictGate)}` : verdictFails ? `${verdictFails} evaluator FAIL answer(s)` : !noEscalationEvents(pipe.events) ? `gateEscalated in the run history: ${JSON.stringify(pipe.events.filter((e) => e?.type === 'gateEscalated').map((e) => ({ ord: e.ord, condition: e.condition })))}` : 'none'), { evidence: evRun });
   if (!completed) worktreeEvidence(ctx, t, 'power', view);
   t.info('power run units', pipe.units.map((u) => `${phaseOf(u)}=${u.status} (${u.assigned_cli})`).join(', '));
   t.info('power run gate kinds', pipe.gates.map((g) => `${g.phase}: ${g.kind} (${g.kindSource}) → ${g.decision}`).join(', ') || 'none');
