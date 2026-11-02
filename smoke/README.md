@@ -43,7 +43,7 @@ Each step is its own module under `lib/steps/` so a failing step names the seam.
 ## Run it locally
 
 ```bash
-# defaults: crew latest, core-ts as crew pins it, bus latest, garden latest tag; S01..S06,S08..S10
+# defaults: crew latest, core-ts as crew pins it, bus latest, garden latest tag; S01..S04,S11,S05,S06,S08..S10
 node smoke/bin/wicked-smoke.mjs
 
 # a pinned set, keep the root, collect the report + daemon log + evidence
@@ -69,7 +69,7 @@ INSIDE the installed crew tree (what a customer's `npm update` composes); `pinne
 whatever crew's range resolves — S09's "crew's pin resolves to the installed" check is the intended
 signal when a caller pins outside that range. The report is `<root>/report.json`, copied to
 `--report-dir`, or to `./wicked-smoke-report.json` when the root is removed without one.
-`--step-timeout` raises the built-in ceilings (S01 300 s — also the daemon's boot wait, S04 540 s,
+`--step-timeout` raises the built-in ceilings (S01 300 s — also the daemon's boot wait, S04 540 s, S11 540 s,
 S05 420 s); a step that hits its ceiling is ABORTED (its wait loops stop), reported `ERROR`, and the
 run continues. A COLD first boot publishes the garden bundle (`uv sync` of its pyproject): 5 s on a
 hosted runner, 11 minutes on a loaded workstation (load ≈ 30) — raise `--step-timeout` there.

@@ -67,8 +67,8 @@ export function requiredEvaluatorPhases(plan) {
  * - every row names its step, unit and round; all are round 1 (no send-back);
  * - the build's re-score and floor (`rescore`, `checks`) ran on the build unit;
  * - every evaluator phase the plan requires has its unit, recorded under ITS step (verify → qe, review →
- *   review, security_review → security), on the unit's assigned seat, which is not the orchestrator's
- *   (evaluator ≠ creator); every evaluator unit present is held to the same;
+ *   review, security_review → security), whose FINAL record names the unit's assigned seat, which is not the
+ *   orchestrator's (evaluator ≠ creator); every evaluator unit present is held to the same;
  * - each (unit, step)'s LAST record (the log keeps `running`, then the result) passed or was skipped.
  * Missing evidence is a "no" (codex on #61).
  */
@@ -76,8 +76,10 @@ export function handoffPassed(power, units, buildUnit, orchCli = power?.orchestr
   const handoff = power?.handoff ?? null;
   const rows = Array.isArray(handoff?.steps) ? handoff.steps : [];
   const rowsValid = rows.length > 0 && rows.every((r) => typeof r?.step === 'string' && r.step !== '' && typeof r.round === 'number' && typeof r.ord === 'number' && typeof r.status === 'string');
-  const finalOf = new Map();
-  for (const r of rows) finalOf.set(`${r?.ord}/${r?.step}`, r?.status);
+  // The LAST record of each (unit, step) decides its status AND who completed it.
+  const finalRow = new Map();
+  for (const r of rows) finalRow.set(`${r?.ord}/${r?.step}`, r);
+  const finalOf = new Map([...finalRow].map(([k, r]) => [k, r?.status]));
   const required = requiredEvaluatorPhases(power?.plan);
   const evaluators = (units ?? []).filter((u) => u.role === 'evaluator');
   const phaseOfUnit = (u) => { const id = String(u?.id ?? ''); const i = id.lastIndexOf(':'); return i >= 0 ? id.slice(i + 1) : id; };
@@ -90,7 +92,8 @@ export function handoffPassed(power, units, buildUnit, orchCli = power?.orchestr
     const step = EVALUATOR_STEP[ph];
     if (!step) { missing.push(`a known evaluator phase for unit ${u.ord} (${ph})`); continue; }
     if (typeof u.assigned_cli !== 'string' || u.assigned_cli === '' || u.assigned_cli === orchCli) missing.push(`a seat other than the orchestrator's for ${ph} (unit ${u.ord}: ${u.assigned_cli})`);
-    if (!rows.some((r) => r?.ord === u.ord && r?.step === step && r?.seat === u.assigned_cli)) missing.push(`${step} on unit ${u.ord} by its seat ${u.assigned_cli}`);
+    const last = finalRow.get(`${u.ord}/${step}`) ?? null;
+    if (last === null || last.seat !== u.assigned_cli || last.seat === orchCli) missing.push(`${step} on unit ${u.ord} completed by its seat ${u.assigned_cli} (final record: ${last ? `${last.status} by ${last.seat}` : 'none'})`);
   }
   const ok = rowsValid && handoff?.round === 1 && rows.every((r) => r.round === 1) && evaluators.length > 0 && missing.length === 0
     && [...finalOf.values()].every((v) => HANDOFF_OK.has(v));

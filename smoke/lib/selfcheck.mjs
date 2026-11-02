@@ -224,11 +224,15 @@ if (sqlite) {
   if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, turns: 2, sessionRestarts: 1 }, turnLog: [{ turn: 1, cli: 'claude', outcome: 'checkpoint' }, { turn: 2, cli: 'smoke-judge', outcome: 'handoff' }] }, units).ok) throw new Error('S11: a second seat or a session restart must not pass as one session');
   if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, cli: 'smoke-judge' }, turnLog: [{ turn: 1, cli: 'smoke-judge', outcome: 'handoff' }] }, units).ok) throw new Error('S11: an orchestrator other than the creator unit\'s seat must not pass');
   if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, turns: 2 }, turnLog: [{ turn: 2, cli: 'claude', outcome: 'checkpoint' }, { turn: 1, cli: 'claude', outcome: 'handoff' }] }, units).ok) throw new Error('S11: out-of-order turns must not pass');
-  if (handoffPassed({ handoff: { round: 1, steps: [{ status: 'passed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a row without identity must not pass');
-  if (handoffPassed({ handoff: { round: 1, steps: [{ step: 'rescore', ord: 3, round: 1, status: 'passed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a lone rescore must not pass');
-  if (handoffPassed({ handoff: { round: 1, steps: good.handoff.steps.filter((r) => r.ord !== 5) } }, units, o.buildUnit).ok) throw new Error('S11: a missing evaluator unit must not pass');
-  if (handoffPassed({ handoff: { round: 2, steps: good.handoff.steps.map((r) => ({ ...r, round: 2 })) } }, units, o.buildUnit).ok) throw new Error('S11: a second round must not pass');
-  if (handoffPassed({ handoff: { round: 1, steps: [...good.handoff.steps, { step: 'review', ord: 5, round: 1, status: 'failed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a final failed record must not pass');
+  // Each negative starts from the complete good run and alters ONLY the condition under test (codex on #61:
+  // a fixture without the declared plan fails for that reason alone and proves nothing else).
+  if (handoffPassed({ ...good, handoff: { round: 1, steps: [...good.handoff.steps, { status: 'passed' }] } }, units, o.buildUnit).ok) throw new Error('S11: a row without identity must not pass');
+  if (handoffPassed({ ...good, handoff: { round: 1, steps: good.handoff.steps.filter((r) => r.step === 'rescore') } }, units, o.buildUnit).ok) throw new Error('S11: a lone rescore must not pass');
+  if (handoffPassed({ ...good, handoff: { round: 1, steps: good.handoff.steps.filter((r) => r.ord !== 5) } }, units, o.buildUnit).ok) throw new Error('S11: a missing evaluator unit row must not pass');
+  if (handoffPassed({ ...good, handoff: { round: 2, steps: good.handoff.steps.map((r) => ({ ...r, round: 2 })) } }, units, o.buildUnit).ok) throw new Error('S11: a second round must not pass');
+  if (handoffPassed({ ...good, handoff: { round: 1, steps: [...good.handoff.steps, { step: 'review', ord: 5, round: 1, status: 'failed', seat: 'smoke-judge' }] } }, units, o.buildUnit).ok) throw new Error('S11: a final failed record must not pass');
+  if (handoffPassed({ ...good, handoff: { round: 1, steps: [...good.handoff.steps, { step: 'review', ord: 5, round: 1, status: 'passed', seat: 'claude' }] } }, units, o.buildUnit).ok) throw new Error('S11: a review completed (final record) on the orchestrator\'s seat must not pass');
+  if (handoffPassed({ ...good, handoff: { round: 1, steps: [...good.handoff.steps, { step: 'review', ord: 5, round: 1, status: 'passed', seat: null }] } }, units, o.buildUnit).ok) throw new Error('S11: a final record with no seat must not pass');
   const withSteps = (steps, extra = {}) => ({ ...good, handoff: { round: 1, steps }, ...extra });
   if (handoffPassed(withSteps(good.handoff.steps.map((r) => (r.ord > 3 ? { ...r, step: 'checks' } : r))), units, o.buildUnit).ok) throw new Error('S11: build steps under evaluator ordinals must not stand for evaluator steps');
   if (handoffPassed(withSteps(good.handoff.steps.filter((r) => r.step !== 'rescore')), units, o.buildUnit).ok) throw new Error('S11: a hand-off without its re-score must not pass');
