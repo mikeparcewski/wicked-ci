@@ -16,7 +16,11 @@ for (const f of stepFiles) {
   if (typeof mod.run !== 'function' || typeof mod.id !== 'string') throw new Error(`${f}: missing id/run`);
   ids.push(mod.id);
 }
-if (ids.join(',') !== ALL_STEPS.join(',')) throw new Error(`step registry mismatch: ${ids.join(',')}`);
+// Every step module is registered and every registered step has a module. ALL_STEPS is the RUN order,
+// not the file order: S11 (the power-mode bug run) runs right after S04 on the same corpus, and S10's
+// teardown stays last.
+if ([...ids].sort().join(',') !== [...ALL_STEPS].sort().join(',')) throw new Error(`step registry mismatch: ${ids.join(',')}`);
+if (ALL_STEPS.indexOf('S11') !== ALL_STEPS.indexOf('S04') + 1 || ALL_STEPS.at(-1) !== 'S10') throw new Error(`step order: ${ALL_STEPS.join(',')}`);
 for (const f of readdirSync(join(here, '..', 'shims')).filter((f) => f.endsWith('.mjs'))) {
   // Importing a shim would run it; a syntax check is enough here.
   const { spawnSync } = await import('node:child_process');
@@ -166,5 +170,32 @@ if (sqlite) {
   threw = false;
   try { await settledDiagnostics(api, t, 'pre-aborted', { signal: AbortSignal.abort() }); } catch { threw = true; }
   if (!threw || api.calls() !== 0) throw new Error('settle: a pre-aborted step must not read');
+}
+// Power mode (crew >= 0.16.11, wicked-core src/power.rs): a seat shim answers the ORCHESTRATOR turn
+// protocol: the first orchestrator turn applies the corpus fix and ends with `HANDOFF:` (the LAST marker
+// line wins); a turn over a tree that already holds it declares `NO CHANGE NEEDED:` and hands off; a
+// phased prompt is answered as before (no marker line).
+{
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, mkdirSync, writeFileSync, readFileSync: readSrc, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'wicked-smoke-orch-'));
+  try {
+    mkdirSync(join(dir, 'src'));
+    writeFileSync(join(dir, 'src', 'add.js'), 'export function add(a, b) {\n  return a - b;\n}\n');
+    const shim = (prompt) => spawnSync(process.execPath, [join(here, '..', 'shims', 'claude.mjs'), '-p', prompt], { cwd: dir, encoding: 'utf8', env: { ...process.env, WICKED_SMOKE_SHIM_LOG: '' } });
+    const markers = (out) => out.split('\n').map((l) => l.trim()).filter((l) => /^(HANDOFF|CHECKPOINT):/.test(l));
+    const brief = 'CONTEXT (prior phases of this run): none.\n\nFix add(a, b) in src/add.js. [power mode] You are the ORCHESTRATOR for this whole change: one session, many turns, no phase gates.';
+    let r = shim(brief);
+    if (r.status !== 0 || !/a \+ b/.test(readSrc(join(dir, 'src', 'add.js'), 'utf8'))) throw new Error(`orchestrator: the first turn must apply the fix (${r.stderr})`);
+    if (markers(r.stdout).at(-1)?.startsWith('HANDOFF:') !== true) throw new Error(`orchestrator: the first turn must end with HANDOFF: (${r.stdout.slice(-200)})`);
+    r = shim('Invoke your skill; then: [power mode] Turn 2 of at most 12 of the same change. Continue from where you stopped.');
+    if (!/^NO CHANGE NEEDED:/m.test(r.stdout) || markers(r.stdout).at(-1)?.startsWith('HANDOFF:') !== true) throw new Error(`orchestrator: a turn over the fixed tree must declare NO CHANGE NEEDED: and hand off (${r.stdout.slice(0, 300)})`);
+    writeFileSync(join(dir, 'src', 'add.js'), 'export function add(a, b) {\n  return a - b;\n}\n');
+    r = shim('Triage the defect. ||| PHASE SCOPE: this is the triage phase. Do not change files.');
+    if (markers(r.stdout).length !== 0 || !/a - b/.test(readSrc(join(dir, 'src', 'add.js'), 'utf8'))) throw new Error('orchestrator: a phased prompt must be answered as before (no marker line, no write outside the fix phase)');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);

@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### smoke — S04 runs phased on a power-mode crew; S11 proves the power-mode bug run
+
+- crew 0.16.11 made power mode the default for a repository launch, and crew 0.16.12's release smoke (run
+  41428295027) failed S04 on both OSes: the launch sent no `power` field, so the run was a power run. Its plan
+  was `pa-scope, architecture, fix, verify, review, security_review, deliver`, not the preset phases S04
+  asserts. The seat shims did not know the orchestrator turn protocol: they never ended a turn with
+  `HANDOFF:`, so the build ran all 12 turns. After a hand-off send-back the shim answered "nothing to change"
+  without the engine's `no change needed` declaration, so the build unit was rejected ("the build step changed
+  nothing in the worktree").
+- S04 now sends `power: false` when `GET /health.capabilities.powerMode` is true (an older crew never sees the
+  field), so its phased assertions stand unchanged.
+- New step **S11 bug-run (power mode)**, run right after S04 (S10's teardown stays last; `ALL_STEPS` is the
+  run order). It launches the same issue with `power: true` on the live seats and proves:
+  - the power run;
+  - an orchestrator hand-off before the turn cap;
+  - a one-round passing hand-off;
+  - completion with no escalation and the human deliver gate;
+  - delivery of `a + b` to the local origin, with the PR opened by the `gh` shim.
+  A crew without `capabilities.powerMode` is noted and not judged.
+- The seat shims answer the orchestrator protocol (wicked-core `src/power.rs`), only on orchestrator prompts
+  (`[power mode] You are the ORCHESTRATOR` / `[power mode] Turn N of at most M`). The first turn applies the
+  corpus fix and ends `HANDOFF:`. A turn over a tree that already holds the fix declares `NO CHANGE NEEDED:`
+  and hands off. Phased prompts are answered exactly as before.
+- `selfcheck.mjs` checks:
+  - the step registry as a set, plus the run order (S11 after S04, S10 last);
+  - the orchestrator protocol (fix + `HANDOFF:`, `NO CHANGE NEEDED:` + `HANDOFF:` on a fixed tree, and a
+    phased prompt unchanged).
+  It fails without the shim change.
+
 ### smoke — S02 reads the skills verdict after crew's background publish lands
 
 - crew 0.16.2 (crew#1146) listens before the skills snapshot is verified: the boot ladder publishes in the

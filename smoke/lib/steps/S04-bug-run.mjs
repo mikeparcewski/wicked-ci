@@ -113,7 +113,7 @@ const isJudgeUnavailableGate = (e) => e?.type === 'gateEscalated' && (e.conditio
 const JUDGE_FAIL_CLOSED_CORE_TS = '0.7.40';
 
 /** Launch + follow one run, answering gates by kind the way an operator would. */
-async function launchAndFollow(ctx, api, t, label, body) {
+export async function launchAndFollow(ctx, api, t, label, body) {
   const launch = await api.post('/runs', body);
   t.evidence(`${label}-launch`, { request: body, status: launch.status, response: launch.json ?? launch.text });
   t.check(`POST /runs 201 (${label})`, launch.status === 201, `status ${launch.status} ${launch.text?.slice(0, 300)}`);
@@ -230,7 +230,7 @@ async function launchAndFollow(ctx, api, t, label, body) {
 }
 
 /** Post-denial worktree state — what F-SMOKE-001 (the Linux floor denial) needs for triage from the artifact. */
-function worktreeEvidence(ctx, t, label, view) {
+export function worktreeEvidence(ctx, t, label, view) {
   const wd = view?.session?.workdir;
   if (typeof wd !== 'string' || !existsSync(wd)) return t.evidence(`${label}-worktree-after`, { workdir: wd ?? null, present: false });
   const env = ctx.env;
@@ -299,6 +299,12 @@ export async function run(ctx, t) {
   const qeSkip = caps?.qeAcceptanceOverride === true;
   const QE_SKIP_REASON = 'wicked-smoke S04: the hermetic corpus has no QE ledger; this step proves delivery, not QE acceptance';
   if (qeSkip) base.skipQeAcceptance = { reason: QE_SKIP_REASON };
+  // POWER MODE (crew >= 0.16.11 runs repo launches in power mode unless the launch sends `power: false`;
+  // `capabilities.powerMode` says this daemon serves it). S04 asserts the PHASED bug run (the preset
+  // phases, the plan approval, one unit per phase), so it opts out explicitly; the power-mode bug run is
+  // S11's. An older crew never sees the field.
+  if (caps?.powerMode === true) base.power = false;
+  t.info('power mode', caps?.powerMode === true ? 'power: false sent (S04 proves the phased path; S11 proves power mode)' : 'no capabilities.powerMode on this crew; nothing sent');
   t.info('QE acceptance', qeSkip ? `explicit operator skip sent (capabilities.qeAcceptanceOverride): ${QE_SKIP_REASON}` : 'no override on this crew; nothing sent');
   // crew 0.9.10 (operator ruling 2026-10-11): opencode is OPT-IN — the daemon's default launch roster
   // leaves it out. The mixed run's delivery path needs it as the verify unit's distinct judge, so the

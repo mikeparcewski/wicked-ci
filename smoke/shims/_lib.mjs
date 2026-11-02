@@ -141,8 +141,45 @@ export const JUDGE_PASS = ['PASS', 'the work meets the criterion (smoke shim: de
  * text never contains the word "fix", so the match is unambiguous. Read-only phases (triage /
  * reproduce / verify) print prose and touch nothing (the worktree guard would deny them otherwise).
  */
+/**
+ * POWER MODE (crew >= 0.16.11, wicked-core src/power.rs): the plan's build unit is one long-lived
+ * ORCHESTRATOR session of many turns. Its first turn carries the orchestrator brief ("[power mode] You
+ * are the ORCHESTRATOR for this whole change …"), every later turn a continuation ("[power mode] Turn N
+ * of at most M of the same change …"). A turn ends at its LAST `CHECKPOINT:` or `HANDOFF:` line (none =
+ * a checkpoint), and the build ends only at `HANDOFF:` (or the turn cap). Only these prompts are
+ * matched, so a phased run's shim answers are unchanged.
+ */
+export const ORCHESTRATOR_PROMPT_RE = /\[power mode\] (?:You are the ORCHESTRATOR|Turn \d+ of at most \d+)/;
+export function isOrchestratorPrompt(prompt) {
+  return ORCHESTRATOR_PROMPT_RE.test(prompt);
+}
+
+/**
+ * One orchestrator turn: apply the corpus correction and hand off in the same turn. When the tree
+ * already holds it (a hand-off send-back re-dispatches the build), say so with the engine's
+ * `no change needed` declaration (wicked-core actor.rs `no_change_mention`): an unchanged tree without
+ * it is rejected as "the build step changed nothing in the worktree".
+ */
+function orchestratorTurn() {
+  const target = join(process.cwd(), 'src', 'add.js');
+  const footer = '— wicked-smoke seat shim (deterministic stand-in for the coding-agent CLI; no model was called).';
+  if (existsSync(target) && /a\s*-\s*b/.test(readFileSync(target, 'utf8'))) {
+    const src = readFileSync(target, 'utf8');
+    writeFileSync(target, src.replace(/a\s*-\s*b/, 'a + b'));
+    return ['## Orchestrator turn: fix applied', '',
+      'Root cause: `add()` in `src/add.js` returned `a - b`, a sign error, so every caller (including `sum()` in `src/sum.js`) received the difference instead of the sum.',
+      'Change: `return a - b;` → `return a + b;` in `src/add.js`. No other file changed; the exported name and signature are unchanged.',
+      'Verification owed at hand-off: `npm test` (`node --test test/`) covers `add` and `sum`.', '', footer, '',
+      'HANDOFF: add() in src/add.js returns a + b; the change is complete and ready for review'].join('\n');
+  }
+  return ['## Orchestrator turn: nothing left to change', '',
+    'NO CHANGE NEEDED: `src/add.js` already returns `a + b` in this worktree, so the correction the issue asks for is present and this turn modified no file.',
+    'The diff under review is the one-line change from `a - b` to `a + b`; `npm test` (`node --test test/`) covers `add` and `sum`.', '', footer, '',
+    'HANDOFF: add() in src/add.js returns a + b; no further change is needed'].join('\n');
+}
+
 export function workerTurn(prompt) {
-  const body = workerBody(prompt);
+  const body = isOrchestratorPrompt(prompt) ? orchestratorTurn() : workerBody(prompt);
   const verdict = verdictLines(prompt);
   return verdict.length === 0 ? body : `${body}\n${verdict.join('\n')}`;
 }
