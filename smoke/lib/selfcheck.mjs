@@ -222,6 +222,10 @@ if (sqlite) {
   if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, ord: 4 } }, units).ok) throw new Error('S11: the orchestrator must sit on the creator unit');
   if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, turns: 12 }, turnLog: Array.from({ length: 12 }, (_, i) => ({ turn: i + 1, cli: 'claude', outcome: i === 11 ? 'handoff' : 'checkpoint' })) }, units).ok) throw new Error('S11: a hand-off at the turn cap must not pass');
   if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, turns: 2, sessionRestarts: 1 }, turnLog: [{ turn: 1, cli: 'claude', outcome: 'checkpoint' }, { turn: 2, cli: 'smoke-judge', outcome: 'handoff' }] }, units).ok) throw new Error('S11: a second seat or a session restart must not pass as one session');
+  // One change each (codex round 5 on #61): a restart alone, one turn's seat alone, the build unit's role alone.
+  if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, sessionRestarts: 1 } }, units).ok) throw new Error('S11: a session restart alone must not pass');
+  if (orchestratorHandedOff({ ...good, turnLog: [{ turn: 1, cli: 'smoke-judge', outcome: 'handoff' }] }, units).ok) throw new Error('S11: a turn on another seat alone must not pass');
+  if (orchestratorHandedOff(good, units.map((u) => (u.ord === 3 ? { ...u, role: 'neutral' } : u))).ok) throw new Error('S11: an orchestrator on a non-creator unit (same ord and seat) must not pass');
   if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, cli: 'smoke-judge' }, turnLog: [{ turn: 1, cli: 'smoke-judge', outcome: 'handoff' }] }, units).ok) throw new Error('S11: an orchestrator other than the creator unit\'s seat must not pass');
   if (orchestratorHandedOff({ ...good, orchestrator: { ...good.orchestrator, turns: 2 }, turnLog: [{ turn: 2, cli: 'claude', outcome: 'checkpoint' }, { turn: 1, cli: 'claude', outcome: 'handoff' }] }, units).ok) throw new Error('S11: out-of-order turns must not pass');
   // Each negative starts from the complete good run and alters ONLY the condition under test (codex on #61:
@@ -242,6 +246,8 @@ if (sqlite) {
   const selfReview = units.map((u) => (u.role === 'evaluator' ? { ...u, assigned_cli: 'claude' } : u));
   if (handoffPassed(withSteps(good.handoff.steps.map((r) => (r.ord > 3 ? { ...r, seat: 'claude' } : r))), selfReview, o.buildUnit).ok) throw new Error('S11: evaluators on the orchestrator\'s seat (self-review) must not pass');
   if (handoffPassed(withSteps(good.handoff.steps.map((r) => (r.ord > 3 ? { ...r, seat: 'claude' } : r))), units, o.buildUnit).ok) throw new Error('S11: a hand-off row on a seat other than the unit\'s must not pass');
+  if (handoffPassed(withSteps([...good.handoff.steps, { step: 'review', ord: 5, round: 1, status: 'passed', seat: 'opencode' }]), units, o.buildUnit).ok) throw new Error('S11: a final record on a third seat (not the assigned one) must not pass');
+  if (handoffPassed(withSteps(good.handoff.steps.filter((r) => !(r.ord === 3 && r.step === 'checks'))), units, o.buildUnit).ok) throw new Error('S11: a hand-off without the build checks row alone must not pass');
   if (!noEscalationEvents([{ type: 'awaitingHuman' }, { type: 'gateDecided' }]) || noEscalationEvents([{ type: 'gateEscalated', ord: 4 }])) throw new Error('S11: noEscalationEvents');
   // /health: only a JSON object may be interpreted (an array is malformed); an older crew's object without capabilities is usable.
   if (!healthUsable({ status: 200, json: { ok: true } }) || healthUsable({ status: 200, json: [] }) || healthUsable({ status: 200, json: null }) || healthUsable({ status: 500, json: {} })) throw new Error('S11: healthUsable');
