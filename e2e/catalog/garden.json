@@ -10780,9 +10780,9 @@
   },
   {
    "id": "garden.site.chrome",
-   "title": "Site chrome: theme toggle persists, ecosystem dropdown",
+   "title": "Site chrome: theme toggle persists; the product path and the Wicked Labs link",
    "surface": "ui",
-   "user_path": "Click #themeBtn, reload; click #projectsBtn, Escape",
+   "user_path": "Click #themeBtn, reload; read the topbar: its Breadcrumb path (Wicked Agile / labs / wicked-garden) and the flask's Wicked Labs link",
    "deps": [
     "chromium"
    ],
@@ -10798,18 +10798,28 @@
     "trace"
    ],
    "oracle": {
-    "kind": "dom",
-    "selector": ".dropdown-plane",
-    "assert": "count",
-    "value": 4,
+    "kind": "all",
+    "of": [
+     {
+      "kind": "dom",
+      "selector": "nav[aria-label=\"Breadcrumb\"] a",
+      "assert": "count",
+      "value": 3
+     },
+     {
+      "kind": "dom",
+      "selector": ".topbar .nav a[aria-label=\"Wicked Labs\"]",
+      "assert": "attr",
+      "attr": "href",
+      "value": "https://wickedlabs.ai/"
+     }
+    ],
     "complete": false,
     "untyped": [
-     "html[data-theme] flips and localStorage wa-theme persists",
-     "#projectsMenu .dropdown-plane count 4 with wg/wc links",
-     "closes on Escape"
+     "html[data-theme] flips and localStorage wa-theme-v3 persists across a reload"
     ]
    },
-   "oracle_text": "html[data-theme] flips and localStorage wa-theme persists; #projectsMenu .dropdown-plane count 4 with wg/wc links; closes on Escape",
+   "oracle_text": "html[data-theme] flips and localStorage wa-theme-v3 persists across a reload; the topbar's Breadcrumb nav holds 3 links (Wicked Agile, labs, wicked-garden); the flask links Wicked Labs (https://wickedlabs.ai/)",
    "covers": [],
    "scenarios": [
     {
