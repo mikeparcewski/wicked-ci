@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### e2e — garden.site.chrome checks the new header (wicked-web#57)
+
+- The shared header's Experiments menu is gone (wicked-web bc5ca29): the flask is a plain link to
+  wickedlabs.ai, and a product site's lockup is the path "Wicked Agile / labs / wicked-garden". The
+  capability's oracle asserted the old menu (`.dropdown-plane` count 4). It now checks the topbar's Breadcrumb
+  nav holds 3 links and the flask's Wicked Labs link points at `https://wickedlabs.ai/`. The theme clause
+  stays untyped, so the oracle stays `complete: false`.
+- The theme clause names the key the chrome writes, `wa-theme-v3` (wicked-web Topbar), not `wa-theme`.
+- Nothing runs this oracle against the garden site today. No adapter claims `wicked-garden:site/tests/...`,
+  and `validate` checks only that the scenario file exists at the pinned garden SHA. A live run's direct
+  read visits only the studio root, which has neither header, so its result is the same before and after.
+  The change turns no job red, before or after the garden site moves to the new header.
+
 ### smoke — S04 runs phased on a power-mode crew; S11 proves the power-mode bug run
 
 - crew 0.16.11 made power mode the default for a repository launch, and crew 0.16.12's release smoke (run
