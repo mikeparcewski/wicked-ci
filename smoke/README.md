@@ -146,10 +146,17 @@ Shimmed (`smoke/shims/*.mjs`, launched through `sh`/`.cmd` wrappers that carry t
 | `wicked-estate` | records argv, exits 0 | onboarding's two tool phases run without an estate binary |
 | `wicked-core` (CLI) | answers `gate-hook --protocol-version` with the protocol line; allows any hook call | the WRAPPED claude carrier probes it to arm input governance and fails the unit without it ("could not arm input governance: could not run `wicked-core gate-hook --protocol-version`", observed on 0.7.32) — the engine itself is the napi addon inside crew, never shimmed |
 
-Every seat shim answers four prompt kinds, recognised from the prompt text the engine builds: a council
+Every seat shim answers five prompt kinds, recognised from the prompt text the engine builds: a council
 BALLOT (`RECOMMENDATION: 1 …`), an agent JUDGE (`PASS … PASS`), the FAILURE-TRIAGE judge
-(`DECISION: ESCALATE`), and a WORKER turn (prose; the `fix` phase corrects `src/add.js`). Every
+(`DECISION: ESCALATE`), a RULE CHECK, and a WORKER turn (prose; the `fix` phase corrects `src/add.js`). Every
 invocation is recorded in `<root>/shim-calls.ndjson` with its kind and cwd.
+The RULE CHECK (core-ts ≥ 0.15.32, wicked-core#1317) is matched first and recorded as `kind: rules`, so S04
+never counts a rule judge as a governed worker turn. The engine asks for one `RULE <id>: …` line per steering
+rule inside a `BEGIN VERDICTS <nonce>` … `END VERDICTS <nonce>` block. The shims answer it the way the
+engine's stub runner does: on the change and at delivery each rule is N/A, naming the changed files the
+change prompt lists; a process rule is N/A. POL-2101's record clause has no N/A: the judge looks in each step
+record for the whole `Stack check:` sentence that every `_lib.mjs` worker turn ends with, and answers KEPT
+quoting it, or BROKEN naming the record without it.
 An EVALUATOR turn — a worker prompt carrying core #498's convention sentence (`||| VERDICT (evaluator
 unit): make the LAST line of your output exactly VERDICT: PASS or VERDICT: FAIL …`, core-ts ≥ 0.7.26) —
 ends with `VERDICT: PASS` (recorded as `kind: verdict`); while the token file named by

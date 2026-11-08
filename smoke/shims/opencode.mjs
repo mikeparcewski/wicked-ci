@@ -2,7 +2,7 @@
 // `opencode` stand-in: the FREE-TIER seat (no credential file; crew reads `auth: not_required`). Answers
 // like claude so the council has two live seats and the evaluator can be identity-distinct from the
 // creator. `opencode acp` (the ACP transport crew's chat would use) is NOT implemented — see README.
-import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, isVersionProbe, record, workerTurn } from './_lib.mjs';
+import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, isVersionProbe, record, workerTurn, ruleVerdicts } from './_lib.mjs';
 
 const { argv, prompt, kind } = record('opencode');
 if (isVersionProbe(argv)) {
@@ -18,6 +18,7 @@ if (!prompt) {
   process.exit(0);
 }
 if (kind === 'ballot') console.log(BALLOT);
+else if (kind === 'rules') console.log(ruleVerdicts(prompt));
 else if (kind === 'judge') console.log(JUDGE_PASS);
 else if (kind === 'triage') console.log(TRIAGE_ESCALATE);
 else console.log(workerTurn(prompt));

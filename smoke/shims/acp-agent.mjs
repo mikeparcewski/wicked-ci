@@ -20,7 +20,7 @@
 // routed through its `headless_invocation`) it answers like the claude shim — the seat is
 // council-disabled in the overlay, so that path is a safety net, not a plan.
 import { createInterface } from 'node:readline';
-import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, appendRecord, isVersionProbe, record, workerTurn } from './_lib.mjs';
+import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, appendRecord, isVersionProbe, record, workerTurn, ruleVerdicts } from './_lib.mjs';
 
 const SHIM = 'acp-agent';
 const VERSION = '0.1.0-smoke';
@@ -36,6 +36,7 @@ if (argv.length > 0) {
   // The one-shot contract, in case a turn is ever routed here headlessly.
   if (!prompt) console.log(`${SHIM} shim: no prompt`);
   else if (kind === 'ballot') console.log(BALLOT);
+  else if (kind === 'rules') console.log(ruleVerdicts(prompt));
   else if (kind === 'judge') console.log(JUDGE_PASS);
   else if (kind === 'triage') console.log(TRIAGE_ESCALATE);
   else console.log(workerTurn(prompt));
