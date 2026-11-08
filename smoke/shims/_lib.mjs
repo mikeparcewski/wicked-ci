@@ -235,7 +235,7 @@ function workerBody(prompt) {
  * This stand-in answers the way the engine's own stub runner does (`stub_rule_verdicts`: every rule N/A,
  * framed with the call's nonce), with the reason in the engine's words, and judges the one clause it can
  * decide from the text it is shown: the record clause reads each record for the shims' `Stack check:`
- * line and quotes it (KEPT), or names the record that lacks one (BROKEN). Nothing here lowers a bar: a
+ * line, the whole known sentence, and quotes it (KEPT), or names the record that lacks it (BROKEN). Nothing here lowers a bar: a
  * record with no stack check still holds the gate.
  */
 const RULE_FRAME_RE = /between a line `BEGIN VERDICTS ([^`\s]+)` and a line `END VERDICTS \1`/;
@@ -300,7 +300,9 @@ export function ruleVerdicts(prompt) {
   let answer;
   if (/^You check the RECORDS /.test(prompt)) {
     const records = stepRecordsOf(prompt);
-    const checks = records.map((r) => ({ n: r.n, line: r.lines.find((l) => /^Stack check: /.test(l.trim()))?.trim().replace(/["“”`]/g, '') ?? null }));
+    // Only the whole known line counts: a record that starts a stack check and does not say what was
+    // looked at AND what the stack offers (a TODO, a denial, a cut line) has none.
+    const checks = records.map((r) => ({ n: r.n, line: r.lines.some((l) => l.trim() === STACK_CHECK_LINE) ? STACK_CHECK_LINE : null }));
     const lacking = checks.filter((c) => c.line === null);
     answer = records.length > 0 && lacking.length === 0
       ? `KEPT — ${checks.map((c) => `RECORD ${c.n}: "${c.line}"`).join('; ')} ${shim}`

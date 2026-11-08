@@ -13,20 +13,24 @@
   MCPS-1006 unchecked …") and both runs were cancelled before delivery. S04's "opencode never spawned for
   governed work" check also counted those 32 judge calls as worker turns.
 - The shims now recognise a rule-check prompt (kind `rules`, recorded as such) and answer the call's block
-  the way the engine's own stub runner does (`stub_rule_verdicts`). On the change and at delivery each rule is
-  N/A, naming the changed files the prompt lists. A process rule (reported only) is N/A. POL-2101's record clause has
-  no N/A, so the judge reads each step record for its `Stack check:` line: it answers KEPT quoting each one, or
-  BROKEN naming the record that lacks it. Every worker record now carries that line. No bar moved: an answer
+  the way the engine's own stub runner does (`stub_rule_verdicts`). On the change each rule is N/A, naming the
+  changed files the prompt lists; at delivery (no file list) and for a process rule (reported only) it is N/A
+  with the reason. POL-2101's record clause has no N/A: the judge looks in each step record for the whole
+  `Stack check:` sentence every `_lib.mjs` worker turn now ends with, and answers KEPT quoting it, or BROKEN
+  naming each record without it (a TODO, a denial or a cut line is not the sentence). No bar moved: an answer
   outside the block, a KEPT without its evidence, or a record with no stack check still holds the gate.
 - **S02 (home-scrubbed paths).** crew 0.18.0 (crew#1439) scrubs home paths out of `/health`, `/diagnostics`,
   `/system` and `/roster`, so the published snapshot's path read `~/wicked-smoke-root/state/skills/...`. "Points
   inside the temp root" and `existsSync` then failed while generation 1 sat on disk (the daemon log shows it
   seeded and published from the Claude plugin cache, garden 12.66.1). crew#1439's new garden-discovery order
-  played no part. S02 maps a diagnostics path back only when it begins with the smoke root's own scrubbed
-  spelling, so a path outside the root still fails. An older crew's absolute path is unchanged.
-- `npm run check` covers all of it: each rule-check kind is answered and counted (mirroring the engine's parse
-  and bars), a record with no stack check is BROKEN, every answering shim dispatches the kind, and the S02 path
-  mapping maps only paths under the root. These checks fail on the previous shims and S02.
+  played no part. The scrub is lossy (any user's home reads `~`), so S02 maps a scrubbed path back only onto
+  the path `GET /skills` attests unscrubbed (the current generation and its skills root), and only when that
+  path scrubs to exactly what was shown. "Inside the temp root" is now judged by path components after
+  normalising, so a `..` escape fails. An older crew's absolute path is unchanged.
+- `npm run check` covers it: each rule-check kind is answered and counted (a simplified mirror of the engine's
+  parse and its per-subject bars), a record with no stack check, or only part of one, is BROKEN, every
+  answering shim dispatches the kind, and the S02 mapping accepts only an attested path and refuses another
+  user's home, a traversal and an escape from the root. These checks fail on the previous shims and S02.
 
 ### e2e — garden.site.chrome checks the new header (wicked-web#57)
 

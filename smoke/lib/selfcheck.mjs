@@ -331,6 +331,12 @@ if (sqlite) {
   if (counted(lib.ruleVerdicts(two), ['POL-2101'], keptQuotesEach)['POL-2101'] !== 'KEPT') throw new Error(`rule check (record): KEPT must quote each record: ${lib.ruleVerdicts(two)}`);
   const bare = recordPrompt([fixRecord, '## Fix applied\nChanged src/add.js and nothing else.']);
   if (counted(lib.ruleVerdicts(bare), ['POL-2101'], (st, cite) => st === 'BROKEN' && /RECORD 2\b/.test(cite) && !/RECORD 1\b/.test(cite))['POL-2101'] !== 'BROKEN') throw new Error(`rule check (record): a record with no stack check is BROKEN naming it: ${lib.ruleVerdicts(bare)}`);
+  // Only the whole stack-check sentence counts: a TODO, a denial or a cut line is no stack check.
+  for (const weak of ['Stack check: TODO check later', 'Stack check: none was done; I did not inspect the stack.', 'Stack check: looked at package.json']) {
+    const p = recordPrompt([fixRecord, `## Fix applied\nChanged src/add.js.\n${weak}`]);
+    const out = lib.ruleVerdicts(p);
+    if (counted(out, ['POL-2101'], (st) => st === 'KEPT')['POL-2101'] !== undefined || !/RULE POL-2101: BROKEN — RECORD 2 /.test(out)) throw new Error(`rule check (record): "${weak}" must not be KEPT: ${out}`);
+  }
   if (lib.ruleVerdicts('PHASE SCOPE: this is the fix phase.') !== null || lib.kindOf('You are a strict reviewer. CRITERION: x WORK: y') !== 'judge') throw new Error('rule check: other prompts are not rule checks');
   // Every answering shim answers it (the dispatch, not only the library).
   for (const shim of ['opencode', 'claude', 'smoke-judge', 'chat-agent', 'acp-agent']) {
@@ -338,19 +344,28 @@ if (sqlite) {
     if (Object.keys(counted(r.stdout, ids, naNamesFile)).length !== ids.length) throw new Error(`rule check: the ${shim} shim answers the rule check: ${r.stdout.slice(0, 300)} ${r.stderr.slice(0, 300)}`);
   }
 }
-// S02 (crew >= 0.18.0 scrubs home paths out of /diagnostics): a scrubbed path under the root maps back;
-// one outside the root, or a sibling with the root as a name prefix, does not.
+// S02 (crew >= 0.18.0 scrubs home paths out of /diagnostics): a scrubbed path maps back only onto the
+// path GET /skills attests unscrubbed, and only when that path scrubs to exactly what was shown; another
+// user's home with the same tail, a traversal, or a path the daemon did not attest stays as shown.
 {
-  const { fromDiagnosticsPath: back } = await import(pathToFileURL(join(here, 'steps', 'S02-skills.mjs')).href);
+  const { fromDiagnosticsPath: back, insideRoot } = await import(pathToFileURL(join(here, 'steps', 'S02-skills.mjs')).href);
+  const snap = '/home/runner/wicked-smoke-root/state/skills/snapshots/000001';
+  const mac = `/${'Users'}/runner/work/_temp/wicked-smoke-root/state/skills/snapshots/000001`;
   const cases = [
-    ['~/wicked-smoke-root/state/skills/snapshots/000001', '/home/runner/wicked-smoke-root', '/home/runner/wicked-smoke-root/state/skills/snapshots/000001'],
-    // A hosted macOS runner's root (its user directory spelled from parts).
-    ['~/work/_temp/wicked-smoke-root/state/skills', `/${'Users'}/runner/work/_temp/wicked-smoke-root`, `/${'Users'}/runner/work/_temp/wicked-smoke-root/state/skills`],
-    ['~/elsewhere/state/skills', '/home/runner/wicked-smoke-root', '~/elsewhere/state/skills'],
-    ['~/wicked-smoke-rootX/state', '/home/runner/wicked-smoke-root', '~/wicked-smoke-rootX/state'],
-    ['/tmp/r/state/skills', '/tmp/r', '/tmp/r/state/skills'],
-    ['~/r/state', '/tmp/r', '~/r/state'],
+    ['~/wicked-smoke-root/state/skills/snapshots/000001', [snap], snap],
+    ['~/work/_temp/wicked-smoke-root/state/skills/snapshots/000001', [mac], mac],
+    ['~/wicked-smoke-root/state/skills', [snap, '/home/runner/wicked-smoke-root/state/skills'], '/home/runner/wicked-smoke-root/state/skills'],
+    // Not attested: another generation, or nothing attested at all.
+    ['~/wicked-smoke-root/state/skills/snapshots/000002', [snap], '~/wicked-smoke-root/state/skills/snapshots/000002'],
+    ['~/wicked-smoke-root/state/skills/snapshots/000001', [], '~/wicked-smoke-root/state/skills/snapshots/000001'],
+    // A traversal spelling never equals an attested (normalised) path.
+    ['~/wicked-smoke-root/../outside/snapshot', ['/home/runner/wicked-smoke-root/../outside/snapshot'], '~/wicked-smoke-root/../outside/snapshot'],
+    // An unscrubbed absolute path is returned as is (an older crew).
+    [snap, [], snap],
   ];
-  for (const [p, root, want] of cases) if (back(p, root) !== want) throw new Error(`S02 fromDiagnosticsPath(${p}, ${root}) = ${back(p, root)}, want ${want}`);
+  for (const [p, attested, want] of cases) if (back(p, attested) !== want) throw new Error(`S02 fromDiagnosticsPath(${p}, ${JSON.stringify(attested)}) = ${back(p, attested)}, want ${want}`);
+  const root = '/home/runner/wicked-smoke-root';
+  if (!insideRoot(snap, root) || !insideRoot(root, root)) throw new Error('S02 insideRoot: the root and a path under it are inside');
+  for (const p of [`${root}/../outside/snapshot`, `${root}X/state`, '/home/runner/outside', '~/wicked-smoke-root/state', null]) if (insideRoot(p, root)) throw new Error(`S02 insideRoot(${p}) must be false`);
 }
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);

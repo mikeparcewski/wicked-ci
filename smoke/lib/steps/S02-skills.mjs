@@ -4,7 +4,7 @@
 // warning, never refused into `config-error` (an upgrade must not brick the skills root).
 import { chmodSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { join } from 'node:path';
+import { dirname, isAbsolute, join, normalize, relative, resolve } from 'node:path';
 
 export const id = 'S02';
 export const name = 'skills';
@@ -54,31 +54,39 @@ export async function settledDiagnostics(api, t, label, { signal = null, budgetM
 }
 
 // crew >= 0.18.0 (crew#1439) scrubs every home path out of GET /health, /diagnostics, /system and
-// /roster (a Linux or macOS user directory, a Windows profile and $HOME all read `~`), so a
-// skills path under the runner's home arrives as `~/wicked-smoke-root/…` (crew 0.18.0's release smoke,
-// run 42512851279: S02 read the published snapshot's path as `~/…`, so "inside the temp root" and
-// existsSync both failed while gen 1 was on disk). The harness knows its own root: a diagnostics path is
-// mapped back only when it begins with the root's scrubbed spelling, so a path OUTSIDE the root still
-// fails the checks below. An older crew's absolute path is returned unchanged.
+// /roster (a Linux or macOS user directory, a Windows profile and $HOME all read `~`), so a skills
+// path under the runner's home arrives as `~/wicked-smoke-root/…` (crew 0.18.0's release smoke, run
+// 42512851279: S02 read the published snapshot's path as `~/…`, so "inside the temp root" and
+// existsSync both failed while gen 1 was on disk). The scrub is lossy (any user's home reads `~`), so a
+// scrubbed path is mapped back only onto a path the daemon ATTESTS unscrubbed (GET /skills answers
+// the current generation's real path) and only when that path's own scrubbed spelling is the one
+// /diagnostics showed. Anything else is returned as shown, and the checks below fail on it.
 export function scrubbedHomeForm(path) {
   return path
     .replace(/^[A-Za-z]:[\\/]Users[\\/][^\\/]+/i, '~')
     .replace(/^\/(?:Users|home)\/[^/]+/, '~');
 }
-export function fromDiagnosticsPath(p, root) {
+export function fromDiagnosticsPath(p, attested) {
   if (typeof p !== 'string' || !p.startsWith('~')) return p;
-  const scrubbed = scrubbedHomeForm(root);
-  if (scrubbed === root) return p;
-  if (p === scrubbed) return root;
-  const rest = p.slice(scrubbed.length);
-  return p.startsWith(scrubbed) && /^[\\/]/.test(rest) ? `${root}${rest}` : p;
+  for (const real of attested) {
+    if (typeof real === 'string' && isAbsolute(real) && real === normalize(real) && scrubbedHomeForm(real) === p) return real;
+  }
+  return p;
 }
 
-/** The diagnostics skills block with its paths (root, current.path, engineInput) mapped back under `root`. */
-function skillsPaths(skills, root) {
+/** Whether `p` is `root` or lies under it, by path components after normalisation (no `..` escape). */
+export function insideRoot(p, root) {
+  if (typeof p !== 'string' || !isAbsolute(p)) return false;
+  const rel = relative(resolve(root), resolve(p));
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
+/** The diagnostics skills block with its paths mapped back onto what GET /skills attests (`current.path` and its skills root). */
+function skillsPaths(skills, attestedCurrent) {
   if (!skills || typeof skills !== 'object') return skills;
-  const out = { ...skills, root: fromDiagnosticsPath(skills.root, root), engineInput: fromDiagnosticsPath(skills.engineInput, root) };
-  if (skills.current && typeof skills.current === 'object') out.current = { ...skills.current, path: fromDiagnosticsPath(skills.current.path, root) };
+  const attested = typeof attestedCurrent === 'string' ? [attestedCurrent, dirname(dirname(attestedCurrent))] : [];
+  const out = { ...skills, root: fromDiagnosticsPath(skills.root, attested), engineInput: fromDiagnosticsPath(skills.engineInput, attested) };
+  if (skills.current && typeof skills.current === 'object') out.current = { ...skills.current, path: fromDiagnosticsPath(skills.current.path, attested) };
   return out;
 }
 
@@ -89,15 +97,15 @@ export async function run(ctx, t) {
   let api = ctx.api();
 
   const diag = await settledDiagnostics(api, t, 'boot', settle);
-  const skills = skillsPaths(diag.json?.skills ?? null, ctx.L.root);
+  const sk = await api.get('/skills');
+  const skills = skillsPaths(diag.json?.skills ?? null, sk.json?.current?.path);
   const ev = t.evidence('diagnostics-skills', diag.json?.skills ?? null);
   t.check('skills.state == published', skills?.state === 'published', `state ${skills?.state}; findings ${JSON.stringify(skills?.findings ?? []).slice(0, 300)}`, { evidence: ev });
   t.check('skills.current.gen >= 1', Number(skills?.current?.gen) >= 1, `gen ${skills?.current?.gen}`);
-  t.check('skills.engineInput points inside the temp root', typeof skills?.engineInput === 'string' && skills.engineInput.startsWith(ctx.L.root), String(skills?.engineInput));
+  t.check('skills.engineInput points inside the temp root', insideRoot(skills?.engineInput, ctx.L.root), String(skills?.engineInput));
   const findings = Array.isArray(skills?.findings) ? skills.findings : [];
   t.check('skills.findings == [] (garden class: the published plugin has no blocking/warning finding)', findings.length === 0, JSON.stringify(findings).slice(0, 400), { evidence: ev });
 
-  const sk = await api.get('/skills');
   const manifest = sk.json?.manifest ?? {};
   const entries = manifest.skills && typeof manifest.skills === 'object' ? Object.entries(manifest.skills) : [];
   const portable = entries.filter(([, s]) => s.portable === true).length;
@@ -158,7 +166,8 @@ export async function run(ctx, t) {
     await ctx.daemon.restart();
     api = ctx.api();
     const diag2 = await settledDiagnostics(api, t, 'after the stale-rules restart', settle);
-    const s2 = skillsPaths(diag2.json?.skills ?? null, ctx.L.root);
+    const sk2 = await api.get('/skills');
+    const s2 = skillsPaths(diag2.json?.skills ?? null, sk2.json?.current?.path);
     const ev3 = t.evidence('diagnostics-skills-after-stale-rules', diag2.json?.skills ?? null);
     const stale = (s2?.findings ?? []).filter((f) => f.kind === 'skills.stale-rules');
     const others = (s2?.findings ?? []).filter((f) => f.kind !== 'skills.stale-rules');
@@ -169,9 +178,8 @@ export async function run(ctx, t) {
     t.check('stale-rules generation ACCEPTED (state still published, F-083)', s2?.state === 'published', `state ${s2?.state}: ${JSON.stringify(s2?.findings ?? []).slice(0, 300)}`, { evidence: ev3 });
     t.check('exactly ONE skills.stale-rules warning', stale.length === 1 && (stale[0].severity ?? 'warning') === 'warning', `${stale.length} stale-rules finding(s): ${JSON.stringify(stale).slice(0, 300)}`, { evidence: ev3 });
     t.check('no other new finding from the stale-rules republish', others.length === carried.length, `${others.length} other finding(s); ${carried.length} carried from the boot read`, { evidence: ev3 });
-    const sk2 = await api.get('/skills');
     t.check('GET /skills current.rules.stale == true', sk2.json?.current?.rules?.stale === true, JSON.stringify(sk2.json?.current?.rules ?? null).slice(0, 300));
-    t.check('engineInput still a real snapshot (not the refused/ path)', typeof s2?.engineInput === 'string' && !/refused/.test(s2.engineInput) && s2.engineInput.startsWith(ctx.L.root), String(s2?.engineInput));
+    t.check('engineInput still a real snapshot (not the refused/ path)', typeof s2?.engineInput === 'string' && !/refused/.test(s2.engineInput) && insideRoot(s2.engineInput, ctx.L.root), String(s2?.engineInput));
     if (s2?.state !== 'published') {
       // Put the root back exactly as the daemon published it, so S03+ run on a healthy skills root.
       writeLocked(origSnapBytes);
