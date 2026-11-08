@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### smoke — the seat shims answer the engine's rule check; S02 reads crew's home-scrubbed paths
+
+- crew 0.18.0's release smoke (run 42512851279) failed S02, S04 and S11 on ubuntu and macOS. The package was
+  sound; the harness was behind two product changes.
+- **S04 + S11 (rule check).** core-ts 0.15.32 (wicked-core#1317) judges every steering rule in force at review
+  and delivery: a judge seat answers one `RULE <id>: KEPT|BROKEN|N/A — <cite>` line per rule inside a
+  `BEGIN VERDICTS <nonce>` … `END VERDICTS <nonce>` block. The shims took those prompts for worker turns and
+  answered prose, so every rule read "unchecked", the verify gate held ("8 steering rule(s) need you:
+  MCPS-1006 unchecked …") and both runs were cancelled before delivery. S04's "opencode never spawned for
+  governed work" check also counted those 32 judge calls as worker turns.
+- The shims now recognise a rule-check prompt (kind `rules`, recorded as such) and answer the call's block
+  the way the engine's own stub runner does (`stub_rule_verdicts`). On the change and at delivery each rule is
+  N/A, naming the changed files the prompt lists. A process rule (reported only) is N/A. POL-2101's record clause has
+  no N/A, so the judge reads each step record for its `Stack check:` line: it answers KEPT quoting each one, or
+  BROKEN naming the record that lacks it. Every worker record now carries that line. No bar moved: an answer
+  outside the block, a KEPT without its evidence, or a record with no stack check still holds the gate.
+- **S02 (home-scrubbed paths).** crew 0.18.0 (crew#1439) scrubs home paths out of `/health`, `/diagnostics`,
+  `/system` and `/roster`, so the published snapshot's path read `~/wicked-smoke-root/state/skills/...`. "Points
+  inside the temp root" and `existsSync` then failed while generation 1 sat on disk (the daemon log shows it
+  seeded and published from the Claude plugin cache, garden 12.66.1). crew#1439's new garden-discovery order
+  played no part. S02 maps a diagnostics path back only when it begins with the smoke root's own scrubbed
+  spelling, so a path outside the root still fails. An older crew's absolute path is unchanged.
+- `npm run check` covers all of it: each rule-check kind is answered and counted (mirroring the engine's parse
+  and bars), a record with no stack check is BROKEN, every answering shim dispatches the kind, and the S02 path
+  mapping maps only paths under the root. These checks fail on the previous shims and S02.
+
 ### e2e — garden.site.chrome checks the new header (wicked-web#57)
 
 - The shared header's Experiments menu is gone (wicked-web bc5ca29): the flask is a plain link to

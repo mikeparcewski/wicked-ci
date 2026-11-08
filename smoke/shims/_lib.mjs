@@ -71,8 +71,11 @@ export function promptOf(argv) {
   return best && best.length > 20 ? best : null;
 }
 
-/** ballot | judge | triage | worker */
+/** ballot | rules | judge | triage | worker */
 export function kindOf(prompt) {
+  // The engine's RULE CHECK (core-ts >= 0.15.32, wicked-core DES-RULE-CHECK-001): matched first,
+  // because its fenced evidence (a diff, a step record) can quote any other kind's words.
+  if (isRuleCheckPrompt(prompt)) return 'rules';
   if (/RECOMMENDATION/.test(prompt) && /TOP[_ ]RISK/i.test(prompt)) return 'ballot';
   if (/^You are a strict reviewer/.test(prompt.trim()) || (/\bCRITERION:/.test(prompt) && /\bWORK:/.test(prompt))) return 'judge';
   // The engine's FAILURE TRIAGE judge: asked after a unit fails, answers one of three DECISION lines.
@@ -162,7 +165,7 @@ export function isOrchestratorPrompt(prompt) {
  */
 function orchestratorTurn() {
   const target = join(process.cwd(), 'src', 'add.js');
-  const footer = '— wicked-smoke seat shim (deterministic stand-in for the coding-agent CLI; no model was called).';
+  const footer = `${STACK_CHECK_LINE}\n— wicked-smoke seat shim (deterministic stand-in for the coding-agent CLI; no model was called).`;
   if (existsSync(target) && /a\s*-\s*b/.test(readFileSync(target, 'utf8'))) {
     const src = readFileSync(target, 'utf8');
     writeFileSync(target, src.replace(/a\s*-\s*b/, 'a + b'));
@@ -195,7 +198,8 @@ function workerBody(prompt) {
   // The engine's SUBSTANCE gate rejects a governed unit whose Ok output carries neither ≥ 200 trimmed
   // chars of prose nor a worktree change ("phase produced no reviewable substance") — every answer
   // below is a full deliverable, not a one-liner.
-  const footer = ['', '— wicked-smoke seat shim (deterministic stand-in for the coding-agent CLI; no model was called). '
+  // Every record carries the stack check POL-2101's record clause reads (core-ts >= 0.15.32).
+  const footer = ['', STACK_CHECK_LINE, '— wicked-smoke seat shim (deterministic stand-in for the coding-agent CLI; no model was called). '
     + 'Evidence for this turn is the text above and, where applicable, the diff in the worktree; the engine re-derives done from those, never from this sentence.'].join('\n');
   if (phase === 'fix' && existsSync(target)) {
     const src = readFileSync(target, 'utf8');
@@ -209,4 +213,106 @@ function workerBody(prompt) {
   if (phase === 'reproduce') return ['## Reproduction', '', 'Ran the repository check: `npm test` → `node --test test/`.', 'Result: `add returns the sum` FAILS — `add(2, 3)` returned `-1`, expected `5`; `sum folds with add` FAILS for the same reason (`sum([1, 2, 3])` returned `-6`, expected `6`).', 'Deterministic: the same two assertions fail on every run; no environment dependence.', 'Confirms the triage: a sign error in `src/add.js`, nothing else.', footer].join('\n');
   if (phase === 'verify' || phase === 'review' || phase === 'test') return ['## Verification', '', 'Reviewed the change in the worktree: `src/add.js` now returns `a + b`; the exported name is unchanged; `test/add.test.js` is unchanged.', 'Ran `npm test` (`node --test test/`): `add returns the sum` PASS, `sum folds with add` PASS — 2 passing, 0 failing.', 'No other file changed; the diff is the one-line correction the issue asked for.', footer].join('\n');
   return [`## ${phase} phase`, '', `Acknowledged the ${phase} phase of this run (${prompt.length} chars of prompt). This deterministic stand-in makes no change to the worktree outside the fix phase and records its turn for the smoke's evidence.`, footer].join('\n');
+}
+
+/**
+ * THE RULE CHECK (core-ts >= 0.15.32, wicked-core#1317, src/rule_check.rs). Every steering rule in force
+ * for a governed run is judged at review (and again at delivery) by a judge seat, in calls of four
+ * kinds, each answered one line per rule INSIDE a `BEGIN VERDICTS <nonce>` … `END VERDICTS <nonce>`
+ * block whose nonce is fresh per call:
+ *   - change   "You check a code change against steering rules …": KEPT cites a changed file by its whole
+ *              path; N/A says why (the engine asks the judge to name the changed files and say they are
+ *              outside the rule).
+ *   - delivery "You check the text a delivery published …": KEPT quotes the pull request text.
+ *   - process  "You check how a governed review loop ran …": reported, never blocks.
+ *   - record   "You check the RECORDS a governed run's code-writing steps left …" (POL-2101's record
+ *              clause): there is NO N/A; KEPT quotes, in double quotes, words from EACH record that say
+ *              what was looked at and what the stack offers; BROKEN names the record as `RECORD <n>`.
+ * An answer outside the block, without a cite, or KEPT without its evidence does not count: the rule is
+ * asked again alone, then reads `unchecked`, which holds the gate (crew 0.18.0's release smoke, run
+ * 42512851279: S04 + S11 cancelled at verify on "MCPS-1006 unchecked … without the verdict block").
+ *
+ * This stand-in answers the way the engine's own stub runner does (`stub_rule_verdicts`: every rule N/A,
+ * framed with the call's nonce), with the reason in the engine's words, and judges the one clause it can
+ * decide from the text it is shown: the record clause reads each record for the shims' `Stack check:`
+ * line and quotes it (KEPT), or names the record that lacks one (BROKEN). Nothing here lowers a bar: a
+ * record with no stack check still holds the gate.
+ */
+const RULE_FRAME_RE = /between a line `BEGIN VERDICTS ([^`\s]+)` and a line `END VERDICTS \1`/;
+/** The block headers that end a prompt's RULES list (wicked-core rule_check.rs STUB_STOPS). */
+const RULE_LIST_STOPS = ['THE CHANGED FILES', "THE ENGINE'S OWN CHECKS", "THE PERSON'S INSTRUCTIONS", 'THE ENGINE RECORD follows.', 'THE STEP RECORDS follow.', 'EVIDENCE-'];
+/** The line every shim worker record carries for POL-2101's record clause (no quote marks in it). */
+export const STACK_CHECK_LINE = 'Stack check: looked at package.json and test/add.test.js; the stack already offers node:test through npm test, so this change adds no dependency, helper or tool of its own.';
+
+export function isRuleCheckPrompt(prompt) {
+  return RULE_FRAME_RE.test(prompt) && /^RULES:$/m.test(prompt);
+}
+
+/** The ids a rule-check prompt asks about, in order (`RULE <id> (<severity>, <type>): …`). */
+export function ruleIdsOf(prompt) {
+  const lines = prompt.split('\n');
+  const at = lines.indexOf('RULES:');
+  if (at < 0) return [];
+  const ids = [];
+  for (const l of lines.slice(at + 1)) {
+    if (RULE_LIST_STOPS.some((h) => l.startsWith(h))) break;
+    if (!l.startsWith('RULE ')) continue;
+    const id = l.slice(5).split(' (')[0];
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+/** The fenced lines of a prompt between `<TAG>-<hex> BEGIN…` and `<TAG>-<hex> END`. */
+function fenced(prompt, tag) {
+  const lines = prompt.split('\n');
+  const open = lines.findIndex((l) => new RegExp(`^${tag}-[0-9a-f]+ BEGIN\\b`).test(l));
+  if (open < 0) return [];
+  const fence = lines[open].split(' ')[0];
+  const close = lines.findIndex((l, i) => i > open && l === `${fence} END`);
+  return lines.slice(open + 1, close < 0 ? lines.length : close);
+}
+
+/** The changed files a change prompt lists (its FILES block), verbatim. */
+export function changedFilesOf(prompt) {
+  return fenced(prompt, 'FILES').filter((l) => l && !/^\[and \d+ more changed files/.test(l));
+}
+
+/** A record prompt's records: `RECORD <n> of <m>: the output of <label> (<bytes> bytes)` then its body. */
+export function stepRecordsOf(prompt) {
+  const body = fenced(prompt, 'EVIDENCE');
+  const out = [];
+  for (const l of body) {
+    const head = l.match(/^RECORD (\d+) of (\d+): the output of .* \(\d+ bytes\)$/);
+    if (head && Number(head[1]) === out.length + 1) out.push({ n: Number(head[1]), lines: [] });
+    else if (out.length > 0) out[out.length - 1].lines.push(l);
+  }
+  return out;
+}
+
+/** The answer block for a rule-check prompt (null when `prompt` is not one). */
+export function ruleVerdicts(prompt) {
+  const m = prompt.match(RULE_FRAME_RE);
+  if (!m || !isRuleCheckPrompt(prompt)) return null;
+  const nonce = m[1];
+  const ids = ruleIdsOf(prompt);
+  const shim = '(wicked-smoke judge shim: deterministic, no model was called)';
+  let answer;
+  if (/^You check the RECORDS /.test(prompt)) {
+    const records = stepRecordsOf(prompt);
+    const checks = records.map((r) => ({ n: r.n, line: r.lines.find((l) => /^Stack check: /.test(l.trim()))?.trim().replace(/["“”`]/g, '') ?? null }));
+    const lacking = checks.filter((c) => c.line === null);
+    answer = records.length > 0 && lacking.length === 0
+      ? `KEPT — ${checks.map((c) => `RECORD ${c.n}: "${c.line}"`).join('; ')} ${shim}`
+      : `BROKEN — ${records.length === 0 ? 'RECORD 1' : lacking.map((c) => `RECORD ${c.n}`).join(', ')} states no check of what the stack already provides ${shim}`;
+  } else if (/^You check how a governed review loop ran /.test(prompt)) {
+    answer = `N/A — a deterministic stand-in rules on no reviewer, engine or person conduct; this process rule is reported only ${shim}`;
+  } else if (/^You check the text a delivery published /.test(prompt)) {
+    answer = `N/A — the published pull request text describes the one-line arithmetic correction in src/add.js and nothing this rule speaks of ${shim}`;
+  } else {
+    const files = changedFilesOf(prompt);
+    const named = files.length > 0 ? files.join(', ') : 'the changed files';
+    answer = `N/A — the change modifies only ${named} (a one-line arithmetic correction, a - b to a + b); those files are outside this rule ${shim}`;
+  }
+  return [`BEGIN VERDICTS ${nonce}`, ...ids.map((id) => `RULE ${id}: ${answer}`), `END VERDICTS ${nonce}`].join('\n');
 }

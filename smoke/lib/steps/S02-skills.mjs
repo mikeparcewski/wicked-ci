@@ -53,6 +53,35 @@ export async function settledDiagnostics(api, t, label, { signal = null, budgetM
   return diag;
 }
 
+// crew >= 0.18.0 (crew#1439) scrubs every home path out of GET /health, /diagnostics, /system and
+// /roster (a Linux or macOS user directory, a Windows profile and $HOME all read `~`), so a
+// skills path under the runner's home arrives as `~/wicked-smoke-root/…` (crew 0.18.0's release smoke,
+// run 42512851279: S02 read the published snapshot's path as `~/…`, so "inside the temp root" and
+// existsSync both failed while gen 1 was on disk). The harness knows its own root: a diagnostics path is
+// mapped back only when it begins with the root's scrubbed spelling, so a path OUTSIDE the root still
+// fails the checks below. An older crew's absolute path is returned unchanged.
+export function scrubbedHomeForm(path) {
+  return path
+    .replace(/^[A-Za-z]:[\\/]Users[\\/][^\\/]+/i, '~')
+    .replace(/^\/(?:Users|home)\/[^/]+/, '~');
+}
+export function fromDiagnosticsPath(p, root) {
+  if (typeof p !== 'string' || !p.startsWith('~')) return p;
+  const scrubbed = scrubbedHomeForm(root);
+  if (scrubbed === root) return p;
+  if (p === scrubbed) return root;
+  const rest = p.slice(scrubbed.length);
+  return p.startsWith(scrubbed) && /^[\\/]/.test(rest) ? `${root}${rest}` : p;
+}
+
+/** The diagnostics skills block with its paths (root, current.path, engineInput) mapped back under `root`. */
+function skillsPaths(skills, root) {
+  if (!skills || typeof skills !== 'object') return skills;
+  const out = { ...skills, root: fromDiagnosticsPath(skills.root, root), engineInput: fromDiagnosticsPath(skills.engineInput, root) };
+  if (skills.current && typeof skills.current === 'object') out.current = { ...skills.current, path: fromDiagnosticsPath(skills.current.path, root) };
+  return out;
+}
+
 export async function run(ctx, t) {
   // Captured before the first await: the runner replaces ctx.signal for the next step.
   const settle = { signal: ctx.signal, deadline: ctx.stepDeadline ? ctx.stepDeadline - 5_000 : null };
@@ -60,8 +89,8 @@ export async function run(ctx, t) {
   let api = ctx.api();
 
   const diag = await settledDiagnostics(api, t, 'boot', settle);
-  const skills = diag.json?.skills ?? null;
-  const ev = t.evidence('diagnostics-skills', skills);
+  const skills = skillsPaths(diag.json?.skills ?? null, ctx.L.root);
+  const ev = t.evidence('diagnostics-skills', diag.json?.skills ?? null);
   t.check('skills.state == published', skills?.state === 'published', `state ${skills?.state}; findings ${JSON.stringify(skills?.findings ?? []).slice(0, 300)}`, { evidence: ev });
   t.check('skills.current.gen >= 1', Number(skills?.current?.gen) >= 1, `gen ${skills?.current?.gen}`);
   t.check('skills.engineInput points inside the temp root', typeof skills?.engineInput === 'string' && skills.engineInput.startsWith(ctx.L.root), String(skills?.engineInput));
@@ -129,8 +158,8 @@ export async function run(ctx, t) {
     await ctx.daemon.restart();
     api = ctx.api();
     const diag2 = await settledDiagnostics(api, t, 'after the stale-rules restart', settle);
-    const s2 = diag2.json?.skills ?? null;
-    const ev3 = t.evidence('diagnostics-skills-after-stale-rules', s2);
+    const s2 = skillsPaths(diag2.json?.skills ?? null, ctx.L.root);
+    const ev3 = t.evidence('diagnostics-skills-after-stale-rules', diag2.json?.skills ?? null);
     const stale = (s2?.findings ?? []).filter((f) => f.kind === 'skills.stale-rules');
     const others = (s2?.findings ?? []).filter((f) => f.kind !== 'skills.stale-rules');
     // `skills.publish-warning` (crew >= 0.8.6, F-E2E-002) belongs to the PUBLISH that found it and is

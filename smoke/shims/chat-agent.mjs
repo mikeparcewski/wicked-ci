@@ -18,7 +18,7 @@
 // messages (the deltas) and a terminal `result` carrying `usage` — the turn is metered the way a real
 // claude seat's is; without it, plain text. Ballots, judges and triage answer like the claude shim.
 // Every invocation is recorded in `<root>/shim-calls.ndjson`; the answered turn adds `chat: answered`.
-import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, appendRecord, isVersionProbe, record } from './_lib.mjs';
+import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, appendRecord, isVersionProbe, record, ruleVerdicts } from './_lib.mjs';
 
 const SHIM = 'chat-agent';
 const SLEEP_ENV = 'WICKED_SMOKE_ACP_SLEEP_MS';
@@ -34,6 +34,7 @@ if (!prompt) {
   process.exit(0);
 }
 if (kind === 'ballot') console.log(BALLOT);
+else if (kind === 'rules') console.log(ruleVerdicts(prompt));
 else if (kind === 'judge') console.log(JUDGE_PASS);
 else if (kind === 'triage') console.log(TRIAGE_ESCALATE);
 else {

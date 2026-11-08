@@ -8,7 +8,7 @@
 // had no distinct judge left, so the bug run could never deliver. It is written LAST in the overlay,
 // so the routing S04 asserts (claude / copilot first, copilot re-seated to opencode) is unchanged;
 // the engine's judge rotation reaches it after the dead seats.
-import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, isVersionProbe, record, workerTurn } from './_lib.mjs';
+import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, isVersionProbe, record, workerTurn, ruleVerdicts } from './_lib.mjs';
 
 const { argv, prompt, kind } = record('smoke-judge');
 if (isVersionProbe(argv)) {
@@ -20,6 +20,7 @@ if (!prompt) {
   process.exit(0);
 }
 if (kind === 'ballot') console.log(BALLOT);
+else if (kind === 'rules') console.log(ruleVerdicts(prompt));
 else if (kind === 'judge') console.log(JUDGE_PASS);
 else if (kind === 'triage') console.log(TRIAGE_ESCALATE);
 else console.log(workerTurn(prompt));
