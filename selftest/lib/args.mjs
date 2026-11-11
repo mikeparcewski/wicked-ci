@@ -130,8 +130,9 @@ export function isLocalSource(v) {
  *  - a local garden that is neither a .tgz file nor a directory;
  *  - a local path that does not exist. */
 export function resolveSource(v, base = process.cwd(), key = 'crew') {
-  if (typeof v !== 'string' || v === '' || /\s/.test(v)) throw new Error(`${key}: ${JSON.stringify(v)} is not a version, tag or pack path`);
+  if (typeof v !== 'string' || v.trim() === '' || v !== v.trim()) throw new Error(`${key}: ${JSON.stringify(v)} is not a version, tag or pack path`);
   if (!isLocalSource(v)) {
+    // A version or tag never holds whitespace (npm reads `wicked-crew@ ` as latest); a PATH may (`C:\\Users\\Jane Doe\\…`).
     if (!/^[0-9A-Za-z][0-9A-Za-z.+_~^<>=*-]*$/.test(v)) throw new Error(`${key}: ${JSON.stringify(v)} is not a version or tag`);
     return v;
   }

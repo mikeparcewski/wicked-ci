@@ -20,13 +20,17 @@
   local `.tgz` or directory as well as a tag: a git checkout is exported with `git archive HEAD`. `--set <file.json>`
   names them together, with paths resolved against the file's directory. Anything that could silently test something
   else is refused: an unknown key, a missing pack, an empty or whitespace value (npm reads `wicked-crew@ ` as latest),
-  or a tarball whose `package.json` names another package. The installed version is then checked against the pack's.
+  or a tarball whose `package.json` names another package. A pack path may hold spaces; a version or tag may not. The installed version is then checked against the pack's.
   A garden manifest's version must be a single-component semver before anything under the plugin cache is replaced, so
-  a `../` version can't reach outside the root.
+  a `../` version can't reach outside the root. A linked
+  `.claude-plugin/plugin.json` is refused before it is read.
 - **Pack (Tier 1).** `wicked-selftest pack --crew-src --studio-src --garden-src --out` builds packs the way the dev
   copy does: garden exported, studio built with its dist stamped, crew built with that studio dist bundled. It writes
-  `set.json`. Every build runs in a `git archive HEAD` export under `--out`, so the checkouts are only read, and an
-  interrupted or concurrent pack can't leave one stamped or half-built. The build runs with a constructed environment:
+  `set.json`. Every build runs in a `git archive <recorded sha>` export under `--out`. The checkouts are only read: git
+  runs with `--no-optional-locks` and command-scoped `core.fsmonitor=false`, and garden's tarball is gzipped in
+  process, not by a git archive filter. An interrupted pack can't leave a checkout stamped or half-built, and a checkout
+  that moves mid-pack can't change what was recorded. `--out` must not exist yet, because creating it is the claim, and
+  `set.json` is published atomically. The build runs with a constructed environment:
   HOME, npm cache/config and temp under `--out`; no system or global git config; no inherited `GIT_*` routing; argument
   arrays, never a shell. A checkout with uncommitted or untracked changes is refused unless `--allow-dirty`, which
   records that they were left out. crew and studio versions are stamped `+st.<sha7>`. Building runs the checkouts' own

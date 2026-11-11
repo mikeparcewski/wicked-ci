@@ -376,6 +376,15 @@ if (sqlite) {
   const { npmSpec } = await import('./install.mjs');
   const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
+  // Each profile's membership is written out HERE, independently of PROFILES: a change that drops a step from a
+  // profile (the bug run from `pr`, say) fails this check instead of passing it by construction.
+  const EXPECTED = {
+    smoke: 'S01,S02,S03,S04,S11,S05,S06,S08,S09,S10',
+    pr: 'S01,S02,S03,S04,S08,S10',
+    release: 'S01,S02,S03,S04,S11,S05,S06,S08,S09,S10',
+  };
+  if (Object.keys(PROFILES).sort().join() !== Object.keys(EXPECTED).sort().join()) throw new Error(`profiles: ${Object.keys(PROFILES)} vs ${Object.keys(EXPECTED)}`);
+  for (const [name, want] of Object.entries(EXPECTED)) if (PROFILES[name].join() !== want) throw new Error(`profile ${name} is ${PROFILES[name].join()}, expected ${want}`);
   for (const [name, steps] of Object.entries(PROFILES)) {
     if (steps.length === 0 || steps.some((s) => !ALL_STEPS.includes(s))) throw new Error(`profile ${name} names an unregistered step`);
     if (steps.join() !== ALL_STEPS.filter((s) => steps.includes(s)).join()) throw new Error(`profile ${name} is not in run order`);
@@ -408,6 +417,12 @@ if (sqlite) {
     if (!refused) throw new Error(`parseArgs(${JSON.stringify(argv)}) must refuse`);
   }
   if (parseArgs(['--garden', join(dir, 'crew-checkout')]).garden !== join(dir, 'crew-checkout')) throw new Error('a garden directory is a local source');
+  // A pack PATH may hold spaces (C:\\Users\\Jane Doe\\…); only versions and tags may not.
+  mkdirSync(join(dir, 'with space'));
+  writeFileSync(join(dir, 'with space', 'wicked-crew-1.0.0.tgz'), '');
+  if (parseArgs(['--crew', join(dir, 'with space', 'wicked-crew-1.0.0.tgz')]).crew !== join(dir, 'with space', 'wicked-crew-1.0.0.tgz')) throw new Error('a pack path with a space');
+  writeFileSync(join(dir, 'with space', 'set.json'), JSON.stringify({ crew: 'wicked-crew-1.0.0.tgz' }));
+  if (parseArgs(['--set', join(dir, 'with space', 'set.json')]).crew !== join(dir, 'with space', 'wicked-crew-1.0.0.tgz')) throw new Error('a set under a directory with a space');
   writeFileSync(join(dir, 'blank.json'), JSON.stringify({ crew: ' ' }));
   threw = false; try { readSet(join(dir, 'blank.json')); } catch { threw = true; }
   if (!threw) throw new Error('readSet must refuse a whitespace value (npm reads it as latest)');
@@ -427,6 +442,14 @@ if (sqlite) {
   writeFileSync(join(staging, '.claude-plugin', 'plugin.json'), JSON.stringify({ version: '../../../../outside' }));
   let refused = false; try { placeGarden({ claude: join(r, 'claude') }, staging, 'fixture'); } catch { refused = true; }
   if (!refused || !existsSync(sentinel)) throw new Error('a traversal version must be refused before anything is removed');
+  // A manifest that is a link is refused before it is read (it could name a host file).
+  const { symlinkSync } = await import('node:fs');
+  const st2 = join(r, 'staging2'); mkdirSync(join(st2, '.claude-plugin'), { recursive: true });
+  writeFileSync(join(r, 'secret.txt'), 'FAKE_TOKEN');
+  symlinkSync(join(r, 'secret.txt'), join(st2, '.claude-plugin', 'plugin.json'));
+  let msg = '';
+  try { placeGarden({ claude: join(r, 'claude') }, st2, 'fixture'); } catch (err) { msg = err.message; }
+  if (!/must be a plain file/.test(msg) || msg.includes('FAKE_TOKEN')) throw new Error(`a linked manifest must be refused without being read: ${msg}`);
 }
 // The self-test daemon never binds an operator daemon's port.
 {

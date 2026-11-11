@@ -13,9 +13,10 @@
 // own branch) or inside a sandbox. A governed run's head is packed inside the floor's sandbox, never on the host. The
 // build sees a constructed environment: PATH, a HOME, npm cache/config and temp dir under --out, and git with no
 // system or global config and no inherited GIT_* routing. `--npm-cache <dir>` opts in to a shared npm cache.
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, delimiter, dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { gzipSync } from 'node:zlib';
 import { npmArgv } from './proc.mjs';
 
 export const PACK_HELP = `wicked-selftest pack — build Tier 1 packs from checkouts and write <out>/set.json
@@ -27,7 +28,7 @@ usage: wicked-selftest pack --out <dir> [--crew-src <dir>] [--studio-src <dir>] 
   --studio-src <dir>   a wicked-studio checkout: npm ci, npm run build; its dist is bundled into crew
                        (needs --crew-src). Without it, crew bundles the studio its lockfile pins (build:with-studio).
   --garden-src <dir>   a wicked-garden checkout: exported as a tarball (no build)
-  --out <dir>          where the staging exports, packs and set.json go (created; must be empty or absent)
+  --out <dir>          where the staging exports, packs and set.json go (created; it must not exist yet)
   --allow-dirty        pack a checkout that has uncommitted or untracked changes (they are NOT included; recorded)
   --npm-cache <dir>    use this npm cache (default: a fresh one under --out)
   --build-slot "<p>"   a command prefix for the heavy steps, e.g. "build-slot --"
@@ -97,18 +98,23 @@ function sh(argv, cwd, env, { capture = false, slot = [] } = {}) {
 const npm = (...a) => [...npmArgv(), ...a];
 
 /** HEAD's sha and whether the tree has ANY change the export would leave out (staged, unstaged or untracked). */
+/** git against a SOURCE checkout: read-only. Command-scoped config beats the checkout's own .git/config (no
+ *  fsmonitor hook, no external archive filter), and --no-optional-locks keeps `status` from rewriting its index. */
+const git = (dir, ...args) => ['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-C', dir, ...args];
+
 function gitFacts(dir, env) {
-  const sha = sh(['git', '-C', dir, 'rev-parse', 'HEAD'], dir, env, { capture: true });
-  const dirty = sh(['git', '-C', dir, 'status', '--porcelain', '--untracked-files=normal'], dir, env, { capture: true }) !== '';
+  const sha = sh(git(dir, 'rev-parse', '--verify', 'HEAD^{commit}'), dir, env, { capture: true });
+  const dirty = sh(git(dir, 'status', '--porcelain', '--untracked-files=normal'), dir, env, { capture: true }) !== '';
   return { sha, dirty };
 }
 
-/** `git archive HEAD` of a checkout into <stage>/<name>: the exact recorded commit, tracked files only. */
-function exportTree(src, stage, name, env) {
+/** `git archive <sha>` of a checkout into <stage>/<name>: the exact recorded commit, tracked files only. */
+function exportTree(src, sha, stage, name, env) {
   const dest = join(stage, name);
   mkdirSync(dest, { recursive: true });
   const tar = join(stage, `${name}.tar`);
-  sh(['git', '-C', src, 'archive', '--format=tar', '-o', tar, 'HEAD'], src, env);
+  // The RECORDED commit, not HEAD again: the checkout may move while a long build runs.
+  sh(git(src, 'archive', '--format=tar', '-o', tar, sha), src, env);
   sh(['tar', '-xf', tar, '-C', dest], stage, env);
   rmSync(tar, { force: true });
   return dest;
@@ -119,8 +125,9 @@ export async function packMain(argv) {
   let o;
   try { o = parse(argv); } catch (err) { console.error(`wicked-selftest pack: ${err.message}`); console.error(PACK_HELP); return 2; }
   if (o.help) { console.log(PACK_HELP); return 0; }
-  if (existsSync(o.out) && readdirSync(o.out).length > 0) { console.error(`wicked-selftest pack: --out ${o.out} is not empty`); return 2; }
-  mkdirSync(o.out, { recursive: true });
+  // --out must not exist: creating it is the claim (mkdir is atomic), so two packs can never share one output.
+  mkdirSync(dirname(o.out), { recursive: true });
+  try { mkdirSync(o.out); } catch (err) { console.error(`wicked-selftest pack: --out ${o.out} ${err.code === 'EEXIST' ? 'already exists (it must not: pass a new directory)' : `cannot be created: ${err.message}`}`); return 2; }
   const stage = join(o.out, '.stage');
   const env = buildEnv(stage, o.npmCache);
   const facts = {};
@@ -138,8 +145,13 @@ export async function packMain(argv) {
   if (o.gardenSrc) {
     const g = facts.garden;
     const tgz = join(o.out, `wicked-garden-${g.sha.slice(0, 7)}.tgz`);
-    // Only tracked files at HEAD: the shape of the tag tarball the published set installs.
-    sh(['git', '-C', o.gardenSrc, 'archive', '--format=tar.gz', '--prefix=wicked-garden/', '-o', tgz, 'HEAD'], o.gardenSrc, env);
+    // Only tracked files at the recorded commit: the shape of the tag tarball the published set installs. Plain tar
+    // from git, gzipped here (no `tar.gz` archive filter a checkout's config could point at a command).
+    const tar = join(stage, 'wicked-garden.tar');
+    mkdirSync(stage, { recursive: true });
+    sh(git(o.gardenSrc, 'archive', '--format=tar', '--prefix=wicked-garden/', '-o', tar, g.sha), o.gardenSrc, env);
+    writeFileSync(tgz, gzipSync(readFileSync(tar)));
+    rmSync(tar, { force: true });
     set.garden = basename(tgz);
     set.built.garden = { sha: g.sha, dirty: g.dirty, note: note(g) };
   }
@@ -147,7 +159,7 @@ export async function packMain(argv) {
   let studioDist = null;
   if (o.studioSrc) {
     const f = facts.studio;
-    const st = exportTree(o.studioSrc, stage, 'wicked-studio', env);
+    const st = exportTree(o.studioSrc, f.sha, stage, 'wicked-studio', env);
     sh(npm('ci'), st, env, { slot: o.buildSlot });
     sh(npm('run', 'build'), st, env, { slot: o.buildSlot });
     const version = `${pkgVersion(st)}+st.${f.sha.slice(0, 7)}`;
@@ -161,7 +173,7 @@ export async function packMain(argv) {
 
   if (o.crewSrc) {
     const f = facts.crew;
-    const cr = exportTree(o.crewSrc, stage, 'wicked-crew', env);
+    const cr = exportTree(o.crewSrc, f.sha, stage, 'wicked-crew', env);
     const crPkg = join(cr, 'packages', 'crew');
     const pj = JSON.parse(readFileSync(join(crPkg, 'package.json'), 'utf8'));
     const version = `${pj.version}+st.${f.sha.slice(0, 7)}`;
@@ -182,7 +194,8 @@ export async function packMain(argv) {
     set.built.crew = { sha: f.sha, dirty: f.dirty, version, studio: studioDist ? 'built from --studio-src' : "the studio crew's lockfile pins (build:with-studio)", note: note(f) };
   }
 
-  writeFileSync(join(o.out, 'set.json'), `${JSON.stringify(set, null, 2)}\n`);
+  writeFileSync(join(o.out, 'set.json.tmp'), `${JSON.stringify(set, null, 2)}\n`);
+  renameSync(join(o.out, 'set.json.tmp'), join(o.out, 'set.json')); // published whole, or not at all
   console.log(`wicked-selftest pack: wrote ${join(o.out, 'set.json')} (the staging exports under ${stage} can be removed)`);
   return 0;
 }

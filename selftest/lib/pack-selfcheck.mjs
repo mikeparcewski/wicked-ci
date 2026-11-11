@@ -48,9 +48,12 @@ try {
   });
   const gardenSha = repo(garden, { '.claude-plugin/plugin.json': JSON.stringify({ name: 'wicked-garden', version: '12.0.0' }), 'README.md': 'g' });
 
-  const out = join(base, 'out');
+  const out = join(base, 'out dir');  // a space in the output path (argument arrays, no shell)
+  const indexBefore = readFileSync(join(garden, '.git', 'index'));
   const code = await quiet(() => packMain(['--crew-src', crew, '--studio-src', studio, '--garden-src', garden, '--out', out]));
   if (code !== 0) throw new Error(`pack exited ${code}`);
+  if (!readFileSync(join(garden, '.git', 'index')).equals(indexBefore)) throw new Error('pack rewrote a source checkout\'s index (optional locks)');
+  if (await quiet(() => packMain(['--garden-src', garden, '--out', out])) !== 2) throw new Error('an existing --out must be refused (two packs never share one)');
   // The checkouts are only read.
   if (readFileSync(join(crew, 'packages', 'crew', 'package.json'), 'utf8') !== crewPkg) throw new Error('pack changed the crew checkout\'s package.json');
   if (readFileSync(join(studio, 'package.json'), 'utf8') !== studioPkg) throw new Error('pack changed the studio checkout');

@@ -2,7 +2,7 @@
 // crew's pin), and the wicked-garden plugin laid out the way Claude Code's marketplace cache does — the same tree crew
 // seeds its skills root from on a customer machine. Each comes from npm / its git tag (the published set), or from a
 // local pack (`wicked-selftest pack`, or any .tgz / garden directory). This module never builds anything.
-import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, appendFileSync } from 'node:fs';
+import { createWriteStream, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, appendFileSync } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -71,8 +71,14 @@ export const GARDEN_VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Z
  *  and the destination is proven to sit directly under the cache dir before anything is removed or renamed. */
 export function placeGarden(L, staging, label) {
   const manifestPath = join(staging, '.claude-plugin', 'plugin.json');
-  if (!existsSync(manifestPath)) throw new Error(`garden ${label}: no .claude-plugin/plugin.json (not a garden plugin tree)`);
-  const version = JSON.parse(readFileSync(manifestPath, 'utf8')).version;
+  // The manifest is the artifact's data: a link on its path could make the installer read (and echo) a host file.
+  for (const p of [join(staging, '.claude-plugin'), manifestPath]) {
+    const st = lstatSync(p, { throwIfNoEntry: false });
+    if (st === undefined) throw new Error(`garden ${label}: no .claude-plugin/plugin.json (not a garden plugin tree)`);
+    if (st.isSymbolicLink() || !(p === manifestPath ? st.isFile() : st.isDirectory())) throw new Error(`garden ${label}: ${p.slice(staging.length + 1)} must be a plain ${p === manifestPath ? 'file' : 'directory'}, not a link`);
+  }
+  let version;
+  try { version = JSON.parse(readFileSync(manifestPath, 'utf8')).version; } catch { throw new Error(`garden ${label}: .claude-plugin/plugin.json is not JSON`); }
   if (typeof version !== 'string' || !GARDEN_VERSION_RE.test(version)) throw new Error(`garden ${label}: .claude-plugin/plugin.json version ${JSON.stringify(version)} is not a semver`);
   const cacheDir = resolve(L.claude, 'plugins', 'cache', 'wicked-garden', 'wicked-garden');
   mkdirSync(cacheDir, { recursive: true });
