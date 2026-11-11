@@ -9,15 +9,21 @@ export const id = 'U06';
 export const name = 'an imported steering rule is cited';
 
 const TERMINAL = new Set(['completed', 'failed', 'cancelled']);
+const TAG = 'U06: a steering rule applies'; // in the journey's intent: finds its run when no result names it
 
 export async function run(ctx, t) {
   try {
     await runJourney(ctx, t, 'u06_steering_cited', { state: { origin: ctx.state.origin ?? null, shimLog: ctx.L.shimLog } });
   } finally {
-    let rid = null;
-    try { rid = JSON.parse(readFileSync(join(t.dir, 'result.json'), 'utf8')).state?.runId ?? null; } catch { /* no result */ }
-    if (rid && ctx.daemon?.child) {
-      const api = ctx.api();
+    let launched = null;
+    try { launched = JSON.parse(readFileSync(join(t.dir, 'result.json'), 'utf8')).state?.runId ?? null; } catch { /* no result */ }
+    const api = ctx.daemon?.child ? ctx.api() : null;
+    const listed = api ? await api.get('/runs?limit=100') : null;
+    if (listed && listed.status !== 200) t.check('cleanup: the runs list answers (to find the parked run)', false, `GET /runs ${listed.status}`);
+    const runs = listed?.json?.runs ?? [];
+    const ids = new Set([launched, ...runs.filter((r) => String(r.session?.problem ?? '').includes(TAG)).map((r) => r.session.id)].filter(Boolean));
+    for (const rid of api ? ids : []) {
+      if (TERMINAL.has(runs.find((r) => r.session?.id === rid)?.session?.status)) continue;
       const c = await api.post(`/runs/${rid}/cancel`, {});
       let status = null;
       for (let i = 0; i < 30 && !TERMINAL.has(status); i++) {
