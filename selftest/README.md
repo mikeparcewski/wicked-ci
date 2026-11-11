@@ -18,7 +18,7 @@ what the smoke always ran: the PUBLISHED tarballs, what a customer's `npm i -g` 
 
 | Source | `--crew` / `--bus` / `--core-ts` | `--garden` |
 |---|---|---|
-| published (default) | an npm version, `latest` (and `pinned` for core-ts) | a git tag or `latest` |
+| published (default) | an npm version or `latest`; for core-ts also `pinned`, whatever crew's range resolves (core-ts `latest` is the same as `pinned` today) | a git tag or `latest` |
 | a local pack | a path to a `.tgz` | a path to a `.tgz`, or a directory (a git checkout is exported with `git archive HEAD`) |
 
 A **set file** (`--set <file.json>`) names them together: `{"crew": "wicked-crew-0.18.8+st.abc1234.tgz", "garden":

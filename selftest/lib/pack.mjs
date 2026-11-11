@@ -14,7 +14,7 @@
 // build sees a constructed environment: PATH, a HOME, npm cache/config and temp dir under --out, and git with no
 // system or global config and no inherited GIT_* routing. `--npm-cache <dir>` opts in to a shared npm cache.
 import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { basename, delimiter, dirname, join, resolve } from 'node:path';
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { gzipSync } from 'node:zlib';
 import { npmArgv } from './proc.mjs';
@@ -125,6 +125,12 @@ export async function packMain(argv) {
   let o;
   try { o = parse(argv); } catch (err) { console.error(`wicked-selftest pack: ${err.message}`); console.error(PACK_HELP); return 2; }
   if (o.help) { console.log(PACK_HELP); return 0; }
+  // --out may not sit inside a source checkout: its own files would make a clean tree read dirty, and the checkout
+  // must stay unwritten. Checked before anything is created.
+  for (const src of [o.crewSrc, o.studioSrc, o.gardenSrc].filter(Boolean)) {
+    const rel = relative(src, o.out);
+    if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) { console.error(`wicked-selftest pack: --out ${o.out} is inside the source checkout ${src}; choose a directory outside it`); return 2; }
+  }
   // --out must not exist: creating it is the claim (mkdir is atomic), so two packs can never share one output.
   mkdirSync(dirname(o.out), { recursive: true });
   try { mkdirSync(o.out); } catch (err) { console.error(`wicked-selftest pack: --out ${o.out} ${err.code === 'EEXIST' ? 'already exists (it must not: pass a new directory)' : `cannot be created: ${err.message}`}`); return 2; }

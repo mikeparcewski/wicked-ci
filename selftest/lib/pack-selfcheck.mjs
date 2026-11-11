@@ -54,6 +54,7 @@ try {
   if (code !== 0) throw new Error(`pack exited ${code}`);
   if (!readFileSync(join(garden, '.git', 'index')).equals(indexBefore)) throw new Error('pack rewrote a source checkout\'s index (optional locks)');
   if (await quiet(() => packMain(['--garden-src', garden, '--out', out])) !== 2) throw new Error('an existing --out must be refused (two packs never share one)');
+  if (await quiet(() => packMain(['--garden-src', garden, '--out', join(garden, 'packs')])) !== 2 || existsSync(join(garden, 'packs'))) throw new Error('an --out inside a source checkout must be refused before anything is written');
   // The checkouts are only read.
   if (readFileSync(join(crew, 'packages', 'crew', 'package.json'), 'utf8') !== crewPkg) throw new Error('pack changed the crew checkout\'s package.json');
   if (readFileSync(join(studio, 'package.json'), 'utf8') !== studioPkg) throw new Error('pack changed the studio checkout');
