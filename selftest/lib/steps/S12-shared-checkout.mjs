@@ -27,10 +27,13 @@ export async function run(ctx, t) {
   (ctx.extraDaemons ??= []).push(b); // a signal stops it too
   try {
     await b.start();
+    if (ctx.signal?.aborted) return; // the step's ceiling passed: stop here (finally stops b)
     const api = apiClient(b.origin, { log: ctx.log });
     const reg = await api.post('/repos', { name: 'corpus-shared', rootPath: corpus });
     t.check('the second daemon registers the same clone', reg.status >= 200 && reg.status < 300, `POST /repos ${reg.status}`);
+    if (ctx.signal?.aborted) return;
     await b.restart();
+    if (ctx.signal?.aborted) return;
     const after = existsSync(wtDir) ? readdirSync(wtDir) : [];
     t.evidence('worktrees-after', after);
     const lost = before.filter((w) => !after.includes(w));

@@ -92,7 +92,7 @@ def steer(j, rid, until=None, answer_then_return=None):
     """Answer the run's cards as a person would. With `until(card_text, choices)`, stop and return that card when it
     matches (a journey whose terminal state is a card, not a delivery); otherwise judge the delivery at the end."""
     p = j.page
-    answered, seen, judgments = [], [], []
+    answered, seen, judgments, confirmed = [], [], [], []
     t0 = time.time()
     while time.time() - t0 < 900:
         r = run_of(j, rid)
@@ -147,7 +147,10 @@ def steer(j, rid, until=None, answer_then_return=None):
                 box.fill("Hermetic self-test (U04): stub seats; no distinct judge or QE ledger exists here. This proves the governed path and delivery, not the fix.")
         for tid in ("session-proposal-go", "session-gate-send", "session-gate-confirm", "session-proposal-confirm-yes"):
             if tid == "session-proposal-confirm-yes":  # the deliver card's "Are you sure?": the person's yes
-                j.wait(lambda: p.get_by_test_id(tid).count() > 0 and p.get_by_test_id(tid).first.is_visible(), 8, "the delivery confirmation")
+                if not DELIVER.search(label):
+                    continue
+                if j.wait(lambda: p.get_by_test_id(tid).count() > 0 and p.get_by_test_id(tid).first.is_visible(), 8, "the delivery confirmation"):
+                    confirmed.append(label)
             b = p.get_by_test_id(tid)
             if b.count() and b.first.is_visible() and b.first.is_enabled():
                 b.first.click()
@@ -174,6 +177,8 @@ def steer(j, rid, until=None, answer_then_return=None):
     s = r.get("session", {})
     # The plan gate and the delivery confirmation are the person's: both must have been answered in the UI.
     j.check("plan_and_delivery_answered_in_the_ui", any(PLAN.search(a) for a in answered) and any(DELIVER.search(a) for a in answered), answered=answered, seen=seen[-6:])
+    # The delivery asked "Are you sure?" and the person said yes (a delivery sent from the first press would fail this).
+    j.check("delivery_confirmed_with_yes", bool(confirmed), confirmed=confirmed)
     # The thin roster's judgments are the person's, labelled with their reason: disclosed, never hidden.
     j.rec["judgments"] = judgments
     j.check("run_completed", s.get("status") == "completed", status=s.get("status"), delivery=s.get("delivery"))
@@ -183,8 +188,11 @@ def steer(j, rid, until=None, answer_then_return=None):
     # The corpus origin is a bare repository on this machine, so the delivery is the pushed branch ("There is no pull
     # request: the branch is the delivery", the card says). The run page must show it delivered, not "Nothing
     # delivered yet".
-    shown = j.wait(lambda: "Nothing delivered yet" not in p.inner_text("body") and (f"wicked/{rid}" in p.inner_text("body") or re.search(r"\bdelivered\b", p.inner_text("body"), re.I) is not None), 60, "the delivery on the run page")
+    shown = j.wait(lambda: re.search(r"Finished\s*·\s*delivered", p.inner_text("body")) is not None and "Nothing delivered yet" not in p.inner_text("body"), 60, "the delivery on the run page")
     j.check("delivery_shown_on_the_run_page", bool(shown), delivery=s.get("delivery"))
+    # The QE skip is disclosed where the person reads the result, and nothing there says QE passed.
+    body = p.inner_text("body")
+    j.check("qe_skip_disclosed_on_the_page", re.search(r"QE acceptance[^.\n]{0,40}\boff\b", body, re.I) is not None and re.search(r"QE acceptance (passed|ok)\b", body, re.I) is None, excerpt=(re.search(r"QE acceptance[^\n]{0,80}", body) or [None])[0])
     origin_git = j.state.get("origin")
     if origin_git:
         show = subprocess.run(["git", "--git-dir", origin_git, "show", f"wicked/{rid}:src/add.js"], capture_output=True, text=True)
