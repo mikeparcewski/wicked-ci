@@ -1,0 +1,7 @@
+Request for Proposal: Plant Monitoring Service (RFP-2026-17)
+
+1. Describe your monitoring product and how it collects machine data.
+2. State your uptime commitment and how it is measured.
+3. Do you hold ISO 27001? If not, describe your security controls.
+4. Give pricing for 50 machines for 12 months.
+5. Name two reference customers in manufacturing.

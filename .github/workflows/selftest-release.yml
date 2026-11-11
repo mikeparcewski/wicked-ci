@@ -1,0 +1,69 @@
+# Publish wicked-selftest (selftest/) to npm with provenance, on a `selftest-v<X.Y.Z>` tag. The tag must equal
+# selftest/package.json's version; the offline selfchecks run first; only selftest/ is published.
+#
+# Tokenless OIDC trusted publishing: npm must list this repository, THIS workflow file and the `npm-release`
+# environment as the package's trusted publisher. The environment is protected in the repository's settings (a required
+# reviewer, deployments only from `selftest-v*` tags), so a tag alone cannot publish: an admin creates the tag (the
+# `release-tags` ruleset) and a reviewer approves the deployment. The job also refuses a tag whose commit is not on
+# main. A brand-new package name has no settings page to register a publisher on, so the FIRST publish is the
+# operator's (see selftest/RELEASING.md).
+name: selftest-release
+
+on:
+  push:
+    tags: ['selftest-v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: selftest-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm-release
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: selftest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: The tag's commit is on main (reviewed and merged)
+        working-directory: .
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main"; exit 1; }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 'lts/*'
+          registry-url: https://registry.npmjs.org
+      - name: The tag names this version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          v="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "selftest-v$v" ]; then echo "::error::tag $TAG does not match selftest/package.json version $v (want selftest-v$v)"; exit 1; fi
+          if [ "$(node -p "require('./package.json').private === true")" = "true" ]; then echo "::error::selftest/package.json is private"; exit 1; fi
+      - name: Offline selfchecks
+        run: npm run check
+      - name: What the tarball holds
+        run: |
+          npm pack --dry-run --json > "$RUNNER_TEMP/pack.json"
+          node -e '
+            const files = require(process.argv[1])[0].files.map((f) => f.path);
+            const need = ["bin/wicked-selftest.mjs", "bin/wicked-smoke.mjs", "lib/main.mjs", "lib/pack.mjs", "journeys/driver.py", "shims/_lib.mjs", "fixtures/corpus/package.json"];
+            const missing = need.filter((f) => !files.includes(f));
+            const stray = files.filter((f) => /(^|\/)(node_modules|__pycache__)\/|\.pyc$|\.log$/.test(f));
+            if (missing.length || stray.length) { console.error("missing: " + missing.join(", ") + "; stray: " + stray.join(", ")); process.exit(1); }
+            console.log(files.length + " files");
+          ' "$RUNNER_TEMP/pack.json"
+      - name: Publish to npm (trusted publisher + provenance)
+        run: npm publish --access public --provenance

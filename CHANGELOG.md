@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### selftest — the :7721 rig's fixtures adopted; npm publish workflow (prepared; the first publish is the operator's)
+
+- **Fixtures** (DESIGN §4) now live in `selftest/fixtures/`. The repos `hello-onboard`, `hello`, `tiny-math-untested`
+  and `reqgraph-tm` are `git archive HEAD` exports of the rig lanes' checkouts. `mcp/echo-mcp.py` is the J6/MCP
+  server, and `docs/` holds the Chat-journey documents. `fixtures/README.md` gives each one's provenance and use.
+  `selfcheck` refuses a machine path in any fixture, and a mutation check confirmed it catches one. The PDFs carry
+  no author metadata. Once wired into steps they replace the rig's GitHub fixture repos.
+
+- `.github/workflows/selftest-release.yml` publishes `selftest/` to npm on a `selftest-v<X.Y.Z>` tag that equals
+  `selftest/package.json`'s version. It runs the offline selfchecks, checks the tarball's contents, and uses tokenless
+  OIDC trusted publishing with provenance. It runs in the protected `npm-release` environment (a required reviewer,
+  `selftest-v*` tags only), which is also the npm trusted publisher's environment, and it refuses a tag whose commit
+  is not on `main`. Only admins can create tags (`release-tags` ruleset).
+- `selftest/package.json` is no longer `private`: it gains `files`, `repository`, `homepage` and `publishConfig`.
+  The tarball (with the fixtures) is listed by `npm pack --dry-run` in CI.
+- `selftest/RELEASING.md` covers a release, plus the one-time first publish and trusted-publisher setup on
+  npmjs.com. npm registers a trusted publisher only on a package that already exists.
 ### e2e — studio journeys (U steps) sealed through `e2e run`
 
 - **U04/U05/U06 read a single-rule card.** When one rule is left unchecked, studio names it ("The rule POL-2101 needs

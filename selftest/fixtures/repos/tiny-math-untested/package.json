@@ -1,0 +1,7 @@
+{
+  "name": "tiny-math-untested",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/math.js",
+  "scripts": { "test": "node --test test/" }
+}
