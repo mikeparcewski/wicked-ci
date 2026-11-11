@@ -1,6 +1,6 @@
 {
   "name": "wicked-selftest",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "The wicked product self-test: installs a set of wicked artifacts (published, or packed from checkouts) into a hermetic temp root, boots an ephemeral daemon with stub seats, runs a fixed, versioned suite against its wire, and tears everything down. Grown from wicked-smoke (S01-S11); `wicked-smoke` stays as an alias.",
   "type": "module",

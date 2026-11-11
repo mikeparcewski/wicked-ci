@@ -4,6 +4,11 @@
 // build` with its dist stamped, and crew is `npm ci` + build with THAT studio dist bundled, then `npm pack`. core-ts and
 // bus stay published (crew's pin resolves them) unless a set names them.
 //
+// Tier 2 (`--core-src`) also builds the engine addon from a wicked-core checkout: `npm ci` + `npm run build` (napi
+// build --platform --release, so cargo and a Rust toolchain must be on PATH) in crates/wicked-core-ts, then packs that
+// package with the host's .node INSIDE it (index.js loads a local binding before the platform package) and without
+// the platform optionalDependencies, so the install can't pull a published binary instead.
+//
 // Every build runs in a STAGING EXPORT under --out (`git archive HEAD` of each checkout), never in the checkout: the
 // checkout is only read, so an interrupted or concurrent pack can't leave it stamped or half-built, and a pack holds
 // exactly the recorded commit. A checkout with uncommitted or untracked changes is refused (they would not be in the
@@ -13,32 +18,37 @@
 // own branch) or inside a sandbox. A governed run's head is packed inside the floor's sandbox, never on the host. The
 // build sees a constructed environment: PATH, a HOME, npm cache/config and temp dir under --out, and git with no
 // system or global config and no inherited GIT_* routing. `--npm-cache <dir>` opts in to a shared npm cache.
-import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { homedir } from 'node:os';
 import { gzipSync } from 'node:zlib';
 import { npmArgv } from './proc.mjs';
 
 export const PACK_HELP = `wicked-selftest pack — build Tier 1 packs from checkouts and write <out>/set.json
 
-usage: wicked-selftest pack --out <dir> [--crew-src <dir>] [--studio-src <dir>] [--garden-src <dir>]
-                            [--allow-dirty] [--npm-cache <dir>] [--build-slot "<prefix>"]
+usage: wicked-selftest pack --out <dir> [--crew-src <dir>] [--studio-src <dir>] [--garden-src <dir>] [--core-src <dir>]
+                            [--allow-dirty] [--npm-cache <dir>] [--cargo-target <dir>] [--build-slot "<prefix>"]
 
   --crew-src <dir>     a wicked-crew checkout: npm ci, build, bundle a studio dist, npm pack
   --studio-src <dir>   a wicked-studio checkout: npm ci, npm run build; its dist is bundled into crew
                        (needs --crew-src). Without it, crew bundles the studio its lockfile pins (build:with-studio).
   --garden-src <dir>   a wicked-garden checkout: exported as a tarball (no build)
+  --core-src <dir>     a wicked-core checkout (Tier 2): napi-build crates/wicked-core-ts for this host and pack it
+                       with the binary inside; crew installs it instead of its pinned wicked-core-ts
   --out <dir>          where the staging exports, packs and set.json go (created; it must not exist yet)
   --allow-dirty        pack a checkout that has uncommitted or untracked changes (they are NOT included; recorded)
   --npm-cache <dir>    use this npm cache (default: a fresh one under --out)
+  --cargo-target <dir> CARGO_TARGET_DIR for the Tier 2 build (default: under the staging export), so CI can cache it.
+                       CARGO_HOME and RUSTUP_HOME are the host's (the build's HOME is a fresh one under --out)
   --build-slot "<p>"   a command prefix for the heavy steps, e.g. "build-slot --"
 
 Every source is the checkout's HEAD commit, exported (tracked files only) and built under --out; the checkout itself is
-never written. crew and studio versions are stamped "<package version>+st.<sha7>" in the export, so /health and the
+never written. crew, studio and core-ts versions are stamped "<package version>+st.<sha7>" in the export, so /health and the
 studio bundle name what was built; garden keeps its own manifest version (crew reads it as is).`;
 
 function parse(argv) {
-  const o = { crewSrc: null, studioSrc: null, gardenSrc: null, out: null, buildSlot: [], allowDirty: false, npmCache: null };
+  const o = { crewSrc: null, studioSrc: null, gardenSrc: null, coreSrc: null, out: null, buildSlot: [], allowDirty: false, npmCache: null, cargoTarget: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => { const v = argv[i + 1]; if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`); i += 1; return v; };
@@ -46,6 +56,8 @@ function parse(argv) {
       case '--crew-src': o.crewSrc = resolve(next()); break;
       case '--studio-src': o.studioSrc = resolve(next()); break;
       case '--garden-src': o.gardenSrc = resolve(next()); break;
+      case '--core-src': o.coreSrc = resolve(next()); break;
+      case '--cargo-target': o.cargoTarget = resolve(next()); break;
       case '--out': o.out = resolve(next()); break;
       case '--build-slot': o.buildSlot = next().split(' ').filter(Boolean); break;
       case '--allow-dirty': o.allowDirty = true; break;
@@ -56,15 +68,19 @@ function parse(argv) {
   }
   if (o.help) return o;
   if (!o.out) throw new Error('--out is required');
-  if (!o.crewSrc && !o.gardenSrc) throw new Error('nothing to pack: give --crew-src and/or --garden-src');
+  if (!o.crewSrc && !o.gardenSrc && !o.coreSrc) throw new Error('nothing to pack: give --crew-src, --garden-src and/or --core-src');
   if (o.studioSrc && !o.crewSrc) throw new Error('--studio-src needs --crew-src (the studio dist ships inside crew)');
   for (const k of ['crewSrc', 'studioSrc']) if (o[k] && !existsSync(join(o[k], 'package.json'))) throw new Error(`${k}: ${o[k]} has no package.json`);
   if (o.gardenSrc && !existsSync(join(o.gardenSrc, '.claude-plugin', 'plugin.json'))) throw new Error(`gardenSrc: ${o.gardenSrc} has no .claude-plugin/plugin.json`);
+  if (o.coreSrc && !existsSync(join(o.coreSrc, CORE_TS_DIR, 'package.json'))) throw new Error(`coreSrc: ${o.coreSrc} has no ${CORE_TS_DIR}/package.json`);
   return o;
 }
 
-/** The build's environment: constructed, never inherited (no host HOME, npmrc, credentials or GIT_* routing). */
-function buildEnv(stage, npmCache) {
+const CORE_TS_DIR = join('crates', 'wicked-core-ts');
+
+/** The build's environment: constructed, never inherited (no host HOME, npmrc, credentials or GIT_* routing). Rust's
+ *  toolchain homes are the one exception, by path only: rustup's proxies find no toolchain under a fresh HOME. */
+function buildEnv(stage, npmCache, cargoTarget) {
   const home = join(stage, 'home');
   const tmp = join(stage, 'tmp');
   mkdirSync(home, { recursive: true });
@@ -83,6 +99,10 @@ function buildEnv(stage, npmCache) {
     WICKED_STUDIO_SKIP_PREPARE: '1',
   };
   for (const k of ['SystemRoot', 'ComSpec', 'PATHEXT', 'WINDIR']) if (process.env[k]) env[k] = process.env[k]; // Windows process basics
+  env.CARGO_HOME = process.env.CARGO_HOME ?? join(homedir(), '.cargo');
+  env.RUSTUP_HOME = process.env.RUSTUP_HOME ?? join(homedir(), '.rustup');
+  env.CARGO_TARGET_DIR = cargoTarget ?? join(stage, 'cargo-target');
+  for (const k of ['CARGO_BUILD_JOBS', 'RUSTC_WRAPPER', 'SCCACHE_DIR']) if (process.env[k]) env[k] = process.env[k];
   return env;
 }
 
@@ -127,7 +147,7 @@ export async function packMain(argv) {
   if (o.help) { console.log(PACK_HELP); return 0; }
   // --out may not sit inside a source checkout: its own files would make a clean tree read dirty, and the checkout
   // must stay unwritten. Checked before anything is created.
-  for (const src of [o.crewSrc, o.studioSrc, o.gardenSrc].filter(Boolean)) {
+  for (const src of [o.crewSrc, o.studioSrc, o.gardenSrc, o.coreSrc].filter(Boolean)) {
     const rel = relative(src, o.out);
     if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) { console.error(`wicked-selftest pack: --out ${o.out} is inside the source checkout ${src}; choose a directory outside it`); return 2; }
   }
@@ -135,9 +155,9 @@ export async function packMain(argv) {
   mkdirSync(dirname(o.out), { recursive: true });
   try { mkdirSync(o.out); } catch (err) { console.error(`wicked-selftest pack: --out ${o.out} ${err.code === 'EEXIST' ? 'already exists (it must not: pass a new directory)' : `cannot be created: ${err.message}`}`); return 2; }
   const stage = join(o.out, '.stage');
-  const env = buildEnv(stage, o.npmCache);
+  const env = buildEnv(stage, o.npmCache, o.cargoTarget);
   const facts = {};
-  for (const [k, dir] of [['crew', o.crewSrc], ['studio', o.studioSrc], ['garden', o.gardenSrc]]) {
+  for (const [k, dir] of [['crew', o.crewSrc], ['studio', o.studioSrc], ['garden', o.gardenSrc], ['core', o.coreSrc]]) {
     if (!dir) continue;
     facts[k] = gitFacts(dir, env);
     if (facts[k].dirty && !o.allowDirty) {
@@ -145,7 +165,7 @@ export async function packMain(argv) {
       return 2;
     }
   }
-  const set = { $comment: 'written by wicked-selftest pack; install with: wicked-selftest run --set <this file>', built: { tier: 1, at: new Date().toISOString() } };
+  const set = { $comment: 'written by wicked-selftest pack; install with: wicked-selftest run --set <this file>', built: { tier: o.coreSrc ? 2 : 1, at: new Date().toISOString() } };
   const note = (f) => (f.dirty ? 'uncommitted/untracked changes were LEFT OUT (HEAD only, --allow-dirty)' : undefined);
 
   if (o.gardenSrc) {
@@ -198,6 +218,26 @@ export async function packMain(argv) {
     const tgzName = sh(npm('pack', '--silent', '--pack-destination', o.out), crPkg, env, { capture: true }).split('\n').pop();
     set.crew = tgzName;
     set.built.crew = { sha: f.sha, dirty: f.dirty, version, studio: studioDist ? 'built from --studio-src' : "the studio crew's lockfile pins (build:with-studio)", note: note(f) };
+  }
+
+  if (o.coreSrc) {
+    const f = facts.core;
+    const co = exportTree(o.coreSrc, f.sha, stage, 'wicked-core', env);
+    const ts = join(co, CORE_TS_DIR);
+    sh(npm('ci'), ts, env, { slot: o.buildSlot });
+    sh(npm('run', 'build'), ts, env, { slot: o.buildSlot });
+    const nodes = readdirSync(ts).filter((n) => /^wicked-core-ts\.[a-z0-9_-]+\.node$/.test(n));
+    if (nodes.length !== 1) throw new Error(`core-ts build left ${nodes.length} wicked-core-ts.<triple>.node files in ${CORE_TS_DIR} (want exactly the host's one): ${nodes.join(', ') || 'none'}`);
+    const pj = JSON.parse(readFileSync(join(ts, 'package.json'), 'utf8'));
+    const version = `${pj.version}+st.${f.sha.slice(0, 7)}`;
+    pj.version = version;
+    pj.files = [...new Set([...(pj.files ?? []), nodes[0]])];
+    delete pj.optionalDependencies; // a published platform binary must not ride in beside the one built here
+    delete pj.scripts; // the pack is installed, never built again (no prepare/install hook from the export)
+    writeFileSync(join(ts, 'package.json'), `${JSON.stringify(pj, null, 2)}\n`);
+    const tgzName = sh(npm('pack', '--silent', '--pack-destination', o.out), ts, env, { capture: true }).split('\n').pop();
+    set.coreTs = tgzName;
+    set.built.core = { sha: f.sha, dirty: f.dirty, version, binary: nodes[0], note: note(f) };
   }
 
   writeFileSync(join(o.out, 'set.json.tmp'), `${JSON.stringify(set, null, 2)}\n`);

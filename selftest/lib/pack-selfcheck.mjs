@@ -77,6 +77,29 @@ try {
   if (!threw) throw new Error('a crew tarball given as bus must be refused');
   if (expectTarball('wicked-crew', rs.crew, ENV) !== m.version) throw new Error('expectTarball returns the pack version');
 
+  // Tier 2: --core-src builds crates/wicked-core-ts (here a fixture build that writes a fake binding) and packs it with
+  // the host's .node inside, the version stamped, and no scripts left to run at install.
+  const core = join(base, 'core');
+  const tsPkg = { name: 'wicked-core-ts', version: '0.15.0', main: 'index.js', files: ['index.js'], scripts: { build: 'node b.mjs', prepack: 'node -e "process.exit(1)"' } };
+  const coreSha = repo(core, {
+    'Cargo.toml': '[package]\nname = "wicked-core"\n',
+    'crates/wicked-core-ts/package.json': JSON.stringify(tsPkg, null, 2),
+    'crates/wicked-core-ts/package-lock.json': JSON.stringify({ name: 'wicked-core-ts', version: '0.15.0', lockfileVersion: 3, requires: true, packages: { '': { name: 'wicked-core-ts', version: '0.15.0' } } }),
+    'crates/wicked-core-ts/index.js': 'module.exports = {};\n',
+    'crates/wicked-core-ts/b.mjs': "import { writeFileSync } from 'node:fs'; writeFileSync('wicked-core-ts.fixture-host.node', 'core-fixture-binding');\n",
+  });
+  const out4 = join(base, 'out4');
+  if (await quiet(() => packMain(['--core-src', core, '--out', out4, '--cargo-target', join(base, 'cargo-target')])) !== 0) throw new Error('pack --core-src');
+  const s4 = JSON.parse(readFileSync(join(out4, 'set.json'), 'utf8'));
+  if (s4.built.tier !== 2 || s4.built.core.sha !== coreSha || s4.built.core.binary !== 'wicked-core-ts.fixture-host.node') throw new Error(`Tier 2 provenance: ${JSON.stringify(s4.built)}`);
+  const cm = tarballManifest(join(out4, s4.coreTs), ENV);
+  if (cm.name !== 'wicked-core-ts' || cm.version !== `0.15.0+st.${coreSha.slice(0, 7)}`) throw new Error(`core-ts pack is ${cm.name}@${cm.version}`);
+  if (cm.scripts || cm.optionalDependencies) throw new Error('the core-ts pack must carry no scripts and no platform optionalDependencies');
+  if (run(['tar', '-xzOf', join(out4, s4.coreTs), 'package/wicked-core-ts.fixture-host.node'], base) !== 'core-fixture-binding') throw new Error('the core-ts pack does not carry the built binding');
+  if (readSet(join(out4, 'set.json')).coreTs !== join(out4, s4.coreTs)) throw new Error('readSet of a Tier 2 set');
+  if (expectTarball('wicked-core-ts', join(out4, s4.coreTs), ENV) !== cm.version) throw new Error('expectTarball of the core-ts pack');
+  if (run(['git', 'status', '--porcelain', '--untracked-files=normal'], core) !== '' || existsSync(join(core, 'crates', 'wicked-core-ts', 'node_modules'))) throw new Error('pack --core-src built inside the checkout');
+
   // Dirty trees: an untracked file is refused (exit 2, nothing written); --allow-dirty records it was left out.
   writeFileSync(join(garden, 'new-skill.md'), 'untracked');
   const out2 = join(base, 'out2');

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### selftest — pull-request CI (`selftest.yml`) and Tier 2 packs
+
+- **`.github/workflows/selftest.yml`**, the reusable workflow a product repo calls on its pull requests. It packs the
+  repo under test from the caller's tree at `github.sha` (the PR merge commit) and every other product from its
+  `main`, then runs `--profile pr` on ubuntu. It is **advisory** by default: the job stays green and the suite's real
+  verdict goes to a warning annotation, the job summary and the `overall` output, until the flake rate is measured.
+  wicked-ci's own CI calls it on the `main` set (Tier 1, and Tier 2 with core under test), not advisory.
+- **Tier 2: `pack --core-src`.** It napi-builds `crates/wicked-core-ts` from a wicked-core checkout and packs it
+  with the host's binary inside, stamped `+st.<sha7>`, with no platform optionalDependencies and no scripts. The set
+  names it as `coreTs`. `--cargo-target` keeps the cargo build cacheable.
+
 ### selftest — governed journeys through studio (U04, U05), S12, scenario data, teardown sweep
 
 - **U04 (J4).** A bug fix is launched from New job, steered on its cards and delivered, all in studio:
