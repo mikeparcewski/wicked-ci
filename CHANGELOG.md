@@ -2,6 +2,47 @@
 
 ## Unreleased
 
+### selftest — the smoke harness grows into the product self-test (`wicked-selftest`)
+
+- **Why.** When a change lands in wicked-crew, wicked-studio, wicked-core or wicked-garden, nothing proves the
+  product still works before merge. The floors run unit tests, and the smoke installs only what is already
+  published. The :7721 test rig that filled the gap by hand is retired. The operator approved one consistent
+  self-test: humans, pull-request CI, a governed run's floor and the release smoke run one versioned suite, and they
+  differ only in the set they install and the profile they select.
+- **Moved.** `smoke/` is now `selftest/`, with its history. The package is `wicked-selftest` 0.2.0 with two bins:
+  `wicked-selftest run|pack`, and `wicked-smoke`, kept as an exact alias of `wicked-selftest run`. With no new flag,
+  a run is what the smoke always ran: the published set and the same steps, checks and report. `smoke.yml`,
+  `smoke-selftest.yml`, `e2e-catalog.yml`, the e2e catalog's scenario references, the e2e smoke adapter and the docs
+  follow the move, and the e2e test index counts `selftest/` as a test directory. Callers that pin a wicked-ci SHA
+  are unaffected.
+- **Sets.** `--crew`, `--bus` and `--core-ts` take a local `.tgz` file as well as an npm version. A source directory
+  is refused, because npm would run its `prepare` script and link the checkout into the install. `--garden` takes a
+  local `.tgz` or directory as well as a tag: a git checkout is exported with `git archive HEAD`. `--set <file.json>`
+  names them together, with paths resolved against the file's directory. Anything that could silently test something
+  else is refused: an unknown key, a missing pack, an empty or whitespace value (npm reads `wicked-crew@ ` as latest),
+  or a tarball whose `package.json` names another package. A pack path may hold spaces; a version or tag may not. The installed version is then checked against the pack's.
+  A garden manifest's version must be a single-component semver before anything under the plugin cache is replaced, so
+  a `../` version can't reach outside the root. A linked
+  `.claude-plugin/plugin.json` is refused before it is read.
+- **Pack (Tier 1).** `wicked-selftest pack --crew-src --studio-src --garden-src --out` builds packs the way the dev
+  copy does: garden exported, studio built with its dist stamped, crew built with that studio dist bundled. It writes
+  `set.json`. Every build runs in a `git archive <recorded sha>` export under `--out`. The checkouts are only read: git
+  runs with `--no-optional-locks` and command-scoped `core.fsmonitor=false`, and garden's tarball is gzipped in
+  process, not by a git archive filter. An interrupted pack can't leave a checkout stamped or half-built, and a checkout
+  that moves mid-pack can't change what was recorded. `--out` must not exist yet, because creating it is the claim, and
+  `set.json` is published atomically. The build runs with a constructed environment:
+  HOME, npm cache/config and temp under `--out`; no system or global git config; no inherited `GIT_*` routing; argument
+  arrays, never a shell. A checkout with uncommitted or untracked changes is refused unless `--allow-dirty`, which
+  records that they were left out. crew and studio versions are stamped `+st.<sha7>`. Building runs the checkouts' own
+  code, so it is for trusted trees or a sandbox. `run` never builds.
+- **Reserved ports.** The harness never binds 7701, 7702, 7703 or 7721.
+- **Profiles.** `--profile smoke` is the default and today's set. `pr` is S01 S02 S03 S04 S08 S10, for a pull request
+  and a governed run's floor. `release` is every step except the opt-in S07. A profile only selects steps, and
+  `--steps` and `--profile` are exclusive. The report records the profile.
+- `npm run check` covers profiles, the set-file refusals, the garden version guard, reserved ports, and `pack` on
+  disposable fixture checkouts (untouched checkouts, the stamp, the bundled studio, HEAD-only exports, dirty refusal).
+  The smoke workflow runs both checks.
+
 ### smoke — the seat shims answer the engine's rule check; S02 reads crew's home-scrubbed paths
 
 - crew 0.18.0's release smoke (run 42512851279) failed S02, S04 and S11 on ubuntu and macOS. The package was

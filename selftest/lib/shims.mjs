@@ -1,4 +1,4 @@
-// Seat + tool shims: node scripts under smoke/shims/, launched through a tiny wrapper written into the
+// Seat + tool shims: node scripts under selftest/shims/, launched through a tiny wrapper written into the
 // run's bin dir (a POSIX `sh` exec on unix, a `.cmd` twin on Windows — both always written). The
 // wrapper carries the ABSOLUTE node path, so the engine's env-stripped children resolve them without
 // `/usr/bin/env` or a shell. `pi` and `agy` get NO wrapper: the "not installed" seat is real absence.
@@ -196,7 +196,7 @@ export function writeCouncilOverlay(L, { acpSeatForCouncil = false, c5 = false }
   const dir = join(L.home, '.config', 'wicked-council');
   mkdirSync(dir, { recursive: true });
   const path = join(dir, 'clis.toml');
-  writeFileSync(path, `# written by wicked-smoke — see smoke/lib/shims.mjs writeCouncilOverlay\n${toml}`);
+  writeFileSync(path, `# written by wicked-smoke — see selftest/lib/shims.mjs writeCouncilOverlay\n${toml}`);
   return path;
 }
 

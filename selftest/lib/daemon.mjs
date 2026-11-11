@@ -6,7 +6,19 @@ import { createServer } from 'node:net';
 import { hermeticEnv } from './env.mjs';
 import { spawnLogged, sleep } from './proc.mjs';
 
-export function freePort() {
+/** The operator's long-lived daemons (stable, dev copy, k8s proof, the retired rig). A self-test daemon never binds
+ *  one of them, so nothing it does can be mistaken for, or collide with, a daemon that holds real state. */
+export const RESERVED_PORTS = new Set([7701, 7702, 7703, 7721]);
+
+export async function freePort() {
+  for (let i = 0; i < 8; i++) {
+    const p = await anyPort();
+    if (!RESERVED_PORTS.has(p)) return p;
+  }
+  throw new Error('freePort: the OS kept handing out a reserved daemon port');
+}
+
+function anyPort() {
   return new Promise((resolve, reject) => {
     const srv = createServer();
     srv.unref();
@@ -66,6 +78,7 @@ export class Daemon {
   async start({ timeoutMs = this.bootTimeoutMs, extraEnv } = {}) {
     if (this.child) throw new Error('daemon already running');
     this.port = this.port ?? (await freePort());
+    if (RESERVED_PORTS.has(this.port)) throw new Error(`refusing to serve on :${this.port}: an operator daemon port`);
     if (extraEnv !== undefined) this.extraEnv = extraEnv;
     this.env = { ...hermeticEnv(this.L, this.port), ...this.baseEnv, ...(this.extraEnv ?? {}) };
     this.starts += 1;

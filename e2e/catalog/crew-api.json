@@ -876,7 +876,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S06-campaign.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -1125,7 +1125,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S08-chat.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -1265,7 +1265,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S08-chat.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -1340,7 +1340,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S08-chat.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -1416,7 +1416,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S08-chat.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -1698,7 +1698,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S08-chat.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -2006,7 +2006,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S10-teardown.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S10-teardown.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -2054,7 +2054,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S09-packaging.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S09-packaging.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -2195,7 +2195,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S01-boot.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -2273,7 +2273,7 @@
    "covers": [],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S10-teardown.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S10-teardown.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -2566,7 +2566,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S09-packaging.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S09-packaging.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -3911,7 +3911,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S01-boot.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -4028,7 +4028,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S05-bus-health.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S05-bus-health.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -4185,7 +4185,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S02-skills.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S02-skills.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -4767,7 +4767,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -5216,7 +5216,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -5225,7 +5225,7 @@
    ],
    "sources": [
     "wicked-crew:wicked-core#774/#780 (engine)",
-    "wicked-ci:smoke/lib/steps/S04-bug-run.mjs nojudge"
+    "wicked-ci:selftest/lib/steps/S04-bug-run.mjs nojudge"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -5265,12 +5265,12 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
    "sources": [
-    "wicked-ci:smoke/lib/runs.mjs gateKindOf",
+    "wicked-ci:selftest/lib/runs.mjs gateKindOf",
     "wicked-crew:packages/crew/src/api/routes.ts:5056"
    ],
    "origin": "inventory-2026-10-20"
@@ -6196,7 +6196,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S01-boot.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -6465,7 +6465,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S07-interactive.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S07-interactive.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -6571,7 +6571,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S07-interactive.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S07-interactive.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -9605,7 +9605,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S05-bus-health.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S05-bus-health.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -9803,7 +9803,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S05-bus-health.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S05-bus-health.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -9863,7 +9863,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S05-bus-health.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S05-bus-health.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -11045,7 +11045,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S03-onboard.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S03-onboard.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -11366,11 +11366,11 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S09-packaging.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S09-packaging.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -11675,11 +11675,11 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S06-campaign.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -11866,7 +11866,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -12003,7 +12003,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S08-chat.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -12624,7 +12624,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -12895,7 +12895,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -12905,7 +12905,7 @@
    ],
    "sources": [
     "wicked-crew:packages/crew/src/api/routes.ts:617 humanConfirm",
-    "wicked-ci:smoke/lib/runs.mjs"
+    "wicked-ci:selftest/lib/runs.mjs"
    ],
    "origin": "inventory-2026-10-20"
   },
@@ -13631,7 +13631,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -13736,7 +13736,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -13926,7 +13926,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/runs.mjs",
+     "ref": "wicked-ci:selftest/lib/runs.mjs",
      "name": "reassign:<cli>",
      "fidelity": "e2e-hermetic"
     }
@@ -14001,7 +14001,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -14321,7 +14321,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -15164,7 +15164,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S02-skills.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S02-skills.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -15257,7 +15257,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S02-skills.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S02-skills.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -16071,7 +16071,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S01-boot.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -16590,7 +16590,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S06-campaign.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -16921,7 +16921,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],
@@ -17610,7 +17610,7 @@
    ],
    "scenarios": [
     {
-     "ref": "wicked-ci:smoke/lib/steps/S03-onboard.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S03-onboard.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
@@ -17954,11 +17954,11 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/ws.mjs",
+     "ref": "wicked-ci:selftest/lib/ws.mjs",
      "fidelity": "e2e-hermetic"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S08-chat.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S08-chat.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],

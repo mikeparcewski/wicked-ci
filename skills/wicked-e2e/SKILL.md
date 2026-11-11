@@ -11,7 +11,7 @@ description: |
   cover X", "is X certified".
 
   NOT for: writing new scenarios or tests, judging a product by reading its code, or running the
-  wicked-ci smoke harness on its own (that is `smoke/`).
+  wicked-ci smoke harness on its own (that is `selftest/`).
 license: MIT
 compatibility: any
 metadata:

@@ -24306,7 +24306,7 @@
      "fidelity": "unit"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S06-campaign.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S06-campaign.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],

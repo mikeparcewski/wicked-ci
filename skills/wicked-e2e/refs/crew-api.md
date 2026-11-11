@@ -3,7 +3,7 @@
 ## Setup quirks
 
 - **Fixture = the smoke harness and crew's own tests.** On `--target fixture` the wicked-ci smoke
-  steps (`smoke/lib/steps/Sxx-*.mjs`) boot published artifacts with shimmed seats in a temp root
+  steps (`selftest/lib/steps/Sxx-*.mjs`) boot published artifacts with shimmed seats in a temp root
   (`e2e-hermetic`, which can certify), and crew's vitest files run in-process (`integration`,
   which cannot). The smoke harness needs node >= 22 and the npm registry (it installs the
   published packages).

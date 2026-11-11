@@ -368,4 +368,94 @@ if (sqlite) {
   if (!insideRoot(snap, root) || !insideRoot(root, root)) throw new Error('S02 insideRoot: the root and a path under it are inside');
   for (const p of [`${root}/../outside/snapshot`, `${root}X/state`, '/home/runner/outside', '~/wicked-smoke-root/state', null]) if (insideRoot(p, root)) throw new Error(`S02 insideRoot(${p}) must be false`);
 }
+// Profiles and sets (the self-test layer): a profile selects registered steps only, and in run order; --steps and
+// --profile are exclusive; a set file resolves its packs against its own directory and refuses unknown keys, so a typo
+// can never fall back to npm latest; a local pack becomes a path spec, a version an npm spec.
+{
+  const { PROFILES, parseArgs, readSet } = await import('./args.mjs');
+  const { npmSpec } = await import('./install.mjs');
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  // Each profile's membership is written out HERE, independently of PROFILES: a change that drops a step from a
+  // profile (the bug run from `pr`, say) fails this check instead of passing it by construction.
+  const EXPECTED = {
+    smoke: 'S01,S02,S03,S04,S11,S05,S06,S08,S09,S10',
+    pr: 'S01,S02,S03,S04,S08,S10',
+    release: 'S01,S02,S03,S04,S11,S05,S06,S08,S09,S10',
+  };
+  if (Object.keys(PROFILES).sort().join() !== Object.keys(EXPECTED).sort().join()) throw new Error(`profiles: ${Object.keys(PROFILES)} vs ${Object.keys(EXPECTED)}`);
+  for (const [name, want] of Object.entries(EXPECTED)) if (PROFILES[name].join() !== want) throw new Error(`profile ${name} is ${PROFILES[name].join()}, expected ${want}`);
+  for (const [name, steps] of Object.entries(PROFILES)) {
+    if (steps.length === 0 || steps.some((s) => !ALL_STEPS.includes(s))) throw new Error(`profile ${name} names an unregistered step`);
+    if (steps.join() !== ALL_STEPS.filter((s) => steps.includes(s)).join()) throw new Error(`profile ${name} is not in run order`);
+    if (parseArgs(['--profile', name]).steps.join() !== steps.join()) throw new Error(`--profile ${name}`);
+  }
+  if (parseArgs([]).profile !== 'smoke' || parseArgs([]).steps.join() !== PROFILES.smoke.join()) throw new Error('the default must stay the smoke profile');
+  if (parseArgs(['--steps', 'S01']).profile !== null) throw new Error('--steps alone is not a profile');
+  for (const argv of [['--profile', 'pr', '--steps', 'S01'], ['--steps', 'S01', '--profile', 'pr'], ['--profile', 'nope']]) {
+    let threw = false; try { parseArgs(argv); } catch { threw = true; }
+    if (!threw) throw new Error(`parseArgs(${argv.join(' ')}) must refuse`);
+  }
+  const dir = mkdtempSync(join(tmpdir(), 'selftest-set-'));
+  writeFileSync(join(dir, 'wicked-crew-1.0.0.tgz'), '');
+  writeFileSync(join(dir, 'set.json'), JSON.stringify({ $comment: 'x', built: { tier: 1 }, crew: 'wicked-crew-1.0.0.tgz', bus: '2.5.0' }));
+  const set = readSet(join(dir, 'set.json'));
+  if (set.crew !== join(dir, 'wicked-crew-1.0.0.tgz') || set.bus !== '2.5.0') throw new Error(`readSet: ${JSON.stringify(set)}`);
+  const o = parseArgs(['--set', join(dir, 'set.json'), '--bus', '2.4.0']);
+  if (o.crew !== set.crew || o.bus !== '2.4.0') throw new Error('a flag after --set overrides it');
+  writeFileSync(join(dir, 'typo.json'), JSON.stringify({ crw: './wicked-crew-1.0.0.tgz' }));
+  let threw = false; try { readSet(join(dir, 'typo.json')); } catch { threw = true; }
+  if (!threw) throw new Error('readSet must refuse an unknown key');
+  writeFileSync(join(dir, 'missing.json'), JSON.stringify({ crew: './gone.tgz' }));
+  threw = false; try { readSet(join(dir, 'missing.json')); } catch { threw = true; }
+  if (!threw) throw new Error('readSet must refuse a pack that does not exist');
+  // Whitespace, a source directory for an npm package, or a non-version are refused (each would test something else).
+  mkdirSync(join(dir, 'crew-checkout'));
+  writeFileSync(join(dir, 'crew-checkout', 'package.json'), '{}');
+  for (const argv of [['--crew', ' '], ['--crew', ''], ['--bus', 'latest '], ['--crew', join(dir, 'crew-checkout')], ['--core-ts', join(dir, 'crew-checkout')], ['--garden', join(dir, 'set.json')], ['--crew', '0.18.8;rm']]) {
+    let refused = false; try { parseArgs(argv); } catch { refused = true; }
+    if (!refused) throw new Error(`parseArgs(${JSON.stringify(argv)}) must refuse`);
+  }
+  if (parseArgs(['--garden', join(dir, 'crew-checkout')]).garden !== join(dir, 'crew-checkout')) throw new Error('a garden directory is a local source');
+  // A pack PATH may hold spaces (C:\\Users\\Jane Doe\\…); only versions and tags may not.
+  mkdirSync(join(dir, 'with space'));
+  writeFileSync(join(dir, 'with space', 'wicked-crew-1.0.0.tgz'), '');
+  if (parseArgs(['--crew', join(dir, 'with space', 'wicked-crew-1.0.0.tgz')]).crew !== join(dir, 'with space', 'wicked-crew-1.0.0.tgz')) throw new Error('a pack path with a space');
+  writeFileSync(join(dir, 'with space', 'set.json'), JSON.stringify({ crew: 'wicked-crew-1.0.0.tgz' }));
+  if (parseArgs(['--set', join(dir, 'with space', 'set.json')]).crew !== join(dir, 'with space', 'wicked-crew-1.0.0.tgz')) throw new Error('a set under a directory with a space');
+  writeFileSync(join(dir, 'blank.json'), JSON.stringify({ crew: ' ' }));
+  threw = false; try { readSet(join(dir, 'blank.json')); } catch { threw = true; }
+  if (!threw) throw new Error('readSet must refuse a whitespace value (npm reads it as latest)');
+  if (npmSpec('wicked-crew', '0.18.8') !== 'wicked-crew@0.18.8' || npmSpec('wicked-crew', set.crew) !== set.crew || npmSpec('wicked-crew', 'latest') !== 'wicked-crew@latest') throw new Error('npmSpec');
+}
+// A garden manifest's version is one path component (semver); a traversal never reaches the recursive delete.
+{
+  const { GARDEN_VERSION_RE, placeGarden } = await import('./install.mjs');
+  const { mkdtempSync, mkdirSync, writeFileSync, existsSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  for (const v of ['12.66.1', '0.1.0-rc.1', '1.2.3+st.abc1234']) if (!GARDEN_VERSION_RE.test(v)) throw new Error(`garden version ${v} must be accepted`);
+  for (const v of ['../../x', '1.2.3/../../x', '', '..', '1.2', 'v1.2.3']) if (GARDEN_VERSION_RE.test(v)) throw new Error(`garden version ${v} must be refused`);
+  const r = mkdtempSync(join(tmpdir(), 'selftest-garden-'));
+  const sentinel = join(r, 'outside', 'keep.txt');
+  mkdirSync(join(r, 'outside'), { recursive: true }); writeFileSync(sentinel, 'x');
+  const staging = join(r, 'staging'); mkdirSync(join(staging, '.claude-plugin'), { recursive: true });
+  writeFileSync(join(staging, '.claude-plugin', 'plugin.json'), JSON.stringify({ version: '../../../../outside' }));
+  let refused = false; try { placeGarden({ claude: join(r, 'claude') }, staging, 'fixture'); } catch { refused = true; }
+  if (!refused || !existsSync(sentinel)) throw new Error('a traversal version must be refused before anything is removed');
+  // A manifest that is a link is refused before it is read (it could name a host file).
+  const { symlinkSync } = await import('node:fs');
+  const st2 = join(r, 'staging2'); mkdirSync(join(st2, '.claude-plugin'), { recursive: true });
+  writeFileSync(join(r, 'secret.txt'), 'FAKE_TOKEN');
+  symlinkSync(join(r, 'secret.txt'), join(st2, '.claude-plugin', 'plugin.json'));
+  let msg = '';
+  try { placeGarden({ claude: join(r, 'claude') }, st2, 'fixture'); } catch (err) { msg = err.message; }
+  if (!/must be a plain file/.test(msg) || msg.includes('FAKE_TOKEN')) throw new Error(`a linked manifest must be refused without being read: ${msg}`);
+}
+// The self-test daemon never binds an operator daemon's port.
+{
+  const { RESERVED_PORTS, freePort } = await import('./daemon.mjs');
+  for (const p of [7701, 7702, 7703, 7721]) if (!RESERVED_PORTS.has(p)) throw new Error(`port ${p} must be reserved`);
+  const p = await freePort();
+  if (RESERVED_PORTS.has(p) || !(p > 0)) throw new Error(`freePort gave ${p}`);
+}
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);

@@ -9,7 +9,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'smoke/**'
+      - 'selftest/**'
       - '.github/workflows/smoke.yml'
       - '.github/workflows/smoke-selftest.yml'
   workflow_dispatch:

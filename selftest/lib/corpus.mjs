@@ -1,4 +1,4 @@
-// The FIXED corpus: smoke/fixtures/corpus copied into the run root and initialised as a git repo with
+// The FIXED corpus: selftest/fixtures/corpus copied into the run root and initialised as a git repo with
 // one commit, plus a local BARE origin the deliver phase pushes to. Same bytes every run → the same
 // plan, the same checks, the same diff.
 import { cpSync, existsSync, mkdirSync, readFileSync } from 'node:fs';

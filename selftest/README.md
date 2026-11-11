@@ -1,13 +1,51 @@
-# wicked-smoke
+# wicked-selftest (formerly wicked-smoke)
 
-A 5–8 minute **artifact-level** smoke for the wicked-* seams. It installs the PUBLISHED npm tarballs
-(`wicked-crew` with its bundled studio, the prebuilt `wicked-core-ts` platform package crew pins,
-`wicked-bus`) and the `wicked-garden` plugin tag into a hermetic temp root, boots the daemon with
-shimmed seats (no model calls, no GitHub), and asserts the WIRE — HTTP JSON, engine events, the
-filesystem — step by step. One line per step: `PASS` / `FAIL` / `EXPECTED-FAIL` with the seconds and
-the evidence path; a JSON report; a GitHub step summary; non-zero exit on any `FAIL`.
+The wicked **product self-test**: one versioned suite that humans, pull-request CI, a governed run's floor and the
+release smoke all run. They differ only in the **set** they install and the **profile** they select.
 
-No source builds, ever. What a customer's `npm i -g` composes is what runs here.
+It installs a set of wicked artifacts into a hermetic temp root: `wicked-crew` with its bundled studio, the
+`wicked-core-ts` engine addon, `wicked-bus` and the `wicked-garden` plugin. It boots an **ephemeral** daemon with shimmed
+seats (no model calls, no credentials, no GitHub) and asserts the WIRE (HTTP JSON, engine events, the filesystem)
+step by step. Then it tears everything down. Each step prints one line, `PASS` / `FAIL` / `EXPECTED-FAIL` with the
+seconds and the evidence path. A run writes a JSON report and a GitHub step summary, and exits non-zero on any
+`FAIL`.
+
+The harness began as wicked-smoke, the artifact-level smoke of the published set. `wicked-smoke [options]` is still
+an alias of `wicked-selftest run [options]`, with the same flags, steps and report. With no set flags, it runs exactly
+what the smoke always ran: the PUBLISHED tarballs, what a customer's `npm i -g` composes.
+
+### Sets: what gets installed
+
+| Source | `--crew` / `--bus` / `--core-ts` | `--garden` |
+|---|---|---|
+| published (default) | an npm version or `latest`; for core-ts also `pinned`, whatever crew's range resolves (core-ts `latest` is the same as `pinned` today) | a git tag or `latest` |
+| a local pack | a path to a `.tgz` | a path to a `.tgz`, or a directory (a git checkout is exported with `git archive HEAD`) |
+
+A **set file** (`--set <file.json>`) names them together: `{"crew": "wicked-crew-0.18.8+st.abc1234.tgz", "garden":
+"wicked-garden-def5678.tgz"}`. Relative paths resolve against the file's directory, and unknown keys are refused.
+`wicked-selftest pack` writes one:
+
+```bash
+# Tier 1: build crew (with THIS studio bundled) and export garden from checkouts, then run the PR profile on them
+node selftest/bin/wicked-selftest.mjs pack --crew-src ../wicked-crew --studio-src ../wicked-studio \
+  --garden-src ../wicked-garden --out /tmp/st-packs --build-slot "build-slot --"
+node selftest/bin/wicked-selftest.mjs run --set /tmp/st-packs/set.json --profile pr --keep --report-dir ./st-out
+```
+
+Every pack is built from `git archive HEAD` of each checkout, inside `--out`, so the checkout is only read. A checkout
+with uncommitted or untracked changes is refused unless `--allow-dirty`, which records that they were left out.
+`pack` runs the checkouts' own build (npm scripts, tsc, vite), so use it only on trees you trust (mains, your own
+branch), or inside a sandbox. `run` never builds anything.
+
+### Profiles: what runs
+
+| Profile | Steps | For |
+|---|---|---|
+| `smoke` (default) | S01 S02 S03 S04 S11 S05 S06 S08 S09 S10 | the release smoke, as it always ran |
+| `pr` | S01 S02 S03 S04 S08 S10 | a pull request and a governed run's floor |
+| `release` | every step except the opt-in S07 | the release train and the integrator's batch pass |
+
+A profile only selects steps. It never changes what a step asserts. `--steps` and `--profile` are exclusive.
 
 ## Why — the classes only visible in composition
 
@@ -44,23 +82,23 @@ Each step is its own module under `lib/steps/` so a failing step names the seam.
 
 ```bash
 # defaults: crew latest, core-ts as crew pins it, bus latest, garden latest tag; S01..S04,S11,S05,S06,S08..S10
-node smoke/bin/wicked-smoke.mjs
+node selftest/bin/wicked-selftest.mjs run
 
 # a pinned set, keep the root, collect the report + daemon log + evidence
-node smoke/bin/wicked-smoke.mjs --crew 0.7.33 --bus 2.3.4 --garden 12.35.0 \
+node selftest/bin/wicked-selftest.mjs run --crew 0.7.33 --bus 2.3.4 --garden 12.35.0 \
   --keep --root /tmp/smoke-1 --report-dir ./smoke-out --assert-hermetic
 
 # the PREVIOUS published set, explicitly pinned (the policy must read honestly there too)
-node smoke/bin/wicked-smoke.mjs --crew 0.7.32 --core-ts 0.7.23 --step-timeout 900
+node selftest/bin/wicked-selftest.mjs run --crew 0.7.32 --core-ts 0.7.23 --step-timeout 900
 
 # one seam
-node smoke/bin/wicked-smoke.mjs --steps S03,S04
+node selftest/bin/wicked-selftest.mjs run --steps S03,S04
 ```
 
 Host requirements: node ≥ 22, git, tar, `uv` (crew's skills seed runs `uv sync` for the garden
 bundle and BLOCKS the publish without it — the harness exposes the host `uv` through a passthrough
 wrapper, never the host PATH), and on Linux `bubblewrap` (the engine's checks sandbox; the workflow
-installs it). `npm run check` inside `smoke/` parses every module and the step registry offline.
+installs it). `npm run check` inside `selftest/` parses every module and the step registry offline.
 
 Options: `--crew --core-ts --bus --garden --steps --root --reuse-root --keep --report --report-dir
 --expect-fail --expect-fail-steps --no-expect-fail --allow-unexpected-pass --assert-hermetic
@@ -130,7 +168,7 @@ Real: the published crew daemon, the published core-ts engine addon (plan → di
 gates → repo-checks floor → deliver script), the published bus, the published garden bundle (seeded and
 published by the daemon's own skills store), git, the studio dist.
 
-Shimmed (`smoke/shims/*.mjs`, launched through `sh`/`.cmd` wrappers that carry the absolute node path):
+Shimmed (`selftest/shims/*.mjs`, launched through `sh`/`.cmd` wrappers that carry the absolute node path):
 
 | binary | behaviour | why |
 |---|---|---|
@@ -268,8 +306,10 @@ method), `lib/ws.mjs`'s `openFrames(daemon.origin)` for the `/ws` stream, and `s
 ## Files
 
 ```
-smoke/
-  bin/wicked-smoke.mjs        CLI + orchestration (install → shims → steps → report → cleanup)
+selftest/
+  bin/wicked-selftest.mjs     CLI: `run` (lib/main.mjs) and `pack` (lib/pack.mjs)
+  bin/wicked-smoke.mjs        the compatibility alias of `wicked-selftest run`
+  lib/main.mjs                orchestration (install → shims → steps → report → cleanup)
   lib/args.mjs                flags, step ranges
   lib/env.mjs                 layout + hermetic env/PATH
   lib/install.mjs             npm -g into the prefix; garden tag → marketplace-cache layout

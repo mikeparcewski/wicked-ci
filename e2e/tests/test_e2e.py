@@ -113,11 +113,11 @@ class CatalogChecks(unittest.TestCase):
         self.assertEqual(fails, [])
 
     def test_wicked_ci_scenarios_resolve_in_this_checkout(self):
-        fails, _ = self.run_check(cap(scenarios=[{"ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs", "fidelity": "e2e-hermetic"}]))
+        fails, _ = self.run_check(cap(scenarios=[{"ref": "wicked-ci:selftest/lib/steps/S01-boot.mjs", "fidelity": "e2e-hermetic"}]))
         self.assertEqual(fails, [])
-        fails, _ = self.run_check(cap(scenarios=[{"ref": "wicked-ci:smoke/lib/steps/S99.mjs", "fidelity": "e2e-hermetic"}]))
+        fails, _ = self.run_check(cap(scenarios=[{"ref": "wicked-ci:selftest/lib/steps/S99.mjs", "fidelity": "e2e-hermetic"}]))
         self.assertTrue(any("is not a test file in this checkout" in f for f in fails), fails)
-        for not_a_test in ("wicked-ci:README.md", "wicked-ci:smoke/fixtures/corpus/src/add.js", "wicked-ci:e2e/profiles.json"):
+        for not_a_test in ("wicked-ci:README.md", "wicked-ci:selftest/fixtures/corpus/src/add.js", "wicked-ci:e2e/profiles.json"):
             fails, _ = self.run_check(cap(scenarios=[{"ref": not_a_test, "fidelity": "e2e-live"}]))
             self.assertTrue(any("is not a test file in this checkout" in f for f in fails), (not_a_test, fails))
 
@@ -555,3 +555,18 @@ class ShippedCatalog(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SmokeAdapterHarness(unittest.TestCase):
+    """The smoke adapter runs the harness where it lives now (selftest/, since the smoke harness grew into it)."""
+
+    def test_the_harness_path_exists_in_this_checkout_and_is_used_by_available_and_run(self):
+        from e2ecat.adapters import smoke as adapter
+        root = os.path.dirname(E2E)
+        ctx = type("Ctx", (), {"repo_root": root})()
+        path = adapter.harness_path(ctx)
+        self.assertTrue(os.path.isfile(path), path)
+        self.assertEqual(os.path.relpath(path, root).split(os.sep), ["selftest", "bin", "wicked-smoke.mjs"])
+        src = read_text(os.path.join(root, "e2e", "lib", "e2ecat", "adapters", "smoke.py"))
+        self.assertNotIn('"smoke", "bin"', src)
+        self.assertEqual(src.count("= harness_path(ctx)") + src.count("[ctx.node, harness_path(ctx),"), 2)  # available() and run()

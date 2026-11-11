@@ -612,14 +612,14 @@ class ReviewFindings(unittest.TestCase):
 
     def test_a_result_cannot_upgrade_its_scenario(self):
         c = cap("crew-api.a.b", scenarios=[{"ref": "wicked-crew:packages/crew/tests/x.test.ts", "fidelity": "integration"},
-                                         {"ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs", "fidelity": "e2e-hermetic"}])
+                                         {"ref": "wicked-ci:selftest/lib/steps/S01-boot.mjs", "fidelity": "e2e-hermetic"}])
         res = {"verdict": "pass", "observed": [{"value": 200, "ok": True}],
                "scenario": {"ref": "wicked-crew:packages/crew/tests/x.test.ts", "name": None, "fidelity": "e2e-live",
                             "status": "passed"}}
         self.assertTrue(any("not the catalog's" in p for p in vd.problems(c, res)))
         res["scenario"] = dict(res["scenario"], name="nonexistent test", fidelity="integration")
         self.assertTrue(any("not one of this capability's scenarios" in p for p in vd.problems(c, res)))
-        res["scenario"] = {"ref": "wicked-ci:smoke/lib/steps/S01-boot.mjs", "fidelity": "e2e-hermetic", "status": "passed"}
+        res["scenario"] = {"ref": "wicked-ci:selftest/lib/steps/S01-boot.mjs", "fidelity": "e2e-hermetic", "status": "passed"}
         self.assertEqual(vd.problems(c, res), [])
 
     def test_the_live_client_never_follows_a_redirect(self):

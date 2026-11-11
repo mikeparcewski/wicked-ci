@@ -10,7 +10,7 @@ Creating something through the API is not creating it in the UI. A stub is not t
 capability's `user_path` is the path a user takes, and its oracle checks the state at the end of
 it.
 
-Next to it, `smoke/` (S01 to S10) stays what it is: a 5 to 8 minute artifact-level smoke of the
+Next to it, `selftest/` (S01 to S11, the smoke harness grown into the product self-test) stays what it is: a 5 to 8 minute artifact-level smoke of the
 seams. The catalog points at smoke steps as scenarios where a step already exercises a capability,
 and the runner drives those steps through the harness unchanged.
 
@@ -49,7 +49,7 @@ and the runner drives those steps through the harness unchanged.
  "oracle": {"kind": "all", "of": [ ...typed checks... ], "complete": false, "untyped": ["..."]},
  "oracle_text": "the inventory's original wording",
  "covers": ["crew:route:POST /api/v1/runs", "crew:route:GET /api/v1/runs/:id"],
- "scenarios": [{"ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs", "fidelity": "e2e-hermetic"}],
+ "scenarios": [{"ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs", "fidelity": "e2e-hermetic"}],
  "aliases": [], "related": [], "sources": ["wicked-crew:packages/crew/src/api/routes.ts:2416"],
  "notes": [], "origin": "inventory-2026-10-20"
 }
@@ -438,7 +438,7 @@ studio journeys, `--build-slot` a command prefix that serialises heavy builds (c
 
 | adapter | runs | fidelity | evidence |
 |---|---|---|---|
-| `wicked-ci-smoke` | `smoke/lib/steps/Sxx-*.mjs` through `smoke/bin/wicked-smoke.mjs --steps ...`, unchanged; `WICKED_SMOKE_TAP_DIR` turns on `smoke/lib/tap.mjs` | e2e-hermetic | per step: the API transcript, the event log (/ws frames, events read back from `GET /runs/:id/events`, the hermetic `bus.db`), the CLI transcript, the harness's evidence dir (hashed) |
+| `wicked-ci-smoke` | `selftest/lib/steps/Sxx-*.mjs` through `selftest/bin/wicked-smoke.mjs --steps ...`, unchanged; `WICKED_SMOKE_TAP_DIR` turns on `selftest/lib/tap.mjs` | e2e-hermetic | per step: the API transcript, the event log (/ws frames, events read back from `GET /runs/:id/events`, the hermetic `bus.db`), the CLI transcript, the harness's evidence dir (hashed) |
 | `wicked-studio-journeys` | `e2e/<name>_test.py` through the studio's `e2e/run_journeys.py`, unchanged, with `pwhook/` on PYTHONPATH | e2e-fixture (fixture) / e2e-live (live) | per context: `.webm` video, Playwright `trace.zip`, HAR of every `/api/` exchange, every screenshot plus a final one per page, the fixture's own request log, DOM samples of the capability's `dom` checks |
 | `wicked-crew-vitest` | `packages/crew/tests/*.test.ts` (one file, `-t name` when the scenario names one) under crew's own config plus `taps/vitest-tap.mjs` | integration | the vitest JSON report and log; the API transcript of every Fastify `inject()` and `/api/` `fetch` |
 | `wicked-core-cargo` | `cargo test --test <t>` / `--lib` (per crate), filtered by test name, inside `--build-slot` | integration / unit | the test output |
@@ -603,7 +603,7 @@ python3 skills/tools/gen_refs.py --check
 
 `.github/workflows/e2e-catalog.yml` runs two kinds of job.
 
-- **On PRs and pushes to main that touch `e2e/`, `skills/`, `smoke/` (smoke steps are scenarios) or a workflow**:
+- **On PRs and pushes to main that touch `e2e/`, `skills/`, `selftest/` (smoke steps are scenarios) or a workflow**:
   - the unit tests and the skill tests on ubuntu, macOS and Windows;
   - the skill refs check (`skills/tools/gen_refs.py --check`);
   - a check that the manifests reproduce from their pinned SHAs;
