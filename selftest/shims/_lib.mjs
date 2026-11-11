@@ -2,7 +2,7 @@
 // A shim is a stand-in for a coding-agent CLI the engine spawns headlessly (`claude -p "<prompt>"`,
 // `codex exec … "<prompt>"`, `opencode run "<prompt>"`), for a council BALLOT, an agent JUDGE turn, or a
 // WORKER turn. It never calls a model and never touches the network.
-import { appendFileSync, existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 /** The shim name of this process, for records appended after {@link record} (the verdict line). */
@@ -141,8 +141,8 @@ export function verdictLines(prompt) {
 export const JUDGE_PASS = ['PASS', 'the work meets the criterion (smoke shim: deterministic judge)', 'PASS'].join('\n');
 
 /**
- * The WORKER turn. The only phase allowed to change the tree is the `fix` phase of the seeded `bug`
- * workflow — the prompt the engine builds carries the phase id in its scope line, and the fixed issue
+ * The WORKER turn. Writes belong to the seeded bug's `fix` phase, or the MCP scenario's `build` phase
+ * (U08). The prompt the engine builds carries the phase id in its scope line, and the fixed issue
  * text never contains the word "fix", so the match is unambiguous. Read-only phases (triage /
  * reproduce / verify) print prose and touch nothing (the worktree guard would deny them otherwise).
  */
@@ -194,7 +194,7 @@ export function workerTurn(prompt) {
 }
 
 /** The running journey's scenario: `<root>/scenario.json` beside the shim log ({} when there is none). Data, not code:
- *  `fix: "break"` makes the fix add a failing test (U05). */
+ *  `fix: "break"` makes the fix add a failing test (U05); `build: "mcp-server"` writes U08's server. */
 export function scenario() {
   const log = process.env.WICKED_SMOKE_SHIM_LOG;
   if (!log) return {};
@@ -216,8 +216,17 @@ function workerBody(prompt) {
   // chars of prose nor a worktree change ("phase produced no reviewable substance") — every answer
   // below is a full deliverable, not a one-liner.
   // Every record carries the stack check POL-2101's record clause reads (core-ts >= 0.15.32).
-  const footer = ['', STACK_CHECK_LINE, '— wicked-smoke seat shim (deterministic stand-in for the coding-agent CLI; no model was called). '
+  const footer = ['', scenario().build === 'mcp-server' ? MCP_STACK_CHECK_LINE : STACK_CHECK_LINE, '— wicked-smoke seat shim (deterministic stand-in for the coding-agent CLI; no model was called). '
     + 'Evidence for this turn is the text above and, where applicable, the diff in the worktree; the engine re-derives done from those, never from this sentence.'].join('\n');
+  // Only the creator's build writes. In particular install-plan/install are real Tool executors, not shim turns,
+  // and a test/review/PA scope mentioning "build" must never create the artifact on the creator's behalf.
+  if (scenario().build === 'mcp-server' && phase === 'build') return mcpServerBuild(cwd, footer);
+  if (scenario().build === 'mcp-server' && !/^answer-\d+$/.test(stepId?.[1] ?? '')) {
+    return [`## MCP server: ${phase}`, '',
+      'The requested artifact is selftest-u08-mcp: a credential-free, local-only stdio MCP server. It exposes echo({text}) with read-only, non-destructive, idempotent, closed-world annotations; no upstream, resources, prompts or telemetry exporters are needed.',
+      'The creator build writes selftest-u08-mcp/src/server.ts, its dist/server.js entry point, config, package lock and a protocol contract test. The root check keeps the corpus tests and adds that contract test. This read-only turn writes nothing; real check results belong to the engine, not this stand-in.',
+      'This fixture does not implement the production FastMCP/zod/telemetry stack. Missing credentials and HTTP 401 are inapplicable to its auth:none, stdio-only design. Independent review is the person’s labelled judgment when the hermetic roster offers no distinct judge.', footer].join('\n');
+  }
   // A chat ANSWER step (`answer-N — <the person's words> |||`, the ask path): answer as a chat seat does, about the
   // fixture, citing its file, instead of acknowledging a "phase" the free-text fallback guessed from the chat scope.
   const chat = scoped ? null : prompt.match(/\bthen: (answer-\d+) — ([^|]{1,600})\|\|\|/);
@@ -262,6 +271,135 @@ function workerBody(prompt) {
   return [`## ${phase} phase`, '', `Acknowledged the ${phase} phase of this run (${prompt.length} chars of prompt). This deterministic stand-in makes no change to the worktree outside the fix phase and records its turn for the smoke's evidence.`, footer].join('\n');
 }
 
+/** U08's deliberately small artifact, not a fake install or a registry write. TypeScript's JavaScript subset lets
+ * the fixture build without fetching a compiler. The build/check script parses that subset with Node; it is NOT a
+ * semantic tsc check. Its test drives a real child over stdio, including validation and unknown-method failures. */
+function mcpServerBuild(cwd, footer) {
+  const root = join(cwd, 'selftest-u08-mcp');
+  const source = String.raw`// SPDX-License-Identifier: MIT
+import { createInterface } from 'node:readline';
+
+const tool = {
+  name: 'echo', description: 'Echo the supplied text (self-test U08; local, no credentials)',
+  inputSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'], additionalProperties: false },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+};
+const send = (id, result) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
+const error = (id, code, message) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n');
+createInterface({ input: process.stdin }).on('line', (line) => {
+  let m;
+  try { m = JSON.parse(line); } catch { error(null, -32700, 'Parse error'); return; }
+  if (!m || typeof m !== 'object' || m.jsonrpc !== '2.0' || typeof m.method !== 'string') {
+    error(m?.id ?? null, -32600, 'Invalid request'); return;
+  }
+  if (m.id === undefined) return; // notifications, including notifications/initialized, have no response
+  if (m.method === 'initialize') {
+    send(m.id, { protocolVersion: m.params?.protocolVersion ?? '2024-11-05', capabilities: { tools: {}, resources: {}, prompts: {} }, serverInfo: { name: 'selftest-u08-mcp', version: '0.1.0' } });
+  } else if (m.method === 'ping') send(m.id, {});
+  else if (m.method === 'tools/list') send(m.id, { tools: [tool] });
+  else if (m.method === 'resources/list') send(m.id, { resources: [] });
+  else if (m.method === 'resources/templates/list') send(m.id, { resourceTemplates: [] });
+  else if (m.method === 'prompts/list') send(m.id, { prompts: [] });
+  else if (m.method === 'tools/call') {
+    const a = m.params?.arguments;
+    if (m.params?.name !== 'echo' || !a || typeof a.text !== 'string' || Object.keys(a).some((k) => k !== 'text')) {
+      error(m.id, -32602, 'echo requires only a string text argument'); return;
+    }
+    send(m.id, { content: [{ type: 'text', text: a.text }], isError: false });
+  } else error(m.id, -32601, 'Method not found');
+});
+`;
+  const build = String.raw`// SPDX-License-Identifier: MIT
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+const src = readFileSync(new URL('./src/server.ts', import.meta.url), 'utf8');
+// This dependency-free fixture uses only the JavaScript subset of TypeScript. Syntax check, not tsc.
+const r = spawnSync(process.execPath, ['--input-type=module', '--check'], {
+  input: src, encoding: 'utf8', timeout: 30000, env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
+});
+if (r.status !== 0) { process.stderr.write(r.stderr || String(r.error)); process.exit(1); }
+if (!process.argv.includes('--check')) {
+  mkdirSync(new URL('./dist/', import.meta.url), { recursive: true });
+  writeFileSync(new URL('./dist/server.js', import.meta.url), src);
+}
+`;
+  const test = String.raw`// SPDX-License-Identifier: MIT
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+test('stdio MCP initialize, list, echo and refusal contracts', () => {
+  const messages = [
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'u08-test', version: '1' } } },
+    { jsonrpc: '2.0', method: 'notifications/initialized' },
+    { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} },
+    { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'echo', arguments: { text: 'U08 contract: hello' } } },
+    { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'echo', arguments: { text: 42 } } },
+    { jsonrpc: '2.0', id: 5, method: 'no-such-method' },
+  ];
+  const r = spawnSync(process.execPath, [new URL('../dist/server.js', import.meta.url).pathname], {
+    input: messages.map((m) => JSON.stringify(m)).join('\n') + '\n', encoding: 'utf8', timeout: 30000,
+    env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' },
+  });
+  assert.equal(r.status, 0, r.stderr || String(r.error));
+  const rows = r.stdout.trim().split('\n').map((l) => JSON.parse(l));
+  assert.deepEqual(rows.map((m) => m.id), [1, 2, 3, 4, 5]);
+  assert.equal(rows[0].result.serverInfo.name, 'selftest-u08-mcp');
+  assert.equal(rows[0].result.protocolVersion, '2024-11-05');
+  assert.deepEqual(rows[0].result.capabilities.tools, {});
+  assert.equal(rows[1].result.tools[0].name, 'echo');
+  assert.equal(rows[1].result.tools[0].annotations.readOnlyHint, true);
+  assert.deepEqual(rows[2].result, { content: [{ type: 'text', text: 'U08 contract: hello' }], isError: false });
+  assert.equal(rows[3].error.code, -32602);
+  assert.equal(rows[4].error.code, -32601);
+});
+`;
+  const runner = String.raw`// SPDX-License-Identifier: MIT
+import { spawnSync } from 'node:child_process';
+// As in the corpus runner: avoid compile-cache scratch files in the engine's check evidence.
+const r = spawnSync(process.execPath, ['--test', new URL('./contract.test.mjs', import.meta.url).pathname], {
+  stdio: 'inherit', env: { ...process.env, NODE_DISABLE_COMPILE_CACHE: '1' }, timeout: 45000,
+});
+process.exit(r.status ?? 1);
+`;
+  const pkg = {
+    name: 'selftest-u08-mcp', version: '0.1.0', type: 'module', license: 'MIT', main: 'dist/server.js',
+    files: ['dist', 'tools.json', 'mcp-server.config.json'],
+    scripts: { build: 'node build.mjs', typecheck: 'node build.mjs --check', lint: 'node build.mjs --check', test: 'node build.mjs && node test/run.mjs', start: 'node dist/server.js' },
+  };
+  const files = {
+    'src/server.ts': source, 'dist/server.js': source, 'build.mjs': build, 'test/contract.test.mjs': test, 'test/run.mjs': runner,
+    'package.json': JSON.stringify(pkg, null, 2) + '\n',
+    'package-lock.json': JSON.stringify({ name: pkg.name, version: pkg.version, lockfileVersion: 3, requires: true, packages: { '': { name: pkg.name, version: pkg.version, license: 'MIT' } } }, null, 2) + '\n',
+    'mcp-server.config.json': JSON.stringify({ key: pkg.name, version: pkg.version, transport: 'stdio', auth: { scheme: 'none' }, rateLimitPerMin: 60 }, null, 2) + '\n',
+    'tools.json': '{"tools":[]}\n', // hand-written tool, as in crew's unit-convert fixture
+  };
+  let changed = false;
+  const put = (path, bytes) => {
+    if (existsSync(path) && readFileSync(path, 'utf8') === bytes) return;
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, bytes);
+    changed = true;
+  };
+  for (const [rel, bytes] of Object.entries(files)) put(join(root, rel), bytes);
+  // The corpus starts red. Keep its assertions in the root floor and repair its seeded defect explicitly (the
+  // journey's intent asks for this); do not replace its checks with a green server-only suite.
+  const add = join(cwd, 'src/add.js');
+  if (existsSync(add)) put(add, readFileSync(add, 'utf8').replace(/a\s*-\s*b/, 'a + b'));
+  const path = join(cwd, 'package.json');
+  const parent = JSON.parse(readFileSync(path, 'utf8'));
+  parent.scripts ??= {};
+  const suffix = 'node selftest-u08-mcp/build.mjs && node selftest-u08-mcp/test/run.mjs';
+  if (!String(parent.scripts.test ?? '').includes('selftest-u08-mcp/')) parent.scripts.test = parent.scripts.test ? `${parent.scripts.test} && ${suffix}` : suffix;
+  for (const key of ['build', 'typecheck', 'lint']) {
+    const cmd = `node selftest-u08-mcp/build.mjs${key === 'build' ? '' : ' --check'}`;
+    if (!String(parent.scripts[key] ?? '').includes('selftest-u08-mcp/')) parent.scripts[key] = parent.scripts[key] ? `${parent.scripts[key]} && ${cmd}` : cmd;
+  }
+  put(path, JSON.stringify(parent, null, 2) + '\n');
+  return ['## MCP server build', '', changed ? 'Wrote the minimal TypeScript-subset stdio MCP server in selftest-u08-mcp/ and connected its real protocol contract test to the repository checks. Repaired the corpus add() defect so its existing tests remain in force.' : 'NO CHANGE NEEDED: the deterministic server, contract tests and corpus correction are already present byte for byte.',
+    'Entry point: selftest-u08-mcp/dist/server.js. Package name/config key: selftest-u08-mcp. Auth: none. Tool: echo({text}), read-only. No dependency or network fetch is needed. The build copies the JavaScript subset of TypeScript; typecheck/lint parse syntax only, not semantic tsc or ESLint checks.',
+    'Verification commands for the engine: npm run typecheck; npm run lint; npm test. This shim did not run those commands or the garden conformance probe and claims no PASS for them. The install-plan and install Tool phases must dry-run, ask consent, stage, probe and register the real server themselves.', footer].join('\n');
+}
+
 /**
  * THE RULE CHECK (core-ts >= 0.15.32, wicked-core#1317, src/rule_check.rs). Every steering rule in force
  * for a governed run is judged at review (and again at delivery) by a judge seat, in calls of four
@@ -282,7 +420,7 @@ function workerBody(prompt) {
  * This stand-in answers the way the engine's own stub runner does (`stub_rule_verdicts`: every rule N/A,
  * framed with the call's nonce), with the reason in the engine's words, and judges the one clause it can
  * decide from the text it is shown: the record clause reads each record for the shims' `Stack check:`
- * line, the whole known sentence, and quotes it (KEPT), or names the record that lacks it (BROKEN). Nothing here lowers a bar: a
+ * line, a whole known sentence (bug or MCP fixture), and quotes it (KEPT), or names the record that lacks it (BROKEN). Nothing here lowers a bar: a
  * record with no stack check still holds the gate.
  */
 const RULE_FRAME_RE = /between a line `BEGIN VERDICTS ([^`\s]+)` and a line `END VERDICTS \1`/;
@@ -290,6 +428,7 @@ const RULE_FRAME_RE = /between a line `BEGIN VERDICTS ([^`\s]+)` and a line `END
 const RULE_LIST_STOPS = ['THE CHANGED FILES', "THE ENGINE'S OWN CHECKS", "THE PERSON'S INSTRUCTIONS", 'THE ENGINE RECORD follows.', 'THE STEP RECORDS follow.', 'EVIDENCE-'];
 /** The line every shim worker record carries for POL-2101's record clause (no quote marks in it). */
 export const STACK_CHECK_LINE = 'Stack check: looked at package.json and test/add.test.js; the stack already offers node:test through npm test, so this change adds no dependency, helper or tool of its own.';
+export const MCP_STACK_CHECK_LINE = 'Stack check: looked at package.json and the selftest-u08-mcp artifact contract; the stack already offers node:test and node:readline, so the generated server and its contract test need no dependency.';
 
 export function isRuleCheckPrompt(prompt) {
   return RULE_FRAME_RE.test(prompt) && /^RULES:$/m.test(prompt);
@@ -349,7 +488,7 @@ export function ruleVerdicts(prompt) {
     const records = stepRecordsOf(prompt);
     // Only the whole known line counts: a record that starts a stack check and does not say what was
     // looked at AND what the stack offers (a TODO, a denial, a cut line) has none.
-    const checks = records.map((r) => ({ n: r.n, line: r.lines.some((l) => l.trim() === STACK_CHECK_LINE) ? STACK_CHECK_LINE : null }));
+    const checks = records.map((r) => ({ n: r.n, line: [STACK_CHECK_LINE, MCP_STACK_CHECK_LINE].find((known) => r.lines.some((l) => l.trim() === known)) ?? null }));
     const lacking = checks.filter((c) => c.line === null);
     answer = records.length > 0 && lacking.length === 0
       ? `KEPT — ${checks.map((c) => `RECORD ${c.n}: "${c.line}"`).join('; ')} ${shim}`
