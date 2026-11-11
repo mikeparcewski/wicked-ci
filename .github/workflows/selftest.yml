@@ -240,10 +240,23 @@ jobs:
         continue-on-error: ${{ inputs.advisory }}
         if: steps.needs.outputs.journeys == 'true'
         shell: bash
+        timeout-minutes: 15
         run: |
           python3 -m venv "$RUNNER_TEMP/selftest-py"
           "$RUNNER_TEMP/selftest-py/bin/python" -m pip install --quiet 'playwright==1.64.0'
-          "$RUNNER_TEMP/selftest-py/bin/python" -m playwright install --with-deps chromium
+          PY="$RUNNER_TEMP/selftest-py/bin/python"
+          # The browser first, without apt: the runner image already carries Chrome's libraries, and its apt mirrors
+          # flake (DNS failures on archive.ubuntu.com held every journey leg of wicked-ci#70 for 10+ minutes). Only
+          # if the browser cannot launch are the system packages installed, with three tries.
+          "$PY" -m playwright install chromium
+          if ! "$PY" -c "from playwright.sync_api import sync_playwright
+          with sync_playwright() as p: p.chromium.launch().close()"; then
+            for i in 1 2 3; do
+              "$PY" -m playwright install-deps chromium && break
+              [ "$i" = 3 ] && exit 1
+              echo "playwright install-deps failed (try $i of 3); retrying in 30 s"; sleep 30
+            done
+          fi
           echo "WICKED_SELFTEST_PYTHON=$RUNNER_TEMP/selftest-py/bin/python" >> "$GITHUB_ENV"
       # The pack and the run never fail the job themselves: the verdict step below decides (advisory or not).
       # A failed setup step (advisory: continue-on-error) skips the pack, and the verdict says which.

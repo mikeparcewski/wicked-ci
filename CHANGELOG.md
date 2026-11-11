@@ -12,7 +12,10 @@
   wicked-ci's own CI calls it on the `main` set (Tier 1, and Tier 2 with core under test), not advisory.
 - **Tier 2: `pack --core-src`.** It napi-builds `crates/wicked-core-ts` from a wicked-core checkout and packs it
   with the host's binary inside, stamped `+st.<sha7>`, with no platform optionalDependencies and no scripts. The set
-  names it as `coreTs`. `--cargo-target` keeps the cargo build cacheable. The set also records the engine crate's
+  names it as `coreTs`. `--cargo-target` keeps the cargo build cacheable.
+- **The Playwright browser is installed without apt first** (smoke.yml and selftest.yml). The runner image carries
+  Chrome's libraries. The system packages are installed only if the browser cannot launch, with three tries and a
+  15 min bound. Apt DNS failures on the runner failed every studio-journey leg of this PR twice. The set also records the engine crate's
   version and its gate protocol from that tree, and the `wicked-core` CLI shim answers with them. The first Tier 2
   run on core main failed every governed unit with "this engine speaks 3, the CLI speaks 1", because the shim always
   said protocol 1. On a Tier 2 set, S09 checks the binding inside the installed engine and its stamped version,
