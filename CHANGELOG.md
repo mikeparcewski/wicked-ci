@@ -5,8 +5,9 @@
 ### selftest — pull-request CI (`selftest.yml`) and Tier 2 packs
 
 - **`.github/workflows/selftest.yml`**, the reusable workflow a product repo calls on its pull requests. It packs the
-  repo under test from the caller's tree at `github.sha` (the PR merge commit) and every other product from its
-  `main`, then runs `--profile pr` on ubuntu. It is **advisory** by default: the job stays green and the suite's real
+  repo under test from the caller's tree at `github.sha` (the PR merge commit) and crew, studio and garden from
+  their `main` (the engine stays crew's published pin unless core is under test: Tier 2), then runs `--profile pr`
+  on ubuntu. It is **advisory** by default: the job stays green and the suite's real
   verdict goes to a warning annotation, the job summary and the `overall` output, until the flake rate is measured.
   wicked-ci's own CI calls it on the `main` set (Tier 1, and Tier 2 with core under test), not advisory.
 - **Tier 2: `pack --core-src`.** It napi-builds `crates/wicked-core-ts` from a wicked-core checkout and packs it

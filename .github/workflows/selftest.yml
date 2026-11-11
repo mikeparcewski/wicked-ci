@@ -3,7 +3,7 @@
 #
 # The repo under test is packed from the CALLER's tree at github.sha (on `pull_request`, the PR's merge commit:
 # exactly what the change merges into); crew, studio and garden come from their main branch unless they are the one
-# under test. Tier 1 builds crew with THAT studio dist bundled and exports garden; a wicked-core change is Tier 2: the
+# under test, and the engine is crew's published wicked-core-ts pin unless core is under test. Tier 1 builds crew with THAT studio dist bundled and exports garden; a wicked-core change is Tier 2: the
 # engine addon is napi-built from its tree and installed in place of crew's pinned wicked-core-ts. Then `wicked-selftest
 # run --set … --profile pr` runs the API steps and the studio journeys against one hermetic daemon with stub seats.
 #
@@ -247,9 +247,16 @@ jobs:
         run: |
           R="$ST_REPORT/report.json"
           mkdir -p "$ST_REPORT"
+          # The report is read defensively (a run killed mid-copy can leave it partial), and a passing report only
+          # counts when the runner itself exited 0: a PASS report beside a failed exit is not a pass.
           if [ "$PACK_EXIT" != "0" ]; then v="COULD-NOT-RUN (pack exited ${PACK_EXIT:-before it finished})"
           elif [ ! -f "$R" ]; then v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished}, no report)"
-          else v="$(node -e 'process.stdout.write(require(process.argv[1]).overall)' "$R")"
+          else
+            v="$(node -e '
+              let o; try { o = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).overall; } catch (e) { o = null; }
+              process.stdout.write(typeof o === "string" && o ? o : "COULD-NOT-RUN (the report is unreadable or has no overall)");
+            ' "$R")"
+            case "$v" in PASS*) [ "$RUN_EXIT" = "0" ] || v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished} after a report that read: $v)";; esac
           fi
           echo "overall=$v" >> "$GITHUB_OUTPUT"
           cp "$ST_PACKS/set.json" "$ST_REPORT/set.json" 2>/dev/null || true

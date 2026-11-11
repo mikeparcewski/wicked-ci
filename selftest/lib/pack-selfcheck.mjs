@@ -86,15 +86,22 @@ try {
     'crates/wicked-core-ts/package.json': JSON.stringify(tsPkg, null, 2),
     'crates/wicked-core-ts/package-lock.json': JSON.stringify({ name: 'wicked-core-ts', version: '0.15.0', lockfileVersion: 3, requires: true, packages: { '': { name: 'wicked-core-ts', version: '0.15.0' } } }),
     'crates/wicked-core-ts/index.js': 'module.exports = {};\n',
-    'crates/wicked-core-ts/b.mjs': "import { writeFileSync } from 'node:fs'; writeFileSync('wicked-core-ts.fixture-host.node', 'core-fixture-binding');\n",
+    // The fixture build writes through CARGO_TARGET_DIR (as cargo would), and the export's package.json gains the
+    // platform optionalDependencies the real one carries (added after `npm ci`, so no registry is needed).
+    'crates/wicked-core-ts/b.mjs': "import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'; import { join } from 'node:path'; writeFileSync('wicked-core-ts.fixture-host.node', 'core-fixture-binding'); mkdirSync(process.env.CARGO_TARGET_DIR, { recursive: true }); writeFileSync(join(process.env.CARGO_TARGET_DIR, 'built'), 'x'); const p = JSON.parse(readFileSync('package.json', 'utf8')); p.optionalDependencies = { 'wicked-core-ts-fixture-host': '0.15.0' }; writeFileSync('package.json', JSON.stringify(p));\n",
   });
   const out4 = join(base, 'out4');
+  // A cargo target inside a source checkout is refused before anything is written.
+  if (await quiet(() => packMain(['--core-src', core, '--out', join(base, 'out4x'), '--cargo-target', join(core, 'target')])) !== 2 || existsSync(join(core, 'target')) || existsSync(join(base, 'out4x'))) throw new Error('a --cargo-target inside a source checkout must be refused before anything is written');
   if (await quiet(() => packMain(['--core-src', core, '--out', out4, '--cargo-target', join(base, 'cargo-target')])) !== 0) throw new Error('pack --core-src');
+  if (!existsSync(join(base, 'cargo-target', 'built'))) throw new Error('the Tier 2 build did not get --cargo-target as CARGO_TARGET_DIR');
   const s4 = JSON.parse(readFileSync(join(out4, 'set.json'), 'utf8'));
   if (s4.built.tier !== 2 || s4.built.core.sha !== coreSha || s4.built.core.binary !== 'wicked-core-ts.fixture-host.node') throw new Error(`Tier 2 provenance: ${JSON.stringify(s4.built)}`);
   const cm = tarballManifest(join(out4, s4.coreTs), ENV);
   if (cm.name !== 'wicked-core-ts' || cm.version !== `0.15.0+st.${coreSha.slice(0, 7)}`) throw new Error(`core-ts pack is ${cm.name}@${cm.version}`);
-  if (cm.scripts || cm.optionalDependencies) throw new Error('the core-ts pack must carry no scripts and no platform optionalDependencies');
+  const full = JSON.parse(run(['tar', '-xzOf', join(out4, s4.coreTs), 'package/package.json'], base));
+  if (full.scripts || full.optionalDependencies) throw new Error(`the core-ts pack must carry no scripts and no platform optionalDependencies: ${JSON.stringify({ scripts: full.scripts, optionalDependencies: full.optionalDependencies })}`);
+  if (!full.files?.includes('wicked-core-ts.fixture-host.node')) throw new Error(`the core-ts pack's files must list the built binding: ${JSON.stringify(full.files)}`);
   if (run(['tar', '-xzOf', join(out4, s4.coreTs), 'package/wicked-core-ts.fixture-host.node'], base) !== 'core-fixture-binding') throw new Error('the core-ts pack does not carry the built binding');
   if (readSet(join(out4, 'set.json')).coreTs !== join(out4, s4.coreTs)) throw new Error('readSet of a Tier 2 set');
   if (expectTarball('wicked-core-ts', join(out4, s4.coreTs), ENV) !== cm.version) throw new Error('expectTarball of the core-ts pack');

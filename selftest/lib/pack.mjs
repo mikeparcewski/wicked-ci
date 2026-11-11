@@ -147,9 +147,13 @@ export async function packMain(argv) {
   if (o.help) { console.log(PACK_HELP); return 0; }
   // --out may not sit inside a source checkout: its own files would make a clean tree read dirty, and the checkout
   // must stay unwritten. Checked before anything is created.
+  // The same holds for the Tier 2 cargo target: a build writing into a checkout would leave it dirty.
   for (const src of [o.crewSrc, o.studioSrc, o.gardenSrc, o.coreSrc].filter(Boolean)) {
-    const rel = relative(src, o.out);
-    if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) { console.error(`wicked-selftest pack: --out ${o.out} is inside the source checkout ${src}; choose a directory outside it`); return 2; }
+    for (const [flag, dir] of [['--out', o.out], ['--cargo-target', o.cargoTarget]]) {
+      if (!dir) continue;
+      const rel = relative(src, dir);
+      if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) { console.error(`wicked-selftest pack: ${flag} ${dir} is inside the source checkout ${src}; choose a directory outside it`); return 2; }
+    }
   }
   // --out must not exist: creating it is the claim (mkdir is atomic), so two packs can never share one output.
   mkdirSync(dirname(o.out), { recursive: true });

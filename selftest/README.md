@@ -46,8 +46,10 @@ build where a cache can find it.
 ### Pull-request CI
 
 `.github/workflows/selftest.yml` is the reusable workflow a product repo calls on its pull requests. The repo under
-test is packed from the caller's tree at `github.sha` (the PR's merge commit), every other product from its `main`
-(Tier 2 when the repo is wicked-core), and `run --set … --profile pr` runs on ubuntu. The caller pins the workflow by
+test is packed from the caller's tree at `github.sha` (the PR's merge commit), crew, studio and garden from their `main`
+when they are not under test, and `run --set … --profile pr` runs on ubuntu. The engine is crew's published
+wicked-core-ts pin (Tier 1) unless wicked-core is the repo under test (Tier 2): an unreleased engine change on core
+main is not in a crew, studio or garden PR's set. The caller pins the workflow by
 SHA and passes the same SHA as `wicked_ci_ref`:
 
 ```yaml
