@@ -37,6 +37,34 @@ with uncommitted or untracked changes is refused unless `--allow-dirty`, which r
 `pack` runs the checkouts' own build (npm scripts, tsc, vite), so use it only on trees you trust (mains, your own
 branch), or inside a sandbox. `run` never builds anything.
 
+**Tier 2** adds the engine: `--core-src <wicked-core checkout>` runs `npm ci` + `npm run build` (napi build --platform
+--release; cargo and a Rust toolchain must be on PATH) in `crates/wicked-core-ts` of the export, and packs that package
+with the host's `.node` inside it, its version stamped `+st.<sha7>`, and no platform `optionalDependencies` or scripts.
+The set names it as `coreTs`, so crew runs on the engine built from that tree. `--cargo-target <dir>` keeps the cargo
+build where a cache can find it.
+
+### Pull-request CI
+
+`.github/workflows/selftest.yml` is the reusable workflow a product repo calls on its pull requests. The repo under
+test is packed from the caller's tree at `github.sha` (the PR's merge commit), crew, studio and garden from their `main`
+when they are not under test, and `run --set … --profile pr` runs on ubuntu. The engine is crew's published
+wicked-core-ts pin (Tier 1) unless wicked-core is the repo under test (Tier 2): an unreleased engine change on core
+main is not in a crew, studio or garden PR's set. The caller pins the workflow by
+SHA and passes the same SHA as `wicked_ci_ref`:
+
+```yaml
+on: { pull_request: { branches: [main] } }
+jobs:
+  selftest:
+    uses: mikeparcewski/wicked-ci/.github/workflows/selftest.yml@<sha>
+    with: { under_test: crew, wicked_ci_ref: <sha> }   # crew | studio | garden | core
+```
+
+It is **advisory** by default: the job stays green and writes the suite's real verdict as a warning annotation, the job
+summary and the `overall` output, so a flake can't block a merge while the flake rate is measured. `advisory: false`
+makes a failure fail the job; make the check required in the repo's ruleset at the same time. wicked-ci's own CI calls
+it with `head_ref: main` (the `main` set, Tier 1 and Tier 2), not advisory.
+
 ### Profiles: what runs
 
 | Profile | Steps | For |

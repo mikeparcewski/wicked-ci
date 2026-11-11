@@ -1,0 +1,336 @@
+# wicked-selftest on a pull request: the product self-test of the `run` set (the change's tree + every other repo's
+# main), on a GitHub runner. See selftest/README.md ("Pull-request CI").
+#
+# The repo under test is packed from the CALLER's tree at github.sha (on `pull_request`, the PR's merge commit:
+# exactly what the change merges into); crew, studio and garden come from their main branch unless they are the one
+# under test, and the engine is crew's published wicked-core-ts pin unless core is under test. Tier 1 builds crew with THAT studio dist bundled and exports garden; a wicked-core change is Tier 2: the
+# engine addon is napi-built from its tree and installed in place of crew's pinned wicked-core-ts. Then `wicked-selftest
+# run --set … --profile pr` runs the API steps and the studio journeys against one hermetic daemon with stub seats.
+#
+# ADVISORY by default (`advisory: true`): for the first runs on each repo the job stays green whatever the suite says,
+# and the real verdict is written as a warning annotation, the job summary and the `overall` output. So a flake can't
+# block a merge while the flake rate is measured, and a failure is never hidden. Flip `advisory: false` (and make the
+# check required in the repo's ruleset) once it has earned it.
+#
+# Caller, in the product repo (pin the SHA, and pass the same SHA as wicked_ci_ref: a cross-repo call exposes no
+# job_workflow_sha, wicked-ci #30):
+#
+#   on: { pull_request: { branches: [main] } }
+#   jobs:
+#     selftest:
+#       uses: mikeparcewski/wicked-ci/.github/workflows/selftest.yml@<sha>
+#       with:
+#         under_test: crew            # crew | studio | garden | core
+#         wicked_ci_ref: <sha>
+#
+name: selftest
+
+on:
+  workflow_call:
+    inputs:
+      under_test:
+        description: 'The product repo under test: crew | studio | garden | core'
+        type: string
+        required: true
+      head_ref:
+        description: "Empty (default) = the CALLER's own checkout at github.sha (the PR merge commit), which must be the repo under test. Else a ref of mikeparcewski/wicked-<under_test> to pack instead (wicked-ci's own CI passes main: the `main` set)."
+        type: string
+        required: false
+        default: ''
+      profile:
+        description: 'The wicked-selftest profile (default: pr)'
+        type: string
+        required: false
+        default: 'pr'
+      advisory:
+        description: 'true (default) = report the verdict without failing the job; false = a FAIL fails the job'
+        type: boolean
+        required: false
+        default: true
+      expect_fail_steps:
+        description: 'Comma-separated step ids whose failures are all expected on this set'
+        type: string
+        required: false
+        default: ''
+      expect_fail_findings:
+        description: 'Comma-separated finding ids to add to the expected-fail policy'
+        type: string
+        required: false
+        default: ''
+      wicked_ci_ref:
+        description: 'The wicked-ci SHA the harness is taken from. A cross-repo caller MUST pass the SHA it pinned in `uses:` (GitHub exposes no job_workflow_sha there, wicked-ci #30).'
+        type: string
+        required: false
+        default: ''
+      os:
+        description: 'The runner (default: ubuntu-latest)'
+        type: string
+        required: false
+        default: 'ubuntu-latest'
+      node_version:
+        type: string
+        required: false
+        default: 'lts/*'
+      artifact_suffix:
+        description: 'Discriminator for the artifact name when ONE workflow run calls this more than once for the same repo and OS (a matrix, two profiles): wicked-selftest-<under_test>[-<suffix>]-<os>-a<attempt>'
+        type: string
+        required: false
+        default: ''
+    outputs:
+      overall:
+        description: 'The suite verdict: PASS | PASS (with expected failures) | FAIL | UNEXPECTED-PASS | COULD-NOT-RUN (<stage>), plus " — SKIPPED <steps>" when a step was skipped'
+        value: ${{ jobs.selftest.outputs.overall }}
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    name: ${{ format('wicked-selftest {0} · {1}{2}', inputs.profile, inputs.under_test, inputs.advisory && ' (advisory)' || '') }}
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 60
+    outputs:
+      overall: ${{ steps.verdict.outputs.overall }}
+    env:
+      UNDER_TEST: ${{ inputs.under_test }}
+      ST_SRC: ${{ github.workspace }}/st-src
+    steps:
+      - id: harness_ref
+        continue-on-error: ${{ inputs.advisory }}
+        name: Resolve the wicked-ci harness ref and the repo under test
+        shell: bash
+        env:
+          INPUT_REF: ${{ inputs.wicked_ci_ref }}
+          JOB_WORKFLOW_SHA: ${{ github.job_workflow_sha }}
+          CALLER_REPO: ${{ github.repository }}
+          CALLER_SHA: ${{ github.sha }}
+          HEAD_REF: ${{ inputs.head_ref }}
+        run: |
+          set -euo pipefail
+          case "$UNDER_TEST" in crew|studio|garden|core) ;; *) echo "::error::selftest: under_test must be crew, studio, garden or core (got '$UNDER_TEST')"; exit 1;; esac
+          if [ -n "$INPUT_REF" ]; then ref="$INPUT_REF"; src="inputs.wicked_ci_ref"
+          elif [ -n "$JOB_WORKFLOW_SHA" ]; then ref="$JOB_WORKFLOW_SHA"; src="github.job_workflow_sha"
+          elif [ "$CALLER_REPO" = "mikeparcewski/wicked-ci" ]; then ref="$CALLER_SHA"; src="github.sha (same-repo call)"
+          else
+            echo "::error::selftest: cannot resolve the harness ref from $CALLER_REPO: pass the SHA you pinned in \`uses:\` as \`with: wicked_ci_ref: <sha>\` (wicked-ci #30)."
+            exit 1
+          fi
+          # The head is the caller's own tree only when the caller IS the repo under test: a crew workflow that says
+          # under_test: studio would otherwise pack crew's tree as studio.
+          if [ -z "$HEAD_REF" ] && [ "$CALLER_REPO" != "mikeparcewski/wicked-$UNDER_TEST" ]; then
+            echo "::error::selftest: under_test=$UNDER_TEST but the caller is $CALLER_REPO; pass head_ref to pack a ref of mikeparcewski/wicked-$UNDER_TEST instead."
+            exit 1
+          fi
+          echo "harness ref: $ref (from $src)"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          # The packs and the report sit outside every checkout (pack refuses an --out inside one).
+          { echo "ST_PACKS=$RUNNER_TEMP/st-packs"; echo "ST_REPORT=$RUNNER_TEMP/st-report"; } >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        id: setup1
+        continue-on-error: ${{ inputs.advisory }}
+        with:
+          repository: mikeparcewski/wicked-ci
+          ref: ${{ steps.harness_ref.outputs.ref }}
+          path: .wicked-ci-selftest
+          persist-credentials: false
+      # The head: the caller's own event checkout (no repository/ref given, so a PR's merge ref), or head_ref.
+      - name: Checkout the repo under test (the caller's tree)
+        id: setup2
+        continue-on-error: ${{ inputs.advisory }}
+        if: inputs.head_ref == ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: st-src/wicked-${{ inputs.under_test }}
+          persist-credentials: false
+      - name: Checkout the repo under test (head_ref)
+        id: setup3
+        continue-on-error: ${{ inputs.advisory }}
+        if: inputs.head_ref != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: mikeparcewski/wicked-${{ inputs.under_test }}
+          ref: ${{ inputs.head_ref }}
+          path: st-src/wicked-${{ inputs.under_test }}
+          persist-credentials: false
+      # Every other product at its main.
+      - name: Checkout wicked-crew main
+        id: setup4
+        continue-on-error: ${{ inputs.advisory }}
+        if: inputs.under_test != 'crew'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { repository: mikeparcewski/wicked-crew, ref: main, path: st-src/wicked-crew, persist-credentials: false }
+      - name: Checkout wicked-studio main
+        id: setup5
+        continue-on-error: ${{ inputs.advisory }}
+        if: inputs.under_test != 'studio'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { repository: mikeparcewski/wicked-studio, ref: main, path: st-src/wicked-studio, persist-credentials: false }
+      - name: Checkout wicked-garden main
+        id: setup6
+        continue-on-error: ${{ inputs.advisory }}
+        if: inputs.under_test != 'garden'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: { repository: mikeparcewski/wicked-garden, ref: main, path: st-src/wicked-garden, persist-credentials: false }
+      - name: The set's sources
+        id: setup7
+        continue-on-error: ${{ inputs.advisory }}
+        shell: bash
+        run: |
+          {
+            echo "### wicked-selftest set (${{ inputs.under_test }} under test)"
+            echo
+            echo "| repo | commit |"
+            echo "|---|---|"
+            for d in "$ST_SRC"/*/; do echo "| $(basename "$d") | \`$(git -C "$d" rev-parse HEAD)\` |"; done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        id: setup8
+        continue-on-error: ${{ inputs.advisory }}
+        with:
+          node-version: ${{ inputs.node_version || 'lts/*' }}
+      - name: wicked-selftest selfcheck
+        id: setup9
+        continue-on-error: ${{ inputs.advisory }}
+        shell: bash
+        run: |
+          node .wicked-ci-selftest/selftest/lib/selfcheck.mjs
+          node .wicked-ci-selftest/selftest/lib/pack-selfcheck.mjs
+          node .wicked-ci-selftest/selftest/lib/workflow-selfcheck.mjs
+      # Tier 2: the engine addon is built from the core tree under test (a Rust toolchain, the cargo target cached).
+      - name: Install Rust toolchain (Tier 2)
+        id: setup10
+        continue-on-error: ${{ inputs.advisory }}
+        if: inputs.under_test == 'core'
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - name: Cache the Tier 2 cargo build
+        id: setup11
+        continue-on-error: ${{ inputs.advisory }}
+        if: inputs.under_test == 'core'
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: st-src/wicked-core/crates/wicked-core-ts -> ../../../../st-cargo-target
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        id: setup12
+        continue-on-error: ${{ inputs.advisory }}
+      - name: Arm the checks sandbox (bubblewrap) on Linux
+        id: setup13
+        continue-on-error: ${{ inputs.advisory }}
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          bwrap --ro-bind / / --dev /dev --proc /proc --unshare-all --die-with-parent -- /bin/true
+      - name: Does the profile include studio journeys?
+        continue-on-error: ${{ inputs.advisory }}
+        id: needs
+        shell: bash
+        env:
+          ST_PROFILE: ${{ inputs.profile }}
+        run: |
+          node --input-type=module -e "
+            const { parseArgs } = await import('./.wicked-ci-selftest/selftest/lib/args.mjs');
+            console.log('journeys=' + parseArgs(['--profile', process.env.ST_PROFILE]).steps.some((s) => s.startsWith('U')));
+          " >> "$GITHUB_OUTPUT"
+      - name: Python Playwright for the studio journeys
+        id: setup14
+        continue-on-error: ${{ inputs.advisory }}
+        if: steps.needs.outputs.journeys == 'true'
+        shell: bash
+        timeout-minutes: 15
+        run: |
+          python3 -m venv "$RUNNER_TEMP/selftest-py"
+          "$RUNNER_TEMP/selftest-py/bin/python" -m pip install --quiet 'playwright==1.64.0'
+          PY="$RUNNER_TEMP/selftest-py/bin/python"
+          # The browser first, without apt: the runner image already carries Chrome's libraries, and its apt mirrors
+          # flake (DNS failures on archive.ubuntu.com held every journey leg of wicked-ci#70 for 10+ minutes). Only
+          # if the browser cannot launch are the system packages installed, with three tries.
+          "$PY" -m playwright install chromium
+          if ! "$PY" -c "from playwright.sync_api import sync_playwright
+          with sync_playwright() as p: p.chromium.launch().close()"; then
+            for i in 1 2 3; do
+              "$PY" -m playwright install-deps chromium && break
+              [ "$i" = 3 ] && exit 1
+              echo "playwright install-deps failed (try $i of 3); retrying in 30 s"; sleep 30
+            done
+          fi
+          echo "WICKED_SELFTEST_PYTHON=$RUNNER_TEMP/selftest-py/bin/python" >> "$GITHUB_ENV"
+      # The pack and the run never fail the job themselves: the verdict step below decides (advisory or not).
+      # A failed setup step (advisory: continue-on-error) skips the pack, and the verdict says which.
+      - name: wicked-selftest pack
+        id: pack
+        if: ${{ !contains(steps.*.outcome, 'failure') }}
+        shell: bash
+        run: |
+          ARGS=(--out "$ST_PACKS" --crew-src "$ST_SRC/wicked-crew" --studio-src "$ST_SRC/wicked-studio" --garden-src "$ST_SRC/wicked-garden")
+          [ "$UNDER_TEST" = core ] && ARGS+=(--core-src "$ST_SRC/wicked-core" --cargo-target "$GITHUB_WORKSPACE/st-cargo-target")
+          set +e
+          node .wicked-ci-selftest/selftest/bin/wicked-selftest.mjs pack "${ARGS[@]}"
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+      - name: wicked-selftest run
+        id: run
+        if: steps.pack.outputs.exit == '0'
+        shell: bash
+        env:
+          ST_PROFILE: ${{ inputs.profile }}
+          ST_XF_STEPS: ${{ inputs.expect_fail_steps }}
+          ST_XF_FINDINGS: ${{ inputs.expect_fail_findings }}
+        run: |
+          # On Linux the root sits under HOME, not RUNNER_TEMP (the bwrap validator sandbox; see smoke.yml).
+          if [ "$RUNNER_OS" = "Linux" ]; then ROOT="$HOME/wicked-selftest-root"; else ROOT="$RUNNER_TEMP/wicked-selftest-root"; fi
+          ARGS=(--set "$ST_PACKS/set.json" --profile "$ST_PROFILE" --root "$ROOT" --assert-hermetic --report-dir "$ST_REPORT")
+          [ -n "$ST_XF_STEPS" ] && ARGS+=(--expect-fail-steps "$ST_XF_STEPS")
+          [ -n "$ST_XF_FINDINGS" ] && ARGS+=(--expect-fail "$ST_XF_FINDINGS")
+          set +e
+          node .wicked-ci-selftest/selftest/bin/wicked-selftest.mjs run "${ARGS[@]}"
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+      - id: verdict
+        name: Verdict
+        if: always()
+        shell: bash
+        env:
+          ADVISORY: ${{ inputs.advisory }}
+          PACK_EXIT: ${{ steps.pack.outputs.exit }}
+          RUN_EXIT: ${{ steps.run.outputs.exit }}
+          SETUP_FAILED: ${{ contains(steps.*.outcome, 'failure') }}
+        run: |
+          # Paths of their own: a setup step that failed before they were exported must not stop the verdict.
+          ST_REPORT="${ST_REPORT:-$RUNNER_TEMP/st-report}"; ST_PACKS="${ST_PACKS:-$RUNNER_TEMP/st-packs}"
+          R="$ST_REPORT/report.json"
+          mkdir -p "$ST_REPORT"
+          # The report is read defensively (a run killed mid-copy can leave it partial), and a passing report only
+          # counts when the runner itself exited 0: a PASS report beside a failed exit is not a pass.
+          if [ -z "$PACK_EXIT" ] && [ "$SETUP_FAILED" = "true" ]; then v="COULD-NOT-RUN (a setup step failed before the pack; see the job's steps)"
+          elif [ "$PACK_EXIT" != "0" ]; then v="COULD-NOT-RUN (pack exited ${PACK_EXIT:-before it finished})"
+          elif [ ! -f "$R" ]; then v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished}, no report)"
+          else
+            v="$(node -e '
+              let o; try { o = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).overall; } catch (e) { o = null; }
+              process.stdout.write(typeof o === "string" && o ? o : "COULD-NOT-RUN (the report is unreadable or has no overall)");
+            ' "$R")"
+            case "$v" in PASS*) [ "$RUN_EXIT" = "0" ] || v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished} after a report that read: $v)";; esac
+          fi
+          echo "overall=$v" >> "$GITHUB_OUTPUT"
+          cp "$ST_PACKS/set.json" "$ST_REPORT/set.json" 2>/dev/null || true
+          # A skipped step is never a pass (the runner installs the browser, so a skip here is a fault).
+          ok=1; case "$v" in *SKIPPED*) ok=0;; PASS*) ;; *) ok=0;; esac
+          {
+            echo "### wicked-selftest ${{ inputs.profile }} · $UNDER_TEST: $v"
+            if [ "$ADVISORY" = "true" ]; then echo; echo "ADVISORY: this check does not block a merge yet (its flake rate is being measured). The verdict above is the suite's real one."; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$ok" = 1 ]; then echo "wicked-selftest: $v"; exit 0; fi
+          if [ "$ADVISORY" = "true" ]; then echo "::warning title=wicked-selftest (advisory)::$v. Not blocking yet; see the job summary and the wicked-selftest-$UNDER_TEST artifact."; exit 0; fi
+          echo "::error title=wicked-selftest::$v"
+          exit 1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        # The evidence upload must not turn an advisory verdict red either (an API error, a full artifact quota).
+        continue-on-error: ${{ inputs.advisory }}
+        with:
+          name: wicked-selftest-${{ inputs.under_test }}${{ inputs.artifact_suffix != '' && format('-{0}', inputs.artifact_suffix) || '' }}-${{ inputs.os }}-a${{ github.run_attempt }}
+          path: ${{ runner.temp }}/st-report
+          if-no-files-found: warn
+          retention-days: 14

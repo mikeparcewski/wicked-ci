@@ -12,6 +12,7 @@ on:
       - 'selftest/**'
       - '.github/workflows/smoke.yml'
       - '.github/workflows/smoke-selftest.yml'
+      - '.github/workflows/selftest.yml'
   workflow_dispatch:
     inputs:
       crew_version:
@@ -60,4 +61,20 @@ jobs:
       steps: ${{ inputs.steps || '' }}
       os_matrix: '["macos-latest"]'
       artifact_suffix: prev
+      wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
+  # The PR-CI reusable workflow on the `main` set: every repo packed from its main (Tier 1 with studio under test, Tier 2
+  # with core under test, so the napi build path runs too). Not advisory here: wicked-ci's own change must not break it.
+  selftest-main-set:
+    uses: ./.github/workflows/selftest.yml
+    with:
+      under_test: studio
+      head_ref: main
+      advisory: false
+      wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
+  selftest-main-set-tier2:
+    uses: ./.github/workflows/selftest.yml
+    with:
+      under_test: core
+      head_ref: main
+      advisory: false
       wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}

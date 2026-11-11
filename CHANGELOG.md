@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### selftest — pull-request CI (`selftest.yml`) and Tier 2 packs
+
+- **`.github/workflows/selftest.yml`**, the reusable workflow a product repo calls on its pull requests. It packs the
+  repo under test from the caller's tree at `github.sha` (the PR merge commit) and crew, studio and garden from
+  their `main` (the engine stays crew's published pin unless core is under test: Tier 2), then runs `--profile pr`
+  on ubuntu. It is **advisory** by default: the job stays green and the suite's real
+  verdict goes to a warning annotation, the job summary and the `overall` output, until the flake rate is measured.
+  wicked-ci's own CI calls it on the `main` set (Tier 1, and Tier 2 with core under test), not advisory.
+- **Tier 2: `pack --core-src`.** It napi-builds `crates/wicked-core-ts` from a wicked-core checkout and packs it
+  with the host's binary inside, stamped `+st.<sha7>`, with no platform optionalDependencies and no scripts. The set
+  names it as `coreTs`. `--cargo-target` keeps the cargo build cacheable.
+- **The Playwright browser is installed without apt first** (smoke.yml and selftest.yml). The runner image carries
+  Chrome's libraries. The system packages are installed only if the browser cannot launch, with three tries and a
+  15 min bound. Apt DNS failures on the runner failed every studio-journey leg of this PR twice. The set also records the engine crate's
+  version and its gate protocol from that tree, and the `wicked-core` CLI shim answers with them. The first Tier 2
+  run on core main failed every governed unit with "this engine speaks 3, the CLI speaks 1", because the shim always
+  said protocol 1. On a Tier 2 set, S09 checks the binding inside the installed engine and its stamped version,
+  in place of the release-train checks. A `--core-ts` given after `--set` drops the set's engine facts.
+
 ### selftest — governed journeys through studio (U04, U05), S12, scenario data, teardown sweep
 
 - **U04 (J4).** A bug fix is launched from New job, steered on its cards and delivered, all in studio:

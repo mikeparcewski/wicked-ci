@@ -1,6 +1,6 @@
 {
   "name": "wicked-selftest",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "The wicked product self-test: installs a set of wicked artifacts (published, or packed from checkouts) into a hermetic temp root, boots an ephemeral daemon with stub seats, runs a fixed, versioned suite against its wire, and tears everything down. Grown from wicked-smoke (S01-S11); `wicked-smoke` stays as an alias.",
   "type": "module",
@@ -11,7 +11,7 @@
   "scripts": {
     "smoke": "node bin/wicked-smoke.mjs",
     "selftest": "node bin/wicked-selftest.mjs run",
-    "check": "node --check bin/wicked-smoke.mjs && node --check bin/wicked-selftest.mjs && node --check lib/main.mjs && node lib/selfcheck.mjs && node lib/pack-selfcheck.mjs"
+    "check": "node --check bin/wicked-smoke.mjs && node --check bin/wicked-selftest.mjs && node --check lib/main.mjs && node lib/selfcheck.mjs && node lib/pack-selfcheck.mjs && node lib/workflow-selfcheck.mjs"
   },
   "engines": {
     "node": ">=22.0.0"

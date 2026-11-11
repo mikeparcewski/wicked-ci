@@ -3,6 +3,7 @@
 // studio dist is inside the tarball, and nothing the roster displays (`headless_invocation`,
 // `login_invocation`, `binary`) points outside the temp root (F-004: a hard-coded operator path).
 import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { run as runProc } from '../proc.mjs';
 import { satisfies } from '../semver.mjs';
 
@@ -25,9 +26,19 @@ export async function run(ctx, t) {
   const wantLines = [`wicked-crew ${v.crew}`, `wicked-core-ts ${v.coreTs ?? 'unknown'}`, `wicked-studio ${v.studioBundle ?? 'none'}`];
   const evV = t.evidence('cli-version', { status: ver.status, stdout: ver.stdout.slice(0, 500), stderr: ver.stderr.slice(0, 500), want: wantLines });
   t.check('wicked-crew --version == installed crew / core-ts / studio versions, exit 0 (crew#493)', ver.status === 0 && ver.stderr === '' && gotLines.length === 3 && gotLines.every((l, i) => l === wantLines[i]), `exit ${ver.status}; got ${JSON.stringify(gotLines).slice(0, 300)}; want ${JSON.stringify(wantLines)}`, { finding: 'F-003', evidence: evV });
-  t.check(`platform package ${tree.platformPkgName} present`, tree.platformDir !== null, String(tree.platformDir));
-  t.check('platform package version == wicked-core-ts version (six-package release train in step)', v.coreTsPlatform === v.coreTs, `${v.coreTsPlatform} vs ${v.coreTs}`);
-  t.check(`crew's pin ${v.coreTsRange} resolves to the installed ${v.coreTs}`, typeof v.coreTsRange === 'string' && satisfies(v.coreTs, v.coreTsRange), `${v.coreTs} in ${v.coreTsRange}`);
+  const tier2 = ctx.opts.setBuilt?.core ?? null;
+  if (tier2) {
+    // A Tier 2 set replaces crew's pinned engine on purpose: the engine is the pack built from a core tree, its binding
+    // inside the package (no platform package), at the version the pack stamped. The release-train checks below are
+    // about published sets, so they are not asked here.
+    t.check(`the Tier 2 binding ${tier2.binary} is inside the installed wicked-core-ts`, typeof tier2.binary === 'string' && existsSync(join(tree.coreDir, tier2.binary)), join(tree.coreDir, String(tier2.binary)));
+    t.check('the installed wicked-core-ts is the Tier 2 pack', v.coreTs === tier2.version, `${v.coreTs} vs the pack's ${tier2.version}`);
+    t.info('release-train checks', `not asked on a Tier 2 set (crew pins ${v.coreTsRange}; the engine was built from core ${String(tier2.sha).slice(0, 7)})`);
+  } else {
+    t.check(`platform package ${tree.platformPkgName} present`, tree.platformDir !== null, String(tree.platformDir));
+    t.check('platform package version == wicked-core-ts version (six-package release train in step)', v.coreTsPlatform === v.coreTs, `${v.coreTsPlatform} vs ${v.coreTs}`);
+    t.check(`crew's pin ${v.coreTsRange} resolves to the installed ${v.coreTs}`, typeof v.coreTsRange === 'string' && satisfies(v.coreTs, v.coreTsRange), `${v.coreTs} in ${v.coreTsRange}`);
+  }
   t.check('dist/studio/index.html present in the crew tarball', existsSync(tree.studioIndex), tree.studioIndex);
   t.check('dist/studio/testid-inventory.json carries studioVersion', typeof v.studioBundle === 'string', String(v.studioBundle));
   t.check('wicked-bus CLI present', existsSync(tree.busCli), tree.busCli);
