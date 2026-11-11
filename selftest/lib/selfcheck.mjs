@@ -523,14 +523,17 @@ if (process.platform !== 'win32') {
   const walk = (d) => readdirSync(d).flatMap((n) => (st(j(d, n)).isDirectory() ? walk(j(d, n)) : [j(d, n)]));
   // Home and temp paths on every OS the fixtures came from, also inside a PDF's compressed streams.
   const { inflateSync } = await import('node:zlib');
-  const MACHINE = /\/Users\/[^/\s]|\/home\/[^/\s]|(^|[^\w.])\/tmp\/|\/private\/tmp\/|\/private\/var\/|\/var\/folders\/|[A-Za-z]:\\(Users|Documents and Settings)\\/i;
+  // Windows separators may be escaped once (JSON, PDF strings): `\\{1,2}`.
+  const MACHINE = /\/Users\/[^/\s]|\/home\/[^/\s]|\/root\/|(^|[^\w.])\/tmp\/|\/var\/tmp\/|\/private\/tmp\/|\/private\/var\/|\/var\/folders\/|[A-Za-z]:\\{1,2}(Users|Documents and Settings|Windows\\{1,2}Temp)\\{1,2}/i;
+  // Each buffer is read as Latin-1 and as UTF-16 (both byte orders; PDF text strings are often UTF-16BE).
+  const asText = (b) => [b.toString('latin1'), b.toString('utf16le'), Buffer.from(b).swap16 && b.length % 2 === 0 ? Buffer.from(b).swap16().toString('utf16le') : ''];
   const texts = (buf) => {
-    const out = [buf.toString('latin1')];
+    const out = [...asText(buf)];
     const raw = out[0];
     for (const m of raw.matchAll(/stream\r?\n/g)) {
       const end = raw.indexOf('endstream', m.index);
       if (end < 0) continue;
-      try { out.push(inflateSync(buf.subarray(m.index + m[0].length, end)).toString('latin1')); } catch { /* not Flate */ }
+      try { out.push(...asText(inflateSync(buf.subarray(m.index + m[0].length, end)))); } catch { /* not Flate */ }
     }
     return out;
   };
@@ -541,9 +544,10 @@ if (process.platform !== 'win32') {
   const { deflateSync } = await import('node:zlib');
   // (Built from parts, so this file itself never carries a machine path.)
   const U = ['', 'Users', ''].join('/');
-  for (const probe of [`${U}alice/x`, '/home/Alice/x', ' /tmp/rig/x', 'C:\\Users\\Alice\\x', '/var/folders/ab/x']) {
+  for (const probe of [`${U}alice/x`, '/home/Alice/x', ' /tmp/rig/x', '/var/tmp/rig/x', '/root/rig/x', 'C:\\Users\\Alice\\x', 'C:\\Windows\\Temp\\rig', JSON.stringify({ p: 'C:\\Users\\Alice\\rig' }), '/var/folders/ab/x']) {
     if (!leaksIn(Buffer.from(probe))) throw new Error(`fixture guard missed ${probe}`);
   }
+  if (!leaksIn(Buffer.from(`${U}alice/x`, 'utf16le')) || !leaksIn(Buffer.from(`${U}alice/x`, 'utf16le').swap16())) throw new Error('fixture guard missed a UTF-16 path');
   if (!leaksIn(Buffer.concat([Buffer.from('1 0 obj<</Filter/FlateDecode>>stream\n'), deflateSync(Buffer.from(`BT (${U}alice/x) Tj ET`)), Buffer.from('\nendstream')]))) throw new Error('fixture guard missed a compressed PDF stream');
   if (leaksIn(Buffer.from('see src/tmp/x and https://example.com/home/'))) throw new Error('fixture guard flags ordinary text');
   for (const need of ['corpus/package.json', 'repos/hello-onboard/package.json', 'repos/hello/test/greet.test.js', 'repos/tiny-math-untested/src/math.js', 'repos/reqgraph-tm/src/math.js', 'mcp/echo-mcp.py', 'docs/rfp.txt']) {
