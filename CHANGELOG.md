@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### e2e — studio journeys (U steps) sealed through `e2e run`
+
+- **U04/U05/U06 read a single-rule card.** When one rule is left unchecked, studio names it ("The rule POL-2101 needs
+  your call", "Confirm or skip POL-2101") instead of counting. Core main reached that state on 2026-11-11, and U04
+  stopped at an "unknown" card on the Tier 2 main set. The journeys now accept both wordings.
+- The `wicked-ci-smoke` adapter claims `selftest/lib/steps/Uxx-*.mjs`. It runs the harness with the runner's
+  Python and the e2e Playwright hook, and the journey's driver loads that hook explicitly (it runs `python -I`).
+  The hook writes the browser's `/api/` HAR, the catalog's DOM samples and copies of the screenshots under
+  `<tap>/pw/<step>/driver/`. The driver keeps its own trace and video.
+- These become the step's browser HTTP observations and `network` events, its DOM samples, and its screenshot,
+  video and trace evidence. They are sealed in the run's wicked-vault like every other scenario.
+- Steps that read the onboarded corpus (S04–S06, S11, S12, U04–U07) get S03 first. Before, a plan that selected
+  one of them alone was refused by the harness.
+- Four studio-ui capabilities gain a `wicked-ci` U scenario (`e2e-hermetic`). The pairs are `agents.table`/U02,
+  `session.deliver-card`/U04, `gate.plain-words`/U05 and `steer.import`/U06. U01 (the Nerve Center) and U03 (the
+  Assist composer) have no matching capability yet. A HAR that does not parse leaves the `network` stream incomplete.
+  U steps are probed with the journey's own `python -I`. A local
+  `e2e run --select id:studio-ui.steer.import` ran U06. It observed five of the six typed checks from the browser
+  (the HAR event, the DOM samples, the rules-list API) and sealed them in the vault, and `validate --report` read
+  OK. The verdict was partial: the oracle is partial, and "retired absent" is not on U06's path.
+
 ### selftest — U06 steering cited, U07 stalled run (EXPECTED-FAIL F-CREW-1501)
 
 - **U06 (J7).** The person imports a one-rule markdown doc on the Steering page (More → Import rules…) and sees the

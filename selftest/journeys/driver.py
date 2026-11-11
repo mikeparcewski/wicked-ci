@@ -34,6 +34,22 @@ import urllib.request
 
 from playwright.sync_api import sync_playwright
 
+# Under `e2e run` (wicked-ci e2e's smoke adapter), the certification's Playwright hook rides along: it adds a HAR of the
+# UI's /api/ exchanges, the catalog's DOM samples and a copy of every screenshot under $E2E_PW_DIR/driver/, which the
+# adapter folds into the run-dir it seals. The driver keeps its own trace and video (the hook's are turned off), and a
+# hook that fails to load changes nothing the journey does.
+HOOKED = False
+if os.environ.get("E2E_PW_DIR") and os.environ.get("WICKED_SELFTEST_PW_HOOK"):
+    os.environ["E2E_PW_OFF"] = ",".join(filter(None, [os.environ.get("E2E_PW_OFF", ""), "trace", "video"]))
+    sys.path.insert(0, os.environ["WICKED_SELFTEST_PW_HOOK"])
+    try:
+        import e2e_pw  # noqa: E402 (the hook's module, from the e2e checkout)
+
+        e2e_pw.install()
+        HOOKED = True
+    except Exception as _e:  # the journey runs as it would without the hook
+        sys.stderr.write("e2e playwright hook not loaded: %r\n" % (_e,))
+
 VIEWPORTS = ((1440, 700), (390, 844))
 THEMES = ("wicked-light", "wicked-dark")
 

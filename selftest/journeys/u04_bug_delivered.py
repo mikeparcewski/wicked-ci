@@ -22,9 +22,10 @@ DELIVER = re.compile(r"^deliver\b|open (the )?pr|push", re.I)
 JUDGMENT = re.compile(r"^approve as your own judg", re.I)
 # "N steering rules need your call": with no signed-in judge distinct from the creator the rules stay unchecked; the
 # person confirms or skips them, with the reason, on the card (labelled on the run).
-RULES = re.compile(r"^confirm or skip \d+ rules?", re.I)
+# One unchecked rule is named instead of counted ("Confirm or skip POL-2101"; studio deskWords.rulesHoldWords).
+RULES = re.compile(r"^confirm or skip (\d+ rules?|[A-Z][A-Z0-9]*(-[A-Z0-9]+)+)\b", re.I)
 JUDGE_CARD = re.compile(r"no helper could check this step independently", re.I)
-RULES_CARD = re.compile(r"steering rules? need your call", re.I)
+RULES_CARD = re.compile(r"steering rules? needs? your call|the rule \S+ needs your call", re.I)
 QE_SKIP = re.compile(r"skip (qe|the acceptance|acceptance)|skip,? with a reason", re.I)
 CONFIRM = re.compile(r"^yes\b|confirm|^deliver$|^push", re.I)
 

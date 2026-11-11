@@ -1,4 +1,4 @@
-"""wicked-ci smoke steps (S01-S10) as scenarios: one harness run for every step the plan needs.
+"""wicked-ci self-test steps (S01-S12, U01-U07) as scenarios: one harness run for every step the plan needs.
 
 The harness installs the PUBLISHED crew/core-ts/bus/garden into a hermetic temp root and boots the
 daemon with shimmed seats (e2e-hermetic fidelity: certification-grade). The runner sets
@@ -6,6 +6,11 @@ WICKED_SMOKE_TAP_DIR, so the harness's own API calls, /ws frames and child-proce
 recorded per step (selftest/lib/tap.mjs); the steps themselves are unchanged. Evidence: the step's
 API transcript, its event log (/ws frames and the events it read back from GET /runs/:id/events),
 its CLI transcript, and the harness's evidence directory for the step (hashed).
+
+A U step is a studio journey the harness drives in Chromium against the same daemon. The runner hands the harness its
+Python (`--python`) and the e2e Playwright hook (E2E_PW_HOOK_DIR, E2E_DOM_CHECKS); the journey's driver loads the hook,
+which writes the UI's /api/ HAR, the catalog's DOM samples and copies of its screenshots under `<tap>/pw/<step>/driver/`.
+Those become the step's browser HTTP observations, its DOM samples and its screenshot/video/trace evidence.
 """
 import glob
 import json
@@ -15,6 +20,7 @@ import re
 
 from . import DOUBLED, Adapter, Outcome, read_jsonl, rmtree, run_logged, write_json
 from ..observe import event_type
+from .studio import parse_har
 
 HARNESS = ("selftest", "bin", "wicked-smoke.mjs")
 
@@ -24,7 +30,20 @@ def harness_path(ctx):
     return os.path.join(ctx.repo_root, *HARNESS)
 
 
-STEP_RE = re.compile(r"^selftest/lib/steps/(S\d\d)-[\w-]+\.mjs$")
+STEP_RE = re.compile(r"^selftest/lib/steps/([SU]\d\d)-[\w-]+\.mjs$")
+# Steps that read what S03 left (the onboarded corpus, its bare origin): the harness refuses them alone, so a plan that
+# needs one of them runs S03 first (its own outcome is not a scenario of this plan).
+NEEDS_S03 = {"S04", "S05", "S06", "S11", "S12", "U04", "U05", "U06", "U07"}
+
+
+def harness_steps(steps):
+    """The steps one harness run takes for `steps`: S03 joins when a step needs it."""
+    out = set(steps)
+    if out & NEEDS_S03:
+        out.add("S03")
+    return sorted(out)
+
+
 STATUS = {"PASS": "passed", "EXPECTED-FAIL": "failed", "UNEXPECTED-PASS": "passed", "FAIL": "failed",
           "ERROR": "error", "SKIPPED": "error"}
 
@@ -86,16 +105,29 @@ class SmokeAdapter(Adapter):
         ok, detail = ctx.probe.check("network", "network")
         if not ok:
             return "adapter:network", detail + " (the harness installs the published packages)"
+        if params["step"].startswith("U"):
+            ok, why = self._playwright_isolated(ctx)
+            if not ok:
+                return "adapter:playwright-chromium", why
         return None
 
     def provides(self, ctx, scenario):
         d = "the smoke harness: published crew, shimmed seats, temp root"
-        return {"daemon": d, "real-engine": d, "signed-in-seats": d + " (shims)", "registered-repo": d,
-                "projects-engine": d, "studio-dist": "crew's bundled studio", "bin-wicked-garden": "installed garden tag",
-                "bin-wicked-bus": "installed wicked-bus", "bin-wicked-estate": "estate shim", "tool-git": "host git"}
+        p = {"daemon": d, "real-engine": d, "signed-in-seats": d + " (shims)", "registered-repo": d,
+             "projects-engine": d, "studio-dist": "crew's bundled studio", "bin-wicked-garden": "installed garden tag",
+             "bin-wicked-bus": "installed wicked-bus", "bin-wicked-estate": "estate shim", "tool-git": "host git"}
+        m = STEP_RE.match(scenario["ref"].partition(":")[2])
+        if m and m.group(1).startswith("U"):
+            # A journey drives the daemon's own studio in the runner's Playwright (checked in available()).
+            p["playwright"] = "the runner's Playwright, driving the daemon's bundled studio"
+        return p
 
     def evidence_kinds(self, ctx, scenario, cap):
-        return {"api-transcript", "event-log", "cli-transcript", "file-hash"}
+        kinds = {"api-transcript", "event-log", "cli-transcript", "file-hash"}
+        m = STEP_RE.match(scenario["ref"].partition(":")[2])
+        if m and m.group(1).startswith("U"):
+            kinds |= {"screenshot", "video", "trace"}
+        return kinds
 
     def run(self, unit, ctx):
         steps = sorted({s["params"]["step"] for s in unit.scenarios.values()})
@@ -103,10 +135,17 @@ class SmokeAdapter(Adapter):
         root = os.path.join(ctx.work_dir, "smoke-root")
         rmtree(root)
         tap = os.path.join(out, "tap")
-        argv = [ctx.node, harness_path(ctx), "--steps", ",".join(steps),
+        argv = [ctx.node, harness_path(ctx), "--steps", ",".join(harness_steps(steps)),
                 "--root", root, "--keep", "--report-dir", os.path.join(out, "harness"),
                 "--step-timeout", str(ctx.step_timeout)] + list(ctx.smoke_args)
         env = dict(os.environ, WICKED_SMOKE_TAP_DIR=tap)
+        if any(s.startswith("U") for s in steps):
+            # The journeys run on this runner's Python with the e2e hook; its DOM checks are this unit's.
+            argv += ["--python", ctx.python]
+            env["E2E_PW_HOOK_DIR"] = ctx.pwhook_dir
+            env["E2E_DOM_CHECKS"] = write_json(os.path.join(out, "dom-checks.json"), ctx.dom_checks(unit))
+            if ctx.playwright_browsers:
+                env["PLAYWRIGHT_BROWSERS_PATH"] = ctx.playwright_browsers
         rc, secs = run_logged(argv, ctx.repo_root, env, os.path.join(out, "harness.log"), ctx.unit_timeout)
         unit.params["root"] = root
         report_p = os.path.join(out, "harness", "report.json")
@@ -141,6 +180,8 @@ class SmokeAdapter(Adapter):
                 o.extra = {"step": step, "harness_status": r["status"], "checks": len(r.get("checks", [])),
                            "failing_checks": bad[:20], "versions": (report or {}).get("versions")}
             self._observe(o, step, http, ws, cli, crew_dirs + [root], port)
+            if step.startswith("U"):
+                self._browser(o, os.path.join(tap, "pw", step, "driver"), os.path.join(out, "harness", "evidence", step))
             lo, hi = windows.get(step, (None, None))
             if lo is not None and bus is not None:
                 for ev in bus:
@@ -160,6 +201,65 @@ class SmokeAdapter(Adapter):
                 o.add("scenario-evidence", p)
             outcomes[key] = o
         return outcomes
+
+    @staticmethod
+    def _playwright_isolated(ctx):
+        """Can the runner's Python launch Chromium the way the harness runs a journey (`python -I`: no user site, no
+        PYTHONPATH)? The studio adapter's probe runs without -I, so it can accept a Python the journey cannot use."""
+        cached = getattr(ctx, "_smoke_pw", None)
+        if cached is None:
+            import subprocess
+            code = ("from playwright.sync_api import sync_playwright\n"
+                    "with sync_playwright() as p:\n b = p.chromium.launch(); b.close()\n")
+            env = {k: v for k, v in os.environ.items() if not k.startswith("PYTHON")}
+            if ctx.playwright_browsers:
+                env["PLAYWRIGHT_BROWSERS_PATH"] = ctx.playwright_browsers
+            try:
+                r = subprocess.run([ctx.python, "-I", "-c", code], capture_output=True, text=True, timeout=120, env=env)
+                cached = (r.returncode == 0, "ok" if r.returncode == 0 else (r.stderr.strip().splitlines() or ["?"])[-1][:200])
+            except (OSError, subprocess.TimeoutExpired) as e:
+                cached = (False, str(e))
+            ctx._smoke_pw = cached
+        return cached
+
+    @staticmethod
+    def _browser(o, hook_dir, ev_dir):
+        """A journey's browser-side observations: the hook's HAR (the UI's own /api/ calls), its DOM samples, and the
+        journey's screenshots, video and trace (the driver keeps those under the step's evidence directory)."""
+        obs = o.obs
+        hook = {}
+        try:
+            with open(os.path.join(hook_dir, "hook.json"), encoding="utf-8") as fh:
+                hook = json.load(fh)
+        except (OSError, ValueError):
+            hook = {}
+        hars = sorted(glob.glob(os.path.join(hook_dir, "har", "*.har")))
+        readable = 0
+        for p in hars:
+            # A HAR that does not parse is a recording that failed, never an empty one: the stream stays incomplete.
+            try:
+                with open(p, encoding="utf-8") as fh:
+                    json.load(fh)
+                readable += 1
+            except (OSError, ValueError):
+                o.extra.setdefault("unreadable_hars", []).append(os.path.basename(p))
+                continue
+            for h in parse_har(p):
+                obs.add_http(h["method"], h["url"], h["status"], h["req"], h["res"], source="browser-har")
+                path = re.sub(r"^https?://[^/]+", "", h["url"] or "")
+                obs.add_event("network", "%s %s" % (h["method"], path), {"body": h["req"], "status": h["status"]})
+        complete = bool(hars) and readable == len(hars) == hook.get("contexts", -1)
+        obs.stream("network", complete, "the journey's browser HAR (/api/ requests)")
+        for cid, s in (hook.get("dom") or {}).items():
+            obs.dom[cid] = s
+        obs.dom_sampled = bool(hook.get("sampled"))
+        for p in sorted(glob.glob(os.path.join(ev_dir, "*.png"))):
+            o.add("screenshot", p)
+        for p in sorted(glob.glob(os.path.join(ev_dir, "video", "*.webm"))):
+            o.add("video", p)
+        o.add("trace", os.path.join(ev_dir, "trace.zip"))
+        if hook.get("errors"):
+            o.extra["hook_errors"] = hook["errors"][:10]
 
     @staticmethod
     def _observe(o, step, http, ws, cli, roots, port):
