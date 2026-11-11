@@ -367,6 +367,11 @@ greps), `api()` (a JSON client on the daemon), `tree` + `versions` (the installe
 method), `lib/ws.mjs`'s `openFrames(daemon.origin)` for the `/ws` stream, and `state` (what earlier steps produced —
 `corpus`, `origin`, `repoId`, `bugRunId`).
 
+## Releasing
+
+`wicked-selftest` publishes to npm from `.github/workflows/selftest-release.yml` on a `selftest-v<X.Y.Z>` tag; see
+[RELEASING.md](RELEASING.md) (including the one-time first publish).
+
 ## Files
 
 ```

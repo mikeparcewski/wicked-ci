@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### selftest — npm publish workflow for `wicked-selftest` (prepared; the first publish is the operator's)
+
+- `.github/workflows/selftest-release.yml` publishes `selftest/` to npm on a `selftest-v<X.Y.Z>` tag that equals
+  `selftest/package.json`'s version. It runs the offline selfchecks, checks the tarball's contents, and uses tokenless
+  OIDC trusted publishing with provenance.
+- `selftest/package.json` is no longer `private`: it gains `files`, `repository`, `homepage` and `publishConfig`.
+  The tarball is 67 files, 178 kB packed.
+- `selftest/RELEASING.md` covers a release, plus the one-time first publish and trusted-publisher setup on
+  npmjs.com. npm registers a trusted publisher only on a package that already exists.
 ### e2e — studio journeys (U steps) sealed through `e2e run`
 
 - **U04/U05/U06 read a single-rule card.** When one rule is left unchecked, studio names it ("The rule POL-2101 needs
