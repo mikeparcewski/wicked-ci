@@ -123,6 +123,8 @@ export function parseArgs(argv) {
   if (!Number.isFinite(o.stepTimeout) || o.stepTimeout <= 0) throw new Error('--step-timeout must be a positive number of seconds');
   if (o.profile === null && !stepsGiven) o.profile = 'smoke';
   for (const k of ['crew', 'coreTs', 'bus', 'garden']) o[k] = resolveSource(o[k], process.cwd(), k);
+  // A Tier 2 set's engine facts describe ITS engine pack: another --core-ts (given after --set) leaves them behind.
+  if (o.setBuilt?.core && o.setCoreTs !== o.coreTs) { const { core, ...rest } = o.setBuilt; o.setBuilt = rest; }
   return o;
 }
 
@@ -162,13 +164,15 @@ export function readSet(file) {
   let d;
   try { d = JSON.parse(readFileSync(abs, 'utf8')); } catch (err) { throw new Error(`--set ${file}: ${err.message}`); }
   if (d === null || typeof d !== 'object' || Array.isArray(d)) throw new Error(`--set ${file}: not a JSON object`);
-  // `built` (what `pack` recorded) rides along: the engine's handshake facts for a Tier 2 set.
-  const out = { setBuilt: d.built && typeof d.built === 'object' ? d.built : null };
+  // `built` (what `pack` recorded) rides along: the engine's handshake facts for a Tier 2 set, tied to the engine pack
+  // they describe (parseArgs drops them when --core-ts names another engine).
+  const out = { setBuilt: d.built && typeof d.built === 'object' ? { ...d.built } : null };
   for (const [k, v] of Object.entries(d)) {
     if (k === '$comment' || k === 'built') continue;
     if (!['crew', 'coreTs', 'bus', 'garden'].includes(k)) throw new Error(`--set ${file}: unknown key ${k} (crew, coreTs, bus, garden)`);
     try { out[k] = resolveSource(v, dirname(abs), k); } catch (err) { throw new Error(`--set ${file}: ${err.message}`); }
   }
+  out.setCoreTs = out.coreTs ?? null;
   return out;
 }
 

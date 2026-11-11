@@ -27,6 +27,9 @@ export function checkSelftestWorkflow(text) {
   }
   if (!steps[packAt].some((l) => /if: \$\{\{ !contains\(steps\.\*\.outcome, 'failure'\) \}\}/.test(l))) problems.push('the pack is not skipped on a failed setup step');
   if (!/SETUP_FAILED: \$\{\{ contains\(steps\.\*\.outcome, 'failure'\) \}\}/.test(text)) problems.push('the verdict does not read the setup outcomes');
+  for (const b of steps.slice(packAt + 1)) {
+    if (b.some((l) => /upload-artifact@/.test(l)) && !b.some((l) => /continue-on-error: \$\{\{ inputs\.advisory \}\}/.test(l))) problems.push('the evidence upload can fail an advisory job');
+  }
   return problems;
 }
 

@@ -40,6 +40,7 @@ usage: wicked-selftest pack --out <dir> [--crew-src <dir>] [--studio-src <dir>] 
   --allow-dirty        pack a checkout that has uncommitted or untracked changes (they are NOT included; recorded)
   --npm-cache <dir>    use this npm cache (default: a fresh one under --out)
   --cargo-target <dir> CARGO_TARGET_DIR for the Tier 2 build (default: under the staging export), so CI can cache it.
+                       Never share one between packs that run at the same time.
                        CARGO_HOME and RUSTUP_HOME are the host's (the build's HOME is a fresh one under --out)
   --build-slot "<p>"   a command prefix for the heavy steps, e.g. "build-slot --"
 
@@ -157,29 +158,6 @@ export function isInside(parent, child) {
   const rel = relative(parent, child);
   return rel === '' || !(rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel));
 }
-/** An exclusive lock as a directory (mkdir is atomic) holding the owner's pid. A lock whose owner is gone is taken
- *  over; a live owner is waited on (up to `waitMs`). Returns the release function. */
-export async function lockDir(path, { waitMs = 60 * 60_000, pollMs = 2000 } = {}) {
-  const t0 = Date.now();
-  mkdirSync(dirname(path), { recursive: true });
-  for (;;) {
-    try {
-      mkdirSync(path);
-      writeFileSync(join(path, 'pid'), String(process.pid));
-      return () => rmSync(path, { recursive: true, force: true });
-    } catch (err) {
-      if (err.code !== 'EEXIST') throw err;
-    }
-    let owner = NaN;
-    try { owner = Number(readFileSync(join(path, 'pid'), 'utf8')); } catch { /* being written, or gone */ }
-    let alive = true;
-    if (Number.isInteger(owner) && owner > 0) { try { process.kill(owner, 0); } catch (e) { alive = e.code === 'EPERM'; } }
-    if (!alive) { rmSync(path, { recursive: true, force: true }); continue; }
-    if (Date.now() - t0 > waitMs) throw new Error(`the cargo target lock ${path} is still held by pid ${owner}`);
-    console.log(`wicked-selftest pack: waiting for the cargo target lock ${path} (pid ${owner})`);
-    await new Promise((r) => setTimeout(r, pollMs));
-  }
-}
 const pkgVersion = (dir) => JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).version;
 
 export async function packMain(argv) {
@@ -270,14 +248,9 @@ export async function packMain(argv) {
     const co = exportTree(o.coreSrc, f.sha, stage, 'wicked-core', env);
     const ts = join(co, CORE_TS_DIR);
     sh(npm('ci'), ts, env, { slot: o.buildSlot });
-    // napi copies the library out of the cargo target AFTER cargo releases its own lock, so two packs sharing one
-    // --cargo-target could each ship the other's binary: the whole build-and-copy holds a lock on that target.
-    const release = o.cargoTarget ? await lockDir(`${realish(o.cargoTarget)}.selftest-lock`) : () => {};
-    try {
-      sh(npm('run', 'build'), ts, env, { slot: o.buildSlot });
-    } finally {
-      release();
-    }
+    // One pack per --cargo-target at a time: napi copies the library out of the target after cargo releases its own
+    // lock, so two concurrent packs sharing one could ship each other's binary (CI runs one pack per job).
+    sh(npm('run', 'build'), ts, env, { slot: o.buildSlot });
     const nodes = readdirSync(ts).filter((n) => /^wicked-core-ts\.[a-z0-9_-]+\.node$/.test(n));
     if (nodes.length !== 1) throw new Error(`core-ts build left ${nodes.length} wicked-core-ts.<triple>.node files in ${CORE_TS_DIR} (want exactly the host's one): ${nodes.join(', ') || 'none'}`);
     const pj = JSON.parse(readFileSync(join(ts, 'package.json'), 'utf8'));

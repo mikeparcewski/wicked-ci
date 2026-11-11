@@ -16,8 +16,7 @@
   version and its gate protocol from that tree, and the `wicked-core` CLI shim answers with them. The first Tier 2
   run on core main failed every governed unit with "this engine speaks 3, the CLI speaks 1", because the shim always
   said protocol 1. On a Tier 2 set, S09 checks the binding inside the installed engine and its stamped version,
-  in place of the release-train checks. Two packs that share one `--cargo-target` take a lock around the napi
-  build and copy.
+  in place of the release-train checks. A `--core-ts` given after `--set` drops the set's engine facts.
 
 ### selftest — governed journeys through studio (U04, U05), S12, scenario data, teardown sweep
 

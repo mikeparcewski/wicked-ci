@@ -314,6 +314,8 @@ jobs:
           exit 1
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
+        # The evidence upload must not turn an advisory verdict red either (an API error, a full artifact quota).
+        continue-on-error: ${{ inputs.advisory }}
         with:
           name: wicked-selftest-${{ inputs.under_test }}${{ inputs.artifact_suffix != '' && format('-{0}', inputs.artifact_suffix) || '' }}-${{ inputs.os }}-a${{ github.run_attempt }}
           path: ${{ runner.temp }}/st-report

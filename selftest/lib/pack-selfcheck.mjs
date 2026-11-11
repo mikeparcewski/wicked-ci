@@ -9,8 +9,8 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { isInside, lockDir, packMain } from './pack.mjs';
-import { readSet } from './args.mjs';
+import { isInside, packMain } from './pack.mjs';
+import { parseArgs, readSet } from './args.mjs';
 import { expectTarball, tarballManifest } from './install.mjs';
 
 const ENV = { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_AUTHOR_NAME: 'selfcheck', GIT_AUTHOR_EMAIL: 'selfcheck@example.invalid', GIT_COMMITTER_NAME: 'selfcheck', GIT_COMMITTER_EMAIL: 'selfcheck@example.invalid' };
@@ -98,18 +98,6 @@ try {
   symlinkSync(core, join(base, 'core-link'));
   if (await quiet(() => packMain(['--core-src', core, '--out', join(base, 'out4y'), '--cargo-target', join(base, 'core-link', 'target')])) !== 2 || existsSync(join(core, 'target'))) throw new Error('a --cargo-target symlinked into a source checkout must be refused');
   if (await quiet(() => packMain(['--core-src', core, '--out', join(base, 'out4z'), '--cargo-target', join(core, '..target')])) !== 2 || existsSync(join(core, '..target'))) throw new Error('a --cargo-target named ..target inside a checkout must be refused');
-  // The cargo target lock: held exclusively, a dead owner's lock is taken over, released on return.
-  const lk = join(base, 'tgt.selftest-lock');
-  const rel1 = await lockDir(lk);
-  let second = false;
-  const p2 = lockDir(lk, { pollMs: 50 }).then((r) => { second = true; return r; });
-  await new Promise((r) => setTimeout(r, 300));
-  if (second) throw new Error('a held cargo target lock must make the second pack wait');
-  rel1();
-  (await p2)();
-  mkdirSync(lk); writeFileSync(join(lk, 'pid'), '999999');
-  (await lockDir(lk, { pollMs: 50, waitMs: 2000 }))();
-  if (existsSync(lk)) throw new Error('the cargo target lock must be released');
   if (!isInside('/a/b', '/a/b/..c') || isInside('/a/b', '/a/bc') || isInside('/a/b', '/a') || !isInside('/a/b', '/a/b')) throw new Error('isInside segment rules');
   if (await quiet(() => packMain(['--core-src', core, '--out', out4, '--cargo-target', join(base, 'cargo-target')])) !== 0) throw new Error('pack --core-src');
   if (!existsSync(join(base, 'cargo-target', 'built'))) throw new Error('the Tier 2 build did not get --cargo-target as CARGO_TARGET_DIR');
@@ -118,6 +106,10 @@ try {
   // The engine's handshake facts, from the tree: the shim must answer what THIS engine speaks.
   if (s4.built.core.engineSemver !== '0.4.7' || s4.built.core.gateProtocol !== 3) throw new Error(`Tier 2 handshake facts: ${JSON.stringify(s4.built.core)}`);
   if (readSet(join(out4, 'set.json')).setBuilt?.core?.gateProtocol !== 3) throw new Error('readSet must carry the set\'s built block');
+  // The facts belong to that engine pack: another --core-ts after --set leaves them behind (the shim must not announce
+  // the pack's protocol for a published engine).
+  if (parseArgs(['--set', join(out4, 'set.json')]).setBuilt?.core?.gateProtocol !== 3) throw new Error('run --set keeps the Tier 2 engine facts');
+  if (parseArgs(['--set', join(out4, 'set.json'), '--core-ts', '0.7.24']).setBuilt?.core !== undefined) throw new Error('a --core-ts override must drop the Tier 2 engine facts');
   const cm = tarballManifest(join(out4, s4.coreTs), ENV);
   if (cm.name !== 'wicked-core-ts' || cm.version !== `0.15.0+st.${coreSha.slice(0, 7)}`) throw new Error(`core-ts pack is ${cm.name}@${cm.version}`);
   const full = JSON.parse(run(['tar', '-xzOf', join(out4, s4.coreTs), 'package/package.json'], base));
