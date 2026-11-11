@@ -66,7 +66,7 @@ export async function runMain(argv) {
   if (existsSync(root) && readdirSync(root).length > 0) {
     if (!opts.reuseRoot) { console.error(`wicked-smoke: --root ${root} is not empty (a previous run's?). Pass --reuse-root to clear its repos/, state/, bus/, evidence/ and re-use the installed tree, or choose another --root.`); return 2; }
     for (const sub of ['repos', 'state', 'bus', 'evidence', 'worker', 'home', 'tmp', 'interactive']) { makeWritable(join(root, sub)); rmSync(join(root, sub), { recursive: true, force: true }); }
-    for (const f of readdirSync(root)) if (/-origin\.git$/.test(f) || /^(daemon\.log|shim-calls\.ndjson|report\.json|core-semver\.txt|verdict-fail-once(\.consumed-.*)?|stop|serve\.json)$/.test(f)) rmSync(join(root, f), { recursive: true, force: true });
+    for (const f of readdirSync(root)) if (/-origin\.git$/.test(f) || /^(daemon\.log|shim-calls\.ndjson|report\.json|core-semver\.txt|core-protocol\.txt|verdict-fail-once(\.consumed-.*)?|stop|serve\.json)$/.test(f)) rmSync(join(root, f), { recursive: true, force: true });
   }
   const L = layout(root);
   ensureLayout(L);
@@ -91,8 +91,14 @@ export async function runMain(argv) {
   const tree = installedTree(L);
   log(`wicked-smoke: installed crew ${versions.crew} · core-ts ${versions.coreTs} (${tree.platformPkgName} ${versions.coreTsPlatform}) · bus ${versions.bus} · garden ${versions.garden} · studio bundle ${versions.studioBundle} in ${((Date.now() - install0) / 1000).toFixed(1)}s`);
   const shims = writeShims(L);
-  const engineSemver = engineSemverFor(versions.coreTs);
+  // A Tier 2 set says which engine it built: its crate version and gate protocol win over the table and the defaults.
+  const built = opts.setBuilt?.core ?? null;
+  const engineSemver = typeof built?.engineSemver === 'string' ? { semver: built.engineSemver, source: 'the Tier 2 set (the core tree it was built from)' } : engineSemverFor(versions.coreTs);
   writeFileSync(join(root, 'core-semver.txt'), engineSemver.semver);
+  if (Number.isInteger(built?.gateProtocol)) {
+    writeFileSync(join(root, 'core-protocol.txt'), String(built.gateProtocol));
+    log(`wicked-smoke: gate protocol for the wicked-core shim: ${built.gateProtocol} (the Tier 2 set)`);
+  }
   versions.engineSemver = engineSemver.semver;
   log(`wicked-smoke: engine crate semver for the wicked-core shim: ${engineSemver.semver} (${engineSemver.source})`);
   const creds = writeSeatCredentials(L);

@@ -19,13 +19,21 @@ function engineSemver() {
   if (f && existsSync(f)) { const v = readFileSync(f, 'utf8').trim(); if (v) return v; }
   return process.env.WICKED_SMOKE_CORE_SEMVER || '0.0.0-smoke';
 }
+/** The gate protocol the engine speaks: `<root>/core-protocol.txt` when the set names it (a Tier 2 build), else 1 (every
+ *  published core-ts this suite has run on). */
+function gateProtocol() {
+  const root = process.env.WICKED_SMOKE_ROOT;
+  const f = root ? join(root, 'core-protocol.txt') : null;
+  if (f && existsSync(f)) { const v = Number(readFileSync(f, 'utf8').trim()); if (Number.isInteger(v) && v > 0) return v; }
+  return 1;
+}
 if (argv[0] === '--version' || argv[0] === 'version') {
   console.log(`wicked-core ${engineSemver()}`);
   process.exit(0);
 }
 if (argv[0] === 'gate-hook') {
   if (argv.includes('--protocol-version')) {
-    console.log(`wicked-core gate-hook protocol 1 semver ${engineSemver()}`);
+    console.log(`wicked-core gate-hook protocol ${gateProtocol()} semver ${engineSemver()}`);
     process.exit(0);
   }
   let input = '';

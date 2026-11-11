@@ -259,7 +259,13 @@ export async function packMain(argv) {
     writeFileSync(join(ts, 'package.json'), `${JSON.stringify(pj, null, 2)}\n`);
     const tgzName = sh(npm('pack', '--silent', '--pack-destination', o.out), ts, env, { capture: true }).split('\n').pop();
     set.coreTs = tgzName;
-    set.built.core = { sha: f.sha, dirty: f.dirty, version, binary: nodes[0], note: note(f) };
+    // What the `wicked-core` CLI shim must answer for this engine (its gate-hook handshake): the engine crate's version
+    // and its gate protocol, read from the tree the addon was built from. A published set has neither; the run then
+    // keeps its table and its defaults.
+    const engineSemver = readFileSync(join(co, 'Cargo.toml'), 'utf8').match(/^\[package\][^[]*?^version\s*=\s*"([^"]+)"/m)?.[1] ?? null;
+    let gateProtocol = null;
+    try { gateProtocol = Number(readFileSync(join(co, 'src', 'gate_hook.rs'), 'utf8').match(/pub const GATE_PROTOCOL_VERSION: u32 = (\d+);/)?.[1]) || null; } catch { /* no such file in this tree */ }
+    set.built.core = { sha: f.sha, dirty: f.dirty, version, binary: nodes[0], engineSemver, gateProtocol, note: note(f) };
   }
 
   writeFileSync(join(o.out, 'set.json.tmp'), `${JSON.stringify(set, null, 2)}\n`);

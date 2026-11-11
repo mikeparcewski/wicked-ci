@@ -82,7 +82,8 @@ try {
   const core = join(base, 'core');
   const tsPkg = { name: 'wicked-core-ts', version: '0.15.0', main: 'index.js', files: ['index.js'], scripts: { build: 'node b.mjs', prepack: 'node -e "process.exit(1)"' } };
   const coreSha = repo(core, {
-    'Cargo.toml': '[package]\nname = "wicked-core"\n',
+    'Cargo.toml': '[workspace]\nmembers = []\n\n[package]\nname = "wicked-core"\nversion = "0.4.7"\n',
+    'src/gate_hook.rs': 'pub const GATE_PROTOCOL_VERSION: u32 = 3;\n',
     'crates/wicked-core-ts/package.json': JSON.stringify(tsPkg, null, 2),
     'crates/wicked-core-ts/package-lock.json': JSON.stringify({ name: 'wicked-core-ts', version: '0.15.0', lockfileVersion: 3, requires: true, packages: { '': { name: 'wicked-core-ts', version: '0.15.0' } } }),
     'crates/wicked-core-ts/index.js': 'module.exports = {};\n',
@@ -102,6 +103,9 @@ try {
   if (!existsSync(join(base, 'cargo-target', 'built'))) throw new Error('the Tier 2 build did not get --cargo-target as CARGO_TARGET_DIR');
   const s4 = JSON.parse(readFileSync(join(out4, 'set.json'), 'utf8'));
   if (s4.built.tier !== 2 || s4.built.core.sha !== coreSha || s4.built.core.binary !== 'wicked-core-ts.fixture-host.node') throw new Error(`Tier 2 provenance: ${JSON.stringify(s4.built)}`);
+  // The engine's handshake facts, from the tree: the shim must answer what THIS engine speaks.
+  if (s4.built.core.engineSemver !== '0.4.7' || s4.built.core.gateProtocol !== 3) throw new Error(`Tier 2 handshake facts: ${JSON.stringify(s4.built.core)}`);
+  if (readSet(join(out4, 'set.json')).setBuilt?.core?.gateProtocol !== 3) throw new Error('readSet must carry the set\'s built block');
   const cm = tarballManifest(join(out4, s4.coreTs), ENV);
   if (cm.name !== 'wicked-core-ts' || cm.version !== `0.15.0+st.${coreSha.slice(0, 7)}`) throw new Error(`core-ts pack is ${cm.name}@${cm.version}`);
   const full = JSON.parse(run(['tar', '-xzOf', join(out4, s4.coreTs), 'package/package.json'], base));

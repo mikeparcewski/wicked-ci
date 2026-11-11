@@ -162,7 +162,8 @@ export function readSet(file) {
   let d;
   try { d = JSON.parse(readFileSync(abs, 'utf8')); } catch (err) { throw new Error(`--set ${file}: ${err.message}`); }
   if (d === null || typeof d !== 'object' || Array.isArray(d)) throw new Error(`--set ${file}: not a JSON object`);
-  const out = {};
+  // `built` (what `pack` recorded) rides along: the engine's handshake facts for a Tier 2 set.
+  const out = { setBuilt: d.built && typeof d.built === 'object' ? d.built : null };
   for (const [k, v] of Object.entries(d)) {
     if (k === '$comment' || k === 'built') continue;
     if (!['crew', 'coreTs', 'bus', 'garden'].includes(k)) throw new Error(`--set ${file}: unknown key ${k} (crew, coreTs, bus, garden)`);
