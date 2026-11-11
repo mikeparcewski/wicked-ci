@@ -9,7 +9,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -18,7 +18,10 @@ export const JOURNEYS_DIR = join(here, '..', 'journeys');
 /** The Python that runs journeys, or a reason there is none. Probed once per run. */
 export function journeyPython(ctx) {
   if (ctx.state.journeyPython !== undefined) return ctx.state.journeyPython;
-  const py = ctx.opts.python ?? process.env.WICKED_SELFTEST_PYTHON ?? null;
+  const raw = ctx.opts.python ?? process.env.WICKED_SELFTEST_PYTHON ?? null;
+  // A path (not a bare name looked up on PATH) is resolved against where the harness was started, so the probe and
+  // the launch (cwd = journeys/) run the same interpreter.
+  const py = raw && /[\\/]/.test(raw) ? resolve(raw) : raw;
   let r;
   if (!py) r = { python: null, why: 'no Python with Playwright was given (--python or WICKED_SELFTEST_PYTHON)' };
   else {
@@ -48,7 +51,10 @@ function journeyEnv(root) {
     XDG_CACHE_HOME: join(home, '.cache'), XDG_CONFIG_HOME: join(home, '.config'), XDG_DATA_HOME: join(home, '.local', 'share'),
     PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || defaultBrowsersPath(),
   };
-  for (const k of ['TMPDIR', 'SystemRoot', 'LOCALAPPDATA']) if (process.env[k]) env[k] = process.env[k];
+  // Playwright makes its browser profile and artifacts under os.tmpdir(): keep that under the root as well.
+  const tmp = root ? join(home, 'tmp') : null;
+  if (tmp) { mkdirSync(tmp, { recursive: true }); env.TMPDIR = tmp; env.TMP = tmp; env.TEMP = tmp; } else if (process.env.TMPDIR) env.TMPDIR = process.env.TMPDIR;
+  for (const k of ['SystemRoot', 'LOCALAPPDATA']) if (process.env[k]) env[k] = process.env[k];
   return env;
 }
 

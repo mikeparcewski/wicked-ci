@@ -30,9 +30,15 @@ def run(j):
     # its attribution inside the same answer.
     ans = p.get_by_test_id("assist-chat-msg").last
     ans_text = ans.inner_text() if ans.count() and ans.is_visible() else ""
-    j.check("the_answer_has_a_body", "You asked:" in ans_text and QUESTION in ans_text and "src/add.js" in ans_text, text=ans_text[:240])
+    # The stub's SUBSTANCE (not only its echo of the question): add() returns the difference.
+    j.check("the_answer_has_a_body", "You asked:" in ans_text and QUESTION in ans_text and "a - b" in ans_text and "the difference" in ans_text, text=ans_text[:240])
     footer_el = ans.locator('[data-testid="assist-answer-footer"]')
-    footer = footer_el.first.inner_text() if footer_el.count() else ""
+    footer = footer_el.first.inner_text() if footer_el.count() and footer_el.first.is_visible() else ""
+    # Rendered placement: the question is visible and drawn above its answer.
+    qel = p.get_by_test_id("assist-user-msg").filter(has_text=QUESTION[:30]).last
+    qb = qel.bounding_box() if qel.count() and qel.is_visible() else None
+    ab = ans.bounding_box() if ans.count() else None
+    j.check("question_drawn_above_answer", qb is not None and ab is not None and qb["y"] + qb["height"] <= ab["y"] + 1, question=qb, answer=ab)
     j.check("answer_names_its_helper", bool(re.search(r"Answered by \S", footer)), footer=footer[:160])
     writes = j.rec["writes"]
     j.check("ui_opened_a_chat", any(re.match(r"201 POST /api/v1/chats$", w) for w in writes), writes=writes)

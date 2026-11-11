@@ -133,7 +133,7 @@ def main(argv):
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context(viewport={"width": 1440, "height": 700}, color_scheme="light")
+        ctx = browser.new_context(viewport={"width": 1440, "height": 700}, color_scheme="light", service_workers="block")
 
         def boundary(route):
             url = route.request.url
@@ -188,12 +188,16 @@ def main(argv):
                 shot("error")
             except Exception:
                 pass
+        # The journey's own checks decide whether it ran at all; the driver's check never stands in for them.
+        rec["journey_checks"] = len(rec["checks"])
         check("stayed_on_origin", not rec["escaped"], escaped=rec["escaped"][:10])
         ctx.close()
         browser.close()
 
     rec["ended"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    rec["ok"] = rec["error"] is None and len(rec["checks"]) > 0 and all(c["ok"] for c in rec["checks"].values())
+    if not rec.get("journey_checks") and rec["error"] is None:
+        rec["error"] = "the journey recorded no checks of its own"
+    rec["ok"] = rec["error"] is None and all(c["ok"] for c in rec["checks"].values())
     with open(os.path.join(out, "result.json"), "w") as f:
         json.dump(rec, f, indent=1, default=str)
     print("RESULT", json.dumps({"ok": rec["ok"], "error": rec["error"], "checks": {k: v["ok"] for k, v in rec["checks"].items()}}), flush=True)

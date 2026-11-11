@@ -93,6 +93,7 @@ export async function run(ctx, t) {
   // (`governanceContextArmed`), its deltas (`unitOutputDelta`) and usage (`cliUsage`).
   const c5 = isC5Crew(ctx.versions);
   const SEAT = chatSeatKey({ c5 });
+  ctx.state.chatSeat = SEAT; // the journeys' fixture roster includes the chat seat once this step enabled it
   const SEAT_SHIM = c5 ? 'chat-agent' : 'acp-agent';
   if (askWire) {
     // The admission rule of the path wire refuses a council-disabled seat, so the seat this step

@@ -46,7 +46,9 @@ async function holdOpen(root, daemon, log, ctx) {
   writeFileSync(join(root, 'serve.json'), `${JSON.stringify(info, null, 1)}\n`);
   log(`wicked-selftest serve: studio at ${daemon.origin}/ (stub seats, hermetic state). Stop with Ctrl-C, SIGTERM, or: touch ${info.stopFile}`);
   while (!ctx.stopRequested && !existsSync(info.stopFile) && daemon.child && daemon.child.exitCode === null) await new Promise((r) => setTimeout(r, 2000));
-  log(`wicked-selftest serve: stopping (${ctx.stopRequested ? 'signal' : existsSync(info.stopFile) ? 'stop file' : 'the daemon exited'})`);
+  const how = ctx.stopRequested ? 'signal' : existsSync(info.stopFile) ? 'stop file' : 'exited';
+  log(`wicked-selftest serve: stopping (${how === 'exited' ? 'the daemon exited' : how})`);
+  return how;
 }
 
 /** The harness run (formerly bin/wicked-smoke.mjs's main): `argv` is the option list after the binary or the `run` verb. */
@@ -130,6 +132,7 @@ export async function runMain(argv) {
   const onSignal = (sig) => {
     if (ctx.stopRequested) return;
     ctx.stopRequested = true;
+    daemon.shuttingDown = true;
     if (ctx.holding) return;
     log(`wicked-selftest: ${sig}; stopping the daemon`);
     Promise.resolve(daemon.child ? daemon.stop() : null).finally(() => process.exit(130));
@@ -180,7 +183,13 @@ export async function runMain(argv) {
     printStep(result, log);
     if (status === STATUS.ERROR && stepId !== 'S10') log(`    (continuing; daemon log tail follows)\n${daemon.logTail(8).split('\n').map((l) => '    | ' + l.slice(0, 220)).join('\n')}`);
   }
-  if (opts.hold && daemon.child && !ctx.stopRequested) { ctx.holding = true; await holdOpen(root, daemon, log, ctx); ctx.holding = false; }
+  if (opts.hold && daemon.child && !ctx.stopRequested) {
+    ctx.holding = true;
+    const how = await holdOpen(root, daemon, log, ctx);
+    ctx.holding = false;
+    // The daemon dying under a person is a failure of the session, never a quiet PASS.
+    if (how === 'exited') results.push({ id: 'SERVE', name: 'serve hold', status: STATUS.ERROR, ms: 0, checks: [], notes: [], error: `the daemon exited while held open (exit ${daemon.child?.exitCode ?? daemon.lastExitCode ?? 'unknown'})` });
+  }
   if (daemon.child) await daemon.stop();
   for (const [k, f] of Object.entries(sigHandlers)) process.removeListener(k, f);
 

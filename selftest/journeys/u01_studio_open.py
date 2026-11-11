@@ -19,12 +19,16 @@ def run(j):
     # steps); afterwards it is Home. Either way a page heading and its body must be visible.
     body = j.wait(lambda: next((t for t in ("agents-setup", "desk-home", "agents-page") if p.get_by_test_id(t).first.is_visible()), None), 60, "the Desk's content")
     steps = p.locator('[data-testid^="agents-setup-step-"]').count() if body == "agents-setup" else None
-    j.check("desk_content_renders", body is not None and (body != "agents-setup" or steps >= 4), content=body, setup_steps=steps, url=p.url.replace(j.origin, ""))
+    heading = p.evaluate("""() => { const h = [...document.querySelectorAll('h1, h2')].find(e => e.offsetParent !== null && e.innerText.trim());
+                                    return h ? h.innerText.trim().slice(0, 80) : null }""")
+    text_len = len(p.get_by_test_id(body).first.inner_text().strip()) if body else 0
+    j.check("desk_content_renders", body is not None and bool(heading) and text_len >= 40 and (body != "agents-setup" or steps >= 4),
+            content=body, heading=heading, text_len=text_len, setup_steps=steps, url=p.url.replace(j.origin, ""))
     p.wait_for_timeout(1500)
     j.shots("U01-home")
     p.get_by_test_id("desk-rail-nerve").click()
     j.check("nerve_center_opens", j.wait(lambda: p.get_by_test_id("nerve-center-page").is_visible() and "/watch" in p.url, 60, "the Nerve Center page"))
-    j.wait(lambda: p.get_by_test_id("nc-headline").inner_text().strip() != "", 60, "the headline")
+    j.check("headline_shows", j.wait(lambda: p.get_by_test_id("nc-headline").is_visible() and p.get_by_test_id("nc-headline").inner_text().strip() != "", 60, "the headline"))
     j.wait(lambda: p.get_by_test_id("nc-tile").count() > 0, 60, "the tiles")
     p.wait_for_timeout(2000)
     # Two independent readings: the PAGE's own tone and the rail tile's (the light inside the rail is the rail's).
@@ -35,10 +39,11 @@ def run(j):
     estate = p.locator('[data-testid="nc-slow"][data-id="infra:estate"]')
     e_level = estate.get_attribute("data-level") if estate.count() else None
     e_text = estate.inner_text() if estate.count() else ""
-    j.check("estate_reads_down", e_level == "red" and "down" in e_text.lower(), level=e_level, text=e_text[:200])
+    j.check("estate_reads_down", estate.count() > 0 and estate.first.is_visible() and e_level == "red" and "down" in e_text.lower(), level=e_level, text=e_text[:200])
     services = p.locator('[data-testid="nc-tile"][data-tile="services"]')
     s_tone = services.get_attribute("data-tone") if services.count() else None
-    j.check("services_tile_not_ok", s_tone in ("fail", "warn"), tone=s_tone)
+    s_text = services.first.inner_text() if services.count() and services.first.is_visible() else ""
+    j.check("services_tile_not_ok", s_tone in ("fail", "warn") and "Estate" in s_text and re.search(r"\bdown\b", s_text, re.I), tone=s_tone, text=s_text[:160])
     headline = p.get_by_test_id("nc-headline").inner_text()
     j.check("not_called_all_good", page_tone not in ("green", "ok") and not ALL_GOOD.search(headline), tone=page_tone, headline=headline[:200])
     j.shots("U01-nerve")

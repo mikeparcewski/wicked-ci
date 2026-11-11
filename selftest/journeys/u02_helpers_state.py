@@ -6,26 +6,35 @@ Passes when: GET /roster is the fixture roster; every fixture seat has a row; it
 quota-exhausted copilot is `council_eligible: false`), when it must NOT read Ready; a signed-out or missing seat reads Not
 ready with a way forward on the row (Sign in / Fix); nothing signed out reads Ready.
 """
-
+import re
 
 # The stub roster the harness writes (selftest/lib/shims.mjs), stated here independently of GET /roster, so an API
 # regression that drops seats can't make this journey pass on an empty list.
 FIXTURE = {"claude": "signed_in", "codex": "signed_out", "pi": "signed_out", "copilot": "signed_in", "opencode": "not_required", "smoke-judge": "unknown"}
 
 
+# What the row may say when a seat can't work: the product's own unavailable wording (positive, not "anything but Ready").
+UNAVAILABLE = re.compile(r"not signed in|signed out|not installed|out of quota|quota|not ready|benched|can.t work|sign in", re.I)
+
+
 def run(j):
     p = j.page
+    fixture = dict(FIXTURE)
+    if j.state.get("piCredential"):
+        fixture["pi"] = "signed_in"  # WICKED_SMOKE_PI_CREDENTIAL: the credential exists, the binary does not
+    if j.state.get("chatSeat"):
+        fixture[j.state["chatSeat"]] = None  # S08 enabled the chat seat: it must be listed (any auth)
     roster = {r["key"]: r for r in j.get("/roster").get("roster", [])}
-    drift = {k: roster.get(k, {}).get("auth") for k, want in FIXTURE.items() if roster.get(k, {}).get("auth") != want}
+    drift = {k: roster.get(k, {}).get("auth", "MISSING") for k, want in fixture.items() if k not in roster or (want is not None and roster[k].get("auth") != want)}
     j.check("roster_is_the_fixture_roster", not drift, drift=drift)
     p.goto(j.origin + "/agents", wait_until="domcontentloaded")
     j.check("helpers_page_renders", j.wait(lambda: p.get_by_test_id("agents-list").is_visible(), 90, "the Helpers list"))
-    j.wait(lambda: p.locator('[data-testid="agents-row"][data-agent]').count() >= len(FIXTURE), 60, "a row per fixture seat")
+    j.wait(lambda: p.locator('[data-testid="agents-row"][data-agent]').count() >= len(fixture), 60, "a row per fixture seat")
     rows = {e.get_attribute("data-agent"): e for e in p.locator('[data-testid="agents-row"][data-agent]').all()}
-    missing = sorted(set(FIXTURE) - set(rows))
+    missing = sorted(set(fixture) - set(rows))
     j.check("every_seat_has_a_row", not missing, missing=missing)
     wrong = []
-    for key in FIXTURE:
+    for key in fixture:
         row, r = rows.get(key), roster.get(key, {})
         if row is None:
             continue
@@ -44,11 +53,11 @@ def run(j):
             continue
         if r.get("auth") == "signed_in" and not benched and not visible_ready.startswith("Ready"):
             wrong.append(f"{key}: signed in and eligible but reads {visible_ready!r}")
-        if benched and visible_ready.startswith("Ready"):
+        if benched and not UNAVAILABLE.search(visible_ready):
             wrong.append(f"{key}: benched by the engine but reads {visible_ready!r}")
         if r.get("auth") == "signed_out":
             fix = row.locator('[data-testid="agents-fix"]')
-            if visible_ready.startswith("Ready"):
+            if not UNAVAILABLE.search(visible_ready):
                 wrong.append(f"{key}: signed out but reads {visible_ready!r}")
             elif not (fix.count() and fix.first.is_visible() and fix.first.is_enabled()):
                 wrong.append(f"{key}: not ready with no visible, enabled way forward on the row")

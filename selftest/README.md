@@ -59,9 +59,9 @@ Dark, under `evidence/<step>/`.
 
 | Step | Journey | Passes when |
 |---|---|---|
-| U01 | open studio; the Nerve Center | the Desk and `/watch` render with no page error and no 500; the rail tile's tone equals the page's light; the service the hermetic daemon has no binary for (wicked-estate) reads down, and the page is not called all good |
-| U02 | Helpers | every stub seat has a row; signed in reads Ready; signed out reads Not ready with a way forward on the row |
-| U03 | ask in chat | the UI opened a chat and sent the message; the answer sits under its question and names its helper |
+| U01 | open studio; the Nerve Center | the Desk's content and `/watch` render with no page error and no 500; the rail tile's tone equals the PAGE's tone; Estate's own entry (the hermetic daemon has no wicked-estate) reads down and is visible, and the page is not called all good |
+| U02 | Helpers | `/roster` is the fixture roster; every seat has a row whose VISIBLE status agrees: eligible reads Ready, benched or signed out reads its unavailable state with a visible, enabled way forward |
+| U03 | ask in chat | the UI opened a chat and sent the message; the answer is drawn under its visible question, has the stub's substance (not only an echo), and its own footer names its helper |
 
 A journey needs a Python with Playwright: `--python <path>` or `WICKED_SELFTEST_PYTHON` (browsers from
 `PLAYWRIGHT_BROWSERS_PATH` or Playwright's default cache). Without one, the U steps are **SKIPPED** with the reason, and
