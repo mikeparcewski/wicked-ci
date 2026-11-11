@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### selftest — U06 steering cited, U07 stalled run (EXPECTED-FAIL F-CREW-1501)
+
+- **U06 (J7).** The person imports a one-rule markdown doc on the Steering page (More → Import rules…) and sees the
+  rule listed in force. A `/bug` run's rule-check card, opened as a person would, then lists the rule, and the
+  run's gate carries it. It is in `pr` (about 2.5 min) and `release`.
+  - Hermetic limit: the engine accepts no judge for the rule check here, so the rules read "unchecked" (the
+    thin-roster card).
+  - A plan cites only `plan.compose` testing rules.
+- **U07 (J8).** Scenario `fix: stall` makes the fix turn sit silent and idle. With `workerStallMinutes: 1` and
+  escalation and the silent-turn rung off, `GET /system` and the Nerve Center's Runs row must say stalled. It is in
+  `release`.
+  - It is EXPECTED-FAIL `F-CREW-1501` (wicked-crew#1501): core's 15 s `toolActivity` working heartbeat is a relay
+    frame, and crew's watchdog restamps its silence clock on every frame. Reproduced: 150 s silent against a 60 s
+    threshold, and the run read "working: last event 1 s ago".
+  - The step cancels its run and restores the knobs after.
+- **Journey checks can name a finding** (`finding: "F-…"`), so the expected-fail policy decides them as it does for
+  API checks. The driver writes the journey's state (the run it launched) into `result.json` for its step's cleanup.
+  The shim call log records the rule ids a rule check named (`ruleIds`).
+- **U07's oracle (review):**
+  - Only the heartbeat's own signature, the run still executing in its silent turn and read as "working", carries
+    `F-CREW-1501`. A missing run or row, a finished run or any other state is an ordinary failure.
+  - One 4 min budget runs from the shim's marker for both surfaces. The marker names this run's worktree, so a stale
+    one is refused.
+  - Cleanup is checked: the run is cancelled and reaches a terminal state, and the knobs are restored from
+    `GET /settings`'s `settings`.
+- **Review r2 on #71:**
+  - U07 is SKIPPED before any setup when there is no browser.
+  - Cleanup cancels the launched run by its id even when the runs list fails.
+  - An observation counts only inside the deadline.
+  - The row's visible `nc-run-liveness` label must agree with its data.
+  - A pass carries the finding too, so a fixed crew reads UNEXPECTED-PASS until the label is retired.
+  - U06's step cancels its parked run, checked.
+- **U06's oracle (review):** the receipt must read "1 of 1 entry imported" for the rule. The wire check reads the
+  current gate's structured rule rows, and the UI check reads that gate row's own rule list.
+
 ### selftest — pull-request CI (`selftest.yml`) and Tier 2 packs
 
 - **`.github/workflows/selftest.yml`**, the reusable workflow a product repo calls on its pull requests. It packs the

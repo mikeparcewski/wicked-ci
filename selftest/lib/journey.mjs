@@ -94,8 +94,9 @@ export async function runJourney(ctx, t, journey, { state = {}, timeoutMs } = {}
   if (!res.journey_checks) throw new Error(`journey ${journey} recorded no checks of its own (${res.error ?? 'no error'})`);
   if (res.error) throw new Error(`journey ${journey} did not run to its end: ${res.error}`);
   for (const [name, c] of checks) {
-    const { ok, ...detail } = c;
-    t.check(name, ok, JSON.stringify(detail), { evidence: `${t.stepId}/result.json` });
+    // A journey check may name the open finding it exhibits (`finding: "F-…"`): the expected-fail policy decides.
+    const { ok, finding, ...detail } = c;
+    t.check(name, ok, JSON.stringify(detail), { evidence: `${t.stepId}/result.json`, ...(typeof finding === 'string' ? { finding } : {}) });
   }
   t.info('shots', (res.shots ?? []).join(', '));
   t.info('ui sent', (res.writes ?? []).join('; ') || 'nothing');

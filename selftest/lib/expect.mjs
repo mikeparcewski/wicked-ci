@@ -92,6 +92,11 @@ const RULES = {
   // S12 asserts the behaviour a second daemon's owner needs and is labelled until the fix ships; then bound the rule
   // to the fixed core-ts version (`coreTs`).
   'F-CORE-1373': () => 'wicked-core#1373: a daemon\'s boot reaper removes another daemon\'s worktrees in a shared checkout — flip when core-ts ships the owner-scoped reaper',
+  // F-CREW-1501: a wedged LIVE seat is never called stalled. core's 15 s `toolActivity` working heartbeat (core#1207)
+  // is a relay frame, and crew's stall watchdog restamps its silence clock on every frame (stall-watchdog.ts ingest),
+  // so detection, the reassign rung and the silent-turn rung never fire and the Nerve Center reads working. U07
+  // asserts what J8 needs and is labelled until crew ships the fix; then bound the rule to that crew version.
+  'F-CREW-1501': () => 'wicked-crew#1501: the engine\'s working heartbeat re-arms the stall watchdog, so a silent, idle seat never reads stalled — flip when crew ignores heartbeat frames',
   'F-E2E-012': () => 'tool-only onboarding keeps its wicked/<run-id> branch + worktree (retention by design, F-7R2-013) — flip when the product changes',
   // F-E2E-002: a publish that lands with warnings shows `skills.findings: []` in /diagnostics — the
   // warnings live only in the daemon log. The placeholder bound (0.7.99) had silently EXPIRED: on crew

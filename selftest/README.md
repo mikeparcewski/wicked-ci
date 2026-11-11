@@ -70,7 +70,7 @@ it with `head_ref: main` (the `main` set, Tier 1 and Tier 2), not advisory.
 | Profile | Steps | For |
 |---|---|---|
 | `smoke` (default) | S01 S02 S03 S04 S11 S05 S06 S08 S09 S10 | the release smoke, as it always ran |
-| `pr` | S01 S02 S03 S04 S08 U01 U02 U03 U04 S10 | a pull request and a governed run's floor |
+| `pr` | S01 S02 S03 S04 S08 U01 U02 U03 U04 U06 S10 | a pull request and a governed run's floor |
 | `release` | every step except the opt-in S07 | the release train and the integrator's batch pass |
 | `serve` | S01 S02 S03 | `wicked-selftest serve` (then the daemon is held open) |
 
@@ -92,6 +92,8 @@ Dark, under `evidence/<step>/`.
 | U03 | ask in chat | the UI opened a chat and sent the message; the answer is drawn under its visible question, has the stub's substance (not only an echo), and its own footer names its helper |
 | U04 | a bug fix through studio, to delivery | Settings: QE acceptance off (labelled); New job → `/bug` → corpus → Review plan → Start; the plan and every card answered in the UI (each decision waited on until its POST goes out); the run is completed, the run page shows the delivery, and the branch on the bare origin returns the sum |
 | U05 | a broken test is named (`release`) | scenario `fix: break` adds a failing test; the run stops at a card that names it and offers a way forward, and delivers nothing |
+| U06 | an imported steering rule is cited (`pr`) | Steering → More → Import rules… with a one-rule markdown doc; the rule is listed in force; a `/bug` run's rule-check card, opened as a person would, lists the rule, and the run's gate carries it. Hermetic limit: no judge the engine accepts for the rule check, so the rules read unchecked (the thin-roster card) |
+| U07 | a stalled run reads stalled (`release`) | scenario `fix: stall` makes the fix turn sit silent and idle; with `workerStallMinutes` at 1 (escalation and the silent-turn rung off), `GET /system` and the Nerve Center's Runs row must say stalled, never working. EXPECTED-FAIL `F-CREW-1501` (the engine's 15 s working heartbeat re-arms crew's watchdog) |
 
 A journey needs a Python with Playwright: `--python <path>` or `WICKED_SELFTEST_PYTHON` (browsers from
 `PLAYWRIGHT_BROWSERS_PATH` or Playwright's default cache). Without one, the U steps are **SKIPPED** with the reason, and
