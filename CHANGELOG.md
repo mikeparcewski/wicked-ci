@@ -27,6 +27,13 @@
     one is refused.
   - Cleanup is checked: the run is cancelled and reaches a terminal state, and the knobs are restored from
     `GET /settings`'s `settings`.
+- **Review r2 on #71:**
+  - U07 is SKIPPED before any setup when there is no browser.
+  - Cleanup cancels the launched run by its id even when the runs list fails.
+  - An observation counts only inside the deadline.
+  - The row's visible `nc-run-liveness` label must agree with its data.
+  - A pass carries the finding too, so a fixed crew reads UNEXPECTED-PASS until the label is retired.
+  - U06's step cancels its parked run, checked.
 - **U06's oracle (review):** the receipt must read "1 of 1 entry imported" for the rule. The wire check reads the
   current gate's structured rule rows, and the UI check reads that gate row's own rule list.
 

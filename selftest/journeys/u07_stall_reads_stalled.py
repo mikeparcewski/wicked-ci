@@ -25,6 +25,17 @@ def system_row(j, rid):
     return next((r for r in runs if r.get("runId") == rid), None)
 
 
+def shown_word(row):
+    """The row's liveness as the person sees it: the visible label, and only when the row's own data agrees with it
+    (a disagreement is reported as such, never as either word)."""
+    if row.count() == 0:
+        return None
+    label = row.first.get_by_test_id("nc-run-liveness")
+    text = label.inner_text().strip().lower() if label.count() and label.first.is_visible() else None
+    attr = row.first.get_attribute("data-liveness")
+    return text if text == attr else "label %r / data %r" % (text, attr)
+
+
 def marker_of(path, rid):
     """The shim's marker, only when it is THIS run's turn (its worktree path names the run)."""
     try:
@@ -60,15 +71,16 @@ def run(j):
     # One budget for both surfaces, from the moment the turn went silent; the page is reloaded every 30 s in case it
     # refreshes only on navigation.
     while time.time() < deadline and (first["api"] is None or first["ui"] is None):
+        # An observation counts only when it was made inside the budget (a slow GET can return after the deadline).
         live = (system_row(j, rid) or {}).get("liveness")
         if not seen_api or seen_api[-1] != live:
             seen_api.append(live)
-        if live == "stalled" and first["api"] is None:
+        if live == "stalled" and first["api"] is None and time.time() <= deadline:
             first["api"] = time.time()
-        word = row.first.get_attribute("data-liveness") if row.count() else None
+        word = shown_word(row)
         if not seen_ui or seen_ui[-1] != word:
             seen_ui.append(word)
-        if word == "stalled" and first["ui"] is None:
+        if word == "stalled" and first["ui"] is None and time.time() <= deadline:
             first["ui"] = time.time()
         if time.time() - last_reload > 30:
             p.reload(wait_until="domcontentloaded")
@@ -83,11 +95,13 @@ def run(j):
     j.check("daemon_lists_the_run", srow is not None, liveness=(srow or {}).get("liveness"))
     j.check("nerve_center_lists_the_run", row.count() > 0, seen=seen_ui[-6:])
     # The verdict. Labelled only when it shows the heartbeat's signature: the run read as working.
+    # A pass carries the label too, so the expected-fail policy reports UNEXPECTED-PASS when crew#1501 is fixed and the
+    # label has not been retired yet.
     live, reason = (srow or {}).get("liveness"), (srow or {}).get("reason")
-    j.check("daemon_calls_it_stalled", first["api"] is not None, **({"finding": FINDING} if first["api"] is None and live == "working" else {}),
+    j.check("daemon_calls_it_stalled", first["api"] is not None, **({"finding": FINDING} if first["api"] is not None or live == "working" else {}),
             liveness=live, reason=reason, seen=seen_api[-6:], after_s=after("api"), window_s=WINDOW_S)
-    word = row.first.get_attribute("data-liveness") if row.count() else None
-    j.check("nerve_center_row_reads_stalled", first["ui"] is not None, **({"finding": FINDING} if first["ui"] is None and word == "working" else {}),
+    word = shown_word(row)
+    j.check("nerve_center_row_reads_stalled", first["ui"] is not None, **({"finding": FINDING} if first["ui"] is not None or word == "working" else {}),
             word=word, seen=seen_ui[-6:], after_s=after("ui"), window_s=WINDOW_S)
     j.shots("U07-stalled")
     j.check("no_page_errors", not j.rec["page_errors"], errors=j.rec["page_errors"][:5])
