@@ -24,7 +24,7 @@ def harness_path(ctx):
     return os.path.join(ctx.repo_root, *HARNESS)
 
 
-STEP_RE = re.compile(r"^selftest/lib/steps/(S\d\d)-[\w-]+\.mjs$")
+STEP_RE = re.compile(r"^selftest/lib/steps/([SU]\d\d)-[\w-]+\.mjs$")  # S = API steps, U = studio journeys
 STATUS = {"PASS": "passed", "EXPECTED-FAIL": "failed", "UNEXPECTED-PASS": "passed", "FAIL": "failed",
           "ERROR": "error", "SKIPPED": "error"}
 
@@ -95,7 +95,11 @@ class SmokeAdapter(Adapter):
                 "bin-wicked-bus": "installed wicked-bus", "bin-wicked-estate": "estate shim", "tool-git": "host git"}
 
     def evidence_kinds(self, ctx, scenario, cap):
-        return {"api-transcript", "event-log", "cli-transcript", "file-hash"}
+        kinds = {"api-transcript", "event-log", "cli-transcript", "file-hash"}
+        m = STEP_RE.match(str(scenario.get("ref", "")).split(":", 1)[-1])
+        if m and m.group(1).startswith("U"):
+            kinds |= {"video", "screenshot", "trace"}  # a studio journey records them (journeys/driver.py)
+        return kinds
 
     def run(self, unit, ctx):
         steps = sorted({s["params"]["step"] for s in unit.scenarios.values()})
@@ -107,6 +111,10 @@ class SmokeAdapter(Adapter):
                 "--root", root, "--keep", "--report-dir", os.path.join(out, "harness"),
                 "--step-timeout", str(ctx.step_timeout)] + list(ctx.smoke_args)
         env = dict(os.environ, WICKED_SMOKE_TAP_DIR=tap)
+        if any(st.startswith("U") for st in steps):  # the studio journeys run on the runner's Playwright Python
+            env["WICKED_SELFTEST_PYTHON"] = ctx.python
+            if getattr(ctx, "playwright_browsers", None):
+                env["PLAYWRIGHT_BROWSERS_PATH"] = ctx.playwright_browsers
         rc, secs = run_logged(argv, ctx.repo_root, env, os.path.join(out, "harness.log"), ctx.unit_timeout)
         unit.params["root"] = root
         report_p = os.path.join(out, "harness", "report.json")
@@ -157,7 +165,15 @@ class SmokeAdapter(Adapter):
                 o.add("cli-transcript", write_json(os.path.join(sd, "cli-transcript.json"), o.obs.cli))
             ev = os.path.join(out, "harness", "evidence", step)
             for p in sorted(glob.glob(os.path.join(ev, "*"))):
-                o.add("scenario-evidence", p)
+                if os.path.isfile(p):
+                    o.add("scenario-evidence", p)
+            if step.startswith("U"):  # the journey's own UI evidence, under its kinds
+                for p in sorted(glob.glob(os.path.join(ev, "*.png"))):
+                    o.add("screenshot", p)
+                for p in sorted(glob.glob(os.path.join(ev, "video", "*.webm"))):
+                    o.add("video", p)
+                if os.path.isfile(os.path.join(ev, "trace.zip")):
+                    o.add("trace", os.path.join(ev, "trace.zip"))
             outcomes[key] = o
         return outcomes
 

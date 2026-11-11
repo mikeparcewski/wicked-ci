@@ -32,7 +32,7 @@ wicked-studio, the coder-facing UI: every page, control and run panel, driven in
 | cost | S 238, L 13, M 5 |
 | surface | ui 253, cli 2, api 1 |
 | oracle | partial 238, manual 13, complete 5 |
-| best scenario fidelity | e2e-fixture 166, unit 52, e2e-live 18, planned 16, integration 3, e2e-hermetic 1 |
+| best scenario fidelity | e2e-fixture 163, unit 52, e2e-live 18, planned 16, e2e-hermetic 4, integration 3 |
 | who can run it | fixture adapter 177, no adapter yet 53, planned only 16, live journey 10 |
 
 Select it: `area:studio-ui`; the cheap part: `area:studio-ui cost<=S`; one group: `id:<group>,<group>.*` with a group below (e.g. `id:studio-ui.a11y,studio-ui.a11y.*`).

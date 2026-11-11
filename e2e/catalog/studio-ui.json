@@ -905,6 +905,10 @@
     {
      "ref": "wicked-studio:tests/agentsCounts.test.tsx",
      "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-ci:selftest/lib/steps/U02-helpers.mjs",
+     "fidelity": "e2e-hermetic"
     }
    ],
    "aliases": [
@@ -19065,6 +19069,10 @@
     {
      "ref": "wicked-studio:tests/ProposalCard.delivered.test.tsx",
      "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-ci:selftest/lib/steps/U04-bug-delivered.mjs",
+     "fidelity": "e2e-hermetic"
     }
    ],
    "sources": [
@@ -19974,6 +19982,10 @@
     {
      "ref": "wicked-studio:tests/runConversation.render.test.tsx",
      "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-ci:selftest/lib/steps/U04-bug-delivered.mjs",
+     "fidelity": "e2e-hermetic"
     }
    ],
    "sources": [

@@ -42,7 +42,7 @@ branch), or inside a sandbox. `run` never builds anything.
 | Profile | Steps | For |
 |---|---|---|
 | `smoke` (default) | S01 S02 S03 S04 S11 S05 S06 S08 S09 S10 | the release smoke, as it always ran |
-| `pr` | S01 S02 S03 S04 S08 U01 U02 U03 S10 | a pull request and a governed run's floor |
+| `pr` | S01 S02 S03 S04 S08 U01 U02 U03 U04 S10 | a pull request and a governed run's floor |
 | `release` | every step except the opt-in S07 | the release train and the integrator's batch pass |
 | `serve` | S01 S02 S03 | `wicked-selftest serve` (then the daemon is held open) |
 
@@ -62,6 +62,8 @@ Dark, under `evidence/<step>/`.
 | U01 | open studio; the Nerve Center | the Desk's content and `/watch` render with no page error and no 500; the rail tile's tone equals the PAGE's tone; Estate's own entry (the hermetic daemon has no wicked-estate) reads down and is visible, and the page is not called all good |
 | U02 | Helpers | `/roster` is the fixture roster; every seat has a row whose VISIBLE status agrees: eligible reads Ready, benched or signed out reads its unavailable state (never Ready), and a signed-out seat has a visible, enabled way forward |
 | U03 | ask in chat | the UI opened a chat and sent the message; the answer is drawn under its visible question, has the stub's substance (not only an echo), and its own footer names its helper |
+| U04 | a bug fix through studio, to delivery | Settings: QE acceptance off (labelled); New job → `/bug` → corpus → Review plan → Start; the plan and every card answered in the UI (each decision waited on until its POST goes out); the run is completed, the run page shows the delivery, and the branch on the bare origin returns the sum |
+| U05 | a broken test is named (`release`) | scenario `fix: break` adds a failing test; the run stops at a card that names it and offers a way forward, and delivers nothing |
 
 A journey needs a Python with Playwright: `--python <path>` or `WICKED_SELFTEST_PYTHON` (browsers from
 `PLAYWRIGHT_BROWSERS_PATH` or Playwright's default cache). Without one, the U steps are **SKIPPED** with the reason, and

@@ -29,9 +29,9 @@ for (const f of readdirSync(join(here, '..', 'shims')).filter((f) => f.endsWith(
 }
 if (parseSteps('S01..S03').join(',') !== 'S01,S02,S03') throw new Error('parseSteps range');
 // Ranges are NUMERIC, ordered by the run order (S11 runs right after S04): no step is silently dropped.
-if (parseSteps('S01..S11').length !== ALL_STEPS.filter((x) => x[0] === 'S').length || !parseSteps('S01..S11').includes('S10') || parseSteps('S01..S11').some((x) => x[0] !== 'S')) throw new Error(`parseSteps S01..S11: ${parseSteps('S01..S11')}`);
+if (parseSteps('S01..S11').length !== ALL_STEPS.filter((x) => x[0] === 'S' && Number(x.slice(1)) <= 11).length || !parseSteps('S01..S11').includes('S10') || parseSteps('S01..S11').some((x) => x[0] !== 'S')) throw new Error(`parseSteps S01..S11: ${parseSteps('S01..S11')}`);
 if (parseSteps('S05..S11').join(',') !== 'S11,S05,S06,S07,S08,S09,S10') throw new Error(`parseSteps S05..S11: ${parseSteps('S05..S11')}`);
-if (parseSteps('U01..U03').join(',') !== 'U01,U02,U03') throw new Error(`parseSteps U01..U03: ${parseSteps('U01..U03')}`);
+if (parseSteps('U01..U03').join(',') !== 'U01,U02,U03' || parseSteps('U01..U04').length !== 4) throw new Error(`parseSteps U01..U03: ${parseSteps('U01..U03')}`);
 { let bad = false; try { parseSteps('S01..U02'); } catch { bad = true; } if (!bad) throw new Error('a cross-family range must be refused'); }
 if (parseSteps('S10..S11').join(',') !== 'S11,S10' || parseSteps('S04..S05').join(',') !== 'S04,S05') throw new Error('parseSteps S10..S11 / S04..S05');
 if (compare('0.7.32', '0.7.33') !== -1) throw new Error('semver compare');
@@ -382,8 +382,8 @@ if (sqlite) {
   // profile (the bug run from `pr`, say) fails this check instead of passing it by construction.
   const EXPECTED = {
     smoke: 'S01,S02,S03,S04,S11,S05,S06,S08,S09,S10',
-    pr: 'S01,S02,S03,S04,S08,U01,U02,U03,S10',
-    release: 'S01,S02,S03,S04,S11,S05,S06,S08,U01,U02,U03,S09,S10',
+    pr: 'S01,S02,S03,S04,S08,U01,U02,U03,U04,S10',
+    release: 'S01,S02,S03,S04,S11,S05,S06,S08,U01,U02,U03,U04,U05,S12,S09,S10',
     serve: 'S01,S02,S03',
   };
   if (Object.keys(PROFILES).sort().join() !== Object.keys(EXPECTED).sort().join()) throw new Error(`profiles: ${Object.keys(PROFILES)} vs ${Object.keys(EXPECTED)}`);
@@ -485,6 +485,20 @@ if (sqlite) {
   d.shuttingDown = true;
   let refused = false; try { await p; } catch (err) { refused = /shutting down/.test(err.message); }
   if (!refused || d.child) throw new Error('a start racing a shutdown must not spawn');
+}
+// Teardown: a process still naming the run root after the daemon stopped is found and stopped (POSIX).
+if (process.platform !== 'win32') {
+  const { sweepRoot } = await import('./proc.mjs');
+  const { spawn } = await import('node:child_process');
+  const { mkdtempSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const root = mkdtempSync(join(tmpdir(), 'selftest-sweep-'));
+  const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)', join(root, 'bridge-marker')], { stdio: 'ignore', detached: true });
+  child.unref();
+  await new Promise((r) => setTimeout(r, 300));
+  const res = await sweepRoot(root, { graceMs: 500 });
+  let alive = true; try { process.kill(child.pid, 0); } catch { alive = false; }
+  if (res.swept.length !== 1 || !res.swept[0].command.includes('<root>') || alive) throw new Error(`sweepRoot: ${JSON.stringify(res)} alive=${alive}`);
 }
 // The self-test daemon never binds an operator daemon's port.
 {

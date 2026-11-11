@@ -87,6 +87,11 @@ const RULES = {
   // customer's clone. STILL PRESENT on 0.7.33 and documented as retention BY DESIGN (F-7R2-013);
   // the harness asserts the customer-visible behaviour and labels it — remove this rule when the
   // product stops minting a branch/worktree for tool-only workflows.
+  // F-CORE-1373: two daemons on one host registering the same checkout: restarting one force-removes the other's
+  // worktrees (its boot reaper treats every run id its own store doesn't know as a leftover). Open (wicked-core#1373):
+  // S12 asserts the behaviour a second daemon's owner needs and is labelled until the fix ships; then bound the rule
+  // to the fixed core-ts version (`coreTs`).
+  'F-CORE-1373': () => 'wicked-core#1373: a daemon\'s boot reaper removes another daemon\'s worktrees in a shared checkout — flip when core-ts ships the owner-scoped reaper',
   'F-E2E-012': () => 'tool-only onboarding keeps its wicked/<run-id> branch + worktree (retention by design, F-7R2-013) — flip when the product changes',
   // F-E2E-002: a publish that lands with warnings shows `skills.findings: []` in /diagnostics — the
   // warnings live only in the daemon log. The placeholder bound (0.7.99) had silently EXPIRED: on crew

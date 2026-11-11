@@ -83,3 +83,29 @@ export async function until(fn, { ms = 60_000, every = 500 } = {}) {
   }
   return null;
 }
+
+/**
+ * Every process still running whose command line names the run root, other than this harness: what the daemon left
+ * behind (a document bridge, a seat CLI) after it was stopped. Each is sent SIGTERM, then SIGKILL after `graceMs`, so
+ * a self-test never leaves a process holding its (about to be removed) root. Returns what it found. POSIX only (`ps`);
+ * on Windows it reports that it could not look.
+ */
+export async function sweepRoot(root, { graceMs = 3000 } = {}) {
+  if (process.platform === 'win32') return { swept: [], note: 'not checked on Windows' };
+  const list = () => {
+    const r = spawnSync('ps', ['-ax', '-o', 'pid=,ppid=,command='], { encoding: 'utf8' });
+    if (r.status !== 0) return [];
+    const rows = r.stdout.split('\n').map((l) => l.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/)).filter(Boolean).map((m) => ({ pid: Number(m[1]), ppid: Number(m[2]), command: m[3] }));
+    // This harness and every process ABOVE it (a wrapper whose argv names the root, e.g. `job … --root <root>`) are
+    // not leftovers: only what the daemon left behind is.
+    const parent = new Map(rows.map((x) => [x.pid, x.ppid]));
+    const mine = new Set();
+    for (let p = process.pid; p > 1 && !mine.has(p); p = parent.get(p) ?? 0) mine.add(p);
+    return rows.filter((x) => !mine.has(x.pid) && x.command.includes(root));
+  };
+  const found = list();
+  for (const x of found) { try { process.kill(x.pid, 'SIGTERM'); } catch { /* gone */ } }
+  if (found.length) await sleep(graceMs);
+  for (const x of list()) { try { process.kill(x.pid, 'SIGKILL'); } catch { /* gone */ } }
+  return { swept: found.map((x) => ({ pid: x.pid, command: x.command.split(root).join('<root>').slice(0, 300) })) };
+}
