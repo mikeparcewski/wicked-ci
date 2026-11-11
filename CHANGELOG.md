@@ -4,6 +4,9 @@
 
 ### e2e — studio journeys (U steps) sealed through `e2e run`
 
+- **U04/U05/U06 read a single-rule card.** When one rule is left unchecked, studio names it ("The rule POL-2101 needs
+  your call", "Confirm or skip POL-2101") instead of counting. Core main reached that state on 2026-11-11, and U04
+  stopped at an "unknown" card on the Tier 2 main set. The journeys now accept both wordings.
 - The `wicked-ci-smoke` adapter claims `selftest/lib/steps/Uxx-*.mjs`. It runs the harness with the runner's
   Python and the e2e Playwright hook, and the journey's driver loads that hook explicitly (it runs `python -I`).
   The hook writes the browser's `/api/` HAR, the catalog's DOM samples and copies of the screenshots under
