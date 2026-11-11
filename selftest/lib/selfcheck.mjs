@@ -374,7 +374,7 @@ if (sqlite) {
 {
   const { PROFILES, parseArgs, readSet } = await import('./args.mjs');
   const { npmSpec } = await import('./install.mjs');
-  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   for (const [name, steps] of Object.entries(PROFILES)) {
     if (steps.length === 0 || steps.some((s) => !ALL_STEPS.includes(s))) throw new Error(`profile ${name} names an unregistered step`);
@@ -400,7 +400,33 @@ if (sqlite) {
   writeFileSync(join(dir, 'missing.json'), JSON.stringify({ crew: './gone.tgz' }));
   threw = false; try { readSet(join(dir, 'missing.json')); } catch { threw = true; }
   if (!threw) throw new Error('readSet must refuse a pack that does not exist');
+  // Whitespace, a source directory for an npm package, or a non-version are refused (each would test something else).
+  mkdirSync(join(dir, 'crew-checkout'));
+  writeFileSync(join(dir, 'crew-checkout', 'package.json'), '{}');
+  for (const argv of [['--crew', ' '], ['--crew', ''], ['--bus', 'latest '], ['--crew', join(dir, 'crew-checkout')], ['--core-ts', join(dir, 'crew-checkout')], ['--garden', join(dir, 'set.json')], ['--crew', '0.18.8;rm']]) {
+    let refused = false; try { parseArgs(argv); } catch { refused = true; }
+    if (!refused) throw new Error(`parseArgs(${JSON.stringify(argv)}) must refuse`);
+  }
+  if (parseArgs(['--garden', join(dir, 'crew-checkout')]).garden !== join(dir, 'crew-checkout')) throw new Error('a garden directory is a local source');
+  writeFileSync(join(dir, 'blank.json'), JSON.stringify({ crew: ' ' }));
+  threw = false; try { readSet(join(dir, 'blank.json')); } catch { threw = true; }
+  if (!threw) throw new Error('readSet must refuse a whitespace value (npm reads it as latest)');
   if (npmSpec('wicked-crew', '0.18.8') !== 'wicked-crew@0.18.8' || npmSpec('wicked-crew', set.crew) !== set.crew || npmSpec('wicked-crew', 'latest') !== 'wicked-crew@latest') throw new Error('npmSpec');
+}
+// A garden manifest's version is one path component (semver); a traversal never reaches the recursive delete.
+{
+  const { GARDEN_VERSION_RE, placeGarden } = await import('./install.mjs');
+  const { mkdtempSync, mkdirSync, writeFileSync, existsSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  for (const v of ['12.66.1', '0.1.0-rc.1', '1.2.3+st.abc1234']) if (!GARDEN_VERSION_RE.test(v)) throw new Error(`garden version ${v} must be accepted`);
+  for (const v of ['../../x', '1.2.3/../../x', '', '..', '1.2', 'v1.2.3']) if (GARDEN_VERSION_RE.test(v)) throw new Error(`garden version ${v} must be refused`);
+  const r = mkdtempSync(join(tmpdir(), 'selftest-garden-'));
+  const sentinel = join(r, 'outside', 'keep.txt');
+  mkdirSync(join(r, 'outside'), { recursive: true }); writeFileSync(sentinel, 'x');
+  const staging = join(r, 'staging'); mkdirSync(join(staging, '.claude-plugin'), { recursive: true });
+  writeFileSync(join(staging, '.claude-plugin', 'plugin.json'), JSON.stringify({ version: '../../../../outside' }));
+  let refused = false; try { placeGarden({ claude: join(r, 'claude') }, staging, 'fixture'); } catch { refused = true; }
+  if (!refused || !existsSync(sentinel)) throw new Error('a traversal version must be refused before anything is removed');
 }
 // The self-test daemon never binds an operator daemon's port.
 {

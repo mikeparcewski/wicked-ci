@@ -178,11 +178,14 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ inputs.node_version || 'lts/*' }}
-      # Offline harness selfcheck (no daemon, no network): step registry, version edges, and the
-      # wicked-crew#1050 guard against the harness writing the bus's WAL/SHM sidecars.
+      # Offline harness selfcheck (no daemon, no network): step registry, version edges, the
+      # wicked-crew#1050 guard against the harness writing the bus's WAL/SHM sidecars, profiles and set
+      # rules; then `pack` on disposable fixture checkouts (no product build, no dependencies).
       - name: wicked-smoke selfcheck
         shell: bash
-        run: node .wicked-ci-smoke/selftest/lib/selfcheck.mjs
+        run: |
+          node .wicked-ci-smoke/selftest/lib/selfcheck.mjs
+          node .wicked-ci-smoke/selftest/lib/pack-selfcheck.mjs
       # `uv` is a PRODUCT requirement: crew's skills seed runs `uv sync` for the garden bundle and
       # BLOCKS the publish without it. The harness exposes the host uv through a passthrough wrapper.
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3

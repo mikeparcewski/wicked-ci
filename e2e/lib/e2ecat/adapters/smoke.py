@@ -16,6 +16,14 @@ import re
 from . import DOUBLED, Adapter, Outcome, read_jsonl, rmtree, run_logged, write_json
 from ..observe import event_type
 
+HARNESS = ("selftest", "bin", "wicked-smoke.mjs")
+
+
+def harness_path(ctx):
+    """The harness entry point in this wicked-ci checkout (the smoke harness lives under selftest/ since the move)."""
+    return os.path.join(ctx.repo_root, *HARNESS)
+
+
 STEP_RE = re.compile(r"^selftest/lib/steps/(S\d\d)-[\w-]+\.mjs$")
 STATUS = {"PASS": "passed", "EXPECTED-FAIL": "failed", "UNEXPECTED-PASS": "passed", "FAIL": "failed",
           "ERROR": "error", "SKIPPED": "error"}
@@ -69,7 +77,7 @@ class SmokeAdapter(Adapter):
         return "wicked-ci-smoke", {"step": m.group(1)}
 
     def available(self, ctx, params):
-        harness = os.path.join(ctx.repo_root, "smoke", "bin", "wicked-smoke.mjs")
+        harness = harness_path(ctx)
         if not os.path.isfile(harness):
             return "checkout:wicked-ci", "selftest/bin/wicked-smoke.mjs is not in this checkout"
         ok, detail = ctx.probe.check("tool-node", "node>=22")
@@ -95,7 +103,7 @@ class SmokeAdapter(Adapter):
         root = os.path.join(ctx.work_dir, "smoke-root")
         rmtree(root)
         tap = os.path.join(out, "tap")
-        argv = [ctx.node, os.path.join(ctx.repo_root, "smoke", "bin", "wicked-smoke.mjs"), "--steps", ",".join(steps),
+        argv = [ctx.node, harness_path(ctx), "--steps", ",".join(steps),
                 "--root", root, "--keep", "--report-dir", os.path.join(out, "harness"),
                 "--step-timeout", str(ctx.step_timeout)] + list(ctx.smoke_args)
         env = dict(os.environ, WICKED_SMOKE_TAP_DIR=tap)

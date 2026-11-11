@@ -32,6 +32,8 @@ node selftest/bin/wicked-selftest.mjs pack --crew-src ../wicked-crew --studio-sr
 node selftest/bin/wicked-selftest.mjs run --set /tmp/st-packs/set.json --profile pr --keep --report-dir ./st-out
 ```
 
+Every pack is built from `git archive HEAD` of each checkout, inside `--out`, so the checkout is only read. A checkout
+with uncommitted or untracked changes is refused unless `--allow-dirty`, which records that they were left out.
 `pack` runs the checkouts' own build (npm scripts, tsc, vite), so use it only on trees you trust (mains, your own
 branch), or inside a sandbox. `run` never builds anything.
 

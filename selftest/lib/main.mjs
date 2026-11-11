@@ -197,7 +197,7 @@ export async function runMain(argv) {
   }
   writeSummaryIfCi(report);
   log(`wicked-smoke: ${overall} in ${((Date.now() - wall0) / 1000).toFixed(1)}s — report ${reportPath}${copies.length ? ` (copied to ${copies.join(', ')})` : ''}${opts.reportDir ? ` (+ daemon log, shim calls, evidence in ${opts.reportDir})` : ''}`);
-  if (xpass.length > 0) log(`wicked-smoke: UNEXPECTED-PASS in ${xpass.map((r) => r.id).join(', ')} — a labelled check passed while its finding is still expected to fail: retire or re-bound the label in smoke/lib/expect.mjs${opts.allowUnexpectedPass ? ' (allowed by --allow-unexpected-pass)' : ''}`);
+  if (xpass.length > 0) log(`wicked-smoke: UNEXPECTED-PASS in ${xpass.map((r) => r.id).join(', ')} — a labelled check passed while its finding is still expected to fail: retire or re-bound the label in selftest/lib/expect.mjs${opts.allowUnexpectedPass ? ' (allowed by --allow-unexpected-pass)' : ''}`);
   if (!opts.keep) {
     // The skills store locks published generations read-only (dirs 0555) — on Linux `rm` of their
     // children needs the write bit back first.

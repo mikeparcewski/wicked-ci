@@ -15,18 +15,29 @@
   `smoke-selftest.yml`, `e2e-catalog.yml`, the e2e catalog's scenario references, the e2e smoke adapter and the docs
   follow the move, and the e2e test index counts `selftest/` as a test directory. Callers that pin a wicked-ci SHA
   are unaffected.
-- **Sets.** `--crew`, `--bus` and `--core-ts` take a local `.tgz` as well as an npm version. `--garden` takes a local
-  `.tgz` or directory as well as a tag: a git checkout is exported with `git archive HEAD`, so only tracked files at
-  HEAD go in, like a tag tarball. `--set <file.json>` names them together. Its paths resolve against the file's
-  directory, and an unknown key or a missing pack is refused, so a typo never falls back to npm latest.
+- **Sets.** `--crew`, `--bus` and `--core-ts` take a local `.tgz` file as well as an npm version. A source directory
+  is refused, because npm would run its `prepare` script and link the checkout into the install. `--garden` takes a
+  local `.tgz` or directory as well as a tag: a git checkout is exported with `git archive HEAD`. `--set <file.json>`
+  names them together, with paths resolved against the file's directory. Anything that could silently test something
+  else is refused: an unknown key, a missing pack, an empty or whitespace value (npm reads `wicked-crew@ ` as latest),
+  or a tarball whose `package.json` names another package. The installed version is then checked against the pack's.
+  A garden manifest's version must be a single-component semver before anything under the plugin cache is replaced, so
+  a `../` version can't reach outside the root.
 - **Pack (Tier 1).** `wicked-selftest pack --crew-src --studio-src --garden-src --out` builds packs the way the dev
-  copy does: garden exported as is, studio built with its dist stamped, crew built with that studio dist bundled. It
-  writes `set.json`. Each version is stamped `+st.<sha7>`, and a dirty tree is recorded. Building runs the
-  checkouts' own code, so it is for trusted trees or a sandbox. `run` never builds.
+  copy does: garden exported, studio built with its dist stamped, crew built with that studio dist bundled. It writes
+  `set.json`. Every build runs in a `git archive HEAD` export under `--out`, so the checkouts are only read, and an
+  interrupted or concurrent pack can't leave one stamped or half-built. The build runs with a constructed environment:
+  HOME, npm cache/config and temp under `--out`; no system or global git config; no inherited `GIT_*` routing; argument
+  arrays, never a shell. A checkout with uncommitted or untracked changes is refused unless `--allow-dirty`, which
+  records that they were left out. crew and studio versions are stamped `+st.<sha7>`. Building runs the checkouts' own
+  code, so it is for trusted trees or a sandbox. `run` never builds.
+- **Reserved ports.** The harness never binds 7701, 7702, 7703 or 7721.
 - **Profiles.** `--profile smoke` is the default and today's set. `pr` is S01 S02 S03 S04 S08 S10, for a pull request
   and a governed run's floor. `release` is every step except the opt-in S07. A profile only selects steps, and
   `--steps` and `--profile` are exclusive. The report records the profile.
-- `npm run check` covers profiles, the set-file rules and the install specs.
+- `npm run check` covers profiles, the set-file refusals, the garden version guard, reserved ports, and `pack` on
+  disposable fixture checkouts (untouched checkouts, the stamp, the bundled studio, HEAD-only exports, dirty refusal).
+  The smoke workflow runs both checks.
 
 ### smoke — the seat shims answer the engine's rule check; S02 reads crew's home-scrubbed paths
 

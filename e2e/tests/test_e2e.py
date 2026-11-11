@@ -555,3 +555,18 @@ class ShippedCatalog(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SmokeAdapterHarness(unittest.TestCase):
+    """The smoke adapter runs the harness where it lives now (selftest/, since the smoke harness grew into it)."""
+
+    def test_the_harness_path_exists_in_this_checkout_and_is_used_by_available_and_run(self):
+        from e2ecat.adapters import smoke as adapter
+        root = os.path.dirname(E2E)
+        ctx = type("Ctx", (), {"repo_root": root})()
+        path = adapter.harness_path(ctx)
+        self.assertTrue(os.path.isfile(path), path)
+        self.assertEqual(os.path.relpath(path, root).split(os.sep), ["selftest", "bin", "wicked-smoke.mjs"])
+        src = read_text(os.path.join(root, "e2e", "lib", "e2ecat", "adapters", "smoke.py"))
+        self.assertNotIn('"smoke", "bin"', src)
+        self.assertEqual(src.count("= harness_path(ctx)") + src.count("[ctx.node, harness_path(ctx),"), 2)  # available() and run()

@@ -1,6 +1,6 @@
 // CLI argument parsing for wicked-selftest run (and its alias wicked-smoke). No dependencies; every flag takes
 // `--flag value`.
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 
 export const ALL_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10'];
@@ -113,20 +113,36 @@ export function parseArgs(argv) {
   }
   if (!Number.isFinite(o.stepTimeout) || o.stepTimeout <= 0) throw new Error('--step-timeout must be a positive number of seconds');
   if (o.profile === null && !stepsGiven) o.profile = 'smoke';
-  for (const k of ['crew', 'coreTs', 'bus', 'garden']) o[k] = resolveSource(o[k]);
+  for (const k of ['crew', 'coreTs', 'bus', 'garden']) o[k] = resolveSource(o[k], process.cwd(), k);
   return o;
 }
 
-/** A source that names a local file or directory (it starts with `.`, `/` or `~`, or ends in .tgz) becomes an
- *  absolute path, and must exist; anything else is an npm version / git tag, passed through. */
+/** A source that names a local file or directory (it starts with `.`, `/` or `~`, or ends in .tgz) is a local pack;
+ *  anything else is an npm version / dist-tag or a git tag. */
 export function isLocalSource(v) {
   return typeof v === 'string' && (/^(\.{1,2}[\\/]|[\\/]|~[\\/]|[A-Za-z]:[\\/])/.test(v) || /\.(tgz|tar\.gz)$/i.test(v));
 }
-export function resolveSource(v, base = process.cwd()) {
-  if (!isLocalSource(v)) return v;
+
+/** Resolve one set entry, refusing anything that could silently test something else:
+ *  - an empty or whitespace-bearing value (npm reads `wicked-crew@ ` as latest);
+ *  - a local crew / bus / core-ts that is not a regular .tgz file (npm would run a source directory's `prepare`
+ *    script and link the checkout into the install);
+ *  - a local garden that is neither a .tgz file nor a directory;
+ *  - a local path that does not exist. */
+export function resolveSource(v, base = process.cwd(), key = 'crew') {
+  if (typeof v !== 'string' || v === '' || /\s/.test(v)) throw new Error(`${key}: ${JSON.stringify(v)} is not a version, tag or pack path`);
+  if (!isLocalSource(v)) {
+    if (!/^[0-9A-Za-z][0-9A-Za-z.+_~^<>=*-]*$/.test(v)) throw new Error(`${key}: ${JSON.stringify(v)} is not a version or tag`);
+    return v;
+  }
   const home = process.env.HOME ?? process.env.USERPROFILE ?? '';
   const p = v.startsWith('~') ? resolve(home, v.slice(2)) : (isAbsolute(v) ? v : resolve(base, v));
-  if (!existsSync(p)) throw new Error(`local source ${v} does not exist`);
+  let st;
+  try { st = statSync(p); } catch { throw new Error(`${key}: local source ${v} does not exist`); }
+  const tarball = st.isFile() && /\.(tgz|tar\.gz)$/i.test(p);
+  if (key === 'garden' ? !(tarball || st.isDirectory()) : !tarball) {
+    throw new Error(`${key}: local source ${v} must be a .tgz file${key === 'garden' ? ' or a directory' : ' (a source directory is refused: build it with `wicked-selftest pack`)'}`);
+  }
   return p;
 }
 
@@ -140,8 +156,7 @@ export function readSet(file) {
   for (const [k, v] of Object.entries(d)) {
     if (k === '$comment' || k === 'built') continue;
     if (!['crew', 'coreTs', 'bus', 'garden'].includes(k)) throw new Error(`--set ${file}: unknown key ${k} (crew, coreTs, bus, garden)`);
-    if (typeof v !== 'string' || v === '') throw new Error(`--set ${file}: ${k} must be a non-empty string`);
-    out[k] = resolveSource(v, dirname(abs));
+    try { out[k] = resolveSource(v, dirname(abs), k); } catch (err) { throw new Error(`--set ${file}: ${err.message}`); }
   }
   return out;
 }

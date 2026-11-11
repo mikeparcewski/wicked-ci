@@ -120,7 +120,7 @@ export function summaryMarkdown(report) {
   const xpass = report.steps.flatMap((s) => s.checks.filter((c) => c.ok && c.unexpectedPass && !c.flaky).map((c) => `${s.id}: ${c.name} (${c.finding})`));
   if (xpass.length) {
     lines.push('');
-    lines.push(`**UNEXPECTED-PASS — retire these labels in \`smoke/lib/expect.mjs\`:** ${xpass.join('; ')}`);
+    lines.push(`**UNEXPECTED-PASS — retire these labels in \`selftest/lib/expect.mjs\`:** ${xpass.join('; ')}`);
   }
   return lines.join('\n') + '\n';
 }
