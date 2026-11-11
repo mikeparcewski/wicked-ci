@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### selftest — studio journeys (U01-U03) and `wicked-selftest serve`
+
+- **Studio journeys.** The U steps drive the daemon's own studio in Chromium (Python Playwright), against the same
+  hermetic daemon as the API steps:
+  - U01 opens studio. The Desk and the Nerve Center render; the rail tile's tone equals the page's; the service the
+    hermetic daemon lacks (wicked-estate) reads down, and the page is not called all good.
+  - U02 checks that every stub seat on Helpers reads as it is: signed in is Ready, signed out is Not ready with a way
+    forward.
+  - U03 asks in chat. The answer sits under its question and names its helper, and the UI's own requests opened the
+    chat and sent it.
+- **The driver** (`journeys/driver.py`) aborts every off-origin request and records page and console errors, responses
+  of 400 or more, and the non-GETs the UI sent. It takes terminal-state screenshots at 1440x700 and 390x844 in both
+  themes into the step's evidence. A journey with no checks is an ERROR. With no `--python` (or
+  `WICKED_SELFTEST_PYTHON`), the U steps are SKIPPED with the reason and named on the verdict line, never passed.
+- **Profiles.** `pr` and `release` now include U01-U03. `smoke` (the release smoke's default) is unchanged.
+  `smoke.yml` takes a `profile` input and installs Python Playwright + Chromium when it carries U steps.
+  smoke-selftest adds a `pr`-profile leg on ubuntu.
+- **`wicked-selftest serve`.** It boots the hermetic daemon (S01 S02 S03, or `--steps`) and holds it open, with stub
+  seats and the fixture repo, until Ctrl-C, SIGTERM or `<root>/stop`. This is how the operator sees a branch live
+  before it is packaged, with nothing outside the root.
+- **Seat shims.** A chat answer step (`answer-N — <words> |||`) is answered as a chat seat would, about the fixture, citing
+  its file, instead of acknowledging a "fix phase" guessed from the chat scope's text.
+- **Ranges.** Step ranges stay within one family: `S01..S11` never picks up a U step, and `U01..U03` works.
+
 ### selftest — the smoke harness grows into the product self-test (`wicked-selftest`)
 
 - **Why.** When a change lands in wicked-crew, wicked-studio, wicked-core or wicked-garden, nothing proves the

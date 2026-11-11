@@ -77,8 +77,11 @@ export class Daemon {
    */
   async start({ timeoutMs = this.bootTimeoutMs, extraEnv } = {}) {
     if (this.child) throw new Error('daemon already running');
+    // A run being shut down (a signal) never starts a replacement (an S08-style restart racing the signal).
+    if (this.shuttingDown) throw new Error('the self-test is shutting down; not starting a daemon');
     this.port = this.port ?? (await freePort());
     if (RESERVED_PORTS.has(this.port)) throw new Error(`refusing to serve on :${this.port}: an operator daemon port`);
+    if (this.shuttingDown) throw new Error('the self-test is shutting down; not starting a daemon'); // a signal during the port wait
     if (extraEnv !== undefined) this.extraEnv = extraEnv;
     this.env = { ...hermeticEnv(this.L, this.port), ...this.baseEnv, ...(this.extraEnv ?? {}) };
     this.starts += 1;

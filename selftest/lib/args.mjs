@@ -3,7 +3,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 
-export const ALL_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10'];
+export const ALL_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S07', 'S08', 'U01', 'U02', 'U03', 'S09', 'S10'];
 /** Steps that run without `--steps`: S07 (interactive) stays opt-in (a cold `npx` fetch); S08 (chat)
  *  joined the default set in v2 with the ACP-speaking seat shim — see README. */
 export const DEFAULT_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S08', 'S09', 'S10'];
@@ -13,8 +13,10 @@ export const DEFAULT_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', '
  *  opt-in S07. A profile only selects steps; it never changes what a step asserts. */
 export const PROFILES = {
   smoke: DEFAULT_STEPS,
-  pr: ['S01', 'S02', 'S03', 'S04', 'S08', 'S10'],
+  pr: ['S01', 'S02', 'S03', 'S04', 'S08', 'U01', 'U02', 'U03', 'S10'],
   release: ALL_STEPS.filter((id) => id !== 'S07'),
+  // `wicked-selftest serve`: boot, publish skills, onboard the fixture repo, then hold the daemon open.
+  serve: ['S01', 'S02', 'S03'],
 };
 
 export const HELP = `wicked-selftest run — the wicked product self-test (alias: wicked-smoke)
@@ -29,7 +31,7 @@ usage: wicked-selftest run [options]      (or: wicked-smoke [options])
   --garden <ref|path>     wicked-garden (default: latest)
   --set <file.json>       a set file {crew, coreTs, bus, garden}; relative paths resolve against the file's
                           directory; flags given after it override its entries
-  --profile <name>        smoke | pr | release (default: smoke); not with --steps
+  --profile <name>        smoke | pr | release | serve (default: smoke); not with --steps
   --steps <list>          e.g. S01,S02,S04 or S01..S06 or all (default: the smoke profile, ${DEFAULT_STEPS.join(',')})
   --root <dir>            temp root for the whole run (default: $RUNNER_TEMP or the OS temp dir); must not exist
   --reuse-root            allow --root to point at an existing directory (its repos/ and state/ are cleared)
@@ -46,6 +48,9 @@ usage: wicked-selftest run [options]      (or: wicked-smoke [options])
                           larger (default: 300) — also the daemon's boot wait (a cold first boot publishes the
                           garden bundle with uv; minutes on a loaded workstation, seconds on a runner)
   --verbose               echo every HTTP call and shim invocation
+  --python <path>         a Python with Playwright for the studio journeys (U steps); default $WICKED_SELFTEST_PYTHON.
+                          Without one, the U steps are SKIPPED and named on the verdict line.
+  --hold                  after the steps, keep the daemon up until Ctrl-C or <root>/stop (what the serve verb sets)
   -h, --help
 `;
 
@@ -70,6 +75,8 @@ export function parseArgs(argv) {
     verbose: false,
     help: false,
     profile: null,
+    hold: false,
+    python: undefined,
   };
   let profile = null;
   let stepsGiven = false;
@@ -106,6 +113,8 @@ export function parseArgs(argv) {
       case '--assert-hermetic': o.assertHermetic = true; break;
       case '--step-timeout': o.stepTimeout = Number(next()); break;
       case '--verbose': o.verbose = true; break;
+      case '--hold': o.hold = true; break;
+      case '--python': o.python = next(); break;
       case '-h':
       case '--help': o.help = true; break;
       default: throw new Error(`unknown option ${a} (see --help)`);
@@ -169,14 +178,17 @@ export function parseSteps(spec) {
   if (s.toLowerCase() === 'all') return [...ALL_STEPS];
   const out = new Set();
   for (const part of s.split(',').map((p) => p.trim()).filter(Boolean)) {
-    const range = part.match(/^(S\d\d)\.\.(S\d\d)$/i);
+    const range = part.match(/^([SU])(\d\d)\.\.([SU])(\d\d)$/i);
     if (range) {
-      // A range is NUMERIC (S01..S11 = every step from 1 to 11), never a slice of the run order:
-      // ALL_STEPS runs S11 right after S04, so a positional slice would drop S05-S10 (codex on #61).
-      const lo = Number(range[1].slice(1));
-      const hi = Number(range[2].slice(1));
-      if (!ALL_STEPS.includes(range[1].toUpperCase()) || !ALL_STEPS.includes(range[2].toUpperCase()) || lo > hi) throw new Error(`bad step range ${part}`);
-      for (const id of ALL_STEPS) if (Number(id.slice(1)) >= lo && Number(id.slice(1)) <= hi) out.add(id);
+      // A range is NUMERIC within ONE family (S01..S11 = every API step from 1 to 11; U01..U02 = the studio journeys),
+      // never a slice of the run order: ALL_STEPS runs S11 right after S04, so a positional slice would drop S05-S10
+      // (codex on #61), and a U step never rides an S range.
+      const fam = range[1].toUpperCase();
+      const lo = Number(range[2]);
+      const hi = Number(range[4]);
+      const a = `${fam}${range[2]}`; const b = `${range[3].toUpperCase()}${range[4]}`;
+      if (range[3].toUpperCase() !== fam || !ALL_STEPS.includes(a) || !ALL_STEPS.includes(b) || lo > hi) throw new Error(`bad step range ${part}`);
+      for (const id of ALL_STEPS) if (id[0] === fam && Number(id.slice(1)) >= lo && Number(id.slice(1)) <= hi) out.add(id);
     } else {
       const id = part.toUpperCase();
       if (!ALL_STEPS.includes(id)) throw new Error(`unknown step ${part}`);

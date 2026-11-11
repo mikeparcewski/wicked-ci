@@ -29,8 +29,10 @@ for (const f of readdirSync(join(here, '..', 'shims')).filter((f) => f.endsWith(
 }
 if (parseSteps('S01..S03').join(',') !== 'S01,S02,S03') throw new Error('parseSteps range');
 // Ranges are NUMERIC, ordered by the run order (S11 runs right after S04): no step is silently dropped.
-if (parseSteps('S01..S11').length !== ALL_STEPS.length || !parseSteps('S01..S11').includes('S10')) throw new Error(`parseSteps S01..S11: ${parseSteps('S01..S11')}`);
+if (parseSteps('S01..S11').length !== ALL_STEPS.filter((x) => x[0] === 'S').length || !parseSteps('S01..S11').includes('S10') || parseSteps('S01..S11').some((x) => x[0] !== 'S')) throw new Error(`parseSteps S01..S11: ${parseSteps('S01..S11')}`);
 if (parseSteps('S05..S11').join(',') !== 'S11,S05,S06,S07,S08,S09,S10') throw new Error(`parseSteps S05..S11: ${parseSteps('S05..S11')}`);
+if (parseSteps('U01..U03').join(',') !== 'U01,U02,U03') throw new Error(`parseSteps U01..U03: ${parseSteps('U01..U03')}`);
+{ let bad = false; try { parseSteps('S01..U02'); } catch { bad = true; } if (!bad) throw new Error('a cross-family range must be refused'); }
 if (parseSteps('S10..S11').join(',') !== 'S11,S10' || parseSteps('S04..S05').join(',') !== 'S04,S05') throw new Error('parseSteps S10..S11 / S04..S05');
 if (compare('0.7.32', '0.7.33') !== -1) throw new Error('semver compare');
 if (!satisfies('0.7.23', '^0.7.23') || satisfies('0.8.0', '^0.7.23')) throw new Error('semver satisfies');
@@ -380,8 +382,9 @@ if (sqlite) {
   // profile (the bug run from `pr`, say) fails this check instead of passing it by construction.
   const EXPECTED = {
     smoke: 'S01,S02,S03,S04,S11,S05,S06,S08,S09,S10',
-    pr: 'S01,S02,S03,S04,S08,S10',
-    release: 'S01,S02,S03,S04,S11,S05,S06,S08,S09,S10',
+    pr: 'S01,S02,S03,S04,S08,U01,U02,U03,S10',
+    release: 'S01,S02,S03,S04,S11,S05,S06,S08,U01,U02,U03,S09,S10',
+    serve: 'S01,S02,S03',
   };
   if (Object.keys(PROFILES).sort().join() !== Object.keys(EXPECTED).sort().join()) throw new Error(`profiles: ${Object.keys(PROFILES)} vs ${Object.keys(EXPECTED)}`);
   for (const [name, want] of Object.entries(EXPECTED)) if (PROFILES[name].join() !== want) throw new Error(`profile ${name} is ${PROFILES[name].join()}, expected ${want}`);
@@ -450,6 +453,38 @@ if (sqlite) {
   let msg = '';
   try { placeGarden({ claude: join(r, 'claude') }, st2, 'fixture'); } catch (err) { msg = err.message; }
   if (!/must be a plain file/.test(msg) || msg.includes('FAKE_TOKEN')) throw new Error(`a linked manifest must be refused without being read: ${msg}`);
+}
+// A studio journey with no Python (or one without Playwright) is SKIPPED with the reason, never a pass.
+{
+  const { journeyPython } = await import('./journey.mjs');
+  const { StepTrace } = await import('./report.mjs');
+  const saved = process.env.WICKED_SELFTEST_PYTHON;
+  delete process.env.WICKED_SELFTEST_PYTHON;
+  const r = journeyPython({ opts: {}, state: {} });
+  if (r.python !== null || !/no Python with Playwright/.test(r.why)) throw new Error(`journeyPython without a python: ${JSON.stringify(r)}`);
+  const r2 = journeyPython({ opts: { python: process.execPath }, state: {} });
+  if (r2.python !== null || !/cannot import playwright/.test(r2.why)) throw new Error(`journeyPython with a non-python: ${JSON.stringify(r2)}`);
+  if (saved !== undefined) process.env.WICKED_SELFTEST_PYTHON = saved;
+  const { mkdtempSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const t = new StepTrace('U01', mkdtempSync(join(tmpdir(), 'selftest-skip-')), () => {});
+  t.skip('no python');
+  if (t.skipped !== 'no python' || t.checks.length !== 0) throw new Error('StepTrace.skip');
+}
+// The journeys' browsers path: "0" (package-local browsers) is kept, a relative path is resolved.
+{
+  const { browsersPath } = await import('./journey.mjs');
+  const { resolve: res } = await import('node:path');
+  if (browsersPath('0') !== '0' || browsersPath('./b') !== res('./b') || !browsersPath(undefined).includes('ms-playwright')) throw new Error('browsersPath');
+}
+// A signal while the first start waits for its port: no daemon is spawned after the latch.
+{
+  const { Daemon } = await import('./daemon.mjs');
+  const d = new Daemon({ daemonLog: '/dev/null', state: '/nonexistent' }, '/nonexistent/cli.js', () => {}, {});
+  const p = d.start();
+  d.shuttingDown = true;
+  let refused = false; try { await p; } catch (err) { refused = /shutting down/.test(err.message); }
+  if (!refused || d.child) throw new Error('a start racing a shutdown must not spawn');
 }
 // The self-test daemon never binds an operator daemon's port.
 {

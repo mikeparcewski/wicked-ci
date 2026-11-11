@@ -38,6 +38,11 @@ export class StepTrace {
     return c;
   }
 
+  /** The step could not run for a named reason (a missing tool): reported SKIPPED with it, never as a pass. */
+  skip(reason) {
+    this.skipped = String(reason);
+  }
+
   info(name, detail) {
     this.notes.push({ name, detail: detail === undefined ? null : String(detail).slice(0, 2000) });
   }
@@ -92,6 +97,7 @@ export function printStep(result, log) {
     const label = c.expected ? `expected-fail (${c.finding ?? 'step'}: ${c.expected})` : 'FAIL';
     log(`    - ${c.name}: ${label}${c.detail ? ` — ${c.detail}` : ''}${c.evidence ? ` [${c.evidence}]` : ''}`);
   }
+  if (result.status === STATUS.SKIP) for (const n of result.notes ?? []) if (n.name === 'skipped' && n.detail !== 'not in --steps') log(`    ~ skipped: ${n.detail}`);
   if (result.error) log(`    ! ${result.error}`);
 }
 

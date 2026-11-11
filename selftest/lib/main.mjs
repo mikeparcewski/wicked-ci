@@ -38,6 +38,19 @@ function makeWritable(dir) {
   }
 }
 
+/** `wicked-selftest serve`: keep the ephemeral daemon up after the selected steps, with its stub seats and the
+ *  onboarded fixture repo, until Ctrl-C / SIGTERM or `<root>/stop` exists. It writes `<root>/serve.json` with the
+ *  origin. Nothing here reaches outside the root: the daemon is the same hermetic one the steps used. */
+async function holdOpen(root, daemon, log, ctx) {
+  const info = { origin: daemon.origin, pid: daemon.child?.pid ?? null, root, stopFile: join(root, 'stop'), at: new Date().toISOString() };
+  writeFileSync(join(root, 'serve.json'), `${JSON.stringify(info, null, 1)}\n`);
+  log(`wicked-selftest serve: studio at ${daemon.origin}/ (stub seats, hermetic state). Stop with Ctrl-C, SIGTERM, or: touch ${info.stopFile}`);
+  while (!ctx.stopRequested && !existsSync(info.stopFile) && daemon.child && daemon.child.exitCode === null) await new Promise((r) => setTimeout(r, 2000));
+  const how = ctx.stopRequested ? 'signal' : existsSync(info.stopFile) ? 'stop file' : 'exited';
+  log(`wicked-selftest serve: stopping (${how === 'exited' ? 'the daemon exited' : how})`);
+  return how;
+}
+
 /** The harness run (formerly bin/wicked-smoke.mjs's main): `argv` is the option list after the binary or the `run` verb. */
 export async function runMain(argv) {
   let opts;
@@ -52,7 +65,7 @@ export async function runMain(argv) {
   if (existsSync(root) && readdirSync(root).length > 0) {
     if (!opts.reuseRoot) { console.error(`wicked-smoke: --root ${root} is not empty (a previous run's?). Pass --reuse-root to clear its repos/, state/, bus/, evidence/ and re-use the installed tree, or choose another --root.`); return 2; }
     for (const sub of ['repos', 'state', 'bus', 'evidence', 'worker', 'home', 'tmp', 'interactive']) { makeWritable(join(root, sub)); rmSync(join(root, sub), { recursive: true, force: true }); }
-    for (const f of readdirSync(root)) if (/-origin\.git$/.test(f) || /^(daemon\.log|shim-calls\.ndjson|report\.json|core-semver\.txt|verdict-fail-once(\.consumed-.*)?)$/.test(f)) rmSync(join(root, f), { recursive: true, force: true });
+    for (const f of readdirSync(root)) if (/-origin\.git$/.test(f) || /^(daemon\.log|shim-calls\.ndjson|report\.json|core-semver\.txt|verdict-fail-once(\.consumed-.*)?|stop|serve\.json)$/.test(f)) rmSync(join(root, f), { recursive: true, force: true });
   }
   const L = layout(root);
   ensureLayout(L);
@@ -113,12 +126,31 @@ export async function runMain(argv) {
   };
 
   // ── steps ──
+  // A signal at ANY point (a step mid-flight, or the serve hold) stops the daemon this run started before the process
+  // exits, so an interrupted self-test never leaves a daemon behind. During the hold the first signal ends the hold.
+  ctx.stopRequested = false;
+  const onSignal = (sig) => {
+    if (ctx.stopRequested) return;
+    ctx.stopRequested = true;
+    daemon.shuttingDown = true;
+    if (ctx.holding) return;
+    log(`wicked-selftest: ${sig}; stopping the step and the daemon`);
+    ctx.abortStep?.(); // kills a running journey's browser process (spawned with the step's signal)
+    Promise.resolve(daemon.child ? daemon.stop() : null).finally(() => setTimeout(() => process.exit(130), 500));
+  };
+  const sigHandlers = { SIGINT: () => onSignal('SIGINT'), SIGTERM: () => onSignal('SIGTERM') };
+  for (const [k, f] of Object.entries(sigHandlers)) process.on(k, f);
+
   const results = [];
   const selected = ALL_STEPS.filter((id) => opts.steps.includes(id));
   const stepFiles = readdirSync(join(here, 'steps'));
   for (const stepId of ALL_STEPS) {
     const file = stepFiles.find((f) => f.startsWith(`${stepId}-`));
     const mod = await import(pathToFileURL(join(here, 'steps', file)).href);
+    if (opts.hold && stepId === 'S10' && selected.includes(stepId)) {
+      results.push({ id: stepId, name: mod.name, status: STATUS.SKIP, ms: 0, checks: [], notes: [{ name: 'skipped', detail: 'serve holds the daemon open; teardown runs when it is stopped' }], error: null });
+      continue;
+    }
     if (!selected.includes(stepId)) {
       results.push({ id: stepId, name: mod.name, status: STATUS.SKIP, ms: 0, checks: [], notes: [{ name: 'skipped', detail: 'not in --steps' }], error: null });
       continue;
@@ -132,6 +164,7 @@ export async function runMain(argv) {
     // stops polling, approving and writing evidence instead of running on under the next step.
     const ac = new AbortController();
     ctx.signal = ac.signal;
+    ctx.abortStep = () => ac.abort();
     ctx.stepDeadline = Date.now() + ceiling;
     try {
       let timer;
@@ -145,13 +178,25 @@ export async function runMain(argv) {
     ctx.signal = null;
     const ms = Date.now() - t0;
     let status = classify(t, policy, opts.expectFailSteps.includes(stepId));
+    if (t.skipped && t.checks.length === 0) { status = STATUS.SKIP; t.notes.push({ name: 'skipped', detail: t.skipped }); }
     if (error) status = STATUS.ERROR;
     const result = { id: stepId, name: mod.name, status, ms, checks: t.checks, notes: t.notes, error, evidence: t.evidenceFiles.map((p) => p.replace(root, '<root>')) };
     results.push(result);
     printStep(result, log);
     if (status === STATUS.ERROR && stepId !== 'S10') log(`    (continuing; daemon log tail follows)\n${daemon.logTail(8).split('\n').map((l) => '    | ' + l.slice(0, 220)).join('\n')}`);
   }
+  if (opts.hold && !daemon.child && !ctx.stopRequested) {
+    results.push({ id: 'SERVE', name: 'serve hold', status: STATUS.ERROR, ms: 0, checks: [], notes: [], error: `the daemon was not running when the hold began (last exit ${daemon.lastExitCode ?? 'unknown'})` });
+  }
+  if (opts.hold && daemon.child && !ctx.stopRequested) {
+    ctx.holding = true;
+    const how = await holdOpen(root, daemon, log, ctx);
+    ctx.holding = false;
+    // The daemon dying under a person is a failure of the session, never a quiet PASS.
+    if (how === 'exited') results.push({ id: 'SERVE', name: 'serve hold', status: STATUS.ERROR, ms: 0, checks: [], notes: [], error: `the daemon exited while held open (exit ${daemon.child?.exitCode ?? daemon.lastExitCode ?? 'unknown'})` });
+  }
   if (daemon.child) await daemon.stop();
+  for (const [k, f] of Object.entries(sigHandlers)) process.removeListener(k, f);
 
   // ── hermetic scan ──
   let hermetic = null;
@@ -168,8 +213,11 @@ export async function runMain(argv) {
     : xpass.length > 0
       ? 'UNEXPECTED-PASS (retire the labels)'
       : results.some((r) => r.status === STATUS.XFAIL) ? 'PASS (with expected failures)' : 'PASS';
+  // A selected step that could not run is named on the verdict line, so a run with skipped journeys never reads as a full pass.
+  const skippedSelected = results.filter((r) => r.status === STATUS.SKIP && selected.includes(r.id)).map((r) => r.id);
+  const overallLine = skippedSelected.length && !overall.startsWith('FAIL') ? `${overall} — SKIPPED ${skippedSelected.join(',')}` : overall;
   const report = {
-    tool: 'wicked-smoke', schema: 2, at: new Date().toISOString(), overall, wallMs: Date.now() - wall0,
+    tool: 'wicked-smoke', schema: 2, at: new Date().toISOString(), overall: overallLine, skippedSteps: skippedSelected, wallMs: Date.now() - wall0,
     host: { platform: process.platform, arch: process.arch, node: process.version, ci: Boolean(process.env.GITHUB_ACTIONS), loadavg: (await import('node:os')).loadavg().map((x) => Math.round(x)) },
     daemon: { firstBootMs: daemon.firstBootMs ?? null, starts: daemon.starts, port: daemon.port },
     requested: { crew: opts.crew, coreTs: opts.coreTs, bus: opts.bus, garden: opts.garden, profile: opts.profile, steps: selected },
@@ -196,7 +244,7 @@ export async function runMain(argv) {
     copies.push(join(process.cwd(), 'wicked-smoke-report.json'));
   }
   writeSummaryIfCi(report);
-  log(`wicked-smoke: ${overall} in ${((Date.now() - wall0) / 1000).toFixed(1)}s — report ${reportPath}${copies.length ? ` (copied to ${copies.join(', ')})` : ''}${opts.reportDir ? ` (+ daemon log, shim calls, evidence in ${opts.reportDir})` : ''}`);
+  log(`wicked-smoke: ${overallLine} in ${((Date.now() - wall0) / 1000).toFixed(1)}s — report ${reportPath}${copies.length ? ` (copied to ${copies.join(', ')})` : ''}${opts.reportDir ? ` (+ daemon log, shim calls, evidence in ${opts.reportDir})` : ''}`);
   if (xpass.length > 0) log(`wicked-smoke: UNEXPECTED-PASS in ${xpass.map((r) => r.id).join(', ')} — a labelled check passed while its finding is still expected to fail: retire or re-bound the label in selftest/lib/expect.mjs${opts.allowUnexpectedPass ? ' (allowed by --allow-unexpected-pass)' : ''}`);
   if (!opts.keep) {
     // The skills store locks published generations read-only (dirs 0555) — on Linux `rm` of their
