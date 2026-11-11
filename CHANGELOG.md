@@ -12,7 +12,9 @@
 
 - `.github/workflows/selftest-release.yml` publishes `selftest/` to npm on a `selftest-v<X.Y.Z>` tag that equals
   `selftest/package.json`'s version. It runs the offline selfchecks, checks the tarball's contents, and uses tokenless
-  OIDC trusted publishing with provenance.
+  OIDC trusted publishing with provenance. It runs in the protected `npm-release` environment (a required reviewer,
+  `selftest-v*` tags only), which is also the npm trusted publisher's environment, and it refuses a tag whose commit
+  is not on `main`. Only admins can create tags (`release-tags` ruleset).
 - `selftest/package.json` is no longer `private`: it gains `files`, `repository`, `homepage` and `publishConfig`.
   The tarball (with the fixtures) is listed by `npm pack --dry-run` in CI.
 - `selftest/RELEASING.md` covers a release, plus the one-time first publish and trusted-publisher setup on

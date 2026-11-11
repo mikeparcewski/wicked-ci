@@ -1,9 +1,12 @@
 # Publish wicked-selftest (selftest/) to npm with provenance, on a `selftest-v<X.Y.Z>` tag. The tag must equal
 # selftest/package.json's version; the offline selfchecks run first; only selftest/ is published.
 #
-# Tokenless OIDC trusted publishing: npm must list this repository and THIS workflow file as the package's trusted
-# publisher. A brand-new package name has no settings page to register one on, so the FIRST publish is the operator's
-# (see selftest/RELEASING.md); every later version publishes from here.
+# Tokenless OIDC trusted publishing: npm must list this repository, THIS workflow file and the `npm-release`
+# environment as the package's trusted publisher. The environment is protected in the repository's settings (a required
+# reviewer, deployments only from `selftest-v*` tags), so a tag alone cannot publish: an admin creates the tag (the
+# `release-tags` ruleset) and a reviewer approves the deployment. The job also refuses a tag whose commit is not on
+# main. A brand-new package name has no settings page to register a publisher on, so the FIRST publish is the
+# operator's (see selftest/RELEASING.md).
 name: selftest-release
 
 on:
@@ -21,6 +24,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: npm-release
     permissions:
       contents: read
       id-token: write
@@ -31,6 +35,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+          fetch-depth: 0
+      - name: The tag's commit is on main (reviewed and merged)
+        working-directory: .
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main"; exit 1; }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 'lts/*'
