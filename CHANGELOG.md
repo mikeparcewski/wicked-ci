@@ -2,13 +2,19 @@
 
 ## Unreleased
 
-### selftest — npm publish workflow for `wicked-selftest` (prepared; the first publish is the operator's)
+### selftest — the :7721 rig's fixtures adopted; npm publish workflow (prepared; the first publish is the operator's)
+
+- **Fixtures** (DESIGN §4) now live in `selftest/fixtures/`. The repos `hello-onboard`, `hello`, `tiny-math-untested`
+  and `reqgraph-tm` are `git archive HEAD` exports of the rig lanes' checkouts. `mcp/echo-mcp.py` is the J6/MCP
+  server, and `docs/` holds the Chat-journey documents. `fixtures/README.md` gives each one's provenance and use.
+  `selfcheck` refuses a machine path in any fixture, and a mutation check confirmed it catches one. The PDFs carry
+  no author metadata. Once wired into steps they replace the rig's GitHub fixture repos.
 
 - `.github/workflows/selftest-release.yml` publishes `selftest/` to npm on a `selftest-v<X.Y.Z>` tag that equals
   `selftest/package.json`'s version. It runs the offline selfchecks, checks the tarball's contents, and uses tokenless
   OIDC trusted publishing with provenance.
 - `selftest/package.json` is no longer `private`: it gains `files`, `repository`, `homepage` and `publishConfig`.
-  The tarball is 67 files, 178 kB packed.
+  The tarball (with the fixtures) is listed by `npm pack --dry-run` in CI.
 - `selftest/RELEASING.md` covers a release, plus the one-time first publish and trusted-publisher setup on
   npmjs.com. npm registers a trusted publisher only on a package that already exists.
 ### e2e — studio journeys (U steps) sealed through `e2e run`

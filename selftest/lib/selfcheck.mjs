@@ -515,4 +515,16 @@ if (process.platform !== 'win32') {
   const p = await freePort();
   if (RESERVED_PORTS.has(p) || !(p > 0)) throw new Error(`freePort gave ${p}`);
 }
+// Fixtures are data the suite copies into its run root: none may name a home or temp path from the machine it came from.
+{
+  const { readdirSync, readFileSync: rf, statSync: st } = await import('node:fs');
+  const { join: j } = await import('node:path');
+  const root = j(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
+  const walk = (d) => readdirSync(d).flatMap((n) => (st(j(d, n)).isDirectory() ? walk(j(d, n)) : [j(d, n)]));
+  const leaked = walk(root).filter((f) => /\/Users\/|\/home\/[a-z]|\/private\/tmp\/|\/var\/folders\//.test(rf(f, 'latin1')));
+  if (leaked.length) throw new Error(`fixtures name a machine path: ${leaked.join(', ')}`);
+  for (const need of ['corpus/package.json', 'repos/hello-onboard/package.json', 'repos/hello/test/greet.test.js', 'repos/tiny-math-untested/src/math.js', 'repos/reqgraph-tm/src/math.js', 'mcp/echo-mcp.py', 'docs/rfp.txt']) {
+    try { st(j(root, need)); } catch { throw new Error(`fixture missing: ${need}`); }
+  }
+}
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);

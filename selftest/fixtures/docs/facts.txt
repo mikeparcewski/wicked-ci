@@ -1,0 +1,7 @@
+ACME facts sheet for proposals
+
+- WidgetWatch collects data through the WX controller's MQTT bridge every 10 seconds.
+- Uptime commitment: 99.5% monthly, measured by external probes every minute.
+- Security: not ISO 27001 certified; SOC 2 Type I report dated March 2026; data encrypted at rest (AES-256).
+- Price: GBP 35 per machine per month; 12-month term.
+- References available on request after NDA (no names may be given in a proposal).
