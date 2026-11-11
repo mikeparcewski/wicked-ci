@@ -119,7 +119,8 @@ def steer(j, rid, until=None, answer_then_return=None):
         seen.append({"kind": kind, "choices": texts})
         card = p.get_by_test_id("session-gate-row").last.inner_text() if p.get_by_test_id("session-gate-row").count() else ""
         if until is not None and until(card, texts):
-            return {"card": card, "choices": texts, "answered": answered, "judgments": judgments}
+            enabled = [e.inner_text().strip().split("\n")[0] for e in props + gates if e.is_enabled()]
+            return {"card": card, "choices": texts, "enabled": enabled, "answered": answered, "judgments": judgments}
         pick = None
         # A judgment or a rules skip is offered on other cards too (a failed repository floor offers "Approve as your
         # own judgment"); the person takes it ONLY on the card that is about the missing judge or the unchecked rules.

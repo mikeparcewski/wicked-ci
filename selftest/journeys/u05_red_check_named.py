@@ -26,7 +26,7 @@ def run(j):
         return
     p = j.page
     j.check("the_card_names_the_failing_test", FAILING in hit["card"], card=hit["card"][:600])
-    forward = [c for c in hit["choices"] if re.search(r"send back|retry|redo", c, re.I)]
+    forward = [c for c in hit["enabled"] if re.search(r"send back|retry|redo", c, re.I)]  # a way forward the person can press
     j.check("a_way_forward_is_offered", bool(forward), choices=hit["choices"])
     run = u04.run_of(j, rid) or {}
     j.check("nothing_delivered", run.get("session", {}).get("delivery") in (None, "", "none", "not_delivered", "pending"), delivery=run.get("session", {}).get("delivery"))

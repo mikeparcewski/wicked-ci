@@ -27,6 +27,7 @@ export async function run(ctx, t) {
   const b = new Daemon(L2, ctx.tree.crewBin, ctx.log, { bootTimeoutMs: ctx.daemon.bootTimeoutMs, baseEnv: seatFloorEnv(ctx.versions) });
   (ctx.extraDaemons ??= []).push(b); // a signal stops it too
   try {
+    if (signal?.aborted) return;
     signal?.addEventListener('abort', () => { b.shuttingDown = true; }, { once: true });
     await b.start();
     if (signal?.aborted) return; // the step's ceiling passed: stop here (finally stops b)
