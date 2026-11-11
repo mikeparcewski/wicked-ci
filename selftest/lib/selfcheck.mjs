@@ -368,4 +368,45 @@ if (sqlite) {
   if (!insideRoot(snap, root) || !insideRoot(root, root)) throw new Error('S02 insideRoot: the root and a path under it are inside');
   for (const p of [`${root}/../outside/snapshot`, `${root}X/state`, '/home/runner/outside', '~/wicked-smoke-root/state', null]) if (insideRoot(p, root)) throw new Error(`S02 insideRoot(${p}) must be false`);
 }
+// Profiles and sets (the self-test layer): a profile selects registered steps only, and in run order; --steps and
+// --profile are exclusive; a set file resolves its packs against its own directory and refuses unknown keys, so a typo
+// can never fall back to npm latest; a local pack becomes a path spec, a version an npm spec.
+{
+  const { PROFILES, parseArgs, readSet } = await import('./args.mjs');
+  const { npmSpec } = await import('./install.mjs');
+  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  for (const [name, steps] of Object.entries(PROFILES)) {
+    if (steps.length === 0 || steps.some((s) => !ALL_STEPS.includes(s))) throw new Error(`profile ${name} names an unregistered step`);
+    if (steps.join() !== ALL_STEPS.filter((s) => steps.includes(s)).join()) throw new Error(`profile ${name} is not in run order`);
+    if (parseArgs(['--profile', name]).steps.join() !== steps.join()) throw new Error(`--profile ${name}`);
+  }
+  if (parseArgs([]).profile !== 'smoke' || parseArgs([]).steps.join() !== PROFILES.smoke.join()) throw new Error('the default must stay the smoke profile');
+  if (parseArgs(['--steps', 'S01']).profile !== null) throw new Error('--steps alone is not a profile');
+  for (const argv of [['--profile', 'pr', '--steps', 'S01'], ['--steps', 'S01', '--profile', 'pr'], ['--profile', 'nope']]) {
+    let threw = false; try { parseArgs(argv); } catch { threw = true; }
+    if (!threw) throw new Error(`parseArgs(${argv.join(' ')}) must refuse`);
+  }
+  const dir = mkdtempSync(join(tmpdir(), 'selftest-set-'));
+  writeFileSync(join(dir, 'wicked-crew-1.0.0.tgz'), '');
+  writeFileSync(join(dir, 'set.json'), JSON.stringify({ $comment: 'x', built: { tier: 1 }, crew: 'wicked-crew-1.0.0.tgz', bus: '2.5.0' }));
+  const set = readSet(join(dir, 'set.json'));
+  if (set.crew !== join(dir, 'wicked-crew-1.0.0.tgz') || set.bus !== '2.5.0') throw new Error(`readSet: ${JSON.stringify(set)}`);
+  const o = parseArgs(['--set', join(dir, 'set.json'), '--bus', '2.4.0']);
+  if (o.crew !== set.crew || o.bus !== '2.4.0') throw new Error('a flag after --set overrides it');
+  writeFileSync(join(dir, 'typo.json'), JSON.stringify({ crw: './wicked-crew-1.0.0.tgz' }));
+  let threw = false; try { readSet(join(dir, 'typo.json')); } catch { threw = true; }
+  if (!threw) throw new Error('readSet must refuse an unknown key');
+  writeFileSync(join(dir, 'missing.json'), JSON.stringify({ crew: './gone.tgz' }));
+  threw = false; try { readSet(join(dir, 'missing.json')); } catch { threw = true; }
+  if (!threw) throw new Error('readSet must refuse a pack that does not exist');
+  if (npmSpec('wicked-crew', '0.18.8') !== 'wicked-crew@0.18.8' || npmSpec('wicked-crew', set.crew) !== set.crew || npmSpec('wicked-crew', 'latest') !== 'wicked-crew@latest') throw new Error('npmSpec');
+}
+// The self-test daemon never binds an operator daemon's port.
+{
+  const { RESERVED_PORTS, freePort } = await import('./daemon.mjs');
+  for (const p of [7701, 7702, 7703, 7721]) if (!RESERVED_PORTS.has(p)) throw new Error(`port ${p} must be reserved`);
+  const p = await freePort();
+  if (RESERVED_PORTS.has(p) || !(p > 0)) throw new Error(`freePort gave ${p}`);
+}
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);

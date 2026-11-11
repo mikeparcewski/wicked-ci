@@ -3,7 +3,7 @@
 The harness installs the PUBLISHED crew/core-ts/bus/garden into a hermetic temp root and boots the
 daemon with shimmed seats (e2e-hermetic fidelity: certification-grade). The runner sets
 WICKED_SMOKE_TAP_DIR, so the harness's own API calls, /ws frames and child-process runs are
-recorded per step (smoke/lib/tap.mjs); the steps themselves are unchanged. Evidence: the step's
+recorded per step (selftest/lib/tap.mjs); the steps themselves are unchanged. Evidence: the step's
 API transcript, its event log (/ws frames and the events it read back from GET /runs/:id/events),
 its CLI transcript, and the harness's evidence directory for the step (hashed).
 """
@@ -16,7 +16,7 @@ import re
 from . import DOUBLED, Adapter, Outcome, read_jsonl, rmtree, run_logged, write_json
 from ..observe import event_type
 
-STEP_RE = re.compile(r"^smoke/lib/steps/(S\d\d)-[\w-]+\.mjs$")
+STEP_RE = re.compile(r"^selftest/lib/steps/(S\d\d)-[\w-]+\.mjs$")
 STATUS = {"PASS": "passed", "EXPECTED-FAIL": "failed", "UNEXPECTED-PASS": "passed", "FAIL": "failed",
           "ERROR": "error", "SKIPPED": "error"}
 
@@ -71,7 +71,7 @@ class SmokeAdapter(Adapter):
     def available(self, ctx, params):
         harness = os.path.join(ctx.repo_root, "smoke", "bin", "wicked-smoke.mjs")
         if not os.path.isfile(harness):
-            return "checkout:wicked-ci", "smoke/bin/wicked-smoke.mjs is not in this checkout"
+            return "checkout:wicked-ci", "selftest/bin/wicked-smoke.mjs is not in this checkout"
         ok, detail = ctx.probe.check("tool-node", "node>=22")
         if not ok:
             return "adapter:node>=22", detail

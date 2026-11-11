@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // wicked-smoke — install the PUBLISHED wicked-* artifacts into a hermetic temp root, boot the daemon
 // with shimmed seats, and assert the cross-repo seams on the wire (S01–S10). One line per step, a JSON
 // report, non-zero exit on any FAIL or UNEXPECTED-PASS (EXPECTED-FAIL and SKIPPED never fail the run).
@@ -7,16 +6,16 @@ import * as fsSync from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ALL_STEPS, HELP, parseArgs } from '../lib/args.mjs';
-import { ensureLayout, hermeticEnv, isC5Crew, layout, seatFloorEnv } from '../lib/env.mjs';
-import { engineSemverFor, installGarden, installNpm, installedTree, installedVersions } from '../lib/install.mjs';
-import { writeCouncilOverlay, writePassthroughs, writeSeatCredentials, writeShims } from '../lib/shims.mjs';
-import { Daemon } from '../lib/daemon.mjs';
-import { apiClient } from '../lib/http.mjs';
-import { ExpectPolicy } from '../lib/expect.mjs';
-import { STATUS, StepTrace, classify, printStep, writeSummaryIfCi } from '../lib/report.mjs';
-import { compareHome, snapshotHome } from '../lib/hermetic.mjs';
-import { tapStep } from '../lib/tap.mjs';
+import { ALL_STEPS, HELP, parseArgs } from './args.mjs';
+import { ensureLayout, hermeticEnv, isC5Crew, layout, seatFloorEnv } from './env.mjs';
+import { engineSemverFor, installGarden, installNpm, installedTree, installedVersions } from './install.mjs';
+import { writeCouncilOverlay, writePassthroughs, writeSeatCredentials, writeShims } from './shims.mjs';
+import { Daemon } from './daemon.mjs';
+import { apiClient } from './http.mjs';
+import { ExpectPolicy } from './expect.mjs';
+import { STATUS, StepTrace, classify, printStep, writeSummaryIfCi } from './report.mjs';
+import { compareHome, snapshotHome } from './hermetic.mjs';
+import { tapStep } from './tap.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 /** Built-in per-step ceilings (seconds); `--step-timeout` RAISES them when larger, never lowers. S01's
@@ -39,9 +38,10 @@ function makeWritable(dir) {
   }
 }
 
-async function main() {
+/** The harness run (formerly bin/wicked-smoke.mjs's main): `argv` is the option list after the binary or the `run` verb. */
+export async function runMain(argv) {
   let opts;
-  try { opts = parseArgs(process.argv.slice(2)); } catch (err) { console.error(err.message); console.error(HELP); return 2; }
+  try { opts = parseArgs(argv); } catch (err) { console.error(err.message); console.error(HELP); return 2; }
   if (opts.help) { console.log(HELP); return 0; }
 
   const wall0 = Date.now();
@@ -115,10 +115,10 @@ async function main() {
   // ── steps ──
   const results = [];
   const selected = ALL_STEPS.filter((id) => opts.steps.includes(id));
-  const stepFiles = readdirSync(join(here, '..', 'lib', 'steps'));
+  const stepFiles = readdirSync(join(here, 'steps'));
   for (const stepId of ALL_STEPS) {
     const file = stepFiles.find((f) => f.startsWith(`${stepId}-`));
-    const mod = await import(pathToFileURL(join(here, '..', 'lib', 'steps', file)).href);
+    const mod = await import(pathToFileURL(join(here, 'steps', file)).href);
     if (!selected.includes(stepId)) {
       results.push({ id: stepId, name: mod.name, status: STATUS.SKIP, ms: 0, checks: [], notes: [{ name: 'skipped', detail: 'not in --steps' }], error: null });
       continue;
@@ -172,7 +172,7 @@ async function main() {
     tool: 'wicked-smoke', schema: 2, at: new Date().toISOString(), overall, wallMs: Date.now() - wall0,
     host: { platform: process.platform, arch: process.arch, node: process.version, ci: Boolean(process.env.GITHUB_ACTIONS), loadavg: (await import('node:os')).loadavg().map((x) => Math.round(x)) },
     daemon: { firstBootMs: daemon.firstBootMs ?? null, starts: daemon.starts, port: daemon.port },
-    requested: { crew: opts.crew, coreTs: opts.coreTs, bus: opts.bus, garden: opts.garden, steps: selected },
+    requested: { crew: opts.crew, coreTs: opts.coreTs, bus: opts.bus, garden: opts.garden, profile: opts.profile, steps: selected },
     versions, expectedFailPolicy: policy.active(), shims, root: opts.keep ? root : null,
     unexpectedPasses: results.flatMap((r) => r.checks.filter((c) => c.ok && c.unexpectedPass).map((c) => ({ step: r.id, check: c.name, finding: c.finding, reason: c.unexpectedPass, flaky: Boolean(c.flaky) }))),
     steps: results, hermetic,
@@ -209,4 +209,3 @@ async function main() {
   return 0;
 }
 
-main().then((code) => process.exit(code), (err) => { console.error(err); process.exit(1); });

@@ -6,7 +6,7 @@
 # onboarding, the default-posture bug run with a mixed-auth roster, bus health, campaign fan-out,
 # teardown. Every step prints PASS / FAIL / EXPECTED-FAIL with its evidence path; the JSON report, the
 # daemon log, the shim call log and the evidence files are uploaded as an artifact
-# (`wicked-smoke[-<artifact_suffix>]-<os>`); a step summary is written. See smoke/README.md for what
+# (`wicked-smoke[-<artifact_suffix>]-<os>`); a step summary is written. See selftest/README.md for what
 # each step catches and the expected-fail labelling rule.
 #
 # Caller (SHA-pin the ref per the README's pinning policy):
@@ -182,7 +182,7 @@ jobs:
       # wicked-crew#1050 guard against the harness writing the bus's WAL/SHM sidecars.
       - name: wicked-smoke selfcheck
         shell: bash
-        run: node .wicked-ci-smoke/smoke/lib/selfcheck.mjs
+        run: node .wicked-ci-smoke/selftest/lib/selfcheck.mjs
       # `uv` is a PRODUCT requirement: crew's skills seed runs `uv sync` for the garden bundle and
       # BLOCKS the publish without it. The harness exposes the host uv through a passthrough wrapper.
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -219,7 +219,7 @@ jobs:
           [ -n "$SMOKE_XF_STEPS" ] && ARGS+=(--expect-fail-steps "$SMOKE_XF_STEPS")
           [ -n "$SMOKE_XF_FINDINGS" ] && ARGS+=(--expect-fail "$SMOKE_XF_FINDINGS")
           set +e
-          node .wicked-ci-smoke/smoke/bin/wicked-smoke.mjs "${ARGS[@]}"
+          node .wicked-ci-smoke/selftest/bin/wicked-smoke.mjs "${ARGS[@]}"
           code=$?
           set -e
           echo "exit=$code" >> "$GITHUB_OUTPUT"

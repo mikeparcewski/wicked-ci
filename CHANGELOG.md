@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### selftest — the smoke harness grows into the product self-test (`wicked-selftest`)
+
+- **Why.** When a change lands in wicked-crew, wicked-studio, wicked-core or wicked-garden, nothing proves the
+  product still works before merge. The floors run unit tests, and the smoke installs only what is already
+  published. The :7721 test rig that filled the gap by hand is retired. The operator approved one consistent
+  self-test: humans, pull-request CI, a governed run's floor and the release smoke run one versioned suite, and they
+  differ only in the set they install and the profile they select.
+- **Moved.** `smoke/` is now `selftest/`, with its history. The package is `wicked-selftest` 0.2.0 with two bins:
+  `wicked-selftest run|pack`, and `wicked-smoke`, kept as an exact alias of `wicked-selftest run`. With no new flag,
+  a run is what the smoke always ran: the published set and the same steps, checks and report. `smoke.yml`,
+  `smoke-selftest.yml`, `e2e-catalog.yml`, the e2e catalog's scenario references, the e2e smoke adapter and the docs
+  follow the move, and the e2e test index counts `selftest/` as a test directory. Callers that pin a wicked-ci SHA
+  are unaffected.
+- **Sets.** `--crew`, `--bus` and `--core-ts` take a local `.tgz` as well as an npm version. `--garden` takes a local
+  `.tgz` or directory as well as a tag: a git checkout is exported with `git archive HEAD`, so only tracked files at
+  HEAD go in, like a tag tarball. `--set <file.json>` names them together. Its paths resolve against the file's
+  directory, and an unknown key or a missing pack is refused, so a typo never falls back to npm latest.
+- **Pack (Tier 1).** `wicked-selftest pack --crew-src --studio-src --garden-src --out` builds packs the way the dev
+  copy does: garden exported as is, studio built with its dist stamped, crew built with that studio dist bundled. It
+  writes `set.json`. Each version is stamped `+st.<sha7>`, and a dirty tree is recorded. Building runs the
+  checkouts' own code, so it is for trusted trees or a sandbox. `run` never builds.
+- **Profiles.** `--profile smoke` is the default and today's set. `pr` is S01 S02 S03 S04 S08 S10, for a pull request
+  and a governed run's floor. `release` is every step except the opt-in S07. A profile only selects steps, and
+  `--steps` and `--profile` are exclusive. The report records the profile.
+- `npm run check` covers profiles, the set-file rules and the install specs.
+
 ### smoke — the seat shims answer the engine's rule check; S02 reads crew's home-scrubbed paths
 
 - crew 0.18.0's release smoke (run 42512851279) failed S02, S04 and S11 on ubuntu and macOS. The package was

@@ -2639,7 +2639,7 @@
      "fidelity": "integration"
     },
     {
-     "ref": "wicked-ci:smoke/lib/steps/S04-bug-run.mjs",
+     "ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs",
      "fidelity": "e2e-hermetic"
     }
    ],

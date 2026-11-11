@@ -62,7 +62,7 @@ def git_sha(root):
                           check=True).stdout.strip()
 
 
-TEST_DIRS = {"test", "tests", "e2e", "__tests__", "spec", "smoke", "evidence"}
+TEST_DIRS = {"test", "tests", "e2e", "__tests__", "spec", "smoke", "selftest", "evidence"}
 TEST_NAME = re.compile(r"(^test_|_test\.|\.test\.|\.spec\.|_spec\.|^tests?\.)")
 RUST_TEST = re.compile(r"#\[(cfg\(test\)|test|tokio::test)\]")
 # A scenario must be something that runs: data files, fixtures and markdown scenario write-ups are not tests.

@@ -25,7 +25,7 @@ Three workflows live here:
   a scratch store and posts ONE sticky, advisory PR comment citing every
   applicable rule's id + wiki URI. Never blocks; honest fail-open.
 - `.github/workflows/smoke.yml` — **wicked-smoke**, the artifact-level
-  smoke for the wicked-* seams (harness under `smoke/`): installs the
+  smoke for the wicked-* seams (harness under `selftest/`): installs the
   PUBLISHED tarballs into a hermetic temp root, boots the daemon with
   shimmed seats and asserts the cross-repo wire (S01–S10). See **smoke**
   below and [`docs/smoke-consumer-recipes.md`](docs/smoke-consumer-recipes.md).
@@ -324,7 +324,7 @@ Retired names never join the allowlists — the retired-name rule owns them.
 
 ## smoke — the artifact-level smoke for the wicked-* seams
 
-`smoke/` is a 5–8 minute harness that tests what a customer's `npm i -g`
+`selftest/` (the smoke harness, grown into the product self-test) is a 5–8 minute harness that tests what a customer's `npm i -g`
 actually composes: it installs the **published** `wicked-crew` (bundled
 studio inside), the prebuilt `wicked-core-ts` platform package crew pins,
 `wicked-bus`, and the `wicked-garden` plugin tag into a hermetic temp root,
@@ -343,7 +343,7 @@ is opt-in. Every step prints `PASS` / `FAIL` /
 named and reasoned — never silently skipped) with its evidence path; the
 JSON report, daemon log, shim call log and evidence upload as an artifact
 and a step summary is written. Full step table, the finding classes it
-catches, how to add a step and the expected-fail rule: [`smoke/README.md`](smoke/README.md).
+catches, how to add a step and the expected-fail rule: [`selftest/README.md`](selftest/README.md).
 
 Reusable workflow (`workflow_call`; also `workflow_dispatch` for manual runs;
 inputs `crew_version`, `core_ts_version`, `bus_version`, `garden_ref`, `steps`,
@@ -368,10 +368,10 @@ matrix (`FAIL` > `UNEXPECTED-PASS` > `PASS (with expected failures)` >
 `node-release` callers and per-PR against the others' `latest` — live in
 [`docs/smoke-consumer-recipes.md`](docs/smoke-consumer-recipes.md).
 
-Locally: `node smoke/bin/wicked-smoke.mjs --crew 0.7.32 --bus 2.3.4 --garden 12.34.0 --keep --report-dir ./smoke-out`
+Locally: `node selftest/bin/wicked-smoke.mjs --crew 0.7.32 --bus 2.3.4 --garden 12.34.0 --keep --report-dir ./smoke-out`
 (needs node ≥ 22, git, tar, `uv`; Linux also `bubblewrap`). Self-test:
 `.github/workflows/smoke-selftest.yml` runs the reusable workflow from the PR's own ref on every PR
-that touches `smoke/**`.
+that touches `selftest/**`.
 
 ## Cross-repo dependency upgrades — Renovate
 

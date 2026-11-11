@@ -1,6 +1,6 @@
 # wicked-smoke — consumer recipes
 
-The smoke (`.github/workflows/smoke.yml`, harness under `smoke/`) tests the **published** wicked-*
+The smoke (`.github/workflows/smoke.yml`, harness under `selftest/`) tests the **published** wicked-*
 artifacts as a customer's `npm i -g` composes them — not any repo's source tree. It exists because the
 acceptance program kept finding seams that were green in every repo's own CI and broke only in
 composition: the seeded workflows launched against the real engine addon with the roster shape the
@@ -149,7 +149,7 @@ For a PR that changes an engine seam (crew's adapter, core-ts bindings), add `S0
 
 ## Expected failures — the labelling rule
 
-The harness carries a small policy (`smoke/lib/expect.mjs`): a check tagged with an acceptance finding
+The harness carries a small policy (`selftest/lib/expect.mjs`): a check tagged with an acceptance finding
 that the installed version is KNOWN to still exhibit is reported **EXPECTED-FAIL** with the finding id
 and the reason, never silently skipped and never a red job — and a tagged check that PASSES while its
 finding is still expected is **UNEXPECTED-PASS** (exit 3), so a stale label is retired the day the fix
@@ -162,14 +162,14 @@ installed engine; the publish-warnings check in S02 (F-E2E-002), the seat-routin
 debris check in S03 (F-E2E-012, retention by design) are open on every published version. When a fix
 ships, flip the rule; if the harness then still reports EXPECTED-FAIL on the fixed version, that is a
 bug in the rule, not the product. `--no-expect-fail` (harness) runs strict. Full table:
-[`smoke/README.md`](../smoke/README.md#the-expected-fail-labelling-rule).
+[`selftest/README.md`](../selftest/README.md#the-expected-fail-labelling-rule).
 
 ## Running it locally
 
 ```bash
-node smoke/bin/wicked-smoke.mjs --crew 0.7.33 --bus 2.3.4 --garden 12.35.0 --keep --report-dir ./smoke-out
+node selftest/bin/wicked-smoke.mjs --crew 0.7.33 --bus 2.3.4 --garden 12.35.0 --keep --report-dir ./smoke-out
 # the previous published set, explicitly pinned (raise the step ceilings on a loaded host)
-node smoke/bin/wicked-smoke.mjs --crew 0.7.32 --core-ts 0.7.23 --step-timeout 900
+node selftest/bin/wicked-smoke.mjs --crew 0.7.32 --core-ts 0.7.23 --step-timeout 900
 ```
 
 Requirements on the host: node ≥ 22, git, tar, `uv` (crew's skills seed), and on Linux `bubblewrap`

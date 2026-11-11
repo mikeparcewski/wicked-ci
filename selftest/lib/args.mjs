@@ -1,19 +1,36 @@
-// CLI argument parsing for wicked-smoke. No dependencies; every flag takes `--flag value`.
+// CLI argument parsing for wicked-selftest run (and its alias wicked-smoke). No dependencies; every flag takes
+// `--flag value`.
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, isAbsolute, resolve } from 'node:path';
 
 export const ALL_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10'];
 /** Steps that run without `--steps`: S07 (interactive) stays opt-in (a cold `npx` fetch); S08 (chat)
  *  joined the default set in v2 with the ACP-speaking seat shim — see README. */
 export const DEFAULT_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S08', 'S09', 'S10'];
 
-export const HELP = `wicked-smoke — artifact-level smoke harness for the wicked-* seams
+/** Saved step selections. `smoke` is the release smoke's set as it ran before the suite grew; `pr` is what a pull
+ *  request and a governed run's floor run (no campaign fan-out, no bus soak); `release` is everything but the
+ *  opt-in S07. A profile only selects steps; it never changes what a step asserts. */
+export const PROFILES = {
+  smoke: DEFAULT_STEPS,
+  pr: ['S01', 'S02', 'S03', 'S04', 'S08', 'S10'],
+  release: ALL_STEPS.filter((id) => id !== 'S07'),
+};
 
-usage: node bin/wicked-smoke.mjs [options]
+export const HELP = `wicked-selftest run — the wicked product self-test (alias: wicked-smoke)
 
-  --crew <version>        wicked-crew npm version (default: latest)
-  --core-ts <version>     wicked-core-ts version; "pinned" = whatever crew's range resolves (default: pinned)
-  --bus <version>         wicked-bus npm version (default: latest)
-  --garden <ref>          wicked-garden git tag (12.34.0 / v12.34.0) or "latest" (default: latest)
-  --steps <list>          e.g. S01,S02,S04 or S01..S06 or all (default: ${DEFAULT_STEPS.join(',')})
+usage: wicked-selftest run [options]      (or: wicked-smoke [options])
+
+  Each of --crew, --bus and --core-ts takes an npm version, or a path to a local .tgz (e.g. from
+  \`wicked-selftest pack\`). --garden takes a git tag, "latest", or a path to a local .tgz or directory.
+  --crew <version|.tgz>   wicked-crew (default: latest)
+  --core-ts <v|.tgz>      wicked-core-ts; "pinned" = whatever crew's range resolves (default: pinned)
+  --bus <version|.tgz>    wicked-bus (default: latest)
+  --garden <ref|path>     wicked-garden (default: latest)
+  --set <file.json>       a set file {crew, coreTs, bus, garden}; relative paths resolve against the file's
+                          directory; flags given after it override its entries
+  --profile <name>        smoke | pr | release (default: smoke); not with --steps
+  --steps <list>          e.g. S01,S02,S04 or S01..S06 or all (default: the smoke profile, ${DEFAULT_STEPS.join(',')})
   --root <dir>            temp root for the whole run (default: $RUNNER_TEMP or the OS temp dir); must not exist
   --reuse-root            allow --root to point at an existing directory (its repos/ and state/ are cleared)
   --keep                  keep the temp root after S10 (default: removed)
@@ -52,7 +69,10 @@ export function parseArgs(argv) {
     stepTimeout: 300,
     verbose: false,
     help: false,
+    profile: null,
   };
+  let profile = null;
+  let stepsGiven = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => {
@@ -66,7 +86,14 @@ export function parseArgs(argv) {
       case '--core-ts': o.coreTs = next(); break;
       case '--bus': o.bus = next(); break;
       case '--garden': o.garden = next(); break;
-      case '--steps': o.steps = parseSteps(next()); break;
+      case '--steps': if (profile !== null) throw new Error('--steps and --profile are exclusive'); o.steps = parseSteps(next()); stepsGiven = true; break;
+      case '--profile': {
+        if (stepsGiven) throw new Error('--steps and --profile are exclusive');
+        profile = next();
+        if (!Object.hasOwn(PROFILES, profile)) throw new Error(`unknown profile ${profile} (${Object.keys(PROFILES).join(', ')})`);
+        o.steps = [...PROFILES[profile]]; o.profile = profile; break;
+      }
+      case '--set': Object.assign(o, readSet(next())); break;
       case '--root': o.root = next(); break;
       case '--reuse-root': o.reuseRoot = true; break;
       case '--keep': o.keep = true; break;
@@ -85,7 +112,38 @@ export function parseArgs(argv) {
     }
   }
   if (!Number.isFinite(o.stepTimeout) || o.stepTimeout <= 0) throw new Error('--step-timeout must be a positive number of seconds');
+  if (o.profile === null && !stepsGiven) o.profile = 'smoke';
+  for (const k of ['crew', 'coreTs', 'bus', 'garden']) o[k] = resolveSource(o[k]);
   return o;
+}
+
+/** A source that names a local file or directory (it starts with `.`, `/` or `~`, or ends in .tgz) becomes an
+ *  absolute path, and must exist; anything else is an npm version / git tag, passed through. */
+export function isLocalSource(v) {
+  return typeof v === 'string' && (/^(\.{1,2}[\\/]|[\\/]|~[\\/]|[A-Za-z]:[\\/])/.test(v) || /\.(tgz|tar\.gz)$/i.test(v));
+}
+export function resolveSource(v, base = process.cwd()) {
+  if (!isLocalSource(v)) return v;
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? '';
+  const p = v.startsWith('~') ? resolve(home, v.slice(2)) : (isAbsolute(v) ? v : resolve(base, v));
+  if (!existsSync(p)) throw new Error(`local source ${v} does not exist`);
+  return p;
+}
+
+/** `--set <file.json>`: {crew?, coreTs?, bus?, garden?}; unknown keys are refused so a typo can't fall back to npm latest. */
+export function readSet(file) {
+  const abs = resolve(file);
+  let d;
+  try { d = JSON.parse(readFileSync(abs, 'utf8')); } catch (err) { throw new Error(`--set ${file}: ${err.message}`); }
+  if (d === null || typeof d !== 'object' || Array.isArray(d)) throw new Error(`--set ${file}: not a JSON object`);
+  const out = {};
+  for (const [k, v] of Object.entries(d)) {
+    if (k === '$comment' || k === 'built') continue;
+    if (!['crew', 'coreTs', 'bus', 'garden'].includes(k)) throw new Error(`--set ${file}: unknown key ${k} (crew, coreTs, bus, garden)`);
+    if (typeof v !== 'string' || v === '') throw new Error(`--set ${file}: ${k} must be a non-empty string`);
+    out[k] = resolveSource(v, dirname(abs));
+  }
+  return out;
 }
 
 /** `S01,S03` | `S01..S06` | `all` | `` (empty = none) */
