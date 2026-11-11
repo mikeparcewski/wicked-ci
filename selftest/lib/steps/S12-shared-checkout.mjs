@@ -12,6 +12,7 @@ export const id = 'S12';
 export const name = 'shared checkout (two daemons)';
 
 export async function run(ctx, t) {
+  const signal = ctx.signal; // THIS step's signal: the harness replaces ctx.signal for the next step after a ceiling
   await ctx.ensureDaemon();
   const corpus = ctx.state.corpus;
   if (!corpus) { t.skip('needs S03 (the fixture clone)'); return; }
@@ -26,14 +27,15 @@ export async function run(ctx, t) {
   const b = new Daemon(L2, ctx.tree.crewBin, ctx.log, { bootTimeoutMs: ctx.daemon.bootTimeoutMs, baseEnv: seatFloorEnv(ctx.versions) });
   (ctx.extraDaemons ??= []).push(b); // a signal stops it too
   try {
+    signal?.addEventListener('abort', () => { b.shuttingDown = true; }, { once: true });
     await b.start();
-    if (ctx.signal?.aborted) return; // the step's ceiling passed: stop here (finally stops b)
+    if (signal?.aborted) return; // the step's ceiling passed: stop here (finally stops b)
     const api = apiClient(b.origin, { log: ctx.log });
     const reg = await api.post('/repos', { name: 'corpus-shared', rootPath: corpus });
     t.check('the second daemon registers the same clone', reg.status >= 200 && reg.status < 300, `POST /repos ${reg.status}`);
-    if (ctx.signal?.aborted) return;
+    if (signal?.aborted) return;
     await b.restart();
-    if (ctx.signal?.aborted) return;
+    if (signal?.aborted) return;
     const after = existsSync(wtDir) ? readdirSync(wtDir) : [];
     t.evidence('worktrees-after', after);
     const lost = before.filter((w) => !after.includes(w));

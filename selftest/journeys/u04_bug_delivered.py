@@ -149,8 +149,12 @@ def steer(j, rid, until=None, answer_then_return=None):
             if tid == "session-proposal-confirm-yes":  # the deliver card's "Are you sure?": the person's yes
                 if not DELIVER.search(label):
                     continue
-                if j.wait(lambda: p.get_by_test_id(tid).count() > 0 and p.get_by_test_id(tid).first.is_visible(), 8, "the delivery confirmation"):
+                b = p.get_by_test_id(tid)
+                if j.wait(lambda: b.count() > 0 and b.first.is_visible() and b.first.is_enabled(), 8, "the delivery confirmation"):
+                    b.first.click()  # recorded only once the person's yes is actually pressed
                     confirmed.append(label)
+                    p.wait_for_timeout(1200)
+                continue
             b = p.get_by_test_id(tid)
             if b.count() and b.first.is_visible() and b.first.is_enabled():
                 b.first.click()
@@ -192,7 +196,7 @@ def steer(j, rid, until=None, answer_then_return=None):
     j.check("delivery_shown_on_the_run_page", bool(shown), delivery=s.get("delivery"))
     # The QE skip is disclosed where the person reads the result, and nothing there says QE passed.
     body = p.inner_text("body")
-    j.check("qe_skip_disclosed_on_the_page", re.search(r"QE acceptance[^.\n]{0,40}\boff\b", body, re.I) is not None and re.search(r"QE acceptance (passed|ok)\b", body, re.I) is None, excerpt=(re.search(r"QE acceptance[^\n]{0,80}", body) or [None])[0])
+    j.check("qe_skip_disclosed_on_the_page", re.search(r"QE acceptance[^.\n]{0,40}\boff\b", body, re.I) is not None and re.search(r"QE acceptance:?\s*(PASS|passed|ok)\b", body, re.I) is None, excerpt=(re.search(r"QE acceptance[^\n]{0,80}", body) or [None])[0])
     origin_git = j.state.get("origin")
     if origin_git:
         show = subprocess.run(["git", "--git-dir", origin_git, "show", f"wicked/{rid}:src/add.js"], capture_output=True, text=True)

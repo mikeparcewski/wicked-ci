@@ -139,7 +139,9 @@ export async function runMain(argv) {
     ctx.abortStep?.(); // kills a running journey's browser process (spawned with the step's signal)
     // Every daemon this run started (e.g. S12's second one) is stopped, and awaited, before the process exits.
     for (const d of ctx.extraDaemons ?? []) d.shuttingDown = true;
-    Promise.allSettled([daemon.child ? daemon.stop() : null, ...(ctx.extraDaemons ?? []).map((d) => (d.child ? d.stop() : null))]).finally(() => setTimeout(() => process.exit(130), 500));
+    Promise.allSettled([daemon.child ? daemon.stop() : null, ...(ctx.extraDaemons ?? []).map((d) => (d.child ? d.stop() : null))])
+      .then(() => sweepRoot(root)) // and whatever they left under the root (a document bridge), as at a normal end
+      .finally(() => setTimeout(() => process.exit(130), 500));
   };
   const sigHandlers = { SIGINT: () => onSignal('SIGINT'), SIGTERM: () => onSignal('SIGTERM') };
   for (const [k, f] of Object.entries(sigHandlers)) process.on(k, f);
