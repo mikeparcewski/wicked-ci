@@ -23,6 +23,8 @@ JUDGMENT = re.compile(r"^approve as your own judg", re.I)
 # "N steering rules need your call": with no signed-in judge distinct from the creator the rules stay unchecked; the
 # person confirms or skips them, with the reason, on the card (labelled on the run).
 RULES = re.compile(r"^confirm or skip \d+ rules?", re.I)
+JUDGE_CARD = re.compile(r"no helper could check this step independently", re.I)
+RULES_CARD = re.compile(r"steering rules? need your call", re.I)
 QE_SKIP = re.compile(r"skip (qe|the acceptance|acceptance)|skip,? with a reason", re.I)
 CONFIRM = re.compile(r"^yes\b|confirm|^deliver$|^push", re.I)
 
@@ -119,7 +121,14 @@ def steer(j, rid, until=None, answer_then_return=None):
         if until is not None and until(card, texts):
             return {"card": card, "choices": texts, "answered": answered, "judgments": judgments}
         pick = None
-        for rx in (PLAN, DELIVER, QE_SKIP, JUDGMENT, RULES):
+        # A judgment or a rules skip is offered on other cards too (a failed repository floor offers "Approve as your
+        # own judgment"); the person takes it ONLY on the card that is about the missing judge or the unchecked rules.
+        allowed = [PLAN, DELIVER, QE_SKIP]
+        if JUDGE_CARD.search(card):
+            allowed.append(JUDGMENT)
+        if RULES_CARD.search(card):
+            allowed.append(RULES)
+        for rx in allowed:
             pick = next((e for e in props + gates if rx.search(e.inner_text().strip().split("\n")[0])), None)
             if pick is not None:
                 break
@@ -163,12 +172,13 @@ def steer(j, rid, until=None, answer_then_return=None):
         return None
     r = run_of(j, rid) or {}
     s = r.get("session", {})
-    j.check("decisions_made_in_the_ui", len(answered) >= 2, answered=answered, seen=seen)
+    # The plan gate and the delivery confirmation are the person's: both must have been answered in the UI.
+    j.check("plan_and_delivery_answered_in_the_ui", any(PLAN.search(a) for a in answered) and any(DELIVER.search(a) for a in answered), answered=answered, seen=seen[-6:])
     # The thin roster's judgments are the person's, labelled with their reason: disclosed, never hidden.
     j.rec["judgments"] = judgments
     j.check("run_completed", s.get("status") == "completed", status=s.get("status"), delivery=s.get("delivery"))
     qe = (s.get("assurance") or {}).get("qe") or {}
-    j.check("qe_labelled_not_passed", qe.get("status") != "passed" and qe.get("basis") in ("operator", "setting", "settings", None) or qe.get("status") in ("skipped", "not_required", "waived"), qe=qe)
+    j.check("qe_labelled_not_passed", qe.get("basis") == "operator" and qe.get("status") in ("skipped", "not_required", "waived"), qe=qe)
     p.goto(f"{j.origin}/s/run%3A{rid}", wait_until="domcontentloaded")
     # The corpus origin is a bare repository on this machine, so the delivery is the pushed branch ("There is no pull
     # request: the branch is the delivery", the card says). The run page must show it delivered, not "Nothing

@@ -137,6 +137,7 @@ export async function runMain(argv) {
     if (ctx.holding) return;
     log(`wicked-selftest: ${sig}; stopping the step and the daemon`);
     ctx.abortStep?.(); // kills a running journey's browser process (spawned with the step's signal)
+    for (const d of ctx.extraDaemons ?? []) { d.shuttingDown = true; if (d.child) d.child.kill('SIGTERM'); } // e.g. S12's second daemon
     Promise.resolve(daemon.child ? daemon.stop() : null).finally(() => setTimeout(() => process.exit(130), 500));
   };
   const sigHandlers = { SIGINT: () => onSignal('SIGINT'), SIGTERM: () => onSignal('SIGTERM') };

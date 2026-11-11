@@ -101,7 +101,9 @@ export async function sweepRoot(root, { graceMs = 3000 } = {}) {
     const parent = new Map(rows.map((x) => [x.pid, x.ppid]));
     const mine = new Set();
     for (let p = process.pid; p > 1 && !mine.has(p); p = parent.get(p) ?? 0) mine.add(p);
-    return rows.filter((x) => !mine.has(x.pid) && x.command.includes(root));
+    // The root as a PATH (followed by a separator, a space or the end), never a prefix of another directory.
+    const asPath = new RegExp(`${root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[\\/\\s]|$)`);
+    return rows.filter((x) => !mine.has(x.pid) && asPath.test(x.command));
   };
   const found = list();
   for (const x of found) { try { process.kill(x.pid, 'SIGTERM'); } catch { /* gone */ } }

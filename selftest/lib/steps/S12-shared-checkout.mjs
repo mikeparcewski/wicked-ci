@@ -24,6 +24,7 @@ export async function run(ctx, t) {
     wickedHome: join(root, 'b', 'wicked-home'), interactive: join(root, 'b', 'interactive', 'docs'), steeringInbox: join(root, 'b', 'steering-inbox'), daemonLog: join(root, 'daemon-b.log') };
   for (const k of ['state', 'bus', 'worker', 'tmp', 'wickedHome', 'interactive', 'steeringInbox']) mkdirSync(L2[k], { recursive: true });
   const b = new Daemon(L2, ctx.tree.crewBin, ctx.log, { bootTimeoutMs: ctx.daemon.bootTimeoutMs, baseEnv: seatFloorEnv(ctx.versions) });
+  (ctx.extraDaemons ??= []).push(b); // a signal stops it too
   try {
     await b.start();
     const api = apiClient(b.origin, { log: ctx.log });

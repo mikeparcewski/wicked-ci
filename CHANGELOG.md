@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-### selftest — governed journeys through studio (U04, U05), S12, scenario data, teardown sweep, e2e evidence
+### selftest — governed journeys through studio (U04, U05), S12, scenario data, teardown sweep
 
 - **U04 (J4).** A bug fix is launched from New job, steered on its cards and delivered, all in studio:
   - The person turns QE acceptance off in Settings first. The stub seats keep no QE ledger, and the run labels the
@@ -26,10 +26,8 @@
   - the chat seat answers governed work steps once S08 has made it work-eligible.
 - **Teardown sweep.** After the daemon stops, any process still naming the run root is stopped and listed in the
   report (`leftoverProcesses`). The harness's own ancestors are excluded. A document bridge once outlived its daemon.
-- **Journey evidence.** Each journey now also records a video and a trace. The e2e smoke adapter runs U steps as
-  scenarios, with their screenshots, video and trace under the UI evidence kinds, so `e2e run` seals them in the
-  run's vault. `studio-ui.agents.table` (U02), `studio-ui.session.deliver-card` and `studio-ui.session.run-as-chat`
-  (U04) now name them.
+- **Journey evidence.** Each journey now also records a video and a trace beside its screenshots. (Sealing U steps
+  through `e2e run` needs the browser's HTTP and DOM observations exported first: next.)
 
 ### selftest — studio journeys (U01-U03) and `wicked-selftest serve`
 

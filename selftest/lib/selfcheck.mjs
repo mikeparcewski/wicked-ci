@@ -499,6 +499,14 @@ if (process.platform !== 'win32') {
   const res = await sweepRoot(root, { graceMs: 500 });
   let alive = true; try { process.kill(child.pid, 0); } catch { alive = false; }
   if (res.swept.length !== 1 || !res.swept[0].command.includes('<root>') || alive) throw new Error(`sweepRoot: ${JSON.stringify(res)} alive=${alive}`);
+  // A process under a SIBLING directory whose name starts with the root's is not swept.
+  const other = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)', `${root}-other/x`], { stdio: 'ignore', detached: true });
+  other.unref();
+  await new Promise((r) => setTimeout(r, 300));
+  const res2 = await sweepRoot(root, { graceMs: 200 });
+  let otherAlive = true; try { process.kill(other.pid, 0); } catch { otherAlive = false; }
+  try { process.kill(other.pid, 'SIGKILL'); } catch { /* gone */ }
+  if (res2.swept.length !== 0 || !otherAlive) throw new Error(`sweepRoot must not touch ${root}-other: ${JSON.stringify(res2)}`);
 }
 // The self-test daemon never binds an operator daemon's port.
 {
