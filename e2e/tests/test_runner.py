@@ -601,6 +601,13 @@ class AdapterParsing(unittest.TestCase):
             self.assertTrue(o.obs.dom["studio-ui.steer.import#0"]["ok"])
             self.assertTrue(o.obs.dom_sampled)
             self.assertEqual(sorted(o.evidence), ["screenshot", "trace", "video"])
+            # A HAR that does not parse leaves the stream incomplete (a failed recording is never an empty one).
+            with open(os.path.join(hook, "har", "ctx-1.har"), "w") as fh:
+                fh.write("{\"log\": {\"entr")
+            o2 = Outcome("passed")
+            SmokeAdapter._browser(o2, hook, ev)
+            self.assertFalse(o2.obs.streams["network"]["complete"])
+            self.assertEqual(o2.obs.http, [])
         finally:
             shutil.rmtree(d)
 

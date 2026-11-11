@@ -2475,10 +2475,6 @@
     {
      "ref": "wicked-studio:tests/AskDock.test.tsx",
      "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-ci:selftest/lib/steps/U03-chat.mjs",
-     "fidelity": "e2e-hermetic"
     }
    ],
    "related": [
@@ -25227,10 +25223,6 @@
     {
      "ref": "wicked-studio:tests/watchtowerRealWire.test.tsx",
      "fidelity": "unit"
-    },
-    {
-     "ref": "wicked-ci:selftest/lib/steps/U01-studio-open.mjs",
-     "fidelity": "e2e-hermetic"
     }
    ],
    "sources": [

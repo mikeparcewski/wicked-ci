@@ -106,7 +106,7 @@ class SmokeAdapter(Adapter):
         if not ok:
             return "adapter:network", detail + " (the harness installs the published packages)"
         if params["step"].startswith("U"):
-            ok, why = ctx.playwright_ok()
+            ok, why = self._playwright_isolated(ctx)
             if not ok:
                 return "adapter:playwright-chromium", why
         return None
@@ -203,6 +203,26 @@ class SmokeAdapter(Adapter):
         return outcomes
 
     @staticmethod
+    def _playwright_isolated(ctx):
+        """Can the runner's Python launch Chromium the way the harness runs a journey (`python -I`: no user site, no
+        PYTHONPATH)? The studio adapter's probe runs without -I, so it can accept a Python the journey cannot use."""
+        cached = getattr(ctx, "_smoke_pw", None)
+        if cached is None:
+            import subprocess
+            code = ("from playwright.sync_api import sync_playwright\n"
+                    "with sync_playwright() as p:\n b = p.chromium.launch(); b.close()\n")
+            env = {k: v for k, v in os.environ.items() if not k.startswith("PYTHON")}
+            if ctx.playwright_browsers:
+                env["PLAYWRIGHT_BROWSERS_PATH"] = ctx.playwright_browsers
+            try:
+                r = subprocess.run([ctx.python, "-I", "-c", code], capture_output=True, text=True, timeout=120, env=env)
+                cached = (r.returncode == 0, "ok" if r.returncode == 0 else (r.stderr.strip().splitlines() or ["?"])[-1][:200])
+            except (OSError, subprocess.TimeoutExpired) as e:
+                cached = (False, str(e))
+            ctx._smoke_pw = cached
+        return cached
+
+    @staticmethod
     def _browser(o, hook_dir, ev_dir):
         """A journey's browser-side observations: the hook's HAR (the UI's own /api/ calls), its DOM samples, and the
         journey's screenshots, video and trace (the driver keeps those under the step's evidence directory)."""
@@ -214,12 +234,22 @@ class SmokeAdapter(Adapter):
         except (OSError, ValueError):
             hook = {}
         hars = sorted(glob.glob(os.path.join(hook_dir, "har", "*.har")))
+        readable = 0
         for p in hars:
+            # A HAR that does not parse is a recording that failed, never an empty one: the stream stays incomplete.
+            try:
+                with open(p, encoding="utf-8") as fh:
+                    json.load(fh)
+                readable += 1
+            except (OSError, ValueError):
+                o.extra.setdefault("unreadable_hars", []).append(os.path.basename(p))
+                continue
             for h in parse_har(p):
                 obs.add_http(h["method"], h["url"], h["status"], h["req"], h["res"], source="browser-har")
                 path = re.sub(r"^https?://[^/]+", "", h["url"] or "")
                 obs.add_event("network", "%s %s" % (h["method"], path), {"body": h["req"], "status": h["status"]})
-        obs.stream("network", bool(hars) and len(hars) == hook.get("contexts", -1), "the journey's browser HAR (/api/ requests)")
+        complete = bool(hars) and readable == len(hars) == hook.get("contexts", -1)
+        obs.stream("network", complete, "the journey's browser HAR (/api/ requests)")
         for cid, s in (hook.get("dom") or {}).items():
             obs.dom[cid] = s
         obs.dom_sampled = bool(hook.get("sampled"))

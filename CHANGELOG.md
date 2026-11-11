@@ -12,9 +12,10 @@
   video and trace evidence. They are sealed in the run's wicked-vault like every other scenario.
 - Steps that read the onboarded corpus (S04–S06, S11, S12, U04–U07) get S03 first. Before, a plan that selected
   one of them alone was refused by the harness.
-- Six studio-ui capabilities gain a `wicked-ci` U scenario (`e2e-hermetic`). The pairs are `watch.error-states`/U01,
-  `agents.table`/U02, `chat.ask-dock`/U03, `session.deliver-card`/U04, `gate.plain-words`/U05 and
-  `steer.import`/U06. A local
+- Four studio-ui capabilities gain a `wicked-ci` U scenario (`e2e-hermetic`). The pairs are `agents.table`/U02,
+  `session.deliver-card`/U04, `gate.plain-words`/U05 and `steer.import`/U06. U01 (the Nerve Center) and U03 (the
+  Assist composer) have no matching capability yet. A HAR that does not parse leaves the `network` stream incomplete.
+  U steps are probed with the journey's own `python -I`. A local
   `e2e run --select id:studio-ui.steer.import` ran U06. It observed five of the six typed checks from the browser
   (the HAR event, the DOM samples, the rules-list API) and sealed them in the vault, and `validate --report` read
   OK. The verdict was partial: the oracle is partial, and "retired absent" is not on U06's path.
