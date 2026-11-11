@@ -5,11 +5,11 @@
 //   - garden is exported at HEAD with its own manifest version;
 //   - a checkout with uncommitted or untracked changes is refused, and --allow-dirty records that they were left out;
 //   - `run --set` accepts what pack wrote, and a bus tarball named as crew is refused by name.
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { packMain } from './pack.mjs';
+import { isInside, packMain } from './pack.mjs';
 import { readSet } from './args.mjs';
 import { expectTarball, tarballManifest } from './install.mjs';
 
@@ -93,6 +93,11 @@ try {
   const out4 = join(base, 'out4');
   // A cargo target inside a source checkout is refused before anything is written.
   if (await quiet(() => packMain(['--core-src', core, '--out', join(base, 'out4x'), '--cargo-target', join(core, 'target')])) !== 2 || existsSync(join(core, 'target')) || existsSync(join(base, 'out4x'))) throw new Error('a --cargo-target inside a source checkout must be refused before anything is written');
+  // …also through a symlink that points into the checkout, and a name that only starts with two dots is still inside.
+  symlinkSync(core, join(base, 'core-link'));
+  if (await quiet(() => packMain(['--core-src', core, '--out', join(base, 'out4y'), '--cargo-target', join(base, 'core-link', 'target')])) !== 2 || existsSync(join(core, 'target'))) throw new Error('a --cargo-target symlinked into a source checkout must be refused');
+  if (await quiet(() => packMain(['--core-src', core, '--out', join(base, 'out4z'), '--cargo-target', join(core, '..target')])) !== 2 || existsSync(join(core, '..target'))) throw new Error('a --cargo-target named ..target inside a checkout must be refused');
+  if (!isInside('/a/b', '/a/b/..c') || isInside('/a/b', '/a/bc') || isInside('/a/b', '/a') || !isInside('/a/b', '/a/b')) throw new Error('isInside segment rules');
   if (await quiet(() => packMain(['--core-src', core, '--out', out4, '--cargo-target', join(base, 'cargo-target')])) !== 0) throw new Error('pack --core-src');
   if (!existsSync(join(base, 'cargo-target', 'built'))) throw new Error('the Tier 2 build did not get --cargo-target as CARGO_TARGET_DIR');
   const s4 = JSON.parse(readFileSync(join(out4, 'set.json'), 'utf8'));

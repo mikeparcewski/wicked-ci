@@ -18,8 +18,8 @@
 // own branch) or inside a sandbox. A governed run's head is packed inside the floor's sandbox, never on the host. The
 // build sees a constructed environment: PATH, a HOME, npm cache/config and temp dir under --out, and git with no
 // system or global config and no inherited GIT_* routing. `--npm-cache <dir>` opts in to a shared npm cache.
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { basename, delimiter, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { gzipSync } from 'node:zlib';
@@ -139,6 +139,24 @@ function exportTree(src, sha, stage, name, env) {
   rmSync(tar, { force: true });
   return dest;
 }
+/** A path with symlinks resolved: the real path of its nearest existing ancestor, plus the part that does not exist yet. */
+export function realish(p) {
+  const abs = resolve(p);
+  let head = abs;
+  const tail = [];
+  for (;;) {
+    try { return join(realpathSync(head), ...tail); } catch { /* not there yet */ }
+    const up = dirname(head);
+    if (up === head) return abs;
+    tail.unshift(basename(head));
+    head = up;
+  }
+}
+/** `child` is `parent` or under it (`..` counts only as a whole segment: `..target` is a name, not a step up). */
+export function isInside(parent, child) {
+  const rel = relative(parent, child);
+  return rel === '' || !(rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel));
+}
 const pkgVersion = (dir) => JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).version;
 
 export async function packMain(argv) {
@@ -147,12 +165,12 @@ export async function packMain(argv) {
   if (o.help) { console.log(PACK_HELP); return 0; }
   // --out may not sit inside a source checkout: its own files would make a clean tree read dirty, and the checkout
   // must stay unwritten. Checked before anything is created.
-  // The same holds for the Tier 2 cargo target: a build writing into a checkout would leave it dirty.
+  // The same holds for the Tier 2 cargo target: a build writing into a checkout would leave it dirty. Compared as
+  // REAL paths (a symlinked target into a checkout is inside it), with `..` as a whole path segment only.
   for (const src of [o.crewSrc, o.studioSrc, o.gardenSrc, o.coreSrc].filter(Boolean)) {
     for (const [flag, dir] of [['--out', o.out], ['--cargo-target', o.cargoTarget]]) {
       if (!dir) continue;
-      const rel = relative(src, dir);
-      if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) { console.error(`wicked-selftest pack: ${flag} ${dir} is inside the source checkout ${src}; choose a directory outside it`); return 2; }
+      if (isInside(realish(src), realish(dir))) { console.error(`wicked-selftest pack: ${flag} ${dir} is inside the source checkout ${src}; choose a directory outside it`); return 2; }
     }
   }
   // --out must not exist: creating it is the claim (mkdir is atomic), so two packs can never share one output.
