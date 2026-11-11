@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+### selftest — governed journeys through studio (U04, U05), S12, scenario data, teardown sweep
+
+- **U04 (J4).** A bug fix is launched from New job, steered on its cards and delivered, all in studio:
+  - The person turns QE acceptance off in Settings first. The stub seats keep no QE ledger, and the run labels the
+    skip as the operator's; it never reads as passed.
+  - The plan gate is approved in the thread. Each decision is waited on until the UI's own POST goes out, because a
+    card sends only after its 10 s undo window.
+  - The hermetic roster has one signed-in work CLI, so every "no independent judge" card and every "N rules need
+    your call" card gets the person's own labelled judgment.
+  - The deliver card is confirmed. Passes when the run is completed, the run page shows the delivery, and the branch
+    on the bare origin returns the sum. In the `pr` profile.
+- **U05 (J5).** Scenario `fix: break` makes the stub's fix add a wrong test, `add keeps zero as the identity`. The
+  run must stop at a card that names it and offers a way forward, and deliver nothing. In
+  `release`.
+- **S12 (wicked-core#1373).** A second hermetic daemon (its own state, port, bus and worker home) registers the
+  same fixture clone and restarts. The first daemon's worktrees must survive. EXPECTED-FAIL (`F-CORE-1373`) until
+  the owner-scoped reaper ships; locally it removed 5 of 5. In `release`.
+- **Scenario data.** `<root>/scenario.json`, written by a step and removed after, drives the stub seats.
+- **Seat shims:**
+  - read the unit's step id (`then: <step> — …`), so a studio job's read-only `pa-scope` never writes;
+  - accept the PA's team step reviews (`STEP <id>: ACCEPT`);
+  - the chat seat answers governed work steps once S08 has made it work-eligible.
+- **Teardown sweep.** After the daemon stops, any process still naming the run root is stopped and listed in the
+  report (`leftoverProcesses`). The harness's own ancestors are excluded. A document bridge once outlived its daemon.
+- **Journey evidence.** Each journey now also records a video and a trace beside its screenshots. (Sealing U steps
+  through `e2e run` needs the browser's HTTP and DOM observations exported first: next.)
+
 ### selftest — studio journeys (U01-U03) and `wicked-selftest serve`
 
 - **Studio journeys.** The U steps drive the daemon's own studio in Chromium (Python Playwright), against the same

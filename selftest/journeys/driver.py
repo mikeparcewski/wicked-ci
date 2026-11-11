@@ -129,11 +129,22 @@ def main(argv):
         rec["waits"].append({"what": what, "s": round(time.time() - t0, 1), "ok": False, "last": str(last)[:200]})
         return None
 
-    j.get, j.check, j.shot, j.shots, j.wait, j.log, j.set_theme = get, check, shot, shots, wait, log, set_theme
+    def load(name):
+        """Another journey file's functions (shared launch/steer helpers), loaded by path like the journey itself."""
+        spec2 = importlib.util.spec_from_file_location(name, os.path.join(here, f"{name}.py"))
+        mod2 = importlib.util.module_from_spec(spec2)
+        spec2.loader.exec_module(mod2)
+        return mod2
+
+    j.get, j.check, j.shot, j.shots, j.wait, j.log, j.set_theme, j.load = get, check, shot, shots, wait, log, set_theme, load
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context(viewport={"width": 1440, "height": 700}, color_scheme="light", service_workers="block")
+        # The e2e evidence contract for a UI capability: a video, a trace and screenshots (the trace carries the DOM
+        # snapshots and the network for each action).
+        ctx = browser.new_context(viewport={"width": 1440, "height": 700}, color_scheme="light", service_workers="block",
+                                  record_video_dir=os.path.join(out, "video"), record_video_size={"width": 1440, "height": 700})
+        ctx.tracing.start(screenshots=True, snapshots=True)
 
         def boundary(route):
             url = route.request.url
@@ -191,7 +202,15 @@ def main(argv):
         # The journey's own checks decide whether it ran at all; the driver's check never stands in for them.
         rec["journey_checks"] = len(rec["checks"])
         check("stayed_on_origin", not rec["escaped"], escaped=rec["escaped"][:10])
+        try:
+            ctx.tracing.stop(path=os.path.join(out, "trace.zip"))
+            rec["trace"] = "trace.zip"
+        except Exception as e:  # evidence is recorded best-effort; a missing trace is visible in result.json
+            rec["trace"] = None
+            log("trace not written", repr(e)[:200])
         ctx.close()
+        vids = sorted(f for f in os.listdir(os.path.join(out, "video"))) if os.path.isdir(os.path.join(out, "video")) else []
+        rec["videos"] = [os.path.join("video", f) for f in vids]
         browser.close()
 
     rec["ended"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())

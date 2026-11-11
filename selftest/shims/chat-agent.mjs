@@ -18,7 +18,7 @@
 // messages (the deltas) and a terminal `result` carrying `usage` — the turn is metered the way a real
 // claude seat's is; without it, plain text. Ballots, judges and triage answer like the claude shim.
 // Every invocation is recorded in `<root>/shim-calls.ndjson`; the answered turn adds `chat: answered`.
-import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, appendRecord, isVersionProbe, record, ruleVerdicts } from './_lib.mjs';
+import { BALLOT, JUDGE_PASS, TRIAGE_ESCALATE, appendRecord, isVersionProbe, record, ruleVerdicts, workerTurn } from './_lib.mjs';
 
 const SHIM = 'chat-agent';
 const SLEEP_ENV = 'WICKED_SMOKE_ACP_SLEEP_MS';
@@ -41,8 +41,12 @@ else {
   const token = prompt.match(SLEEP_TOKEN);
   const sleptMs = token ? Number.parseInt(token[1], 10) : Math.max(0, Number.parseInt(process.env[SLEEP_ENV] ?? '0', 10) || 0);
   if (sleptMs > 0) await new Promise((r) => setTimeout(r, sleptMs));
-  const head = '## Answer\n\n';
-  const body = `wicked-smoke headless chat seat: received your message (${prompt.length} chars of prompt) on the wrapped carrier`
+  // A governed WORK step (once S08 made this seat work-eligible, a studio-launched team can seat it for triage,
+  // review or verify) answers the way every work seat does: the phase's deliverable and, for an evaluator, its verdict
+  // line. Only a chat answer step (`then: answer-N`) gets the chat stand-in below.
+  const chatStep = /\bthen: answer-\d+ — /.test(prompt) || /wicked-smoke: say hello/.test(prompt);
+  const head = chatStep ? '## Answer\n\n' : '';
+  const body = !chatStep ? workerTurn(prompt) : `wicked-smoke headless chat seat: received your message (${prompt.length} chars of prompt) on the wrapped carrier`
     + `${sleptMs > 0 ? ` after sleeping ${sleptMs} ms` : ''}. No model was called — this deterministic stand-in proves the `
     + 'chat wire (open → first message launches the path → the answer step runs the seat headlessly → one stamped reply), '
     + 'not an answer\'s quality.';

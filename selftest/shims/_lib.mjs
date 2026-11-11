@@ -3,7 +3,7 @@
 // `codex exec … "<prompt>"`, `opencode run "<prompt>"`), for a council BALLOT, an agent JUDGE turn, or a
 // WORKER turn. It never calls a model and never touches the network.
 import { appendFileSync, existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 /** The shim name of this process, for records appended after {@link record} (the verdict line). */
 let currentShim = 'shim';
@@ -183,8 +183,20 @@ function orchestratorTurn() {
 
 export function workerTurn(prompt) {
   const body = isOrchestratorPrompt(prompt) ? orchestratorTurn() : workerBody(prompt);
-  const verdict = verdictLines(prompt);
+  // A team run's PA reviews each member step: "[team step review] The step above (`<id>`, …) … End your answer with
+  // exactly one line: STEP <id>: ACCEPT — …". The stand-in accepts each step it is asked about (a studio-launched job
+  // is a team run; the API steps launch phased runs and never see this).
+  const reviews = [...new Set([...prompt.matchAll(/\[team step review\] The step above \(`([\w-]+)`/g)].map((m) => m[1]))];
+  const verdict = [...reviews.map((id) => `STEP ${id}: ACCEPT — the member's output is the step's deliverable (deterministic stand-in).`), ...verdictLines(prompt)];
   return verdict.length === 0 ? body : `${body}\n${verdict.join('\n')}`;
+}
+
+/** The running journey's scenario: `<root>/scenario.json` beside the shim log ({} when there is none). Data, not code:
+ *  `fix: "break"` makes the fix add a failing test (U05). */
+export function scenario() {
+  const log = process.env.WICKED_SMOKE_SHIM_LOG;
+  if (!log) return {};
+  try { return JSON.parse(readFileSync(join(dirname(log), 'scenario.json'), 'utf8')) ?? {}; } catch { return {}; }
 }
 
 /** The turn's prose (and the fix phase's write) — the verdict line, when owed, comes after it. */
@@ -194,7 +206,10 @@ function workerBody(prompt) {
   // The engine spells the phase out: "… ||| PHASE SCOPE: this is the <phase> phase. …" — read it from
   // there; the free-text fallback stays for a def that words its scope differently.
   const scoped = prompt.match(/PHASE SCOPE: this is the (\w[\w-]*) phase/i);
-  const phase = scoped ? scoped[1].toLowerCase() : /\bfix\b/i.test(prompt) ? 'fix' : /\btriage\b/i.test(prompt) ? 'triage' : /\breproduce\b/i.test(prompt) ? 'reproduce' : /\bverify\b|\breview\b/i.test(prompt) ? 'verify' : 'unknown';
+  // Next best: the unit's own step id, which the governed-worker line names (`… then: <step> — <intent>`), e.g. a
+  // studio-launched run's read-only `pa-scope` step, whose context mentions "fix" but must never write.
+  const stepId = scoped ? null : prompt.match(/\bthen: ([a-z][\w-]*) — /i);
+  const phase = scoped ? scoped[1].toLowerCase() : stepId && !/^answer-\d+$/.test(stepId[1]) ? stepId[1].toLowerCase() : /\bfix\b/i.test(prompt) ? 'fix' : /\btriage\b/i.test(prompt) ? 'triage' : /\breproduce\b/i.test(prompt) ? 'reproduce' : /\bverify\b|\breview\b/i.test(prompt) ? 'verify' : 'unknown';
   // The engine's SUBSTANCE gate rejects a governed unit whose Ok output carries neither ≥ 200 trimmed
   // chars of prose nor a worktree change ("phase produced no reviewable substance") — every answer
   // below is a full deliverable, not a one-liner.
@@ -208,6 +223,18 @@ function workerBody(prompt) {
     return ['## Answer', '', `You asked: "${chat[2].trim()}"`, '',
       'In the fixture repository, `add(a, b)` in `src/add.js` returns `a - b`: the difference, where its name and `test/add.test.js` expect the sum. `sum()` in `src/index.js` folds with `add()`, so it is wrong too.',
       `(${chat[1]}: a deterministic stand-in answer from the self-test's seat shim; no model was called.)`, footer].join('\n');
+  }
+  // A journey's scenario (`<root>/scenario.json`, written by its step) can make the fix break a named test (U05:
+  // a red check routes somewhere) instead of correcting the defect.
+  // The fixture's base is red (its two tests fail before the fix), so breaking an existing test would read as
+  // "fails on the base too". The break is a NEW failure: the defect is fixed, and a new test that fails is added.
+  if (phase === 'fix' && existsSync(target) && scenario().fix === 'break') {
+    const src = readFileSync(target, 'utf8');
+    writeFileSync(target, src.replace(/a\s*-\s*b/, 'a + b'));
+    // Appended to the file the repository's check runner runs (test/run.mjs runs test/add.test.js only).
+    const testFile = join(process.cwd(), 'test', 'add.test.js');
+    writeFileSync(testFile, `${readFileSync(testFile, 'utf8')}\ntest('add keeps zero as the identity', () => {\n  assert.equal(add(0, 0), 1);\n});\n`);
+    return ['## Fix applied', '', 'Changed `add()` in `src/add.js` to return `a + b`, and added the test `add keeps zero as the identity` to `test/add.test.js`. (Scenario `fix: break`: the new test is wrong on purpose, so the floor must deny the change and name it.)', 'Changed files: src/add.js, test/add.test.js', footer].join('\n');
   }
   if (phase === 'fix' && existsSync(target)) {
     const src = readFileSync(target, 'utf8');

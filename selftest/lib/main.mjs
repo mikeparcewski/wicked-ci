@@ -16,11 +16,12 @@ import { ExpectPolicy } from './expect.mjs';
 import { STATUS, StepTrace, classify, printStep, writeSummaryIfCi } from './report.mjs';
 import { compareHome, snapshotHome } from './hermetic.mjs';
 import { tapStep } from './tap.mjs';
+import { sweepRoot } from './proc.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 /** Built-in per-step ceilings (seconds); `--step-timeout` RAISES them when larger, never lowers. S01's
  *  ceiling is also the daemon's BOOT wait (a cold first boot publishes the garden bundle). */
-const STEP_CEILINGS = { S01: 300, S04: 540, S11: 540, S05: 420 };
+const STEP_CEILINGS = { S01: 300, S04: 540, S11: 540, S05: 420, U04: 1200, U05: 1200 };
 
 /** chmod u+w every directory under `dir` (no symlink following) so a recursive remove can proceed. */
 function makeWritable(dir) {
@@ -136,7 +137,11 @@ export async function runMain(argv) {
     if (ctx.holding) return;
     log(`wicked-selftest: ${sig}; stopping the step and the daemon`);
     ctx.abortStep?.(); // kills a running journey's browser process (spawned with the step's signal)
-    Promise.resolve(daemon.child ? daemon.stop() : null).finally(() => setTimeout(() => process.exit(130), 500));
+    // Every daemon this run started (e.g. S12's second one) is stopped, and awaited, before the process exits.
+    for (const d of ctx.extraDaemons ?? []) d.shuttingDown = true;
+    Promise.allSettled([daemon.child ? daemon.stop() : null, ...(ctx.extraDaemons ?? []).map((d) => (d.child ? d.stop() : null))])
+      .then(() => sweepRoot(root)) // and whatever they left under the root (a document bridge), as at a normal end
+      .finally(() => setTimeout(() => process.exit(130), 500));
   };
   const sigHandlers = { SIGINT: () => onSignal('SIGINT'), SIGTERM: () => onSignal('SIGTERM') };
   for (const [k, f] of Object.entries(sigHandlers)) process.on(k, f);
@@ -197,6 +202,10 @@ export async function runMain(argv) {
   }
   if (daemon.child) await daemon.stop();
   for (const [k, f] of Object.entries(sigHandlers)) process.removeListener(k, f);
+  // Whatever the stopped daemon left running under the root (crew's document bridge outlived its daemon once) is
+  // stopped here and disclosed in the report: a self-test leaves no process behind.
+  const sweep = await sweepRoot(root);
+  if (sweep.swept.length) log(`wicked-selftest: LEFTOVER after the daemon stopped (stopped now): ${sweep.swept.map((x) => `${x.pid} ${x.command}`).join(' | ')}`);
 
   // ── hermetic scan ──
   let hermetic = null;
@@ -223,7 +232,7 @@ export async function runMain(argv) {
     requested: { crew: opts.crew, coreTs: opts.coreTs, bus: opts.bus, garden: opts.garden, profile: opts.profile, steps: selected },
     versions, expectedFailPolicy: policy.active(), shims, root: opts.keep ? root : null,
     unexpectedPasses: results.flatMap((r) => r.checks.filter((c) => c.ok && c.unexpectedPass).map((c) => ({ step: r.id, check: c.name, finding: c.finding, reason: c.unexpectedPass, flaky: Boolean(c.flaky) }))),
-    steps: results, hermetic,
+    steps: results, hermetic, leftoverProcesses: sweep.swept,
   };
   // The report lives under the root (as --help says); it is copied out to --report-dir, and — when the
   // root is about to be removed with no --report-dir — to ./wicked-smoke-report.json so nothing is lost.
