@@ -51,8 +51,13 @@ def run(j):
         if visible_ready is None:
             wrong.append(f"{key}: no visible readiness")
             continue
-        if r.get("auth") == "signed_in" and not benched and not visible_ready.startswith("Ready"):
-            wrong.append(f"{key}: signed in and eligible but reads {visible_ready!r}")
+        auth = r.get("auth")
+        if auth in ("signed_in", "not_required") and not benched and not visible_ready.startswith("Ready"):
+            wrong.append(f"{key}: {auth} and eligible but reads {visible_ready!r}")
+        if auth == "unknown" and not benched and not re.search(r"ready|not known|can.t tell|unknown", visible_ready, re.I):
+            wrong.append(f"{key}: sign-in unknown but reads {visible_ready!r}")
+        if (benched or auth == "signed_out") and visible_ready.startswith("Ready"):
+            wrong.append(f"{key}: {'benched' if benched else 'signed out'} but its status reads {visible_ready!r}")
         if benched and not UNAVAILABLE.search(visible_ready):
             wrong.append(f"{key}: benched by the engine but reads {visible_ready!r}")
         if r.get("auth") == "signed_out":

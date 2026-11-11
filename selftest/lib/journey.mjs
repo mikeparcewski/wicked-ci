@@ -49,7 +49,8 @@ function journeyEnv(root) {
   const env = {
     PATH: process.env.PATH ?? '', HOME: home, USERPROFILE: home, LANG: process.env.LANG ?? 'en_US.UTF-8', PYTHONDONTWRITEBYTECODE: '1',
     XDG_CACHE_HOME: join(home, '.cache'), XDG_CONFIG_HOME: join(home, '.config'), XDG_DATA_HOME: join(home, '.local', 'share'),
-    PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || defaultBrowsersPath(),
+    // Resolved here: the journey runs from journeys/, so a relative path would point somewhere else.
+    PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH ? resolve(process.env.PLAYWRIGHT_BROWSERS_PATH) : defaultBrowsersPath(),
   };
   // Playwright makes its browser profile and artifacts under os.tmpdir(): keep that under the root as well.
   const tmp = root ? join(home, 'tmp') : null;
@@ -81,12 +82,14 @@ export async function runJourney(ctx, t, journey, { state = {}, timeoutMs } = {}
   if (!existsSync(resPath)) throw new Error(`journey ${journey} left no result.json (exit ${code}); see ${t.stepId}/journey-log.json`);
   const res = JSON.parse(readFileSync(resPath, 'utf8'));
   const checks = Object.entries(res.checks ?? {});
-  if (checks.length === 0) throw new Error(`journey ${journey} recorded no checks (${res.error ?? 'no error'})`);
+  // A journey that crashed, or recorded no checks of its own, is an ERROR: never a failed assertion that
+  // --expect-fail-steps could waive.
+  if (!res.journey_checks) throw new Error(`journey ${journey} recorded no checks of its own (${res.error ?? 'no error'})`);
+  if (res.error) throw new Error(`journey ${journey} did not run to its end: ${res.error}`);
   for (const [name, c] of checks) {
     const { ok, ...detail } = c;
     t.check(name, ok, JSON.stringify(detail), { evidence: `${t.stepId}/result.json` });
   }
-  if (res.error) t.check('journey ran to its end', false, res.error);
   t.info('shots', (res.shots ?? []).join(', '));
   t.info('ui sent', (res.writes ?? []).join('; ') || 'nothing');
   if (res.blocked?.length) t.info('blocked off-origin requests', res.blocked.slice(0, 10).join('; '));

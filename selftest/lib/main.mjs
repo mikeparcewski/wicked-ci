@@ -134,8 +134,9 @@ export async function runMain(argv) {
     ctx.stopRequested = true;
     daemon.shuttingDown = true;
     if (ctx.holding) return;
-    log(`wicked-selftest: ${sig}; stopping the daemon`);
-    Promise.resolve(daemon.child ? daemon.stop() : null).finally(() => process.exit(130));
+    log(`wicked-selftest: ${sig}; stopping the step and the daemon`);
+    ctx.abortStep?.(); // kills a running journey's browser process (spawned with the step's signal)
+    Promise.resolve(daemon.child ? daemon.stop() : null).finally(() => setTimeout(() => process.exit(130), 500));
   };
   const sigHandlers = { SIGINT: () => onSignal('SIGINT'), SIGTERM: () => onSignal('SIGTERM') };
   for (const [k, f] of Object.entries(sigHandlers)) process.on(k, f);
@@ -163,6 +164,7 @@ export async function runMain(argv) {
     // stops polling, approving and writing evidence instead of running on under the next step.
     const ac = new AbortController();
     ctx.signal = ac.signal;
+    ctx.abortStep = () => ac.abort();
     ctx.stepDeadline = Date.now() + ceiling;
     try {
       let timer;
@@ -182,6 +184,9 @@ export async function runMain(argv) {
     results.push(result);
     printStep(result, log);
     if (status === STATUS.ERROR && stepId !== 'S10') log(`    (continuing; daemon log tail follows)\n${daemon.logTail(8).split('\n').map((l) => '    | ' + l.slice(0, 220)).join('\n')}`);
+  }
+  if (opts.hold && !daemon.child && !ctx.stopRequested) {
+    results.push({ id: 'SERVE', name: 'serve hold', status: STATUS.ERROR, ms: 0, checks: [], notes: [], error: `the daemon was not running when the hold began (last exit ${daemon.lastExitCode ?? 'unknown'})` });
   }
   if (opts.hold && daemon.child && !ctx.stopRequested) {
     ctx.holding = true;

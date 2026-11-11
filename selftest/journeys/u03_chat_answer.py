@@ -39,7 +39,10 @@ def run(j):
     qb = qel.bounding_box() if qel.count() and qel.is_visible() else None
     ab = ans.bounding_box() if ans.count() else None
     j.check("question_drawn_above_answer", qb is not None and ab is not None and qb["y"] + qb["height"] <= ab["y"] + 1, question=qb, answer=ab)
-    j.check("answer_names_its_helper", bool(re.search(r"Answered by \S", footer)), footer=footer[:160])
+    # The footer names THE helper this chat asked (the composer's answering-helper button), not just anyone.
+    asked = p.get_by_test_id("chat-cli").first.get_attribute("aria-label") if p.get_by_test_id("chat-cli").count() else ""
+    asked = re.sub(r"\s*\((set for this chat|default)\)\s*$", "", (asked or "").replace("Answering helper:", "").strip())
+    j.check("answer_names_its_helper", bool(asked) and f"Answered by {asked}" in footer, footer=footer[:160], asked=asked)
     writes = j.rec["writes"]
     j.check("ui_opened_a_chat", any(re.match(r"201 POST /api/v1/chats$", w) for w in writes), writes=writes)
     j.check("ui_sent_the_message", any(re.match(r"202 POST /api/v1/chats/[^/]+/messages$", w) for w in writes), writes=writes)

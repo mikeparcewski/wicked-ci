@@ -8,7 +8,8 @@ and the page must not read as all good.
 """
 import re
 
-ALL_GOOD = re.compile(r"\b(all good|everything('s| is) (fine|ok|working|ready)|nothing (is )?wrong)\b", re.I)
+ALL_GOOD = re.compile(r"\b(all good|all clear|everything('s| is) (fine|ok|working|ready|healthy)|nothing (is )?(wrong|slowing|stopping))\b", re.I)
+STOPPED = re.compile(r"\b(stopped|stopping|down|blocked|needs? (a look|you|attention))\b", re.I)
 
 
 def run(j):
@@ -45,7 +46,9 @@ def run(j):
     s_text = services.first.inner_text() if services.count() and services.first.is_visible() else ""
     j.check("services_tile_not_ok", s_tone in ("fail", "warn") and "Estate" in s_text and re.search(r"\bdown\b", s_text, re.I), tone=s_tone, text=s_text[:160])
     headline = p.get_by_test_id("nc-headline").inner_text()
-    j.check("not_called_all_good", page_tone not in ("green", "ok") and not ALL_GOOD.search(headline), tone=page_tone, headline=headline[:200])
+    # Positive: with Estate down the headline must SAY work is stopped or something needs a look (the product's healthy
+    # wordings, "Everything is healthy" / "All clear", must not be what a person reads).
+    j.check("headline_says_something_is_wrong", page_tone not in ("green", "ok") and STOPPED.search(headline) is not None and not ALL_GOOD.search(headline.split(".")[0]), tone=page_tone, headline=headline[:200])
     j.shots("U01-nerve")
     j.check("no_page_errors", not j.rec["page_errors"], errors=j.rec["page_errors"][:5])
     # A 500 is a crash. A 502/503 is a dependency reported down (the hermetic daemon has no estate, so its memory and

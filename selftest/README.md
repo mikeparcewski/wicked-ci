@@ -60,7 +60,7 @@ Dark, under `evidence/<step>/`.
 | Step | Journey | Passes when |
 |---|---|---|
 | U01 | open studio; the Nerve Center | the Desk's content and `/watch` render with no page error and no 500; the rail tile's tone equals the PAGE's tone; Estate's own entry (the hermetic daemon has no wicked-estate) reads down and is visible, and the page is not called all good |
-| U02 | Helpers | `/roster` is the fixture roster; every seat has a row whose VISIBLE status agrees: eligible reads Ready, benched or signed out reads its unavailable state with a visible, enabled way forward |
+| U02 | Helpers | `/roster` is the fixture roster; every seat has a row whose VISIBLE status agrees: eligible reads Ready, benched or signed out reads its unavailable state (never Ready), and a signed-out seat has a visible, enabled way forward |
 | U03 | ask in chat | the UI opened a chat and sent the message; the answer is drawn under its visible question, has the stub's substance (not only an echo), and its own footer names its helper |
 
 A journey needs a Python with Playwright: `--python <path>` or `WICKED_SELFTEST_PYTHON` (browsers from
