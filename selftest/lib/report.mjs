@@ -38,6 +38,11 @@ export class StepTrace {
     return c;
   }
 
+  /** The step could not run for a named reason (a missing tool): reported SKIPPED with it, never as a pass. */
+  skip(reason) {
+    this.skipped = String(reason);
+  }
+
   info(name, detail) {
     this.notes.push({ name, detail: detail === undefined ? null : String(detail).slice(0, 2000) });
   }

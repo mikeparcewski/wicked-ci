@@ -38,6 +38,23 @@ function makeWritable(dir) {
   }
 }
 
+/** `wicked-selftest serve`: keep the ephemeral daemon up after the selected steps, with its stub seats and the
+ *  onboarded fixture repo, until Ctrl-C / SIGTERM or `<root>/stop` exists. It writes `<root>/serve.json` with the
+ *  origin. Nothing here reaches outside the root: the daemon is the same hermetic one the steps used. */
+async function holdOpen(root, daemon, log) {
+  const info = { origin: daemon.origin, pid: daemon.child?.pid ?? null, root, stopFile: join(root, 'stop'), at: new Date().toISOString() };
+  writeFileSync(join(root, 'serve.json'), `${JSON.stringify(info, null, 1)}\n`);
+  log(`wicked-selftest serve: studio at ${daemon.origin}/ (stub seats, hermetic state). Stop with Ctrl-C, SIGTERM, or: touch ${info.stopFile}`);
+  let stop = false;
+  const onSig = () => { stop = true; };
+  process.once('SIGINT', onSig);
+  process.once('SIGTERM', onSig);
+  while (!stop && !existsSync(info.stopFile) && daemon.child && daemon.child.exitCode === null) await new Promise((r) => setTimeout(r, 2000));
+  process.removeListener('SIGINT', onSig);
+  process.removeListener('SIGTERM', onSig);
+  log(`wicked-selftest serve: stopping (${stop ? 'signal' : existsSync(info.stopFile) ? 'stop file' : 'the daemon exited'})`);
+}
+
 /** The harness run (formerly bin/wicked-smoke.mjs's main): `argv` is the option list after the binary or the `run` verb. */
 export async function runMain(argv) {
   let opts;
@@ -145,12 +162,14 @@ export async function runMain(argv) {
     ctx.signal = null;
     const ms = Date.now() - t0;
     let status = classify(t, policy, opts.expectFailSteps.includes(stepId));
+    if (t.skipped && t.checks.length === 0) { status = STATUS.SKIP; t.notes.push({ name: 'skipped', detail: t.skipped }); }
     if (error) status = STATUS.ERROR;
     const result = { id: stepId, name: mod.name, status, ms, checks: t.checks, notes: t.notes, error, evidence: t.evidenceFiles.map((p) => p.replace(root, '<root>')) };
     results.push(result);
     printStep(result, log);
     if (status === STATUS.ERROR && stepId !== 'S10') log(`    (continuing; daemon log tail follows)\n${daemon.logTail(8).split('\n').map((l) => '    | ' + l.slice(0, 220)).join('\n')}`);
   }
+  if (opts.hold && daemon.child) await holdOpen(root, daemon, log);
   if (daemon.child) await daemon.stop();
 
   // ── hermetic scan ──
@@ -168,8 +187,11 @@ export async function runMain(argv) {
     : xpass.length > 0
       ? 'UNEXPECTED-PASS (retire the labels)'
       : results.some((r) => r.status === STATUS.XFAIL) ? 'PASS (with expected failures)' : 'PASS';
+  // A selected step that could not run is named on the verdict line, so a run with skipped journeys never reads as a full pass.
+  const skippedSelected = results.filter((r) => r.status === STATUS.SKIP && selected.includes(r.id)).map((r) => r.id);
+  const overallLine = skippedSelected.length && !overall.startsWith('FAIL') ? `${overall} — SKIPPED ${skippedSelected.join(',')}` : overall;
   const report = {
-    tool: 'wicked-smoke', schema: 2, at: new Date().toISOString(), overall, wallMs: Date.now() - wall0,
+    tool: 'wicked-smoke', schema: 2, at: new Date().toISOString(), overall: overallLine, skippedSteps: skippedSelected, wallMs: Date.now() - wall0,
     host: { platform: process.platform, arch: process.arch, node: process.version, ci: Boolean(process.env.GITHUB_ACTIONS), loadavg: (await import('node:os')).loadavg().map((x) => Math.round(x)) },
     daemon: { firstBootMs: daemon.firstBootMs ?? null, starts: daemon.starts, port: daemon.port },
     requested: { crew: opts.crew, coreTs: opts.coreTs, bus: opts.bus, garden: opts.garden, profile: opts.profile, steps: selected },
@@ -196,7 +218,7 @@ export async function runMain(argv) {
     copies.push(join(process.cwd(), 'wicked-smoke-report.json'));
   }
   writeSummaryIfCi(report);
-  log(`wicked-smoke: ${overall} in ${((Date.now() - wall0) / 1000).toFixed(1)}s — report ${reportPath}${copies.length ? ` (copied to ${copies.join(', ')})` : ''}${opts.reportDir ? ` (+ daemon log, shim calls, evidence in ${opts.reportDir})` : ''}`);
+  log(`wicked-smoke: ${overallLine} in ${((Date.now() - wall0) / 1000).toFixed(1)}s — report ${reportPath}${copies.length ? ` (copied to ${copies.join(', ')})` : ''}${opts.reportDir ? ` (+ daemon log, shim calls, evidence in ${opts.reportDir})` : ''}`);
   if (xpass.length > 0) log(`wicked-smoke: UNEXPECTED-PASS in ${xpass.map((r) => r.id).join(', ')} — a labelled check passed while its finding is still expected to fail: retire or re-bound the label in selftest/lib/expect.mjs${opts.allowUnexpectedPass ? ' (allowed by --allow-unexpected-pass)' : ''}`);
   if (!opts.keep) {
     // The skills store locks published generations read-only (dirs 0555) — on Linux `rm` of their

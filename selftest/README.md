@@ -42,10 +42,42 @@ branch), or inside a sandbox. `run` never builds anything.
 | Profile | Steps | For |
 |---|---|---|
 | `smoke` (default) | S01 S02 S03 S04 S11 S05 S06 S08 S09 S10 | the release smoke, as it always ran |
-| `pr` | S01 S02 S03 S04 S08 S10 | a pull request and a governed run's floor |
+| `pr` | S01 S02 S03 S04 S08 U01 U02 U03 S10 | a pull request and a governed run's floor |
 | `release` | every step except the opt-in S07 | the release train and the integrator's batch pass |
+| `serve` | S01 S02 S03 | `wicked-selftest serve` (then the daemon is held open) |
 
 A profile only selects steps. It never changes what a step asserts. `--steps` and `--profile` are exclusive.
+
+### Studio journeys (U steps)
+
+The U steps drive the **daemon's own studio** in Chromium (Python Playwright), against the same hermetic daemon the
+API steps use. Each journey is the person's path to its terminal state, `journeys/<name>.py`, run by
+`journeys/driver.py`. The driver records page errors, console errors, every response of 400 or more, and every non-GET
+the UI sent (a journey proves what the PERSON's clicks sent, never what a script sent). It aborts every request to any
+host but the daemon's origin. It takes the terminal-state screenshots at 1440x700 and 390x844 in Wicked Light and Wicked
+Dark, under `evidence/<step>/`.
+
+| Step | Journey | Passes when |
+|---|---|---|
+| U01 | open studio; the Nerve Center | the Desk and `/watch` render with no page error and no 500; the rail tile's tone equals the page's light; the service the hermetic daemon has no binary for (wicked-estate) reads down, and the page is not called all good |
+| U02 | Helpers | every stub seat has a row; signed in reads Ready; signed out reads Not ready with a way forward on the row |
+| U03 | ask in chat | the UI opened a chat and sent the message; the answer sits under its question and names its helper |
+
+A journey needs a Python with Playwright: `--python <path>` or `WICKED_SELFTEST_PYTHON` (browsers from
+`PLAYWRIGHT_BROWSERS_PATH` or Playwright's default cache). Without one, the U steps are **SKIPPED** with the reason, and
+the verdict line names them (`PASS — SKIPPED U01,U02,U03`); a skip is never a pass. A journey that leaves no result, or
+no checks, is an ERROR.
+
+### `wicked-selftest serve`: look at it yourself
+
+```bash
+node selftest/bin/wicked-selftest.mjs serve --set /tmp/st-packs/set.json --root /tmp/st-serve
+```
+
+`serve` boots the same hermetic daemon (profile `serve`: S01 S02 S03, or your own `--steps`), then holds it open with its
+stub seats and the onboarded fixture repo. It prints the studio URL and writes `<root>/serve.json`. Stop it with
+Ctrl-C, SIGTERM, or `touch <root>/stop`; the root is removed after, unless `--keep`. This is how a branch is seen
+live before it is packaged: nothing reaches outside the root, and the operator's daemons are never touched.
 
 ## Why — the classes only visible in composition
 

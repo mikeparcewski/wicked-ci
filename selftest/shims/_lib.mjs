@@ -201,6 +201,14 @@ function workerBody(prompt) {
   // Every record carries the stack check POL-2101's record clause reads (core-ts >= 0.15.32).
   const footer = ['', STACK_CHECK_LINE, '— wicked-smoke seat shim (deterministic stand-in for the coding-agent CLI; no model was called). '
     + 'Evidence for this turn is the text above and, where applicable, the diff in the worktree; the engine re-derives done from those, never from this sentence.'].join('\n');
+  // A chat ANSWER step (`answer-N — <the person's words> |||`, the ask path): answer as a chat seat does, about the
+  // fixture, citing its file, instead of acknowledging a "phase" the free-text fallback guessed from the chat scope.
+  const chat = scoped ? null : prompt.match(/\bthen: (answer-\d+) — ([^|]{1,600})\|\|\|/);
+  if (chat) {
+    return ['## Answer', '', `You asked: "${chat[2].trim()}"`, '',
+      'In the fixture repository, `add(a, b)` in `src/add.js` returns `a - b`: the difference, where its name and `test/add.test.js` expect the sum. `sum()` in `src/index.js` folds with `add()`, so it is wrong too.',
+      `(${chat[1]}: a deterministic stand-in answer from the self-test's seat shim; no model was called.)`, footer].join('\n');
+  }
   if (phase === 'fix' && existsSync(target)) {
     const src = readFileSync(target, 'utf8');
     if (/a\s*-\s*b/.test(src)) {

@@ -47,6 +47,11 @@ on:
         type: string
         required: false
         default: ''
+      profile:
+        description: 'A wicked-selftest profile (smoke | pr | release); empty = the steps input, else the smoke profile. A profile with studio journeys (U steps) installs Python Playwright + Chromium first.'
+        type: string
+        required: false
+        default: ''
       os_matrix:
         description: 'JSON array of runners'
         type: string
@@ -200,6 +205,16 @@ jobs:
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           bwrap --ro-bind / / --dev /dev --proc /proc --unshare-all --die-with-parent -- /bin/true
           echo "bwrap can arm a boundary on this runner"
+      # The studio journeys (U steps) drive the daemon's own studio in Chromium. Installed BEFORE the harness, so its
+      # hermetic $HOME snapshot is taken after the browser cache exists (the browser itself writes only to temp).
+      - name: Python Playwright for the studio journeys
+        if: inputs.profile == 'pr' || inputs.profile == 'release' || contains(inputs.steps, 'U')
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/selftest-py"
+          "$RUNNER_TEMP/selftest-py/bin/python" -m pip install --quiet 'playwright==1.64.0'
+          "$RUNNER_TEMP/selftest-py/bin/python" -m playwright install --with-deps chromium
+          echo "WICKED_SELFTEST_PYTHON=$RUNNER_TEMP/selftest-py/bin/python" >> "$GITHUB_ENV"
       - name: wicked-smoke
         id: run
         shell: bash
@@ -209,6 +224,7 @@ jobs:
           SMOKE_BUS: ${{ inputs.bus_version || 'latest' }}
           SMOKE_GARDEN: ${{ inputs.garden_ref || 'latest' }}
           SMOKE_STEPS: ${{ inputs.steps }}
+          SMOKE_PROFILE: ${{ inputs.profile }}
           SMOKE_XF_STEPS: ${{ inputs.expect_fail_steps }}
           SMOKE_XF_FINDINGS: ${{ inputs.expect_fail_findings }}
         run: |
@@ -218,7 +234,7 @@ jobs:
           # customer's clone has. --assert-hermetic skips the root itself.
           if [ "$RUNNER_OS" = "Linux" ]; then ROOT="$HOME/wicked-smoke-root"; else ROOT="$RUNNER_TEMP/wicked-smoke-root"; fi
           ARGS=(--crew "$SMOKE_CREW" --core-ts "$SMOKE_CORE_TS" --bus "$SMOKE_BUS" --garden "$SMOKE_GARDEN" --root "$ROOT" --assert-hermetic --report-dir "$RUNNER_TEMP/wicked-smoke-report")
-          [ -n "$SMOKE_STEPS" ] && ARGS+=(--steps "$SMOKE_STEPS")
+          if [ -n "$SMOKE_PROFILE" ]; then ARGS+=(--profile "$SMOKE_PROFILE"); elif [ -n "$SMOKE_STEPS" ]; then ARGS+=(--steps "$SMOKE_STEPS"); fi
           [ -n "$SMOKE_XF_STEPS" ] && ARGS+=(--expect-fail-steps "$SMOKE_XF_STEPS")
           [ -n "$SMOKE_XF_FINDINGS" ] && ARGS+=(--expect-fail "$SMOKE_XF_FINDINGS")
           set +e
