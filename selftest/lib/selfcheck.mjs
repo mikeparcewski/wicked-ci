@@ -382,7 +382,7 @@ if (sqlite) {
   // profile (the bug run from `pr`, say) fails this check instead of passing it by construction.
   const EXPECTED = {
     smoke: 'S01,S02,S03,S04,S11,S05,S06,S08,S09,S10',
-    pr: 'S01,S02,S03,S04,S08,U01,U02,U03,U04,S10',
+    pr: 'S01,S02,S03,S04,S08,U01,U02,U03,U04,U06,S10',
     release: 'S01,S02,S03,S04,S11,S05,S06,S08,U01,U02,U03,U04,U05,U06,U07,S12,S09,S10',
     serve: 'S01,S02,S03',
   };

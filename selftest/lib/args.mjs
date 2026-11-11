@@ -13,7 +13,7 @@ export const DEFAULT_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', '
  *  opt-in S07. A profile only selects steps; it never changes what a step asserts. */
 export const PROFILES = {
   smoke: DEFAULT_STEPS,
-  pr: ['S01', 'S02', 'S03', 'S04', 'S08', 'U01', 'U02', 'U03', 'U04', 'S10'],
+  pr: ['S01', 'S02', 'S03', 'S04', 'S08', 'U01', 'U02', 'U03', 'U04', 'U06', 'S10'],
   release: ALL_STEPS.filter((id) => id !== 'S07'),
   // `wicked-selftest serve`: boot, publish skills, onboard the fixture repo, then hold the daemon open.
   serve: ['S01', 'S02', 'S03'],

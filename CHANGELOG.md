@@ -6,7 +6,7 @@
 
 - **U06 (J7).** The person imports a one-rule markdown doc on the Steering page (More → Import rules…) and sees the
   rule listed in force. A `/bug` run's rule-check card, opened as a person would, then lists the rule, and the
-  run's gate carries it. It is in `release`.
+  run's gate carries it. It is in `pr` (about 2.5 min) and `release`.
   - Hermetic limit: the engine accepts no judge for the rule check here, so the rules read "unchecked" (the
     thin-roster card).
   - A plan cites only `plan.compose` testing rules.
