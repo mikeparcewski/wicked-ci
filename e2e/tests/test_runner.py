@@ -567,6 +567,43 @@ class AdapterParsing(unittest.TestCase):
         self.assertFalse(o.obs.streams["ws"]["complete"])
         self.assertEqual(o.obs.bindings["port"], 4321)
 
+    def test_smoke_u_step_is_claimed_and_folds_the_browser(self):
+        """A U step (a studio journey the harness drives) is claimed, wants the browser evidence kinds, and folds the
+        e2e hook's HAR and DOM samples plus the journey's screenshot, video and trace."""
+        class Ctx:
+            target = "fixture"
+        sc = {"ref": "wicked-ci:selftest/lib/steps/U06-steering-cited.mjs", "fidelity": "e2e-hermetic"}
+        self.assertEqual(SmokeAdapter().claim(sc, Ctx()), ("wicked-ci-smoke", {"step": "U06"}))
+        from e2ecat.adapters.smoke import harness_steps
+        self.assertEqual(harness_steps(["U06"]), ["S03", "U06"], "a step that reads the onboarded corpus gets S03")
+        self.assertEqual(harness_steps(["S01", "U02"]), ["S01", "U02"])
+        self.assertIn("screenshot", SmokeAdapter().evidence_kinds(Ctx(), sc, {}))
+        self.assertNotIn("screenshot", SmokeAdapter().evidence_kinds(Ctx(), {"ref": "wicked-ci:selftest/lib/steps/S04-bug-run.mjs"}, {}))
+        d = tempfile.mkdtemp()
+        try:
+            hook, ev = os.path.join(d, "pw", "U06", "driver"), os.path.join(d, "ev", "U06")
+            os.makedirs(os.path.join(hook, "har"))
+            os.makedirs(os.path.join(ev, "video"))
+            with open(os.path.join(hook, "har", "ctx-1.har"), "w") as fh:
+                json.dump({"log": {"entries": [{"request": {"method": "POST", "url": "http://127.0.0.1:9/api/v1/governance/steering/import",
+                                                            "postData": {"text": "{\"entries\": []}"}},
+                                                "response": {"status": 200, "content": {"text": "{\"imported\": 1}"}}}]}}, fh)
+            with open(os.path.join(hook, "hook.json"), "w") as fh:
+                json.dump({"contexts": 1, "sampled": 3, "dom": {"studio-ui.steer.import#0": {"ok": True, "value": "x"}}}, fh)
+            for f in ("01-U06-imported.png", "trace.zip", os.path.join("video", "a.webm")):
+                with open(os.path.join(ev, f), "w") as fh:
+                    fh.write("x")
+            o = Outcome("passed")
+            SmokeAdapter._browser(o, hook, ev)
+            self.assertEqual([(h["method"], h["status"]) for h in o.obs.http], [("POST", 200)])
+            self.assertEqual(o.obs.events[0]["type"], "POST /api/v1/governance/steering/import")
+            self.assertTrue(o.obs.streams["network"]["complete"])
+            self.assertTrue(o.obs.dom["studio-ui.steer.import#0"]["ok"])
+            self.assertTrue(o.obs.dom_sampled)
+            self.assertEqual(sorted(o.evidence), ["screenshot", "trace", "video"])
+        finally:
+            shutil.rmtree(d)
+
     def test_direct_client_is_read_only(self):
         calls = []
 

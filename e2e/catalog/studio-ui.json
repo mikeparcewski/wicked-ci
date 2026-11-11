@@ -905,6 +905,10 @@
     {
      "ref": "wicked-studio:tests/agentsCounts.test.tsx",
      "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-ci:selftest/lib/steps/U02-helpers.mjs",
+     "fidelity": "e2e-hermetic"
     }
    ],
    "aliases": [
@@ -2471,6 +2475,10 @@
     {
      "ref": "wicked-studio:tests/AskDock.test.tsx",
      "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-ci:selftest/lib/steps/U03-chat.mjs",
+     "fidelity": "e2e-hermetic"
     }
    ],
    "related": [
@@ -9170,6 +9178,10 @@
      "ref": "wicked-studio:e2e/desk_plain_words_test.py",
      "name": "2",
      "fidelity": "e2e-fixture"
+    },
+    {
+     "ref": "wicked-ci:selftest/lib/steps/U05-red-check.mjs",
+     "fidelity": "e2e-hermetic"
     }
    ],
    "sources": [
@@ -19065,6 +19077,10 @@
     {
      "ref": "wicked-studio:tests/ProposalCard.delivered.test.tsx",
      "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-ci:selftest/lib/steps/U04-bug-delivered.mjs",
+     "fidelity": "e2e-hermetic"
     }
    ],
    "sources": [
@@ -23162,6 +23178,10 @@
     {
      "ref": "wicked-crew:e2e/steering_landing_e2e.mjs",
      "fidelity": "e2e-live"
+    },
+    {
+     "ref": "wicked-ci:selftest/lib/steps/U06-steering-cited.mjs",
+     "fidelity": "e2e-hermetic"
     }
    ],
    "aliases": [
@@ -25207,6 +25227,10 @@
     {
      "ref": "wicked-studio:tests/watchtowerRealWire.test.tsx",
      "fidelity": "unit"
+    },
+    {
+     "ref": "wicked-ci:selftest/lib/steps/U01-studio-open.mjs",
+     "fidelity": "e2e-hermetic"
     }
    ],
    "sources": [

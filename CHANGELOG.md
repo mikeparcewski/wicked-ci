@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### e2e — studio journeys (U steps) sealed through `e2e run`
+
+- The `wicked-ci-smoke` adapter claims `selftest/lib/steps/Uxx-*.mjs`. It runs the harness with the runner's
+  Python and the e2e Playwright hook, and the journey's driver loads that hook explicitly (it runs `python -I`).
+  The hook writes the browser's `/api/` HAR, the catalog's DOM samples and copies of the screenshots under
+  `<tap>/pw/<step>/driver/`. The driver keeps its own trace and video.
+- These become the step's browser HTTP observations and `network` events, its DOM samples, and its screenshot,
+  video and trace evidence. They are sealed in the run's wicked-vault like every other scenario.
+- Steps that read the onboarded corpus (S04–S06, S11, S12, U04–U07) get S03 first. Before, a plan that selected
+  one of them alone was refused by the harness.
+- Six studio-ui capabilities gain a `wicked-ci` U scenario (`e2e-hermetic`). The pairs are `watch.error-states`/U01,
+  `agents.table`/U02, `chat.ask-dock`/U03, `session.deliver-card`/U04, `gate.plain-words`/U05 and
+  `steer.import`/U06. A local
+  `e2e run --select id:studio-ui.steer.import` ran U06. It observed five of the six typed checks from the browser
+  (the HAR event, the DOM samples, the rules-list API) and sealed them in the vault, and `validate --report` read
+  OK. The verdict was partial: the oracle is partial, and "retired absent" is not on U06's path.
+
 ### selftest — U06 steering cited, U07 stalled run (EXPECTED-FAIL F-CREW-1501)
 
 - **U06 (J7).** The person imports a one-rule markdown doc on the Steering page (More → Import rules…) and sees the

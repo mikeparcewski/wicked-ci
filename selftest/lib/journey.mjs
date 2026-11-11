@@ -49,8 +49,11 @@ export function browsersPath(v) {
 
 /** The browser's environment. HOME and the XDG dirs are UNDER THE RUN ROOT, so Chromium's own writes (fontconfig
  *  cache, crash dumps, profile bits) never land in the operator's home; the browsers are read from where Playwright
- *  installed them. No product state and no credential variable crosses over. */
-function journeyEnv(root) {
+ *  installed them. No product state and no credential variable crosses over.
+ *
+ *  Under `e2e run` (the tap dir and the e2e Playwright hook are named in this process's env), the journey also gets
+ *  the hook: its output lands per step under `<tap>/pw/<step>/`, where the e2e adapter reads it. */
+export function journeyEnv(root, stepId = null) {
   const home = root ? join(root, 'browser-home') : homedir();
   if (root) mkdirSync(home, { recursive: true });
   const env = {
@@ -63,6 +66,13 @@ function journeyEnv(root) {
   const tmp = root ? join(home, 'tmp') : null;
   if (tmp) { mkdirSync(tmp, { recursive: true }); env.TMPDIR = tmp; env.TMP = tmp; env.TEMP = tmp; } else if (process.env.TMPDIR) env.TMPDIR = process.env.TMPDIR;
   for (const k of ['SystemRoot', 'LOCALAPPDATA']) if (process.env[k]) env[k] = process.env[k];
+  const tap = process.env.WICKED_SMOKE_TAP_DIR;
+  const hook = process.env.E2E_PW_HOOK_DIR;
+  if (tap && hook && stepId) {
+    env.E2E_PW_DIR = join(resolve(tap), 'pw', stepId);
+    env.WICKED_SELFTEST_PW_HOOK = resolve(hook);
+    if (process.env.E2E_DOM_CHECKS) env.E2E_DOM_CHECKS = resolve(process.env.E2E_DOM_CHECKS);
+  }
   return env;
 }
 
@@ -75,7 +85,7 @@ export async function runJourney(ctx, t, journey, { state = {}, timeoutMs } = {}
   const argv = ['-I', '-B', join(JOURNEYS_DIR, 'driver.py'), journey, '--origin', ctx.daemon.origin, '--out', out, '--state', JSON.stringify(state)];
   const logLines = [];
   const code = await new Promise((resolve) => {
-    const child = spawn(python, argv, { cwd: JOURNEYS_DIR, env: journeyEnv(ctx.L.root), stdio: ['ignore', 'pipe', 'pipe'], signal: ctx.signal ?? undefined });
+    const child = spawn(python, argv, { cwd: JOURNEYS_DIR, env: journeyEnv(ctx.L.root, t.stepId), stdio: ['ignore', 'pipe', 'pipe'], signal: ctx.signal ?? undefined });
     const take = (b) => { for (const l of b.toString().split('\n')) if (l) { logLines.push(l); if (ctx.opts.verbose || / CHECK | ERROR/.test(l)) ctx.log(`    | ${l.slice(0, 220)}`); } };
     child.stdout.on('data', take);
     child.stderr.on('data', take);
