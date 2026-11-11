@@ -11,7 +11,7 @@
   "scripts": {
     "smoke": "node bin/wicked-smoke.mjs",
     "selftest": "node bin/wicked-selftest.mjs run",
-    "check": "node --check bin/wicked-smoke.mjs && node --check bin/wicked-selftest.mjs && node --check lib/main.mjs && node lib/selfcheck.mjs && node lib/pack-selfcheck.mjs"
+    "check": "node --check bin/wicked-smoke.mjs && node --check bin/wicked-selftest.mjs && node --check lib/main.mjs && node lib/selfcheck.mjs && node lib/pack-selfcheck.mjs && node lib/workflow-selfcheck.mjs"
   },
   "engines": {
     "node": ">=22.0.0"

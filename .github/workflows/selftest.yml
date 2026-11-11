@@ -71,6 +71,11 @@ on:
         type: string
         required: false
         default: 'lts/*'
+      artifact_suffix:
+        description: 'Discriminator for the artifact name when ONE workflow run calls this more than once for the same repo and OS (a matrix, two profiles): wicked-selftest-<under_test>[-<suffix>]-<os>-a<attempt>'
+        type: string
+        required: false
+        default: ''
     outputs:
       overall:
         description: 'The suite verdict: PASS | PASS (with expected failures) | FAIL | UNEXPECTED-PASS | COULD-NOT-RUN (<stage>), plus " — SKIPPED <steps>" when a step was skipped'
@@ -121,6 +126,7 @@ jobs:
           # The packs and the report sit outside every checkout (pack refuses an --out inside one).
           { echo "ST_PACKS=$RUNNER_TEMP/st-packs"; echo "ST_REPORT=$RUNNER_TEMP/st-report"; } >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        id: setup1
         continue-on-error: ${{ inputs.advisory }}
         with:
           repository: mikeparcewski/wicked-ci
@@ -129,6 +135,7 @@ jobs:
           persist-credentials: false
       # The head: the caller's own event checkout (no repository/ref given, so a PR's merge ref), or head_ref.
       - name: Checkout the repo under test (the caller's tree)
+        id: setup2
         continue-on-error: ${{ inputs.advisory }}
         if: inputs.head_ref == ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -136,6 +143,7 @@ jobs:
           path: st-src/wicked-${{ inputs.under_test }}
           persist-credentials: false
       - name: Checkout the repo under test (head_ref)
+        id: setup3
         continue-on-error: ${{ inputs.advisory }}
         if: inputs.head_ref != ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -146,21 +154,25 @@ jobs:
           persist-credentials: false
       # Every other product at its main.
       - name: Checkout wicked-crew main
+        id: setup4
         continue-on-error: ${{ inputs.advisory }}
         if: inputs.under_test != 'crew'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { repository: mikeparcewski/wicked-crew, ref: main, path: st-src/wicked-crew, persist-credentials: false }
       - name: Checkout wicked-studio main
+        id: setup5
         continue-on-error: ${{ inputs.advisory }}
         if: inputs.under_test != 'studio'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { repository: mikeparcewski/wicked-studio, ref: main, path: st-src/wicked-studio, persist-credentials: false }
       - name: Checkout wicked-garden main
+        id: setup6
         continue-on-error: ${{ inputs.advisory }}
         if: inputs.under_test != 'garden'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with: { repository: mikeparcewski/wicked-garden, ref: main, path: st-src/wicked-garden, persist-credentials: false }
       - name: The set's sources
+        id: setup7
         continue-on-error: ${{ inputs.advisory }}
         shell: bash
         run: |
@@ -172,31 +184,38 @@ jobs:
             for d in "$ST_SRC"/*/; do echo "| $(basename "$d") | \`$(git -C "$d" rev-parse HEAD)\` |"; done
           } | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        id: setup8
         continue-on-error: ${{ inputs.advisory }}
         with:
           node-version: ${{ inputs.node_version || 'lts/*' }}
       - name: wicked-selftest selfcheck
+        id: setup9
         continue-on-error: ${{ inputs.advisory }}
         shell: bash
         run: |
           node .wicked-ci-selftest/selftest/lib/selfcheck.mjs
           node .wicked-ci-selftest/selftest/lib/pack-selfcheck.mjs
+          node .wicked-ci-selftest/selftest/lib/workflow-selfcheck.mjs
       # Tier 2: the engine addon is built from the core tree under test (a Rust toolchain, the cargo target cached).
       - name: Install Rust toolchain (Tier 2)
+        id: setup10
         continue-on-error: ${{ inputs.advisory }}
         if: inputs.under_test == 'core'
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           toolchain: stable
       - name: Cache the Tier 2 cargo build
+        id: setup11
         continue-on-error: ${{ inputs.advisory }}
         if: inputs.under_test == 'core'
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: st-src/wicked-core/crates/wicked-core-ts -> ../../../../st-cargo-target
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        id: setup12
         continue-on-error: ${{ inputs.advisory }}
       - name: Arm the checks sandbox (bubblewrap) on Linux
+        id: setup13
         continue-on-error: ${{ inputs.advisory }}
         if: runner.os == 'Linux'
         shell: bash
@@ -217,6 +236,7 @@ jobs:
             console.log('journeys=' + parseArgs(['--profile', process.env.ST_PROFILE]).steps.some((s) => s.startsWith('U')));
           " >> "$GITHUB_OUTPUT"
       - name: Python Playwright for the studio journeys
+        id: setup14
         continue-on-error: ${{ inputs.advisory }}
         if: steps.needs.outputs.journeys == 'true'
         shell: bash
@@ -295,7 +315,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: wicked-selftest-${{ inputs.under_test }}-${{ inputs.os }}-a${{ github.run_attempt }}
+          name: wicked-selftest-${{ inputs.under_test }}${{ inputs.artifact_suffix != '' && format('-{0}', inputs.artifact_suffix) || '' }}-${{ inputs.os }}-a${{ github.run_attempt }}
           path: ${{ runner.temp }}/st-report
           if-no-files-found: warn
           retention-days: 14
