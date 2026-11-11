@@ -15,16 +15,21 @@ A journey is `journeys/<journey>.py` defining `run(j)`. The driver hands it `j`,
 It writes <out>/result.json: {ok, checks, page_errors, console_errors, bad_responses, writes, blocked, shots, waits,
 error}. Exit 0 only when the journey ran and every check passed.
 
-Boundary: the browser reaches the daemon's origin only. Every request to any other host is aborted and recorded
-(`blocked`), so a journey can't depend on the network and nothing leaves the hermetic root. Every non-GET the UI sends
+Boundary: the browser reaches the daemon's origin only. Every HTTP request and every WebSocket to any other origin is
+aborted and recorded (`blocked`), so a journey can't depend on the network and nothing leaves the hermetic root. A
+redirect hop the browser follows is seen as a new request; one that reached another origin is recorded (`escaped`),
+and the driver adds the check `stayed_on_origin` to every journey. The driver's own GETs refuse redirects. Every non-GET the UI sends
 to the daemon is recorded (`writes`): a journey proves what the PERSON's clicks sent, never what a script sent.
 """
 import importlib.util
 import json
 import os
 import sys
+
+sys.dont_write_bytecode = True  # importing a journey writes no __pycache__ into the harness checkout
 import time
 import traceback
+import urllib.error
 import urllib.request
 
 from playwright.sync_api import sync_playwright
@@ -46,7 +51,7 @@ def main(argv):
         return 2
     os.makedirs(out, exist_ok=True)
     rec = {"journey": journey, "ok": False, "checks": {}, "page_errors": [], "console_errors": [], "bad_responses": [],
-           "writes": [], "blocked": [], "shots": [], "waits": [], "error": None,
+           "writes": [], "blocked": [], "escaped": [], "shots": [], "waits": [], "error": None,
            "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 
     def rel(url):
@@ -62,11 +67,17 @@ def main(argv):
     def log(*a):
         print(time.strftime("%H:%M:%S"), journey, *a, flush=True)
 
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            raise urllib.error.HTTPError(req.full_url, code, f"redirect to {newurl} refused (origin boundary)", headers, fp)
+
+    opener = urllib.request.build_opener(NoRedirect)
+
     def get(p):
         last = None
         for _ in range(4):
             try:
-                with urllib.request.urlopen(origin + "/api/v1" + p, timeout=30) as r:
+                with opener.open(origin + "/api/v1" + p, timeout=30) as r:
                     return json.loads(r.read() or b"{}")
             except Exception as e:  # a busy daemon: retry briefly
                 last = e
@@ -134,6 +145,21 @@ def main(argv):
                 rec["blocked"].append(f"{route.request.method} {url[:160]}")
                 route.abort()
         ctx.route("**/*", boundary)
+        ws_origin = origin.replace("http", "ws", 1)
+
+        def ws_boundary(ws):
+            if ws.url.startswith(ws_origin + "/") or ws.url == ws_origin:
+                ws.connect_to_server()
+            else:
+                rec["blocked"].append(f"WS {ws.url[:160]}")
+                ws.close()
+        ctx.route_web_socket("**/*", ws_boundary)
+
+        def seen(req):
+            u = req.url
+            if not (u.startswith(origin + "/") or u == origin or u.startswith(("data:", "blob:"))) and req.redirected_from is not None:
+                rec["escaped"].append(f"{req.method} {u[:160]} (redirected from {req.redirected_from.url[:120]})")
+        ctx.on("request", seen)
         page = ctx.new_page()
 
         def watch(pg):
@@ -162,6 +188,7 @@ def main(argv):
                 shot("error")
             except Exception:
                 pass
+        check("stayed_on_origin", not rec["escaped"], escaped=rec["escaped"][:10])
         ctx.close()
         browser.close()
 

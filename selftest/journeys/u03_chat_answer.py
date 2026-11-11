@@ -2,8 +2,8 @@
 
 Path: the rail's Chat -> type a question about the fixture repo -> Send.
 Passes when: the UI opened a chat (POST /chats 201) and sent the message (POST /chats/:id/messages 202); the answer
-appears in the thread AFTER the question; its footer names the helper that answered; no page error. The stub seat's
-words are not judged (a stub proves the wire and the layout, not an answer's quality: that is the `live` profile).
+appears in the thread AFTER the question, visible, with a body that answers THIS question (the stub quotes it and cites
+src/add.js), and its own footer names the helper that answered; no page error. The stub's wording is not otherwise judged (a stub proves the wire and the layout, not an answer's quality: that is the `live` profile).
 """
 import re
 
@@ -26,7 +26,13 @@ def run(j):
     q = next((i for i, m in enumerate(order) if m["kind"] == "assist-user-msg" and QUESTION[:30] in m["text"]), None)
     a = next((i for i, m in enumerate(order) if m["kind"] == "assist-chat-msg" and q is not None and i > q), None)
     j.check("answer_sits_under_its_question", q is not None and a is not None, order=order[:6])
-    footer = p.get_by_test_id("assist-answer-footer").last.inner_text() if p.get_by_test_id("assist-answer-footer").count() else ""
+    # The answer itself: visible, completed, and the seat's words about THIS question (the stub's reply quotes it), with
+    # its attribution inside the same answer.
+    ans = p.get_by_test_id("assist-chat-msg").last
+    ans_text = ans.inner_text() if ans.count() and ans.is_visible() else ""
+    j.check("the_answer_has_a_body", "You asked:" in ans_text and QUESTION in ans_text and "src/add.js" in ans_text, text=ans_text[:240])
+    footer_el = ans.locator('[data-testid="assist-answer-footer"]')
+    footer = footer_el.first.inner_text() if footer_el.count() else ""
     j.check("answer_names_its_helper", bool(re.search(r"Answered by \S", footer)), footer=footer[:160])
     writes = j.rec["writes"]
     j.check("ui_opened_a_chat", any(re.match(r"201 POST /api/v1/chats$", w) for w in writes), writes=writes)

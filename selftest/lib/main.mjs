@@ -41,18 +41,12 @@ function makeWritable(dir) {
 /** `wicked-selftest serve`: keep the ephemeral daemon up after the selected steps, with its stub seats and the
  *  onboarded fixture repo, until Ctrl-C / SIGTERM or `<root>/stop` exists. It writes `<root>/serve.json` with the
  *  origin. Nothing here reaches outside the root: the daemon is the same hermetic one the steps used. */
-async function holdOpen(root, daemon, log) {
+async function holdOpen(root, daemon, log, ctx) {
   const info = { origin: daemon.origin, pid: daemon.child?.pid ?? null, root, stopFile: join(root, 'stop'), at: new Date().toISOString() };
   writeFileSync(join(root, 'serve.json'), `${JSON.stringify(info, null, 1)}\n`);
   log(`wicked-selftest serve: studio at ${daemon.origin}/ (stub seats, hermetic state). Stop with Ctrl-C, SIGTERM, or: touch ${info.stopFile}`);
-  let stop = false;
-  const onSig = () => { stop = true; };
-  process.once('SIGINT', onSig);
-  process.once('SIGTERM', onSig);
-  while (!stop && !existsSync(info.stopFile) && daemon.child && daemon.child.exitCode === null) await new Promise((r) => setTimeout(r, 2000));
-  process.removeListener('SIGINT', onSig);
-  process.removeListener('SIGTERM', onSig);
-  log(`wicked-selftest serve: stopping (${stop ? 'signal' : existsSync(info.stopFile) ? 'stop file' : 'the daemon exited'})`);
+  while (!ctx.stopRequested && !existsSync(info.stopFile) && daemon.child && daemon.child.exitCode === null) await new Promise((r) => setTimeout(r, 2000));
+  log(`wicked-selftest serve: stopping (${ctx.stopRequested ? 'signal' : existsSync(info.stopFile) ? 'stop file' : 'the daemon exited'})`);
 }
 
 /** The harness run (formerly bin/wicked-smoke.mjs's main): `argv` is the option list after the binary or the `run` verb. */
@@ -69,7 +63,7 @@ export async function runMain(argv) {
   if (existsSync(root) && readdirSync(root).length > 0) {
     if (!opts.reuseRoot) { console.error(`wicked-smoke: --root ${root} is not empty (a previous run's?). Pass --reuse-root to clear its repos/, state/, bus/, evidence/ and re-use the installed tree, or choose another --root.`); return 2; }
     for (const sub of ['repos', 'state', 'bus', 'evidence', 'worker', 'home', 'tmp', 'interactive']) { makeWritable(join(root, sub)); rmSync(join(root, sub), { recursive: true, force: true }); }
-    for (const f of readdirSync(root)) if (/-origin\.git$/.test(f) || /^(daemon\.log|shim-calls\.ndjson|report\.json|core-semver\.txt|verdict-fail-once(\.consumed-.*)?)$/.test(f)) rmSync(join(root, f), { recursive: true, force: true });
+    for (const f of readdirSync(root)) if (/-origin\.git$/.test(f) || /^(daemon\.log|shim-calls\.ndjson|report\.json|core-semver\.txt|verdict-fail-once(\.consumed-.*)?|stop|serve\.json)$/.test(f)) rmSync(join(root, f), { recursive: true, force: true });
   }
   const L = layout(root);
   ensureLayout(L);
@@ -130,12 +124,29 @@ export async function runMain(argv) {
   };
 
   // ── steps ──
+  // A signal at ANY point (a step mid-flight, or the serve hold) stops the daemon this run started before the process
+  // exits, so an interrupted self-test never leaves a daemon behind. During the hold the first signal ends the hold.
+  ctx.stopRequested = false;
+  const onSignal = (sig) => {
+    if (ctx.stopRequested) return;
+    ctx.stopRequested = true;
+    if (ctx.holding) return;
+    log(`wicked-selftest: ${sig}; stopping the daemon`);
+    Promise.resolve(daemon.child ? daemon.stop() : null).finally(() => process.exit(130));
+  };
+  const sigHandlers = { SIGINT: () => onSignal('SIGINT'), SIGTERM: () => onSignal('SIGTERM') };
+  for (const [k, f] of Object.entries(sigHandlers)) process.on(k, f);
+
   const results = [];
   const selected = ALL_STEPS.filter((id) => opts.steps.includes(id));
   const stepFiles = readdirSync(join(here, 'steps'));
   for (const stepId of ALL_STEPS) {
     const file = stepFiles.find((f) => f.startsWith(`${stepId}-`));
     const mod = await import(pathToFileURL(join(here, 'steps', file)).href);
+    if (opts.hold && stepId === 'S10' && selected.includes(stepId)) {
+      results.push({ id: stepId, name: mod.name, status: STATUS.SKIP, ms: 0, checks: [], notes: [{ name: 'skipped', detail: 'serve holds the daemon open; teardown runs when it is stopped' }], error: null });
+      continue;
+    }
     if (!selected.includes(stepId)) {
       results.push({ id: stepId, name: mod.name, status: STATUS.SKIP, ms: 0, checks: [], notes: [{ name: 'skipped', detail: 'not in --steps' }], error: null });
       continue;
@@ -169,8 +180,9 @@ export async function runMain(argv) {
     printStep(result, log);
     if (status === STATUS.ERROR && stepId !== 'S10') log(`    (continuing; daemon log tail follows)\n${daemon.logTail(8).split('\n').map((l) => '    | ' + l.slice(0, 220)).join('\n')}`);
   }
-  if (opts.hold && daemon.child) await holdOpen(root, daemon, log);
+  if (opts.hold && daemon.child && !ctx.stopRequested) { ctx.holding = true; await holdOpen(root, daemon, log, ctx); ctx.holding = false; }
   if (daemon.child) await daemon.stop();
+  for (const [k, f] of Object.entries(sigHandlers)) process.removeListener(k, f);
 
   // ── hermetic scan ──
   let hermetic = null;

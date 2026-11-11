@@ -97,6 +97,7 @@ export function printStep(result, log) {
     const label = c.expected ? `expected-fail (${c.finding ?? 'step'}: ${c.expected})` : 'FAIL';
     log(`    - ${c.name}: ${label}${c.detail ? ` — ${c.detail}` : ''}${c.evidence ? ` [${c.evidence}]` : ''}`);
   }
+  if (result.status === STATUS.SKIP) for (const n of result.notes ?? []) if (n.name === 'skipped' && n.detail !== 'not in --steps') log(`    ~ skipped: ${n.detail}`);
   if (result.error) log(`    ! ${result.error}`);
 }
 

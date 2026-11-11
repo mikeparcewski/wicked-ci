@@ -13,7 +13,7 @@ const [verb, ...rest] = process.argv.slice(2);
 const usage = `wicked-selftest <run|serve|pack> [options]\n\n  run   ${HELP.split('\n').slice(2).join('\n  ')}\n\n${PACK_HELP}`;
 let p;
 if (verb === 'run') p = runMain(rest);
-else if (verb === 'serve') p = runMain([...(rest.includes('--steps') || rest.includes('--profile') ? [] : ['--profile', 'serve']), '--hold', ...rest]);
+else if (verb === 'serve') p = runMain([...(rest.includes('--steps') || rest.includes('--profile') ? [] : ['--profile', 'serve']), '--hold', ...rest]); // S10 is held until stop
 else if (verb === 'pack') p = packMain(rest);
 else if (verb === undefined || verb === '-h' || verb === '--help' || verb === 'help') { console.log(usage); p = Promise.resolve(0); }
 else { console.error(`wicked-selftest: unknown verb ${verb} (run | serve | pack)`); p = Promise.resolve(2); }
