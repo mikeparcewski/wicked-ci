@@ -3,7 +3,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 
-export const ALL_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S07', 'S08', 'U01', 'U02', 'U03', 'U04', 'U05', 'S12', 'S09', 'S10'];
+export const ALL_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S07', 'S08', 'U01', 'U02', 'U03', 'U04', 'U05', 'U06', 'U07', 'S12', 'S09', 'S10'];
 /** Steps that run without `--steps`: S07 (interactive) stays opt-in (a cold `npx` fetch); S08 (chat)
  *  joined the default set in v2 with the ACP-speaking seat shim — see README. */
 export const DEFAULT_STEPS = ['S01', 'S02', 'S03', 'S04', 'S11', 'S05', 'S06', 'S08', 'S09', 'S10'];

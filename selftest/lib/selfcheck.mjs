@@ -383,7 +383,7 @@ if (sqlite) {
   const EXPECTED = {
     smoke: 'S01,S02,S03,S04,S11,S05,S06,S08,S09,S10',
     pr: 'S01,S02,S03,S04,S08,U01,U02,U03,U04,S10',
-    release: 'S01,S02,S03,S04,S11,S05,S06,S08,U01,U02,U03,U04,U05,S12,S09,S10',
+    release: 'S01,S02,S03,S04,S11,S05,S06,S08,U01,U02,U03,U04,U05,U06,U07,S12,S09,S10',
     serve: 'S01,S02,S03',
   };
   if (Object.keys(PROFILES).sort().join() !== Object.keys(EXPECTED).sort().join()) throw new Error(`profiles: ${Object.keys(PROFILES)} vs ${Object.keys(EXPECTED)}`);

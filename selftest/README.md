@@ -92,6 +92,8 @@ Dark, under `evidence/<step>/`.
 | U03 | ask in chat | the UI opened a chat and sent the message; the answer is drawn under its visible question, has the stub's substance (not only an echo), and its own footer names its helper |
 | U04 | a bug fix through studio, to delivery | Settings: QE acceptance off (labelled); New job → `/bug` → corpus → Review plan → Start; the plan and every card answered in the UI (each decision waited on until its POST goes out); the run is completed, the run page shows the delivery, and the branch on the bare origin returns the sum |
 | U05 | a broken test is named (`release`) | scenario `fix: break` adds a failing test; the run stops at a card that names it and offers a way forward, and delivers nothing |
+| U06 | an imported steering rule is cited (`release`) | Steering → More → Import rules… with a one-rule markdown doc; the rule is listed in force; a `/bug` run's rule-check card, opened as a person would, lists the rule, and the run's gate carries it. Hermetic limit: no judge the engine accepts for the rule check, so the rules read unchecked (the thin-roster card) |
+| U07 | a stalled run reads stalled (`release`) | scenario `fix: stall` makes the fix turn sit silent and idle; with `workerStallMinutes` at 1 (escalation and the silent-turn rung off), `GET /system` and the Nerve Center's Runs row must say stalled, never working. EXPECTED-FAIL `F-CREW-1501` (the engine's 15 s working heartbeat re-arms crew's watchdog) |
 
 A journey needs a Python with Playwright: `--python <path>` or `WICKED_SELFTEST_PYTHON` (browsers from
 `PLAYWRIGHT_BROWSERS_PATH` or Playwright's default cache). Without one, the U steps are **SKIPPED** with the reason, and

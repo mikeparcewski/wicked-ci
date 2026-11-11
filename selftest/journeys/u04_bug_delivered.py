@@ -88,13 +88,16 @@ def launch(j, intent, label):
     return rid
 
 
-def steer(j, rid, until=None, answer_then_return=None):
+def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
     """Answer the run's cards as a person would. With `until(card_text, choices)`, stop and return that card when it
-    matches (a journey whose terminal state is a card, not a delivery); otherwise judge the delivery at the end."""
+    matches (a journey whose terminal state is a card, not a delivery); with `stop_when()`, hand back as soon as it is
+    true (U07: the run sits in its stalled turn); otherwise judge the delivery at the end."""
     p = j.page
     answered, seen, judgments, confirmed = [], [], [], []
     t0 = time.time()
     while time.time() - t0 < 900:
+        if stop_when is not None and stop_when():
+            return {"answered": answered, "seen": seen}
         r = run_of(j, rid)
         st = (r or {}).get("session", {}).get("status")
         if st in ("completed", "failed", "cancelled"):
@@ -175,8 +178,8 @@ def steer(j, rid, until=None, answer_then_return=None):
         if JUDGMENT.search(label) or RULES.search(label) or QE_SKIP.search(label):
             judgments.append(label)
         p.wait_for_timeout(3000)
-    if until is not None:
-        j.check("the_expected_card_came", False, status=(run_of(j, rid) or {}).get("session", {}).get("status"), seen=seen[-4:])
+    if until is not None or stop_when is not None:
+        j.check("the_expected_card_came" if until is not None else "the_expected_state_came", False, status=(run_of(j, rid) or {}).get("session", {}).get("status"), seen=seen[-4:])
         return None
     r = run_of(j, rid) or {}
     s = r.get("session", {})

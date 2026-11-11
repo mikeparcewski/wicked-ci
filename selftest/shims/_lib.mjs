@@ -20,6 +20,8 @@ export function record(shim, extra = {}) {
     argv: argv.map((a) => (a.length > 200 ? `${a.slice(0, 200)}…(${a.length})` : a)),
     kind: prompt ? kindOf(prompt) : 'noprompt',
     promptHead: prompt ? prompt.slice(0, 600) : null,
+    // A rule check names the rules the engine put in force for it (U06 reads them; the prompt itself is long).
+    ...(prompt && kindOf(prompt) === 'rules' ? { ruleIds: ruleIdsOf(prompt) } : {}),
     ...extra,
   };
   if (log) {
@@ -228,6 +230,15 @@ function workerBody(prompt) {
   // a red check routes somewhere) instead of correcting the defect.
   // The fixture's base is red (its two tests fail before the fix), so breaking an existing test would read as
   // "fails on the base too". The break is a NEW failure: the defect is fixed, and a new test that fails is added.
+  // U07 (a stalled run reads stalled): scenario `fix: stall` makes the fix turn sit silent and idle for `stall_s`
+  // seconds (no output, no CPU: a wedged seat), after it writes `<root>/stall-started` so the journey knows the run is
+  // there. Then the turn goes on as a normal fix.
+  if (phase === 'fix' && scenario().fix === 'stall') {
+    const sc = scenario();
+    const log = process.env.WICKED_SMOKE_SHIM_LOG;
+    if (log) writeFileSync(join(dirname(log), 'stall-started'), String(Date.now()));
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Math.max(1, Number(sc.stall_s) || 600) * 1000);
+  }
   if (phase === 'fix' && existsSync(target) && scenario().fix === 'break') {
     const src = readFileSync(target, 'utf8');
     writeFileSync(target, src.replace(/a\s*-\s*b/, 'a + b'));

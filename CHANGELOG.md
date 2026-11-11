@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### selftest — U06 steering cited, U07 stalled run (EXPECTED-FAIL F-CREW-1501)
+
+- **U06 (J7).** The person imports a one-rule markdown doc on the Steering page (More → Import rules…) and sees the
+  rule listed in force. A `/bug` run's rule-check card, opened as a person would, then lists the rule, and the
+  run's gate carries it. It is in `release`.
+  - Hermetic limit: the engine accepts no judge for the rule check here, so the rules read "unchecked" (the
+    thin-roster card).
+  - A plan cites only `plan.compose` testing rules.
+- **U07 (J8).** Scenario `fix: stall` makes the fix turn sit silent and idle. With `workerStallMinutes: 1` and
+  escalation and the silent-turn rung off, `GET /system` and the Nerve Center's Runs row must say stalled. It is in
+  `release`.
+  - It is EXPECTED-FAIL `F-CREW-1501` (wicked-crew#1501): core's 15 s `toolActivity` working heartbeat is a relay
+    frame, and crew's watchdog restamps its silence clock on every frame. Reproduced: 150 s silent against a 60 s
+    threshold, and the run read "working: last event 1 s ago".
+  - The step cancels its run and restores the knobs after.
+- **Journey checks can name a finding** (`finding: "F-…"`), so the expected-fail policy decides them as it does for
+  API checks. The driver writes the journey's state (the run it launched) into `result.json` for its step's cleanup.
+  The shim call log records the rule ids a rule check named (`ruleIds`).
+- **CI:** the Playwright browser install gets three tries and a 15 min bound. Apt DNS failures on the runner flaked
+  every studio-journey leg once (wicked-ci#70).
+
 ### selftest — pull-request CI (`selftest.yml`) and Tier 2 packs
 
 - **`.github/workflows/selftest.yml`**, the reusable workflow a product repo calls on its pull requests. It packs the

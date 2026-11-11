@@ -214,6 +214,7 @@ def main(argv):
         browser.close()
 
     rec["ended"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    rec["state"] = state  # what the journey learned (e.g. the run it launched), for its step's own cleanup
     if not rec.get("journey_checks") and rec["error"] is None:
         rec["error"] = "the journey recorded no checks of its own"
     rec["ok"] = rec["error"] is None and all(c["ok"] for c in rec["checks"].values())
