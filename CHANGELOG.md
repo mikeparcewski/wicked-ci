@@ -20,8 +20,15 @@
 - **Journey checks can name a finding** (`finding: "F-…"`), so the expected-fail policy decides them as it does for
   API checks. The driver writes the journey's state (the run it launched) into `result.json` for its step's cleanup.
   The shim call log records the rule ids a rule check named (`ruleIds`).
-- **CI:** the Playwright browser install gets three tries and a 15 min bound. Apt DNS failures on the runner flaked
-  every studio-journey leg once (wicked-ci#70).
+- **U07's oracle (review):**
+  - Only the heartbeat's own signature, the run still executing in its silent turn and read as "working", carries
+    `F-CREW-1501`. A missing run or row, a finished run or any other state is an ordinary failure.
+  - One 4 min budget runs from the shim's marker for both surfaces. The marker names this run's worktree, so a stale
+    one is refused.
+  - Cleanup is checked: the run is cancelled and reaches a terminal state, and the knobs are restored from
+    `GET /settings`'s `settings`.
+- **U06's oracle (review):** the receipt must read "1 of 1 entry imported" for the rule. The wire check reads the
+  current gate's structured rule rows, and the UI check reads that gate row's own rule list.
 
 ### selftest — pull-request CI (`selftest.yml`) and Tier 2 packs
 

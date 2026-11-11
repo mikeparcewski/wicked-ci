@@ -40,13 +40,31 @@ def import_rule(j):
     p.get_by_test_id("steer-import-go").click()
     sent = j.wait(lambda: any(re.match(r"200 POST /api/v1/governance/steering/import", w) for w in j.rec["writes"][n0:]), 30, "the import to send")
     notes = j.wait(lambda: p.get_by_test_id("steer-import-notes").count() > 0 and p.get_by_test_id("steer-import-notes").inner_text().strip(), 30, "the import's result")
-    j.check("rule_imported_in_the_ui", bool(sent) and bool(notes) and re.search(r"fail|refus|reject", notes or "", re.I) is None, writes=j.rec["writes"][n0:], notes=(notes or "")[:300])
+    # The receipt says what happened: exactly this one rule imported, nothing skipped or refused.
+    ok = bool(sent) and bool(notes) and re.search(r"\b1 of 1 entr(y|ies) imported\b", notes or "") is not None and RULE in (notes or "") \
+        and re.search(r"fail|refus|reject|skipp", notes or "", re.I) is None
+    j.check("rule_imported_in_the_ui", ok, writes=j.rec["writes"][n0:], notes=(notes or "")[:300])
     j.shot("U06-imported")
     p.get_by_test_id("steer-import-cancel").click()
     p.reload(wait_until="domcontentloaded")
     # The list shows a rule by its statement (its title), not its id.
     j.check("rule_listed_in_force", j.wait(lambda: "never their difference" in p.inner_text("body"), 60, "the rule in the list"))
     j.shots("U06-steering")
+
+
+def rule_rows(doc):
+    """Every rule id a structured rule-check row names in `doc` (a row: an object with a rule id and its outcome)."""
+    out = []
+    if isinstance(doc, dict):
+        rid = doc.get("ruleId") or doc.get("rule_id")
+        if isinstance(rid, str) and any(k in doc for k in ("verdict", "status", "outcome", "result", "state")):
+            out.append(rid)
+        for v in doc.values():
+            out += rule_rows(v)
+    elif isinstance(doc, list):
+        for v in doc:
+            out += rule_rows(v)
+    return out
 
 
 def run(j):
@@ -61,22 +79,26 @@ def run(j):
 
     def note(card, choices):
         cards.append(card[:1500])
-        return bool(u04.RULES_CARD.search(card)) or RULE in card
+        return bool(u04.RULES_CARD.search(card))
 
     hit = u04.steer(j, rid, until=note)
     j.rec["cards"] = cards
     if not hit:
         return
+    # The wire: the CURRENT gate's structured rule rows (the rule check of this review step) hold the rule by its id;
+    # the id appearing anywhere else in the gate (a note, a prompt) does not count.
     gate = j.get(f"/runs/{rid}/gate") or {}
-    j.check("rule_in_the_runs_rule_check", RULE in json.dumps(gate), gate_kind=(gate.get("gate") or gate).get("kind") if isinstance(gate, dict) else None)
-    # The card's "N rules checked" line opens to every rule's row: the person's way to see which rules applied.
-    rules = p.locator('[data-testid="session-gate-row"] details.wk-assurance-rules').last
+    rows = rule_rows(gate)
+    j.check("rule_in_the_gates_rule_check", any(r == RULE for r in rows), rules=rows[:30])
+    # The card's "N rules checked" line opens to every rule's row: the person's way to see which rules applied. Only
+    # the current gate's own list counts (the last gate row in the thread).
+    rules = p.get_by_test_id("session-gate-row").last.get_by_test_id("session-gate-rules")
     listed = ""
     if rules.count():
         if rules.get_attribute("open") is None:
             rules.locator("summary").first.click()
             p.wait_for_timeout(600)
         listed = rules.inner_text()
-    j.check("card_lists_the_rule", RULE in listed or "never their difference" in listed, rules=listed[:1200], card=hit["card"][:400])
+    j.check("card_lists_the_rule", RULE in listed, rules=listed[:1200], card=hit["card"][:400])
     j.shots("U06-cited")
     j.check("no_page_errors", not j.rec["page_errors"], errors=j.rec["page_errors"][:5])

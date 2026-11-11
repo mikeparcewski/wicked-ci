@@ -236,7 +236,8 @@ function workerBody(prompt) {
   if (phase === 'fix' && scenario().fix === 'stall') {
     const sc = scenario();
     const log = process.env.WICKED_SMOKE_SHIM_LOG;
-    if (log) writeFileSync(join(dirname(log), 'stall-started'), String(Date.now()));
+    // When and where: the journey accepts the marker only for its own run's worktree (the cwd names the run).
+    if (log) writeFileSync(join(dirname(log), 'stall-started'), JSON.stringify({ at: Date.now(), cwd: process.cwd() }));
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Math.max(1, Number(sc.stall_s) || 600) * 1000);
   }
   if (phase === 'fix' && existsSync(target) && scenario().fix === 'break') {
