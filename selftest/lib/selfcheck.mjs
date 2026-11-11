@@ -471,6 +471,21 @@ if (sqlite) {
   t.skip('no python');
   if (t.skipped !== 'no python' || t.checks.length !== 0) throw new Error('StepTrace.skip');
 }
+// The journeys' browsers path: "0" (package-local browsers) is kept, a relative path is resolved.
+{
+  const { browsersPath } = await import('./journey.mjs');
+  const { resolve: res } = await import('node:path');
+  if (browsersPath('0') !== '0' || browsersPath('./b') !== res('./b') || !browsersPath(undefined).includes('ms-playwright')) throw new Error('browsersPath');
+}
+// A signal while the first start waits for its port: no daemon is spawned after the latch.
+{
+  const { Daemon } = await import('./daemon.mjs');
+  const d = new Daemon({ daemonLog: '/dev/null', state: '/nonexistent' }, '/nonexistent/cli.js', () => {}, {});
+  const p = d.start();
+  d.shuttingDown = true;
+  let refused = false; try { await p; } catch (err) { refused = /shutting down/.test(err.message); }
+  if (!refused || d.child) throw new Error('a start racing a shutdown must not spawn');
+}
 // The self-test daemon never binds an operator daemon's port.
 {
   const { RESERVED_PORTS, freePort } = await import('./daemon.mjs');

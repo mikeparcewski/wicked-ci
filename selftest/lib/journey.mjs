@@ -40,6 +40,13 @@ function defaultBrowsersPath() {
   return join(process.env.XDG_CACHE_HOME ?? join(home, '.cache'), 'ms-playwright');
 }
 
+/** PLAYWRIGHT_BROWSERS_PATH as the journey (cwd journeys/) must see it: a relative path resolved against the start
+ *  directory; Playwright's literal "0" (browsers inside the package) kept as is; unset = Playwright's default dir. */
+export function browsersPath(v) {
+  if (!v) return defaultBrowsersPath();
+  return v === '0' ? v : resolve(v);
+}
+
 /** The browser's environment. HOME and the XDG dirs are UNDER THE RUN ROOT, so Chromium's own writes (fontconfig
  *  cache, crash dumps, profile bits) never land in the operator's home; the browsers are read from where Playwright
  *  installed them. No product state and no credential variable crosses over. */
@@ -50,7 +57,7 @@ function journeyEnv(root) {
     PATH: process.env.PATH ?? '', HOME: home, USERPROFILE: home, LANG: process.env.LANG ?? 'en_US.UTF-8', PYTHONDONTWRITEBYTECODE: '1',
     XDG_CACHE_HOME: join(home, '.cache'), XDG_CONFIG_HOME: join(home, '.config'), XDG_DATA_HOME: join(home, '.local', 'share'),
     // Resolved here: the journey runs from journeys/, so a relative path would point somewhere else.
-    PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH ? resolve(process.env.PLAYWRIGHT_BROWSERS_PATH) : defaultBrowsersPath(),
+    PLAYWRIGHT_BROWSERS_PATH: browsersPath(process.env.PLAYWRIGHT_BROWSERS_PATH),
   };
   // Playwright makes its browser profile and artifacts under os.tmpdir(): keep that under the root as well.
   const tmp = root ? join(home, 'tmp') : null;
