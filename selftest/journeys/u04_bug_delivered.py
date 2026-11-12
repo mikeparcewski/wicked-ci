@@ -73,8 +73,22 @@ def launch(j, intent, label):
     p.locator('[data-testid="composer-menu-item"][data-card="bug"]').first.click()
     p.get_by_test_id("session-composer-input").fill(intent)
     p.keyboard.press("Enter")
-    j.check("asks_which_repository", j.wait(lambda: p.get_by_test_id("job-passage-repo").filter(has_text="corpus").count() > 0, 120, "the repository question"))
-    p.get_by_test_id("job-passage-repo").filter(has_text="corpus").first.click()
+    corpus = p.locator('[data-testid="job-passage-repo"][data-repo="corpus"]').first
+    more = p.get_by_test_id("job-passage-repos-more").first
+
+    expanded = []
+
+    def corpus_visible():
+        if corpus.is_visible():
+            return True
+        # S05 adds bus repos; the corpus may be behind the question's "more" choice. A person opens it once.
+        if not expanded and p.locator('[data-testid="job-passage-repo"]:visible').count() > 0 and more.is_visible():
+            more.click()
+            expanded.append(True)
+        return corpus.is_visible()
+
+    j.check("asks_which_repository", j.wait(corpus_visible, 120, "the repository question"))
+    corpus.click()
     j.check("proposal_shown", j.wait(lambda: p.get_by_test_id("job-passage-review-plan-toggle").count() > 0, 120, "the proposal"))
     tg = p.get_by_test_id("job-passage-review-plan-toggle").first
     if (tg.get_attribute("aria-checked") or tg.get_attribute("aria-pressed")) != "true":
