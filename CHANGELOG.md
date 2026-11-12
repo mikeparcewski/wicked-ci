@@ -21,6 +21,9 @@
   npmjs.com. npm registers a trusted publisher only on a package that already exists.
 ### e2e — studio journeys (U steps) sealed through `e2e run`
 
+- **U04–U07 select corpus by repository id**, opening the repository question's "more" choice when needed. In the
+  `release` profile, S05's bus repositories can put corpus beyond the first six choices; `asks_which_repository`
+  passes only once the corpus choice is visible.
 - **U04/U05/U06 read a single-rule card.** When one rule is left unchecked, studio names it ("The rule POL-2101 needs
   your call", "Confirm or skip POL-2101") instead of counting. Core main reached that state on 2026-11-11, and U04
   stopped at an "unknown" card on the Tier 2 main set. The journeys now accept both wordings.
