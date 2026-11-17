@@ -307,27 +307,26 @@ jobs:
           mkdir -p "$ST_REPORT"
           # The report is read defensively (a run killed mid-copy can leave it partial), and a passing report only
           # counts when the runner itself exited 0: a PASS report beside a failed exit is not a pass.
-          if [ -z "$PACK_EXIT" ] && [ "$SETUP_FAILED" = "true" ]; then v="COULD-NOT-RUN (a setup step failed before the pack; see the job's steps)"
-          elif [ "$PACK_EXIT" != "0" ]; then v="COULD-NOT-RUN (pack exited ${PACK_EXIT:-before it finished})"
-          elif [ ! -f "$R" ]; then v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished}, no report)"
+          # `label` names the verdict check (wicked-ci #76). It is built from fixed words and step ids only, so report
+          # text never reaches a check name, an output line or a runner command.
+          if [ -z "$PACK_EXIT" ] && [ "$SETUP_FAILED" = "true" ]; then v="COULD-NOT-RUN (a setup step failed before the pack; see the job's steps)"; label="COULD-NOT-RUN setup"
+          elif [ "$PACK_EXIT" != "0" ]; then v="COULD-NOT-RUN (pack exited ${PACK_EXIT:-before it finished})"; label="COULD-NOT-RUN pack"
+          elif [ ! -f "$R" ]; then v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished}, no report)"; label="COULD-NOT-RUN run"
           else
-            v="$(node -e '
-              let o; try { o = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).overall; } catch (e) { o = null; }
-              process.stdout.write(typeof o === "string" && o ? o : "COULD-NOT-RUN (the report is unreadable or has no overall)");
+            # Line 1: `overall` when it is one of the runner's own verdict lines, else COULD-NOT-RUN (a malformed value,
+            # e.g. one with a newline or a runner command in it, is never a verdict). Line 2: the label's words.
+            read_out="$(node -e '
+              let r = null; try { r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); } catch (e) { r = null; }
+              const o = r && typeof r === "object" ? r.overall : null;
+              const m = typeof o === "string" ? /^(PASS \(with expected failures\)|PASS|FAIL|UNEXPECTED-PASS \(retire the labels\))( — SKIPPED ([A-Z][0-9]{2}(,[A-Z][0-9]{2})*))?$/.exec(o) : null;
+              if (!m) { process.stdout.write((o == null ? "COULD-NOT-RUN (the report is unreadable or has no overall)" : "COULD-NOT-RUN (the report'"'"'s overall is not a verdict line)") + "\nCOULD-NOT-RUN report"); process.exit(0); }
+              const ids = (Array.isArray(r.steps) ? r.steps : []).filter((x) => x && ["FAIL", "ERROR", "UNEXPECTED-PASS"].includes(x.status) && /^[A-Z][0-9]{2}$/.test(String(x.id))).map((x) => x.id);
+              const word = m[1].startsWith("UNEXPECTED-PASS") ? "UNEXPECTED-PASS" : m[1];
+              process.stdout.write(o + "\n" + [word, ids.join(","), m[3] ? "SKIPPED " + m[3] : ""].filter(Boolean).join(" "));
             ' "$R")"
-            case "$v" in PASS*) [ "$RUN_EXIT" = "0" ] || v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished} after a report that read: $v)";; esac
-            # The steps that made it so, for the verdict check's name (wicked-ci #76): "FAIL U04", not a bare "FAIL".
-            bad="$(node -e '
-              let s = []; try { s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).steps; } catch (e) { s = []; }
-              const ids = (Array.isArray(s) ? s : []).filter((x) => x && ["FAIL", "ERROR", "UNEXPECTED-PASS"].includes(x.status)).map((x) => String(x.id));
-              process.stdout.write(ids.join(","));
-            ' "$R")" || bad=""
+            v="${read_out%%$'\n'*}"; label="${read_out#*$'\n'}"
+            case "$v" in PASS*) [ "$RUN_EXIT" = "0" ] || { v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished} after a report that read: $v)"; label="COULD-NOT-RUN run"; };; esac
           fi
-          # One line each: a report value can never add an output line or a second line to a check name.
-          v="$(printf '%s' "$v" | tr -d '\r\n')"
-          bad="$(printf '%s' "${bad:-}" | tr -cd 'A-Za-z0-9,_-' | cut -c1-80)"
-          label="$v${bad:+ $bad}"
-          label="${label:0:160}"
           echo "overall=$v" >> "$GITHUB_OUTPUT"
           echo "label=$label" >> "$GITHUB_OUTPUT"
           cp "$ST_PACKS/set.json" "$ST_REPORT/set.json" 2>/dev/null || true
@@ -359,7 +358,9 @@ jobs:
   verdict:
     needs: selftest
     if: ${{ !cancelled() && inputs.advisory }}
-    name: ${{ format('wicked-selftest {0} · {1}: {2} (advisory, not blocking)', inputs.profile, inputs.under_test, needs.selftest.outputs.label || 'COULD-NOT-RUN (the run job wrote no verdict)') }}
+    # Block scalar: the expression holds ': ', which a plain YAML value can't.
+    name: >-
+      ${{ format('wicked-selftest {0} · {1}: {2} (advisory, not blocking)', inputs.profile, inputs.under_test, needs.selftest.outputs.label || 'COULD-NOT-RUN (the run job wrote no verdict)') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

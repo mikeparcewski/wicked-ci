@@ -8,12 +8,19 @@
   is now named `wicked-selftest <profile> · <repo> · advisory run`, and a new `verdict` job carries the suite's verdict
   in its check's name, for example `wicked-selftest pr · core: FAIL U04 (advisory, not blocking)`, with the failing
   step ids from the report. It always succeeds, so advisory still never blocks a merge. With no verdict from the run
-  job it reads `COULD-NOT-RUN`. Blocking mode (`advisory: false`) is unchanged and has no verdict job.
-- The Verdict step writes `overall` and the new `label` output on one line each: a report value with a newline can no
-  longer add a second output line.
-- `workflow-selfcheck.mjs` runs the shipped Verdict step against fake reports (FAIL U04, PASS, no report, unreadable
-  report, a PASS beside a failed run, a setup failure, a newline injection, blocking mode) and checks the verdict job,
-  with mutation checks for each.
+  job it reads `COULD-NOT-RUN (the run job wrote no verdict)`. Blocking mode (`advisory: false`) is unchanged and has
+  no verdict job.
+- The check name (the new `label` output) is built from fixed words and step ids only (`FAIL U04`,
+  `PASS (with expected failures) SKIPPED U01`, `COULD-NOT-RUN pack`), so report text never reaches a check name.
+- The report's `overall` counts only when it is one of the runner's own verdict lines. A value with a newline or a
+  runner command in it is `COULD-NOT-RUN (the report's overall is not a verdict line)`. Before, a newline in it could
+  add a second output line.
+- `workflow-selfcheck.mjs` runs the shipped Verdict step with Actions' bash options (`-e -o pipefail`) against 14 fake
+  reports (FAIL U04, PASS, skipped and unexpected-pass lines, no report, an unreadable report, a PASS beside a failed
+  run, a setup or pack failure, newline and runner-command injections, blocking mode). It checks the verdict job's
+  exact name expression and flags a plain YAML value holding `: `. Mutations confirm it catches a missing verdict job,
+  a name that ignores the label, the plain-scalar name, a Verdict step that writes no label, and a failing command
+  in the step.
 - Callers see it once they bump their pin (both places) to this commit or later.
 
 ### selftest — U04 reads the rules card's current choice (#77)
