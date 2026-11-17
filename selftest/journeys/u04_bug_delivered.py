@@ -25,7 +25,7 @@ JUDGMENT = re.compile(r"^approve as your own judg", re.I)
 # One unchecked rule is named instead of counted ("Confirm or skip POL-2101"; studio deskWords.rulesHoldWords).
 # Since studio's gate-action contract the choice reads "Skip 5 rules" / "Skip POL-2101" and carries the structured key
 # data-choice-key="skip-rules" (studio src/board/gateContract.ts): the key is read first, the wording second (#77).
-RULES = re.compile(r"^(confirm or )?skip (\d+ rules?|[A-Z][A-Z0-9]*(-[A-Z0-9]+)+)\b", re.I)
+RULES = re.compile(r"^(confirm or )?skip (\d+ rules?|[A-Z][A-Z0-9]*(-[A-Z0-9]+)+)$", re.I)
 RULES_KEY = "skip-rules"
 JUDGE_CARD = re.compile(r"no helper could check this step independently", re.I)
 RULES_CARD = re.compile(r"steering rules? needs? your call|the rule \S+ needs your call", re.I)
@@ -106,6 +106,35 @@ def launch(j, intent, label):
     return rid
 
 
+def pick_choice(card, choices):
+    """The way forward a person takes on this card: `(element, is_rules_skip)`, or `(None, False)`.
+
+    `choices` is `[(element, first_line_of_text, data-choice-key)]` in DOM order. A judgment or a rules skip is
+    offered on other cards too (a failed repository floor offers "Approve as your own judgment"); the person takes it
+    ONLY on the card that is about the missing judge or the unchecked rules. On the rules card the choice keyed
+    skip-rules is taken first, in a pass of its own (#77). Then the wording: a choice keyed skip-rules is only ever
+    taken as the rules skip, and a choice with another key is never taken as one (the key wins over the text)."""
+    rules_card = bool(RULES_CARD.search(card))
+    if rules_card:
+        keyed = next((e for e, _, key in choices if key == RULES_KEY), None)
+        if keyed is not None:
+            return keyed, True
+    allowed = [PLAN, DELIVER, QE_SKIP]
+    if JUDGE_CARD.search(card):
+        allowed.append(JUDGMENT)
+    if rules_card:
+        allowed.append(RULES)
+    for rx in allowed:
+        for e, text, key in choices:
+            if key == RULES_KEY and rx is not RULES:
+                continue
+            if rx is RULES and key and key != RULES_KEY:
+                continue
+            if rx.search(text):
+                return e, rx is RULES
+    return None, False
+
+
 def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
     """Answer the run's cards as a person would. With `until(card_text, choices)`, stop and return that card when it
     matches (a journey whose terminal state is a card, not a delivery); with `stop_when()`, hand back as soon as it is
@@ -142,25 +171,13 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
         if until is not None and until(card, texts):
             enabled = [e.inner_text().strip().split("\n")[0] for e in props + gates if e.is_enabled()]
             return {"card": card, "choices": texts, "enabled": enabled, "answered": answered, "judgments": judgments}
-        pick = None
-        # A judgment or a rules skip is offered on other cards too (a failed repository floor offers "Approve as your
-        # own judgment"); the person takes it ONLY on the card that is about the missing judge or the unchecked rules.
-        allowed = [PLAN, DELIVER, QE_SKIP]
-        if JUDGE_CARD.search(card):
-            allowed.append(JUDGMENT)
-        if RULES_CARD.search(card):
-            allowed.append(RULES)
-        for rx in allowed:
-            pick = next((e for e in props + gates if (rx is RULES and e.get_attribute("data-choice-key") == RULES_KEY)
-                         or rx.search(e.inner_text().strip().split("\n")[0])), None)
-            if pick is not None:
-                break
+        choices = [(e, e.inner_text().strip().split("\n")[0], e.get_attribute("data-choice-key")) for e in props + gates]
+        pick, rules_pick = pick_choice(card, choices)
         if pick is None:
             j.check("every_card_has_a_known_way_forward", False, kind=kind, choices=texts, card=(p.get_by_test_id("session-gate-row").last.inner_text()[:600] if p.get_by_test_id("session-gate-row").count() else None))
             j.shot("unknown-card")
             return
         label = pick.inner_text().strip().split("\n")[0]
-        rules_pick = pick.get_attribute("data-choice-key") == RULES_KEY or bool(RULES.search(label))
         j.shots(f"U04-card-{len(answered) + 1}")
         sent_before = len(j.rec["writes"])
         pick.click()

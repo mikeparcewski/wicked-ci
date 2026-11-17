@@ -23,6 +23,7 @@ jobs:
           PY=python3
           command -v python3 >/dev/null 2>&1 || PY=python
           "$PY" -m unittest discover -s docs-lint/tests -v
+          "$PY" -m unittest discover -s selftest/journeys -p 'test_*.py' -v
       - name: self-lint
         uses: ./docs-lint
 

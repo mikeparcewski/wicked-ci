@@ -6,8 +6,10 @@
 
 - U04 stopped at "every_card_has_a_known_way_forward" on every run since studio's gate-action contract: the rules
   card's choice now reads `Skip 5 rules` / `Skip POL-2101`, and the journey knew only `Confirm or skip …`. It now picks
-  the choice by its structured key (`data-choice-key="skip-rules"`) first and accepts both wordings, so the advisory
-  selftest on core/studio/crew/garden PRs and wicked-ci's own main-set runs stop failing on it.
+  the choice by its structured key (`data-choice-key="skip-rules"`) first, in a pass of its own, and falls back to
+  either wording only for a keyless choice and only for the whole label. A `skip-rules` choice is never taken off the
+  rules card or as another action, and a choice with another key is never taken as the rules skip. The picker is a
+  pure function (`pick_choice`) with unit tests (`selftest/journeys/test_u04_pick.py`, run in CI's unit job).
 
 ### selftest — the :7721 rig's fixtures adopted; npm publish workflow (prepared; the first publish is the operator's)
 
