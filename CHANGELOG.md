@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### selftest — the advisory verdict is a check of its own, named by the verdict (#76)
+
+- An advisory `selftest.yml` run showed one green check over a FAIL, so reviewers read "selftest passed". The run job
+  is now named `wicked-selftest <profile> · <repo> · advisory run`, and a new `verdict` job carries the suite's verdict
+  in its check's name, for example `wicked-selftest pr · core: FAIL U04 (advisory, not blocking)`, with the failing
+  step ids from the report. It always succeeds, so advisory still never blocks a merge. With no verdict from the run
+  job it reads `COULD-NOT-RUN`. Blocking mode (`advisory: false`) is unchanged and has no verdict job.
+- The Verdict step writes `overall` and the new `label` output on one line each: a report value with a newline can no
+  longer add a second output line.
+- `workflow-selfcheck.mjs` runs the shipped Verdict step against fake reports (FAIL U04, PASS, no report, unreadable
+  report, a PASS beside a failed run, a setup failure, a newline injection, blocking mode) and checks the verdict job,
+  with mutation checks for each.
+- Callers see it once they bump their pin (both places) to this commit or later.
+
 ### selftest — U04 reads the rules card's current choice (#77)
 
 - U04 stopped at "every_card_has_a_known_way_forward" on every run since studio's gate-action contract: the rules
@@ -9,7 +23,7 @@
   the choice by its structured key (`data-choice-key="skip-rules"`) first, in a pass of its own, and falls back to
   either wording only for a keyless choice and only for the whole label. A `skip-rules` choice is never taken off the
   rules card or as another action, and a choice with another key is never taken as the rules skip. The picker is a
-  pure function (`pick_choice`) with unit tests (`selftest/journeys/test_u04_pick.py`, run in CI's unit job).
+  pure function (`pick_choice`) with unit tests (`selftest/journeys/test_u04_pick.py`, run in CI's `docs-lint` job's unit-test step).
 
 ### selftest — the :7721 rig's fixtures adopted; npm publish workflow (prepared; the first publish is the operator's)
 

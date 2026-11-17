@@ -7,8 +7,9 @@
 # engine addon is napi-built from its tree and installed in place of crew's pinned wicked-core-ts. Then `wicked-selftest
 # run --set … --profile pr` runs the API steps and the studio journeys against one hermetic daemon with stub seats.
 #
-# ADVISORY by default (`advisory: true`): for the first runs on each repo the job stays green whatever the suite says,
-# and the real verdict is written as a warning annotation, the job summary and the `overall` output. So a flake can't
+# ADVISORY by default (`advisory: true`): for the first runs on each repo the run job stays green whatever the suite
+# says, and the real verdict is written as a warning annotation, the job summary, the `overall` output and the NAME of
+# the `verdict` job's check ("… : FAIL U04 (advisory, not blocking)", wicked-ci #76). So a flake can't
 # block a merge while the flake rate is measured, and a failure is never hidden. Flip `advisory: false` (and make the
 # check required in the repo's ruleset) once it has earned it.
 #
@@ -86,11 +87,14 @@ permissions:
 
 jobs:
   selftest:
-    name: ${{ format('wicked-selftest {0} · {1}{2}', inputs.profile, inputs.under_test, inputs.advisory && ' (advisory)' || '') }}
+    # Advisory: this check says the suite RAN (it stays green whatever the suite says); the `verdict` job below carries
+    # the suite's verdict in its own check's name (wicked-ci #76).
+    name: ${{ format('wicked-selftest {0} · {1}{2}', inputs.profile, inputs.under_test, inputs.advisory && ' · advisory run' || '') }}
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
     outputs:
       overall: ${{ steps.verdict.outputs.overall }}
+      label: ${{ steps.verdict.outputs.label }}
     env:
       UNDER_TEST: ${{ inputs.under_test }}
       ST_SRC: ${{ github.workspace }}/st-src
@@ -312,8 +316,20 @@ jobs:
               process.stdout.write(typeof o === "string" && o ? o : "COULD-NOT-RUN (the report is unreadable or has no overall)");
             ' "$R")"
             case "$v" in PASS*) [ "$RUN_EXIT" = "0" ] || v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished} after a report that read: $v)";; esac
+            # The steps that made it so, for the verdict check's name (wicked-ci #76): "FAIL U04", not a bare "FAIL".
+            bad="$(node -e '
+              let s = []; try { s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).steps; } catch (e) { s = []; }
+              const ids = (Array.isArray(s) ? s : []).filter((x) => x && ["FAIL", "ERROR", "UNEXPECTED-PASS"].includes(x.status)).map((x) => String(x.id));
+              process.stdout.write(ids.join(","));
+            ' "$R")" || bad=""
           fi
+          # One line each: a report value can never add an output line or a second line to a check name.
+          v="$(printf '%s' "$v" | tr -d '\r\n')"
+          bad="$(printf '%s' "${bad:-}" | tr -cd 'A-Za-z0-9,_-' | cut -c1-80)"
+          label="$v${bad:+ $bad}"
+          label="${label:0:160}"
           echo "overall=$v" >> "$GITHUB_OUTPUT"
+          echo "label=$label" >> "$GITHUB_OUTPUT"
           cp "$ST_PACKS/set.json" "$ST_REPORT/set.json" 2>/dev/null || true
           # A skipped step is never a pass (the runner installs the browser, so a skip here is a fault).
           ok=1; case "$v" in *SKIPPED*) ok=0;; PASS*) ;; *) ok=0;; esac
@@ -322,8 +338,8 @@ jobs:
             if [ "$ADVISORY" = "true" ]; then echo; echo "ADVISORY: this check does not block a merge yet (its flake rate is being measured). The verdict above is the suite's real one."; fi
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$ok" = 1 ]; then echo "wicked-selftest: $v"; exit 0; fi
-          if [ "$ADVISORY" = "true" ]; then echo "::warning title=wicked-selftest (advisory)::$v. Not blocking yet; see the job summary and the wicked-selftest-$UNDER_TEST artifact."; exit 0; fi
-          echo "::error title=wicked-selftest::$v"
+          if [ "$ADVISORY" = "true" ]; then echo "::warning title=wicked-selftest (advisory)::$label. Not blocking yet; see the job summary and the wicked-selftest-$UNDER_TEST artifact."; exit 0; fi
+          echo "::error title=wicked-selftest::$label"
           exit 1
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -334,3 +350,24 @@ jobs:
           path: ${{ runner.temp }}/st-report
           if-no-files-found: warn
           retention-days: 14
+
+  # Advisory only: the suite's verdict as a check of its own, named by it (wicked-ci #76). A green check over a FAIL
+  # read as "selftest passed"; this one reads e.g. "wicked-selftest pr · core: FAIL U04 (advisory, not blocking)".
+  # It always succeeds (advisory never blocks a merge). With no label the run job died before its Verdict step, which
+  # is never a pass. Skipped when the workflow run is cancelled (a superseded push) and in blocking mode, where the
+  # run job's own conclusion is the verdict.
+  verdict:
+    needs: selftest
+    if: ${{ !cancelled() && inputs.advisory }}
+    name: ${{ format('wicked-selftest {0} · {1}: {2} (advisory, not blocking)', inputs.profile, inputs.under_test, needs.selftest.outputs.label || 'COULD-NOT-RUN (the run job wrote no verdict)') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: The verdict
+        shell: bash
+        env:
+          LABEL: ${{ needs.selftest.outputs.label || 'COULD-NOT-RUN (the run job wrote no verdict)' }}
+          RUN_RESULT: ${{ needs.selftest.result }}
+        run: |
+          echo "wicked-selftest (advisory, not blocking): $LABEL (run job: $RUN_RESULT)"
+          echo "The full verdict, the failing checks and the evidence are in the run job's summary and its artifact."

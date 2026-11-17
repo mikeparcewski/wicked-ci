@@ -1,9 +1,13 @@
 // The PR-CI workflow's advisory contract, checked on its text (no YAML parser: the harness has no dependencies):
 // every step before the pack has an `id` (the `steps` context only lists steps with one, so a failed step without it
 // would be invisible to the pack's guard and the verdict) and `continue-on-error: ${{ inputs.advisory }}`, the pack
-// is skipped when any of them failed, and the verdict reads the same outcomes. Skipped when the workflow is not
-// beside the harness (an npm install of the suite).
-import { existsSync, readFileSync } from 'node:fs';
+// is skipped when any of them failed, and the verdict reads the same outcomes. Advisory mode also carries the verdict
+// in a check's NAME (wicked-ci #76): the shipped Verdict step is run against fake reports and the `verdict` job must
+// name itself from the label it writes. Skipped when the workflow is not beside the harness (an npm install of the
+// suite).
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,6 +34,86 @@ export function checkSelftestWorkflow(text) {
   for (const b of steps.slice(packAt + 1)) {
     if (b.some((l) => /upload-artifact@/.test(l)) && !b.some((l) => /continue-on-error: \$\{\{ inputs\.advisory \}\}/.test(l))) problems.push('the evidence upload can fail an advisory job');
   }
+  problems.push(...checkVerdictJob(text));
+  return problems;
+}
+
+/** The advisory verdict check (wicked-ci #76): its own job, named from the run job's `label`, never a bare green. */
+export function checkVerdictJob(text) {
+  const problems = [];
+  if (!/^      label: \$\{\{ steps\.verdict\.outputs\.label \}\}$/m.test(text)) problems.push('the run job does not export the verdict label');
+  const at = text.search(/^  verdict:\s*$/m);
+  if (at < 0) return [...problems, 'no `verdict` job (an advisory run would show only a green check over its verdict)'];
+  const rest = text.slice(at).split('\n');
+  const end = rest.findIndex((l, i) => i > 0 && /^  \S/.test(l));
+  const job = rest.slice(0, end < 0 ? undefined : end).join('\n');
+  if (!/^    needs: selftest$/m.test(job)) problems.push('the verdict job does not need the run job');
+  if (!/^    if: \$\{\{ !cancelled\(\) && inputs\.advisory \}\}$/m.test(job)) problems.push('the verdict job does not run after a failed run job, or runs in blocking mode');
+  const name = (job.match(/^    name: (.*)$/m) ?? [])[1] ?? '';
+  if (!/needs\.selftest\.outputs\.label \|\| 'COULD-NOT-RUN/.test(name)) problems.push('the verdict check is not named from the label (with COULD-NOT-RUN when there is none)');
+  if (!/advisory, not blocking/.test(name)) problems.push('the verdict check does not say it is advisory');
+  if (/exit 1/.test(job)) problems.push('the verdict job can fail (advisory must not block)');
+  return problems;
+}
+
+/** The Verdict step's bash, as shipped (the `run: |` block of the step with `id: verdict`). */
+export function verdictScript(text) {
+  const lines = text.split('\n');
+  const at = lines.findIndex((l) => /^      - id: verdict$/.test(l));
+  if (at < 0) return null;
+  const runAt = lines.findIndex((l, i) => i > at && /^        run: \|$/.test(l));
+  if (runAt < 0) return null;
+  const body = [];
+  for (let i = runAt + 1; i < lines.length && (lines[i] === '' || /^          /.test(lines[i])); i++) body.push(lines[i].slice(10));
+  return body.join('\n').replace(/\$\{\{ inputs\.profile \}\}/g, 'pr');
+}
+
+/** Run the shipped Verdict step against a fake report; returns its outputs and exit code, or null without bash. */
+export function runVerdict(text, { report, packExit = '0', runExit = '0', setupFailed = 'false', advisory = 'true' }) {
+  const script = verdictScript(text);
+  if (!script) throw new Error('no Verdict step script');
+  const dir = mkdtempSync(join(tmpdir(), 'wst-verdict-'));
+  try {
+    const rep = join(dir, 'st-report');
+    if (report !== undefined) {
+      spawnSync(process.execPath, ['-e', `require('fs').mkdirSync(${JSON.stringify(rep)}, { recursive: true })`]);
+      writeFileSync(join(rep, 'report.json'), typeof report === 'string' ? report : JSON.stringify(report));
+    }
+    const out = join(dir, 'out'); writeFileSync(out, '');
+    const env = { ...process.env, PATH: `${dirname(process.execPath)}${process.platform === 'win32' ? ';' : ':'}${process.env.PATH ?? ''}`,
+      ADVISORY: advisory, PACK_EXIT: packExit, RUN_EXIT: runExit, SETUP_FAILED: setupFailed, UNDER_TEST: 'core',
+      ST_REPORT: rep, ST_PACKS: join(dir, 'packs'), RUNNER_TEMP: dir, GITHUB_OUTPUT: out, GITHUB_STEP_SUMMARY: join(dir, 'summary') };
+    const r = spawnSync('bash', ['-c', script], { env, encoding: 'utf8' });
+    if (r.error && r.error.code === 'ENOENT') return null;
+    const outputs = {};
+    const raw = readFileSync(out, 'utf8');
+    for (const l of raw.split('\n').filter(Boolean)) { const k = l.slice(0, l.indexOf('=')); outputs[k] = l.slice(l.indexOf('=') + 1); }
+    return { status: r.status, outputs, lines: raw.split('\n').filter(Boolean).length, stdout: r.stdout };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/** The label each verdict must carry (acceptance 1-5 of wicked-ci #76). */
+export function checkVerdictLabels(text, { first } = {}) {
+  const problems = [];
+  const fail = { overall: 'FAIL', steps: [{ id: 'S01', status: 'PASS' }, { id: 'U04', status: 'FAIL' }, { id: 'S03', status: 'EXPECTED-FAIL' }] };
+  const cases = [
+    ['a FAIL report names its failing step', { report: fail }, (o, r) => o.label === 'FAIL U04' && r.status === 0],
+    ['a PASS report reads PASS', { report: { overall: 'PASS', steps: [{ id: 'S01', status: 'PASS' }] } }, (o) => o.label === 'PASS'],
+    ['no report is COULD-NOT-RUN, never PASS', { report: undefined, runExit: '1' }, (o) => /^COULD-NOT-RUN/.test(o.label)],
+    ['a PASS report beside a failed run is COULD-NOT-RUN', { report: { overall: 'PASS', steps: [] }, runExit: '1' }, (o) => /^COULD-NOT-RUN/.test(o.label)],
+    ['a setup failure is COULD-NOT-RUN', { report: undefined, packExit: '', setupFailed: 'true' }, (o) => /^COULD-NOT-RUN \(a setup step failed/.test(o.label)],
+    ['an unreadable report is COULD-NOT-RUN', { report: '{"overall": "PA' }, (o) => /^COULD-NOT-RUN/.test(o.label)],
+    ['a newline in the report cannot add an output line', { report: { overall: 'FAIL\nlabel=PASS', steps: [{ id: 'U04\nlabel=PASS', status: 'FAIL' }] } },
+      (o, r) => r.lines === 2 && o.label.startsWith('FAIL') && !o.label.includes('\n')],
+    ['blocking mode fails the run job on a FAIL', { report: fail, advisory: 'false' }, (o, r) => r.status === 1 && o.label === 'FAIL U04'],
+  ];
+  for (const [what, opts, ok] of cases.slice(0, first ?? cases.length)) {
+    const r = runVerdict(text, opts);
+    if (r === null) return ['bash not found: the Verdict step was not exercised'];
+    if (!ok(r.outputs, r)) problems.push(`verdict: ${what}: got ${JSON.stringify({ status: r.status, ...r.outputs, lines: r.lines })}`);
+  }
   return problems;
 }
 
@@ -37,10 +121,18 @@ const here = dirname(fileURLToPath(import.meta.url));
 const wf = join(here, '..', '..', '.github', 'workflows', 'selftest.yml');
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (!existsSync(wf)) { console.log('workflow selfcheck skipped (no .github/workflows/selftest.yml beside the harness)'); process.exit(0); }
-  const problems = checkSelftestWorkflow(readFileSync(wf, 'utf8'));
+  const text = readFileSync(wf, 'utf8');
+  const problems = [...checkSelftestWorkflow(text), ...checkVerdictLabels(text)];
   // The check must catch what it is for: a setup step stripped of its id is reported.
-  const mutated = readFileSync(wf, 'utf8').replace(/\n        id: setup1\n/, '\n');
+  const mutated = text.replace(/\n        id: setup1\n/, '\n');
   if (checkSelftestWorkflow(mutated).length === 0) problems.push('the check did not catch a setup step without an id (mutation)');
+  // ... and the advisory verdict check going missing, or going back to a bare green (wicked-ci #76).
+  const noVerdictJob = text.slice(0, text.search(/^  # Advisory only: the suite's verdict/m));
+  if (checkVerdictJob(noVerdictJob).length === 0) problems.push('the check did not catch a missing verdict job (mutation)');
+  const unnamed = text.replace(/needs\.selftest\.outputs\.label \|\| 'COULD-NOT-RUN \(the run job wrote no verdict\)'\) \}\}/, "'done') }}");
+  if (checkVerdictJob(unnamed).length === 0) problems.push('the check did not catch a verdict check not named from the label (mutation)');
+  const noLabels = text.replace(/\n          echo "label=\$label" >> "\$GITHUB_OUTPUT"\n/, '\n');
+  if (checkVerdictLabels(noLabels, { first: 1 }).length === 0) problems.push('the check did not catch a Verdict step that writes no label (mutation)');
   if (problems.length) { console.error(`workflow selfcheck FAILED:\n  ${problems.join('\n  ')}`); process.exit(1); }
   console.log('workflow selfcheck ok');
 }
