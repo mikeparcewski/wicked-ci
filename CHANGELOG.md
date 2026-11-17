@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### selftest — U04 reads the rules card's current choice (#77)
+
+- U04 stopped at "every_card_has_a_known_way_forward" on every run since studio's gate-action contract: the rules
+  card's choice now reads `Skip 5 rules` / `Skip POL-2101`, and the journey knew only `Confirm or skip …`. It now picks
+  the choice by its structured key (`data-choice-key="skip-rules"`) first and accepts both wordings, so the advisory
+  selftest on core/studio/crew/garden PRs and wicked-ci's own main-set runs stop failing on it.
+
 ### selftest — the :7721 rig's fixtures adopted; npm publish workflow (prepared; the first publish is the operator's)
 
 - **Fixtures** (DESIGN §4) now live in `selftest/fixtures/`. The repos `hello-onboard`, `hello`, `tiny-math-untested`

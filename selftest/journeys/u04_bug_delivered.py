@@ -23,7 +23,10 @@ JUDGMENT = re.compile(r"^approve as your own judg", re.I)
 # "N steering rules need your call": with no signed-in judge distinct from the creator the rules stay unchecked; the
 # person confirms or skips them, with the reason, on the card (labelled on the run).
 # One unchecked rule is named instead of counted ("Confirm or skip POL-2101"; studio deskWords.rulesHoldWords).
-RULES = re.compile(r"^confirm or skip (\d+ rules?|[A-Z][A-Z0-9]*(-[A-Z0-9]+)+)\b", re.I)
+# Since studio's gate-action contract the choice reads "Skip 5 rules" / "Skip POL-2101" and carries the structured key
+# data-choice-key="skip-rules" (studio src/board/gateContract.ts): the key is read first, the wording second (#77).
+RULES = re.compile(r"^(confirm or )?skip (\d+ rules?|[A-Z][A-Z0-9]*(-[A-Z0-9]+)+)\b", re.I)
+RULES_KEY = "skip-rules"
 JUDGE_CARD = re.compile(r"no helper could check this step independently", re.I)
 RULES_CARD = re.compile(r"steering rules? needs? your call|the rule \S+ needs your call", re.I)
 QE_SKIP = re.compile(r"skip (qe|the acceptance|acceptance)|skip,? with a reason", re.I)
@@ -148,7 +151,8 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
         if RULES_CARD.search(card):
             allowed.append(RULES)
         for rx in allowed:
-            pick = next((e for e in props + gates if rx.search(e.inner_text().strip().split("\n")[0])), None)
+            pick = next((e for e in props + gates if (rx is RULES and e.get_attribute("data-choice-key") == RULES_KEY)
+                         or rx.search(e.inner_text().strip().split("\n")[0])), None)
             if pick is not None:
                 break
         if pick is None:
@@ -156,11 +160,12 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
             j.shot("unknown-card")
             return
         label = pick.inner_text().strip().split("\n")[0]
+        rules_pick = pick.get_attribute("data-choice-key") == RULES_KEY or bool(RULES.search(label))
         j.shots(f"U04-card-{len(answered) + 1}")
         sent_before = len(j.rec["writes"])
         pick.click()
         p.wait_for_timeout(800)
-        if JUDGMENT.search(label) or QE_SKIP.search(label) or RULES.search(label):
+        if JUDGMENT.search(label) or QE_SKIP.search(label) or rules_pick:
             box = p.get_by_test_id("session-gate-note").last
             if box.count() and box.is_visible():
                 box.fill("Hermetic self-test (U04): stub seats; no distinct judge or QE ledger exists here. This proves the governed path and delivery, not the fix.")
@@ -190,7 +195,7 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
             j.check("each_decision_is_sent", False, choice=label, writes=j.rec["writes"][sent_before:])
             return
         answered.append(label)
-        if JUDGMENT.search(label) or RULES.search(label) or QE_SKIP.search(label):
+        if JUDGMENT.search(label) or rules_pick or QE_SKIP.search(label):
             judgments.append(label)
         p.wait_for_timeout(3000)
     if until is not None or stop_when is not None:
