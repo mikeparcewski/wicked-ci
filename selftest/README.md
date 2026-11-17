@@ -56,14 +56,20 @@ SHA and passes the same SHA as `wicked_ci_ref`:
 on: { pull_request: { branches: [main] } }
 jobs:
   selftest:
+    permissions: { contents: read, checks: write }   # checks: the advisory verdict's check run
     uses: mikeparcewski/wicked-ci/.github/workflows/selftest.yml@<sha>
     with: { under_test: crew, wicked_ci_ref: <sha> }   # crew | studio | garden | core
 ```
 
 It is **advisory** by default: the run job (`… · advisory run`) stays green and writes the suite's real verdict as a
-warning annotation, the job summary and the `overall` output, and a second check carries the verdict in its name
-(`wicked-selftest pr · core: FAIL U04 (advisory, not blocking)`), so a flake can't block a merge while the flake rate
-is measured and a FAIL never shows as a bare green. `advisory: false`
+warning annotation, the job summary and the `overall` output. The verdict job then publishes a check run,
+`wicked-selftest pr · core · advisory verdict`, through the Checks API. Its **conclusion** is the verdict: `success`
+only for PASS (or PASS with expected failures) from a run job that succeeded, and `neutral` for everything else
+(FAIL, UNEXPECTED-PASS, COULD-NOT-RUN, a PASS with skipped steps, no verdict). Its title is the label (`FAIL U04`).
+Neutral never blocks a merge, so a flake can't while the flake rate is measured, and anything reading conclusions
+(merge state, a CI summary) sees a FAIL as not-a-pass. The calling job must grant `checks: write` (a called workflow
+can only narrow its caller's token); without it GitHub refuses to start the run, and a token that cannot write checks
+(a fork's) fails the verdict job instead of hiding the verdict. `advisory: false`
 makes a failure fail the job; make the check required in the repo's ruleset at the same time. wicked-ci's own CI calls
 it with `head_ref: main` (the `main` set, Tier 1 and Tier 2), not advisory.
 

@@ -38,32 +38,104 @@ export function checkSelftestWorkflow(text) {
   return problems;
 }
 
-const VERDICT_NAME = "${{ format('wicked-selftest {0} · {1}: {2} (advisory, not blocking)', inputs.profile, inputs.under_test, needs.selftest.outputs.label || 'COULD-NOT-RUN (the run job wrote no verdict)') }}";
-
 /** A plain YAML value that opens an expression and holds ': ' does not parse (the workflow would not start). */
 export function checkPlainScalars(text) {
   return text.split('\n').flatMap((l, i) => (/^\s*(- )?[A-Za-z_][\w-]*: \$\{\{.*: /.test(l) ? [`line ${i + 1}: a plain YAML value holds ': ' (quote it or use a block scalar)`] : []));
 }
 
-/** The advisory verdict check (wicked-ci #76): its own job, named from the run job's `label`, never a bare green. */
+/** The advisory verdict (wicked-ci #76): a job of its own that publishes a check run whose CONCLUSION is the verdict. */
 const RUN_NAME = "${{ format('wicked-selftest {0} · {1}{2}', inputs.profile, inputs.under_test, inputs.advisory && ' · advisory run' || '') }}";
+
+/** The `verdict` job's text (from `  verdict:` to the next job or the end), or null. */
+function verdictJobText(text) {
+  const at = text.search(/^  verdict:\s*$/m);
+  if (at < 0) return null;
+  const rest = text.slice(at).split('\n');
+  const end = rest.findIndex((l, i) => i > 0 && /^  \S/.test(l));
+  return rest.slice(0, end < 0 ? undefined : end).join('\n');
+}
 
 export function checkVerdictJob(text) {
   const problems = [];
-  // The run check says it RAN (advisory) and keeps its blocking-mode name; the verdict lives in the verdict check.
+  // The run check says it RAN (advisory) and keeps its blocking-mode name; the verdict is the verdict check run.
   if (!text.includes(`\n    name: ${RUN_NAME}\n`)) problems.push('the run job is not named as an advisory run');
-  if (!/^      label: \$\{\{ steps\.verdict\.outputs\.label \}\}$/m.test(text)) problems.push('the run job does not export the verdict label');
-  const at = text.search(/^  verdict:\s*$/m);
-  if (at < 0) return [...problems, 'no `verdict` job (an advisory run would show only a green check over its verdict)'];
-  const rest = text.slice(at).split('\n');
-  const end = rest.findIndex((l, i) => i > 0 && /^  \S/.test(l));
-  const job = rest.slice(0, end < 0 ? undefined : end).join('\n');
+  if (!/^      overall: \$\{\{ steps\.verdict\.outputs\.overall \}\}$/m.test(text)) problems.push('the run job does not export the verdict');
+  const job = verdictJobText(text);
+  if (job === null) return [...problems, 'no `verdict` job (an advisory run would show only a green check over its verdict)'];
   if (!/^    needs: selftest$/m.test(job)) problems.push('the verdict job does not need the run job');
   if (!/^    if: \$\{\{ !cancelled\(\) && inputs\.advisory \}\}$/m.test(job)) problems.push('the verdict job does not run after a failed run job, or runs in blocking mode');
-  // The whole expression, exactly: a name that merely mentions the label (an unused format argument) is not enough.
-  const name = (job.match(/^    name: >-\n      (.*)$/m) ?? [])[1] ?? '';
-  if (name !== VERDICT_NAME) problems.push(`the verdict check is not named from the label: ${name || '(no block-scalar name)'}`);
-  if (/exit 1/.test(job)) problems.push('the verdict job can fail (advisory must not block)');
+  if (!/^    permissions:\n      checks: write\b/m.test(job)) problems.push('the verdict job does not hold checks: write (the check run cannot be published)');
+  if (/^permissions:\n  (?!contents: read\n\n)/m.test(text)) problems.push('the workflow-level permissions are no longer contents: read only');
+  if (!/^          OVERALL: \$\{\{ needs\.selftest\.outputs\.overall \}\}$/m.test(job)) problems.push('the verdict is not read from the run job\'s validated overall');
+  if (!/^          RUN_RESULT: \$\{\{ needs\.selftest\.result \}\}$/m.test(job)) problems.push('the verdict ignores the run job\'s result');
+  if (!/^          HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m.test(job)) problems.push('the check run is not attached to the pull request head');
+  return problems;
+}
+
+/** The publish step's bash, as shipped (the `run: |` block of the verdict job's only step). */
+export function publishScript(text) {
+  const job = verdictJobText(text);
+  if (job === null) return null;
+  const lines = job.split('\n');
+  const runAt = lines.findIndex((l) => /^        run: \|$/.test(l));
+  if (runAt < 0) return null;
+  const body = [];
+  for (let i = runAt + 1; i < lines.length && (lines[i] === '' || /^          /.test(lines[i])); i++) body.push(lines[i].slice(10));
+  return body.join('\n');
+}
+
+/** Run the shipped publish step with a stub `gh` that records the POSTed body; returns { status, body, args, stdout }. */
+export function runPublish(text, { overall = '', label = '', runResult = 'success', headSha = 'abc123', ghFails = false }) {
+  const script = publishScript(text);
+  if (!script) throw new Error('no publish step script');
+  const dir = mkdtempSync(join(tmpdir(), 'wst-publish-'));
+  try {
+    const bin = join(dir, 'bin'); spawnSync(process.execPath, ['-e', `require('fs').mkdirSync(${JSON.stringify(bin)})`]);
+    const rec = join(dir, 'posted.json'); const args = join(dir, 'args');
+    // The stub: `gh api -X POST <path> --input <file>` copies <file> to posted.json (or fails, as a 403 would).
+    writeFileSync(join(bin, 'gh'), `#!/usr/bin/env bash\nprintf '%s\\n' "$*" > ${JSON.stringify(args)}\n` +
+      `[ "$GH_FAILS" = 1 ] && { echo 'HTTP 403: Resource not accessible by integration' >&2; exit 1; }\n` +
+      `while [ $# -gt 0 ]; do [ "$1" = --input ] && cp "$2" ${JSON.stringify(rec)}; shift; done\necho '{"id":1}'\n`, { mode: 0o755 });
+    const sep = process.platform === 'win32' ? ';' : ':';
+    const env = { ...process.env, PATH: `${bin}${sep}${dirname(process.execPath)}${sep}${process.env.PATH ?? ''}`,
+      GH_TOKEN: 'x', REPO: 'o/r', HEAD_SHA: headSha, OVERALL: overall, LABEL: label, RUN_RESULT: runResult,
+      CHECK_NAME: 'wicked-selftest pr · core · advisory verdict', DETAILS_URL: 'https://example.invalid/run', RUNNER_TEMP: dir,
+      GH_FAILS: ghFails ? '1' : '0' };
+    const r = spawnSync('bash', ['--noprofile', '--norc', '-e', '-o', 'pipefail', '-c', script], { env, encoding: 'utf8' });
+    if (r.error && r.error.code === 'ENOENT') return null;
+    const body = existsSync(rec) ? JSON.parse(readFileSync(rec, 'utf8')) : null;
+    return { status: r.status, body, args: existsSync(args) ? readFileSync(args, 'utf8').trim() : '', stdout: r.stdout + r.stderr };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/** The CONCLUSION each verdict publishes (wicked-ci #76, reopened): success only for a PASS, neutral otherwise. */
+export function checkVerdictConclusions(text) {
+  const problems = [];
+  const cases = [
+    ['PASS', { overall: 'PASS', label: 'PASS' }, 'success'],
+    ['PASS with expected failures', { overall: 'PASS (with expected failures)', label: 'PASS (with expected failures)' }, 'success'],
+    ['FAIL', { overall: 'FAIL', label: 'FAIL U04' }, 'neutral'],
+    ['UNEXPECTED-PASS', { overall: 'UNEXPECTED-PASS (retire the labels)', label: 'UNEXPECTED-PASS U02' }, 'neutral'],
+    ['COULD-NOT-RUN', { overall: 'COULD-NOT-RUN (pack exited 1)', label: 'COULD-NOT-RUN pack' }, 'neutral'],
+    ['PASS with skipped steps', { overall: 'PASS — SKIPPED U03', label: 'PASS (SKIPPED U03)' }, 'neutral'],
+    ['no verdict (run job died)', { overall: '', label: '', runResult: 'failure' }, 'neutral'],
+    ['PASS but the run job failed', { overall: 'PASS', label: 'PASS', runResult: 'failure' }, 'neutral'],
+    ['label and verdict disagree', { overall: 'FAIL', label: 'PASS' }, 'neutral'],
+  ];
+  for (const [what, opts, want] of cases) {
+    const r = runPublish(text, opts);
+    if (r === null) return ['bash is not available: the conclusions were not checked'];
+    if (r.status !== 0) { problems.push(`${what}: the publish step failed (${r.status}): ${r.stdout.trim().split('\n').pop()}`); continue; }
+    if (!r.body) { problems.push(`${what}: no check run was posted`); continue; }
+    if (r.body.conclusion !== want) problems.push(`${what}: concluded ${r.body.conclusion}, expected ${want}`);
+    if (r.body.status !== 'completed' || r.body.head_sha !== 'abc123') problems.push(`${what}: the check run is not completed on the head sha`);
+    if (!/^api -X POST repos\/o\/r\/check-runs --input /.test(r.args)) problems.push(`${what}: not a POST to the Checks API (${r.args})`);
+    if (r.body.output?.title !== (opts.label || 'COULD-NOT-RUN (the run job wrote no verdict)')) problems.push(`${what}: the title is not the run job's label`);
+  }
+  const denied = runPublish(text, { overall: 'FAIL', label: 'FAIL U04', ghFails: true });
+  if (denied && (denied.status === 0 || !/checks: write/.test(denied.stdout))) problems.push('a check run that could not be published did not fail the job naming checks: write');
   return problems;
 }
 
@@ -157,17 +229,27 @@ const wf = join(here, '..', '..', '.github', 'workflows', 'selftest.yml');
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (!existsSync(wf)) { console.log('workflow selfcheck skipped (no .github/workflows/selftest.yml beside the harness)'); process.exit(0); }
   const text = readFileSync(wf, 'utf8');
-  const problems = [...checkSelftestWorkflow(text), ...checkVerdictLabels(text)];
+  const problems = [...checkSelftestWorkflow(text), ...checkVerdictLabels(text), ...checkVerdictConclusions(text)];
   // The check must catch what it is for: a setup step stripped of its id is reported.
   const mutated = text.replace(/\n        id: setup1\n/, '\n');
   if (checkSelftestWorkflow(mutated).length === 0) problems.push('the check did not catch a setup step without an id (mutation)');
-  // ... and the advisory verdict check going missing, or going back to a bare green (wicked-ci #76).
+  // ... and the advisory verdict check going missing, or concluding anything but the verdict (wicked-ci #76).
   const noVerdictJob = text.slice(0, text.search(/^  # Advisory only: the suite's verdict/m));
   if (checkVerdictJob(noVerdictJob).length === 0) problems.push('the check did not catch a missing verdict job (mutation)');
-  const unused = text.replace("· {1}: {2} (advisory, not blocking)', inputs.profile", "· {1}: PASS (advisory, not blocking)', inputs.profile");
-  if (unused === text || checkVerdictJob(unused).length === 0) problems.push('the check did not catch a verdict name that ignores the label (mutation)');
-  const plain = text.replace(/    name: >-\n      (\$\{\{ format\('wicked-selftest \{0\} · \{1\}: )/, '    name: $1');
-  if (plain === text || checkPlainScalars(plain).length === 0) problems.push("the check did not catch a plain YAML name holding ': ' (mutation)");
+  const alwaysGreen = text.replace(/\n          conclusion=neutral\n/, '\n          conclusion=success\n');
+  if (alwaysGreen === text || checkVerdictConclusions(alwaysGreen).length === 0) problems.push('the check did not catch a verdict that always concludes success (mutation)');
+  const failIsPass = text.replace("'PASS' | 'PASS (with expected failures)')", "'PASS' | 'PASS (with expected failures)' | 'FAIL')");
+  if (failIsPass === text || checkVerdictConclusions(failIsPass).length === 0) problems.push('the check did not catch FAIL concluding success (mutation)');
+  const readsLabel = text.replace('case "$OVERALL" in', 'case "$LABEL" in');
+  if (readsLabel === text || checkVerdictConclusions(readsLabel).length === 0) problems.push('the check did not catch the conclusion read from the label (mutation)');
+  const noWrite = text.replace(/\n    permissions:\n      checks: write[^\n]*\n/, '\n');
+  if (noWrite === text || checkVerdictJob(noWrite).length === 0) problems.push('the check did not catch the verdict job without checks: write (mutation)');
+  const mergeSha = text.replace('HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}', 'HEAD_SHA: ${{ github.sha }}');
+  if (mergeSha === text || checkVerdictJob(mergeSha).length === 0) problems.push('the check did not catch the check run attached to the merge commit (mutation)');
+  const swallowed = text.replace(/\n            exit 1\n          fi\n          echo "wicked-selftest \(advisory\)/, '\n          fi\n          echo "wicked-selftest (advisory)');
+  if (swallowed === text || checkVerdictConclusions(swallowed).length === 0) problems.push('the check did not catch a publish failure that leaves the job green (mutation)');
+  const plain = text + "\n    name: ${{ format('a: {0}', inputs.profile) }}\n";
+  if (checkPlainScalars(plain).length === 0) problems.push("the check did not catch a plain YAML name holding ': ' (mutation)");
   const dies = text.replace(/\n          echo "overall=\$v" >> "\$GITHUB_OUTPUT"\n/, '\n          false\n          echo "overall=$v" >> "$GITHUB_OUTPUT"\n');
   if (dies === text || checkVerdictLabels(dies, { first: 1 }).length === 0) problems.push('the harness did not run the step as Actions does (-e): a failing command went unseen (mutation)');
   const redFallback = text.replace(/\n          echo "label=\$label" >> "\$GITHUB_OUTPUT"\n/, '\n          echo "label=$label" >> "$GITHUB_OUTPUT"\n          if [ "$label" = "COULD-NOT-RUN run" ]; then exit 1; fi\n');

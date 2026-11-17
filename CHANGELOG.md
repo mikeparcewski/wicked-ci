@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### selftest — the advisory verdict CONCLUDES the verdict: neutral unless PASS (#76, reopened)
+
+- #78 put the verdict in a check's name, but every check still concluded `success`, so merge state and anything else
+  reading conclusions saw a FAIL as a pass. The verdict job now publishes a check run through the Checks API,
+  `wicked-selftest <profile> · <under_test> · advisory verdict`, on the pull request's head. Its conclusion is
+  `success` only when the run job succeeded and its validated `overall` is PASS or PASS (with expected failures), and
+  `neutral` otherwise (FAIL, UNEXPECTED-PASS, COULD-NOT-RUN, skipped steps, no verdict). Its title is the label. The
+  label-in-the-job-name expression is gone: the conclusion is the one mechanism, and nothing parses a name.
+- `checks: write` is granted on the verdict job only (the workflow default stays `contents: read`), so **every caller
+  must grant `checks: write` on the job that calls selftest.yml** (GitHub refuses to start the run otherwise).
+  wicked-ci's own two callers do. If the check run cannot be published (a fork's read-only token), the verdict job
+  fails, rather than leave a verdict nobody sees.
+- `workflow-selfcheck` runs the shipped publish step against a stub `gh` and asserts the conclusion it POSTs for nine
+  verdicts (including a label that disagrees with `overall`), and that a refused POST fails the job. Mutations: always
+  success, FAIL as success, the conclusion read from the label, no `checks: write`, the merge commit as head_sha, and
+  a swallowed publish failure, all caught.
+
 ### selftest — the advisory verdict is a check of its own, named by the verdict (#76)
 
 - An advisory `selftest.yml` run showed one green check over a FAIL, so reviewers read "selftest passed". The run job
