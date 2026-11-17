@@ -316,13 +316,19 @@ jobs:
             # Line 1: `overall` when it is one of the runner's own verdict lines, else COULD-NOT-RUN (a malformed value,
             # e.g. one with a newline or a runner command in it, is never a verdict). Line 2: the label's words.
             read_out="$(node -e '
-              let r = null; try { r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); } catch (e) { r = null; }
-              const o = r && typeof r === "object" ? r.overall : null;
-              const m = typeof o === "string" ? /^(PASS \(with expected failures\)|PASS|FAIL|UNEXPECTED-PASS \(retire the labels\))( — SKIPPED ([A-Z][0-9]{2}(,[A-Z][0-9]{2})*))?$/.exec(o) : null;
-              if (!m) { process.stdout.write((o == null ? "COULD-NOT-RUN (the report is unreadable or has no overall)" : "COULD-NOT-RUN (the report'"'"'s overall is not a verdict line)") + "\nCOULD-NOT-RUN report"); process.exit(0); }
-              const ids = (Array.isArray(r.steps) ? r.steps : []).filter((x) => x && ["FAIL", "ERROR", "UNEXPECTED-PASS"].includes(x.status) && /^[A-Z][0-9]{2}$/.test(String(x.id))).map((x) => x.id);
-              const word = m[1].startsWith("UNEXPECTED-PASS") ? "UNEXPECTED-PASS" : m[1];
-              process.stdout.write(o + "\n" + [word, ids.join(","), m[3] ? "SKIPPED " + m[3] : ""].filter(Boolean).join(" "));
+              const bad = (why) => process.stdout.write(why + "\nCOULD-NOT-RUN report");
+              try {
+                let r = null; try { r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); } catch (e) { r = null; }
+                const o = r && typeof r === "object" ? r.overall : null;
+                const m = typeof o === "string" ? /^(PASS \(with expected failures\)|PASS|FAIL|UNEXPECTED-PASS \(retire the labels\))( — SKIPPED ([A-Z][0-9]{2}(,[A-Z][0-9]{2})*))?$/.exec(o) : null;
+                if (!m) { bad(o == null ? "COULD-NOT-RUN (the report is unreadable or has no overall)" : "COULD-NOT-RUN (the report'"'"'s overall is not a verdict line)"); process.exit(0); }
+                // Distinct step ids only, at most 12 named (a check name and the verdict job'"'"'s env stay small).
+                const ids = [...new Set((Array.isArray(r.steps) ? r.steps : []).filter((x) => x && typeof x === "object" && ["FAIL", "ERROR", "UNEXPECTED-PASS"].includes(x.status) && typeof x.id === "string" && /^[A-Z][0-9]{2}$/.test(x.id)).map((x) => x.id))];
+                const named = ids.length > 12 ? ids.slice(0, 12).join(",") + ",+" + (ids.length - 12) : ids.join(",");
+                const skipped = m[3] && m[3].length > 47 ? m[3].slice(0, 47).replace(/,[^,]*$/, "") + ",+more" : m[3];
+                const word = m[1].startsWith("UNEXPECTED-PASS") ? "UNEXPECTED-PASS" : m[1];
+                process.stdout.write(o + "\n" + [word, named, skipped ? "SKIPPED " + skipped : ""].filter(Boolean).join(" "));
+              } catch (e) { bad("COULD-NOT-RUN (the report could not be read: " + String(e && e.name).replace(/[^A-Za-z]/g, "") + ")"); }
             ' "$R")"
             v="${read_out%%$'\n'*}"; label="${read_out#*$'\n'}"
             case "$v" in PASS*) [ "$RUN_EXIT" = "0" ] || { v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished} after a report that read: $v)"; label="COULD-NOT-RUN run"; };; esac

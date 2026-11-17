@@ -46,8 +46,12 @@ export function checkPlainScalars(text) {
 }
 
 /** The advisory verdict check (wicked-ci #76): its own job, named from the run job's `label`, never a bare green. */
+const RUN_NAME = "${{ format('wicked-selftest {0} · {1}{2}', inputs.profile, inputs.under_test, inputs.advisory && ' · advisory run' || '') }}";
+
 export function checkVerdictJob(text) {
   const problems = [];
+  // The run check says it RAN (advisory) and keeps its blocking-mode name; the verdict lives in the verdict check.
+  if (!text.includes(`\n    name: ${RUN_NAME}\n`)) problems.push('the run job is not named as an advisory run');
   if (!/^      label: \$\{\{ steps\.verdict\.outputs\.label \}\}$/m.test(text)) problems.push('the run job does not export the verdict label');
   const at = text.search(/^  verdict:\s*$/m);
   if (at < 0) return [...problems, 'no `verdict` job (an advisory run would show only a green check over its verdict)'];
@@ -129,12 +133,21 @@ export function checkVerdictLabels(text, { first } = {}) {
       (o, r) => o.label === 'COULD-NOT-RUN report' && clean(o, r)],
     ['a runner command as a step id is dropped', { report: { overall: 'FAIL', steps: [{ id: '##[add-path]/tmp/x', status: 'FAIL' }, { id: 'U04', status: 'ERROR' }] } },
       (o, r) => o.label === 'FAIL U04' && clean(o, r)],
+    // Adversarial (a red advisory check): odd report shapes stay on the advisory path with a bounded label.
+    ['a non-string step id is ignored', { report: { overall: 'FAIL', steps: [{ id: { toString: null }, status: 'FAIL' }, { id: 'U04', status: 'FAIL' }] } },
+      (o) => o.label === 'FAIL U04'],
+    ['a huge report gives a short label', { report: { overall: `PASS (with expected failures) — SKIPPED ${Array.from({ length: 90 }, (_, i) => `U${String(i + 10).padStart(2, '0')}`).join(',')}`,
+      steps: [...Array.from({ length: 4000 }, () => ({ id: 'U04', status: 'FAIL' })), ...Array.from({ length: 30 }, (_, i) => ({ id: `S${String(i + 10)}`, status: 'ERROR' }))] } },
+      (o) => o.label.length <= 160 && o.label.startsWith('PASS (with expected failures) U04,S10,') && /,\+19 SKIPPED U10,.*,\+more$/.test(o.label)],
+    ['steps that are not a list are ignored', { report: { overall: 'FAIL', steps: { U04: 'FAIL' } } }, (o) => o.label === 'FAIL'],
     ['blocking mode fails the run job on a FAIL', { report: fail, advisory: 'false' }, (o, r) => r.status === 1 && o.label === 'FAIL U04'],
   ];
   for (const [what, opts, ok] of cases.slice(0, first ?? cases.length)) {
     const r = runVerdict(text, opts);
     if (r === null) return ['bash not found: the Verdict step was not exercised'];
-    if (!ok(r.outputs, r)) problems.push(`verdict: ${what}: got ${JSON.stringify({ status: r.status, ...r.outputs, lines: r.lines })}`);
+    // Advisory never fails the step (the run check stays green); every case writes both outputs.
+    const statusOk = (opts.advisory ?? 'true') === 'false' || r.status === 0;
+    if (!statusOk || !('label' in r.outputs) || !ok(r.outputs, r)) problems.push(`verdict: ${what}: got ${JSON.stringify({ status: r.status, ...r.outputs, lines: r.lines })}`);
   }
   return problems;
 }
@@ -157,6 +170,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (plain === text || checkPlainScalars(plain).length === 0) problems.push("the check did not catch a plain YAML name holding ': ' (mutation)");
   const dies = text.replace(/\n          echo "overall=\$v" >> "\$GITHUB_OUTPUT"\n/, '\n          false\n          echo "overall=$v" >> "$GITHUB_OUTPUT"\n');
   if (dies === text || checkVerdictLabels(dies, { first: 1 }).length === 0) problems.push('the harness did not run the step as Actions does (-e): a failing command went unseen (mutation)');
+  const redFallback = text.replace(/\n          echo "label=\$label" >> "\$GITHUB_OUTPUT"\n/, '\n          echo "label=$label" >> "$GITHUB_OUTPUT"\n          if [ "$label" = "COULD-NOT-RUN run" ]; then exit 1; fi\n');
+  if (redFallback === text || checkVerdictLabels(redFallback).length === 0) problems.push('the check did not catch an advisory fallback case failing the step (mutation)');
+  const oldRunName = text.replace("' · advisory run' || ''", "' (advisory)' || ''");
+  if (oldRunName === text || checkVerdictJob(oldRunName).length === 0) problems.push('the check did not catch the run job named as a verdict again (mutation)');
   const noLabels = text.replace(/\n          echo "label=\$label" >> "\$GITHUB_OUTPUT"\n/, '\n');
   if (checkVerdictLabels(noLabels, { first: 1 }).length === 0) problems.push('the check did not catch a Verdict step that writes no label (mutation)');
   if (problems.length) { console.error(`workflow selfcheck FAILED:\n  ${problems.join('\n  ')}`); process.exit(1); }

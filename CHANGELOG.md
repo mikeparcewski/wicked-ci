@@ -11,16 +11,20 @@
   job it reads `COULD-NOT-RUN (the run job wrote no verdict)`. Blocking mode (`advisory: false`) is unchanged and has
   no verdict job.
 - The check name (the new `label` output) is built from fixed words and step ids only (`FAIL U04`,
-  `PASS (with expected failures) SKIPPED U01`, `COULD-NOT-RUN pack`), so report text never reaches a check name.
+  `PASS (with expected failures) SKIPPED U01`, `COULD-NOT-RUN pack`), so report text never reaches a check name. It
+  names at most 12 distinct ids (`,+N` for the rest) and stays under 160 characters. A report of an unexpected shape
+  gives `COULD-NOT-RUN report`; it never fails the step.
 - The report's `overall` counts only when it is one of the runner's own verdict lines. A value with a newline or a
   runner command in it is `COULD-NOT-RUN (the report's overall is not a verdict line)`. Before, a newline in it could
   add a second output line.
-- `workflow-selfcheck.mjs` runs the shipped Verdict step with Actions' bash options (`-e -o pipefail`) against 14 fake
-  reports (FAIL U04, PASS, skipped and unexpected-pass lines, no report, an unreadable report, a PASS beside a failed
-  run, a setup or pack failure, newline and runner-command injections, blocking mode). It checks the verdict job's
-  exact name expression and flags a plain YAML value holding `: `. Mutations confirm it catches a missing verdict job,
-  a name that ignores the label, the plain-scalar name, a Verdict step that writes no label, and a failing command
-  in the step.
+- `workflow-selfcheck.mjs` runs the shipped Verdict step with Actions' bash options (`-e -o pipefail`) against 17 fake
+  reports: FAIL U04, PASS, skipped and unexpected-pass lines, no report, an unreadable report, a PASS beside a failed
+  run, a setup or pack failure, newline and runner-command injections, a non-string step id, steps that are not a
+  list, a huge report, and blocking mode. Every advisory case must exit 0 and write both outputs. It also checks the
+  exact name expressions of the run and verdict jobs and flags a plain YAML value holding `: `. Mutations confirm it
+  catches: a missing verdict job, a verdict name that ignores the label, the plain-scalar name, the run job named
+  `(advisory)` again, a Verdict step that writes no label, a failing command in the step, and an advisory fallback
+  case that fails the step.
 - Callers see it once they bump their pin (both places) to this commit or later.
 
 ### selftest — U04 reads the rules card's current choice (#77)
