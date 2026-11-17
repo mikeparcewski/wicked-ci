@@ -34,7 +34,8 @@
   the choice by its structured key (`data-choice-key="skip-rules"`) first, in a pass of its own, and falls back to
   either wording only for a keyless choice and only for the whole label. A `skip-rules` choice is never taken off the
   rules card or as another action, and a choice with another key is never taken as the rules skip. The picker is a
-  pure function (`pick_choice`) with unit tests (`selftest/journeys/test_u04_pick.py`, run in CI's `docs-lint` job's unit-test step).
+  pure function (`pick_choice`) with unit tests (`selftest/journeys/test_u04_pick.py`), run by the unit-test step of
+  CI's `docs-lint` job.
 
 ### selftest — the :7721 rig's fixtures adopted; npm publish workflow (prepared; the first publish is the operator's)
 
