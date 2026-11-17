@@ -60,8 +60,10 @@ jobs:
     with: { under_test: crew, wicked_ci_ref: <sha> }   # crew | studio | garden | core
 ```
 
-It is **advisory** by default: the job stays green and writes the suite's real verdict as a warning annotation, the job
-summary and the `overall` output, so a flake can't block a merge while the flake rate is measured. `advisory: false`
+It is **advisory** by default: the run job (`… · advisory run`) stays green and writes the suite's real verdict as a
+warning annotation, the job summary and the `overall` output, and a second check carries the verdict in its name
+(`wicked-selftest pr · core: FAIL U04 (advisory, not blocking)`), so a flake can't block a merge while the flake rate
+is measured and a FAIL never shows as a bare green. `advisory: false`
 makes a failure fail the job; make the check required in the repo's ruleset at the same time. wicked-ci's own CI calls
 it with `head_ref: main` (the `main` set, Tier 1 and Tier 2), not advisory.
 

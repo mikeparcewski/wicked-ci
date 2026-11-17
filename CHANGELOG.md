@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### selftest — the advisory verdict is a check of its own, named by the verdict (#76)
+
+- An advisory `selftest.yml` run showed one green check over a FAIL, so reviewers read "selftest passed". The run job
+  is now named `wicked-selftest <profile> · <repo> · advisory run`, and a new `verdict` job carries the suite's verdict
+  in its check's name, for example `wicked-selftest pr · core: FAIL U04 (advisory, not blocking)`, with the failing
+  step ids from the report. It always succeeds, so advisory still never blocks a merge. With no verdict from the run
+  job it reads `COULD-NOT-RUN (the run job wrote no verdict)`. Blocking mode (`advisory: false`) is unchanged and has
+  no verdict job.
+- The check name (the new `label` output) is built from fixed words and step ids only (`FAIL U04`,
+  `PASS (with expected failures) SKIPPED U01`, `COULD-NOT-RUN pack`), so report text never reaches a check name. It
+  names at most 12 distinct ids (`,+N` for the rest) and stays under 160 characters. A report of an unexpected shape
+  gives `COULD-NOT-RUN report`; it never fails the step.
+- The report's `overall` counts only when it is one of the runner's own verdict lines. A value with a newline or a
+  runner command in it is `COULD-NOT-RUN (the report's overall is not a verdict line)`. Before, a newline in it could
+  add a second output line.
+- `workflow-selfcheck.mjs` runs the shipped Verdict step with Actions' bash options (`-e -o pipefail`) against 17 fake
+  reports: FAIL U04, PASS, skipped and unexpected-pass lines, no report, an unreadable report, a PASS beside a failed
+  run, a setup or pack failure, newline and runner-command injections, a non-string step id, steps that are not a
+  list, a huge report, and blocking mode. Every advisory case must exit 0 and write both outputs. It also checks the
+  exact name expressions of the run and verdict jobs and flags a plain YAML value holding `: `. Mutations confirm it
+  catches: a missing verdict job, a verdict name that ignores the label, the plain-scalar name, the run job named
+  `(advisory)` again, a Verdict step that writes no label, a failing command in the step, and an advisory fallback
+  case that fails the step.
+- Callers see it once they bump their pin (both places) to this commit or later.
+
 ### selftest — U04 reads the rules card's current choice (#77)
 
 - U04 stopped at "every_card_has_a_known_way_forward" on every run since studio's gate-action contract: the rules
@@ -9,7 +34,8 @@
   the choice by its structured key (`data-choice-key="skip-rules"`) first, in a pass of its own, and falls back to
   either wording only for a keyless choice and only for the whole label. A `skip-rules` choice is never taken off the
   rules card or as another action, and a choice with another key is never taken as the rules skip. The picker is a
-  pure function (`pick_choice`) with unit tests (`selftest/journeys/test_u04_pick.py`, run in CI's unit job).
+  pure function (`pick_choice`) with unit tests (`selftest/journeys/test_u04_pick.py`), run by the unit-test step of
+  CI's `docs-lint` job.
 
 ### selftest — the :7721 rig's fixtures adopted; npm publish workflow (prepared; the first publish is the operator's)
 
