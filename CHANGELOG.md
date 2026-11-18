@@ -6,7 +6,7 @@
 
 - #78 put the verdict in a check's name, but every check still concluded `success`, so merge state and anything else
   reading conclusions saw a FAIL as a pass. The verdict job now publishes a check run through the Checks API,
-  `wicked-selftest <profile> · <under_test> · advisory verdict`, on the pull request's head. Its conclusion is
+  `wicked-selftest <profile> · <under_test> · <os>[ · <suffix>] · advisory verdict`, on the pull request's head. Its conclusion is
   `success` only when the run job succeeded and its validated `overall` is PASS or PASS (with expected failures), and
   `neutral` otherwise (FAIL, UNEXPECTED-PASS, COULD-NOT-RUN, skipped steps, no verdict), and `neutral` whenever
   another tree than the PR's was tested (an explicit `head_ref`, or `pull_request_target`). Its title is the label;

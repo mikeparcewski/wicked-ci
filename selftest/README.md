@@ -63,7 +63,7 @@ jobs:
 
 It is **advisory** by default: the run job (`… · advisory run`) stays green and writes the suite's real verdict as a
 warning annotation, the job summary and the `overall` output. The verdict job then publishes a check run,
-`wicked-selftest pr · core · advisory verdict`, through the Checks API. Its **conclusion** is the verdict: `success`
+`wicked-selftest pr · core · ubuntu-latest · advisory verdict` (`<profile> · <under_test> · <os>[ · <suffix>]`), through the Checks API. Its **conclusion** is the verdict: `success`
 only for PASS (or PASS with expected failures) from a run job that succeeded, and `neutral` for everything else
 (FAIL, UNEXPECTED-PASS, COULD-NOT-RUN, a PASS with skipped steps, no verdict). Its title is the label (`FAIL U04`).
 Neutral never blocks a merge, so a flake can't while the flake rate is measured. Read the verdict from that check

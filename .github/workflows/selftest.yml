@@ -9,10 +9,10 @@
 #
 # ADVISORY by default (`advisory: true`): for the first runs on each repo the run job stays green whatever the suite
 # says, and the real verdict is written as a warning annotation, the job summary, the `overall` output and a CHECK RUN
-# of its own, `wicked-selftest <profile> · <under_test> · advisory verdict`, whose CONCLUSION is `success` only for a
-# PASS and `neutral` for anything else (FAIL, COULD-NOT-RUN, skipped steps, no verdict; wicked-ci #76). Neutral never
-# blocks a merge, so a flake can't while the flake rate is measured, and a failure never reads as a pass. Flip
-# `advisory: false` (and make the check required in the repo's ruleset) once it has earned it.
+# of its own, `wicked-selftest <profile> · <under_test> · <os>[ · <suffix>] · advisory verdict`, whose CONCLUSION is
+# `success` only for a PASS and `neutral` for anything else (FAIL, COULD-NOT-RUN, skipped steps, no verdict;
+# wicked-ci #76). Neutral never blocks a merge, so a flake can't while the flake rate is measured, and a failure never
+# reads as a pass. Flip `advisory: false` (and make the check required in the repo's ruleset) once it has earned it.
 #
 # Caller, in the product repo (pin the SHA, and pass the same SHA as wicked_ci_ref: a cross-repo call exposes no
 # job_workflow_sha, wicked-ci #30). The calling job must grant `checks: write` (a called workflow can only narrow its
