@@ -310,8 +310,9 @@ jobs:
           mkdir -p "$ST_REPORT"
           # The report is read defensively (a run killed mid-copy can leave it partial), and a passing report only
           # counts when the runner itself exited 0: a PASS report beside a failed exit is not a pass.
-          # `label` names the verdict check (wicked-ci #76). It is built from fixed words and step ids only, so report
-          # text never reaches a check name, an output line or a runner command.
+          # `label` is the verdict check run's title and the verdict job's display name (wicked-ci #76); the check run's
+          # CONCLUSION comes from `overall`. It is built from fixed words and step ids only, so report text never reaches
+          # a check name, an output line or a runner command.
           if [ -z "$PACK_EXIT" ] && [ "$SETUP_FAILED" = "true" ]; then v="COULD-NOT-RUN (a setup step failed before the pack; see the job's steps)"; label="COULD-NOT-RUN setup"
           elif [ "$PACK_EXIT" != "0" ]; then v="COULD-NOT-RUN (pack exited ${PACK_EXIT:-before it finished})"; label="COULD-NOT-RUN pack"
           elif [ ! -f "$R" ]; then v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished}, no report)"; label="COULD-NOT-RUN run"
@@ -369,7 +370,10 @@ jobs:
   verdict:
     needs: selftest
     if: ${{ !cancelled() && inputs.advisory }}
-    name: ${{ format('wicked-selftest {0} · {1} · publish the advisory verdict', inputs.profile, inputs.under_test) }}
+    # Display only (a checks list that shows names, e.g. `gh pr checks`, shows the label): nothing reads this name; the
+    # verdict is the check run's CONCLUSION below. Block scalar: the expression holds ': ', which a plain YAML value can't.
+    name: >-
+      ${{ format('wicked-selftest {0} · {1}: {2} (advisory, not blocking)', inputs.profile, inputs.under_test, needs.selftest.outputs.label || 'COULD-NOT-RUN (the run job wrote no verdict)') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -384,12 +388,17 @@ jobs:
           OVERALL: ${{ needs.selftest.outputs.overall }}
           LABEL: ${{ needs.selftest.outputs.label }}
           RUN_RESULT: ${{ needs.selftest.result }}
-          CHECK_NAME: ${{ format('wicked-selftest {0} · {1} · advisory verdict', inputs.profile, inputs.under_test) }}
+          # A verdict on the PR head only when the PR's own tree was tested: an explicit head_ref packs another tree, and
+          # pull_request_target checks out the BASE, so neither may conclude success on the head.
+          OWN_TREE: ${{ inputs.head_ref == '' && github.event_name != 'pull_request_target' }}
+          # One check identity per call: two calls on one commit (another OS, an artifact_suffix) never share a name, so a
+          # later PASS cannot hide an earlier FAIL.
+          CHECK_NAME: ${{ format('wicked-selftest {0} · {1} · {2}{3} · advisory verdict', inputs.profile, inputs.under_test, inputs.os, inputs.artifact_suffix != '' && format(' · {0}', inputs.artifact_suffix) || '') }}
           DETAILS_URL: ${{ format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}
         run: |
           set -euo pipefail
           conclusion=neutral
-          if [ "$RUN_RESULT" = success ]; then
+          if [ "$RUN_RESULT" = success ] && [ "$OWN_TREE" = true ]; then
             case "$OVERALL" in
               'PASS' | 'PASS (with expected failures)') conclusion=success ;;
             esac
@@ -399,10 +408,13 @@ jobs:
           # shellcheck disable=SC2016 # the single-quoted text is node's program, not shell
           CONCLUSION="$conclusion" node -e '
             const e = process.env;
-            const title = e.LABEL || "COULD-NOT-RUN (the run job wrote no verdict)";
+            const own = e.OWN_TREE === "true";
+            const title = (e.LABEL || "COULD-NOT-RUN (the run job wrote no verdict)") + (own ? "" : " (another tree was tested)");
             const summary = "Verdict: " + (e.OVERALL || "none (the run job wrote no verdict)") + "\n\nRun job: " + e.RUN_RESULT +
-              ". Advisory: a `neutral` conclusion is a verdict other than PASS and does not block the merge. The failing" +
-              " checks and the evidence are in the run job summary and its artifact.";
+              (own ? "" : ". The tested tree was not the tree of this pull request (an explicit head_ref, or pull_request_target), so this is not a verdict on this commit") +
+              ". Advisory: only a `success` conclusion is a suite PASS; `neutral` is any other verdict and does not block the" +
+              " merge (GitHub counts neutral as passing for merge state). The failing checks and the evidence are in the run" +
+              " job summary and its artifact.";
             process.stdout.write(JSON.stringify({ name: e.CHECK_NAME, head_sha: e.HEAD_SHA, status: "completed",
               conclusion: e.CONCLUSION, details_url: e.DETAILS_URL, output: { title, summary } }));
           ' > "$body"

@@ -8,16 +8,22 @@
   reading conclusions saw a FAIL as a pass. The verdict job now publishes a check run through the Checks API,
   `wicked-selftest <profile> · <under_test> · advisory verdict`, on the pull request's head. Its conclusion is
   `success` only when the run job succeeded and its validated `overall` is PASS or PASS (with expected failures), and
-  `neutral` otherwise (FAIL, UNEXPECTED-PASS, COULD-NOT-RUN, skipped steps, no verdict). Its title is the label. The
-  label-in-the-job-name expression is gone: the conclusion is the one mechanism, and nothing parses a name.
+  `neutral` otherwise (FAIL, UNEXPECTED-PASS, COULD-NOT-RUN, skipped steps, no verdict), and `neutral` whenever
+  another tree than the PR's was tested (an explicit `head_ref`, or `pull_request_target`). Its title is the label;
+  its name carries the OS (and `artifact_suffix`), so two calls on one commit never share a check. Nothing parses a
+  name: the verdict job keeps #78's label in its display name only for name-only checks lists. GitHub counts
+  `neutral` as passing for merge state, so readers take the verdict from this check's raw conclusion (only `success`
+  is a PASS).
 - `checks: write` is granted on the verdict job only (the workflow default stays `contents: read`), so **every caller
   must grant `checks: write` on the job that calls selftest.yml** (GitHub refuses to start the run otherwise).
   wicked-ci's own two callers do. If the check run cannot be published (a fork's read-only token), the verdict job
   fails, rather than leave a verdict nobody sees.
-- `workflow-selfcheck` runs the shipped publish step against a stub `gh` and asserts the conclusion it POSTs for nine
-  verdicts (including a label that disagrees with `overall`), and that a refused POST fails the job. Mutations: always
-  success, FAIL as success, the conclusion read from the label, no `checks: write`, the merge commit as head_sha, and
-  a swallowed publish failure, all caught.
+- `workflow-selfcheck` runs the shipped publish step against a stub `gh` and asserts the conclusion, name, title and
+  summary it POSTs for ten verdicts (including a label that disagrees with `overall`, and a PASS on another tree), and
+  that a refused POST fails the job with an `::error::`. The shipped env bindings are checked as text. Mutations
+  caught: always success, FAIL as success, the conclusion read from the label, a PASS on another tree as success, no
+  `checks: write`, the merge commit as head_sha, a swallowed publish failure, an error without its annotation, each
+  binding unbound, the label output dropped, a display name that ignores the label.
 
 ### selftest — the advisory verdict is a check of its own, named by the verdict (#76)
 

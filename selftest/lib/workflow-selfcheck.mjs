@@ -1,10 +1,10 @@
 // The PR-CI workflow's advisory contract, checked on its text (no YAML parser: the harness has no dependencies):
 // every step before the pack has an `id` (the `steps` context only lists steps with one, so a failed step without it
 // would be invisible to the pack's guard and the verdict) and `continue-on-error: ${{ inputs.advisory }}`, the pack
-// is skipped when any of them failed, and the verdict reads the same outcomes. Advisory mode also carries the verdict
-// in a check's NAME (wicked-ci #76): the shipped Verdict step is run against fake reports and the `verdict` job must
-// name itself from the label it writes. Skipped when the workflow is not beside the harness (an npm install of the
-// suite).
+// is skipped when any of them failed, and the verdict reads the same outcomes. Advisory mode publishes the verdict as
+// a check run whose CONCLUSION is the verdict (wicked-ci #76): the shipped Verdict step is run against fake reports
+// (its label), and the shipped publish step against a stub `gh`, asserting the conclusion, title, name and summary it
+// POSTs. Skipped when the workflow is not beside the harness (an npm install of the suite).
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -55,11 +55,23 @@ function verdictJobText(text) {
   return rest.slice(0, end < 0 ? undefined : end).join('\n');
 }
 
+/** The verdict job's DISPLAY name (#78; nothing reads it): the label, for checks lists that show only names. */
+const VERDICT_NAME = "${{ format('wicked-selftest {0} · {1}: {2} (advisory, not blocking)', inputs.profile, inputs.under_test, needs.selftest.outputs.label || 'COULD-NOT-RUN (the run job wrote no verdict)') }}";
+/** The shipped bindings the publish step reads (the harness supplies its own values, so each is checked as text). */
+const BINDINGS = [
+  ['LABEL', '${{ needs.selftest.outputs.label }}'],
+  ['OWN_TREE', "${{ inputs.head_ref == '' && github.event_name != 'pull_request_target' }}"],
+  ['CHECK_NAME', "${{ format('wicked-selftest {0} · {1} · {2}{3} · advisory verdict', inputs.profile, inputs.under_test, inputs.os, inputs.artifact_suffix != '' && format(' · {0}', inputs.artifact_suffix) || '') }}"],
+  ['GH_TOKEN', '${{ github.token }}'],
+  ['REPO', '${{ github.repository }}'],
+];
+
 export function checkVerdictJob(text) {
   const problems = [];
   // The run check says it RAN (advisory) and keeps its blocking-mode name; the verdict is the verdict check run.
   if (!text.includes(`\n    name: ${RUN_NAME}\n`)) problems.push('the run job is not named as an advisory run');
   if (!/^      overall: \$\{\{ steps\.verdict\.outputs\.overall \}\}$/m.test(text)) problems.push('the run job does not export the verdict');
+  if (!/^      label: \$\{\{ steps\.verdict\.outputs\.label \}\}$/m.test(text)) problems.push('the run job does not export the verdict label');
   const job = verdictJobText(text);
   if (job === null) return [...problems, 'no `verdict` job (an advisory run would show only a green check over its verdict)'];
   if (!/^    needs: selftest$/m.test(job)) problems.push('the verdict job does not need the run job');
@@ -69,6 +81,9 @@ export function checkVerdictJob(text) {
   if (!/^          OVERALL: \$\{\{ needs\.selftest\.outputs\.overall \}\}$/m.test(job)) problems.push('the verdict is not read from the run job\'s validated overall');
   if (!/^          RUN_RESULT: \$\{\{ needs\.selftest\.result \}\}$/m.test(job)) problems.push('the verdict ignores the run job\'s result');
   if (!/^          HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m.test(job)) problems.push('the check run is not attached to the pull request head');
+  for (const [k, v] of BINDINGS) if (!job.includes(`\n          ${k}: ${v}\n`)) problems.push(`the publish step's ${k} is not bound to ${v}`);
+  const name = (job.match(/^    name: >-\n      (.*)$/m) ?? [])[1] ?? '';
+  if (name !== VERDICT_NAME) problems.push(`the verdict job's display name is not the label: ${name || '(no block-scalar name)'}`);
   return problems;
 }
 
@@ -85,7 +100,7 @@ export function publishScript(text) {
 }
 
 /** Run the shipped publish step with a stub `gh` that records the POSTed body; returns { status, body, args, stdout }. */
-export function runPublish(text, { overall = '', label = '', runResult = 'success', headSha = 'abc123', ghFails = false }) {
+export function runPublish(text, { overall = '', label = '', runResult = 'success', headSha = 'abc123', ghFails = false, ownTree = 'true' }) {
   const script = publishScript(text);
   if (!script) throw new Error('no publish step script');
   const dir = mkdtempSync(join(tmpdir(), 'wst-publish-'));
@@ -100,7 +115,7 @@ export function runPublish(text, { overall = '', label = '', runResult = 'succes
     const env = { ...process.env, PATH: `${bin}${sep}${dirname(process.execPath)}${sep}${process.env.PATH ?? ''}`,
       GH_TOKEN: 'x', REPO: 'o/r', HEAD_SHA: headSha, OVERALL: overall, LABEL: label, RUN_RESULT: runResult,
       CHECK_NAME: 'wicked-selftest pr · core · advisory verdict', DETAILS_URL: 'https://example.invalid/run', RUNNER_TEMP: dir,
-      GH_FAILS: ghFails ? '1' : '0' };
+      GH_FAILS: ghFails ? '1' : '0', OWN_TREE: ownTree };
     const r = spawnSync('bash', ['--noprofile', '--norc', '-e', '-o', 'pipefail', '-c', script], { env, encoding: 'utf8' });
     if (r.error && r.error.code === 'ENOENT') return null;
     const body = existsSync(rec) ? JSON.parse(readFileSync(rec, 'utf8')) : null;
@@ -123,6 +138,7 @@ export function checkVerdictConclusions(text) {
     ['no verdict (run job died)', { overall: '', label: '', runResult: 'failure' }, 'neutral'],
     ['PASS but the run job failed', { overall: 'PASS', label: 'PASS', runResult: 'failure' }, 'neutral'],
     ['label and verdict disagree', { overall: 'FAIL', label: 'PASS' }, 'neutral'],
+    ['PASS on another tree (head_ref / pull_request_target)', { overall: 'PASS', label: 'PASS', ownTree: 'false' }, 'neutral'],
   ];
   for (const [what, opts, want] of cases) {
     const r = runPublish(text, opts);
@@ -132,10 +148,13 @@ export function checkVerdictConclusions(text) {
     if (r.body.conclusion !== want) problems.push(`${what}: concluded ${r.body.conclusion}, expected ${want}`);
     if (r.body.status !== 'completed' || r.body.head_sha !== 'abc123') problems.push(`${what}: the check run is not completed on the head sha`);
     if (!/^api -X POST repos\/o\/r\/check-runs --input /.test(r.args)) problems.push(`${what}: not a POST to the Checks API (${r.args})`);
-    if (r.body.output?.title !== (opts.label || 'COULD-NOT-RUN (the run job wrote no verdict)')) problems.push(`${what}: the title is not the run job's label`);
+    const title = (opts.label || 'COULD-NOT-RUN (the run job wrote no verdict)') + (opts.ownTree === 'false' ? ' (another tree was tested)' : '');
+    if (r.body.output?.title !== title) problems.push(`${what}: the title is not the run job's label (${r.body.output?.title})`);
+    if (r.body.name !== 'wicked-selftest pr · core · advisory verdict') problems.push(`${what}: the check run is not posted under CHECK_NAME`);
+    if (!String(r.body.output?.summary ?? '').startsWith(`Verdict: ${opts.overall || 'none (the run job wrote no verdict)'}\n`)) problems.push(`${what}: the summary does not lead with the verdict line`);
   }
   const denied = runPublish(text, { overall: 'FAIL', label: 'FAIL U04', ghFails: true });
-  if (denied && (denied.status === 0 || !/checks: write/.test(denied.stdout))) problems.push('a check run that could not be published did not fail the job naming checks: write');
+  if (denied && (denied.status === 0 || !/^::error::.*checks: write/m.test(denied.stdout))) problems.push('a check run that could not be published did not fail the job with an ::error:: naming checks: write');
   return problems;
 }
 
@@ -248,6 +267,18 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (mergeSha === text || checkVerdictJob(mergeSha).length === 0) problems.push('the check did not catch the check run attached to the merge commit (mutation)');
   const swallowed = text.replace(/\n            exit 1\n          fi\n          echo "wicked-selftest \(advisory\)/, '\n          fi\n          echo "wicked-selftest (advisory)');
   if (swallowed === text || checkVerdictConclusions(swallowed).length === 0) problems.push('the check did not catch a publish failure that leaves the job green (mutation)');
+  const noOwnTree = text.replace('if [ "$RUN_RESULT" = success ] && [ "$OWN_TREE" = true ]; then', 'if [ "$RUN_RESULT" = success ]; then');
+  if (noOwnTree === text || checkVerdictConclusions(noOwnTree).length === 0) problems.push('the check did not catch a PASS on another tree concluding success (mutation)');
+  for (const [k] of BINDINGS) {
+    const unbound = text.replace(new RegExp(`\\n          ${k}: [^\\n]*\\n`), '\n');
+    if (unbound === text || checkVerdictJob(unbound).length === 0) problems.push(`the check did not catch the publish step's ${k} unbound (mutation)`);
+  }
+  const noLabelOut = text.replace(/\n      label: \$\{\{ steps\.verdict\.outputs\.label \}\}\n/, '\n');
+  if (noLabelOut === text || checkVerdictJob(noLabelOut).length === 0) problems.push('the check did not catch the run job not exporting the label (mutation)');
+  const noAnnotation = text.replace('echo "::error::could not publish', 'echo "could not publish');
+  if (noAnnotation === text || checkVerdictConclusions(noAnnotation).length === 0) problems.push('the check did not catch a publish failure without an ::error:: annotation (mutation)');
+  const unusedLabel = text.replace("· {1}: {2} (advisory, not blocking)', inputs.profile", "· {1}: PASS (advisory, not blocking)', inputs.profile");
+  if (unusedLabel === text || checkVerdictJob(unusedLabel).length === 0) problems.push('the check did not catch a display name that ignores the label (mutation)');
   const plain = text + "\n    name: ${{ format('a: {0}', inputs.profile) }}\n";
   if (checkPlainScalars(plain).length === 0) problems.push("the check did not catch a plain YAML name holding ': ' (mutation)");
   const dies = text.replace(/\n          echo "overall=\$v" >> "\$GITHUB_OUTPUT"\n/, '\n          false\n          echo "overall=$v" >> "$GITHUB_OUTPUT"\n');

@@ -66,8 +66,12 @@ warning annotation, the job summary and the `overall` output. The verdict job th
 `wicked-selftest pr · core · advisory verdict`, through the Checks API. Its **conclusion** is the verdict: `success`
 only for PASS (or PASS with expected failures) from a run job that succeeded, and `neutral` for everything else
 (FAIL, UNEXPECTED-PASS, COULD-NOT-RUN, a PASS with skipped steps, no verdict). Its title is the label (`FAIL U04`).
-Neutral never blocks a merge, so a flake can't while the flake rate is measured, and anything reading conclusions
-(merge state, a CI summary) sees a FAIL as not-a-pass. The calling job must grant `checks: write` (a called workflow
+Neutral never blocks a merge, so a flake can't while the flake rate is measured. Read the verdict from that check
+run's **raw conclusion**: only `success` is a suite PASS. GitHub counts `neutral` as passing for merge state and
+required checks, so a PR whose verdict is FAIL still reads mergeable (CLEAN); a CI summary must report `neutral` as
+"not a pass", not fold it into green. The check run is `success` only when the PR's own tree was tested (no
+`head_ref`, not `pull_request_target`), and its name carries the OS (and `artifact_suffix`), so two calls on one
+commit never share a check. The verdict job's display name repeats the label for name-only checks lists. The calling job must grant `checks: write` (a called workflow
 can only narrow its caller's token); without it GitHub refuses to start the run, and a token that cannot write checks
 (a fork's) fails the verdict job instead of hiding the verdict. `advisory: false`
 makes a failure fail the job; make the check required in the repo's ruleset at the same time. wicked-ci's own CI calls
