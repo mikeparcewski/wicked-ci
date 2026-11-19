@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### selftest — the gh shim answers crew's PR-checks watch
+
+- crew 0.18.18's release smoke (run 44613692353) failed S04 and S11 on both OSes: crew#1624's deliver now watches the
+  PR's required checks, and the `gh` shim answered every `gh pr` subcommand with a PR URL, so the watch read non-JSON,
+  the deliver script said `checks_unknown`, and the run parked at the deliver-refusal gate. The shim now answers
+  `pr checks` with one passing required check (an empty list would wait out the watch's grace), `pr view -q .baseRefName`
+  with `main`, and the base branch's rules (`[]`) and protection (`{}`) reads. selfcheck covers the four answers and
+  fails on the previous shim. No bar is lowered.
+
 ### selftest — the advisory verdict is a check of its own, named by the verdict (#76)
 
 - An advisory `selftest.yml` run showed one green check over a FAIL, so reviewers read "selftest passed". The run job
