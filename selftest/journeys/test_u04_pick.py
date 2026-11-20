@@ -90,6 +90,12 @@ class DecisionMatches(unittest.TestCase):
             with self.subTest(body=body):
                 self.assertFalse(u04.decision_matches(body, "skip_qe", NOTE))
 
+    def test_a_plain_judgment_carries_no_note(self):
+        self.assertTrue(u04.decision_matches({"approve": True}, "operator_judgment", None))
+        self.assertTrue(u04.decision_matches({"approve": True, "action": "operator_judgment"}, "operator_judgment", None))
+        self.assertFalse(u04.decision_matches({"approve": True, "amend": NOTE}, "operator_judgment", None))
+        self.assertFalse(u04.decision_matches({"approve": False}, "operator_judgment", None))
+
     def test_judgment_requires_approval_a_judgment_action_and_exact_note(self):
         for action in (None, "approve", "operator_judgment"):
             with self.subTest(action=action):
@@ -159,6 +165,12 @@ class SteerNote(unittest.TestCase):
         elements = {"session-gate-choice": choices, "session-gate-row": row, "session-gate-note": note}
         j.page.get_by_test_id.side_effect = lambda tid: elements.get(tid, empty)
         return j, note
+
+    def test_a_plain_judgment_without_a_note_box_is_sent_without_a_note(self):
+        j, note = self.journey("Approve as your own judgment", "approve", "No helper could check this step independently")
+        note.count.return_value = 0
+        u04.steer(j, "run-123")
+        self.assertFalse(any(call.args[:2] == ("decision_note_field_driven", False) for call in j.check.call_args_list))
 
     def test_a_required_note_that_cannot_be_driven_fails_before_sending(self):
         for label, key, card in (("Skip QE", "skip-qe", OTHER_CARD),

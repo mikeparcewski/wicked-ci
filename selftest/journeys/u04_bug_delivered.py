@@ -154,6 +154,8 @@ def decision_matches(body, kind, note):
     if kind == "skip_qe":
         return body.get("action") == "skip_qe" and body.get("amend") == note
     if kind == "operator_judgment":
+        # The plain "Approve as your own judgment" takes no note (the gate lists it as optional): note None means no
+        # note was typed, so none may ride the request either.
         return (body.get("approve") is True and body.get("action") in (None, "approve", "operator_judgment")
                 and body.get("amend") == note)
     return body.get("approve") is True
@@ -226,17 +228,25 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
         pick.click()
         p.wait_for_timeout(800)
         note = "Hermetic self-test (U04): stub seats; no distinct judge or QE ledger exists here. This proves the governed path and delivery, not the fix."
-        if JUDGMENT.search(label) or QE_SKIP.search(label) or rules_pick:
+        # The reason is REQUIRED for a rules skip and a QE skip (the gate's note is `required`): the box must be driven.
+        # The plain "Approve as your own judgment" (key approve) carries no note box (the note is optional there); the
+        # noted variants (keys steer, operator-judgment) require it. When a box is offered it is filled and must ride.
+        sent_note = None
+        if QE_SKIP.search(label) or rules_pick or JUDGMENT.search(label):
             box = p.get_by_test_id("session-gate-note").last
-            try:
-                if not (box.count() and box.is_visible() and box.is_enabled() and box.is_editable()):
-                    j.check("decision_note_field_driven", False, choice=label, reason="note field is not visible and fillable")
+            shown = box.count() > 0 and box.is_visible()
+            needs_note = QE_SKIP.search(label) or rules_pick or pick.get_attribute("data-choice-key") in ("operator-judgment", "steer")
+            if shown or needs_note:
+                try:
+                    if not (shown and box.is_enabled() and box.is_editable()):
+                        j.check("decision_note_field_driven", False, choice=label, reason="note field is not visible and fillable")
+                        return
+                    box.fill(note)
+                except Exception as e:
+                    j.check("decision_note_field_driven", False, choice=label, error=str(e)[:200])
                     return
-                box.fill(note)
-            except Exception as e:
-                j.check("decision_note_field_driven", False, choice=label, error=str(e)[:200])
-                return
-            j.check("decision_note_field_driven", True, choice=label)
+                sent_note = note
+                j.check("decision_note_field_driven", True, choice=label)
         for tid in ("session-proposal-go", "session-gate-send", "session-gate-confirm", "session-proposal-confirm-yes"):
             if tid == "session-proposal-confirm-yes":  # the deliver card's "Are you sure?": the person's yes
                 if not DELIVER.search(label):
@@ -258,7 +268,7 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
                 yes[0].click()
         # A decision is SENT only after the card's undo window (about 10 s); leaving the page earlier drops it. Wait for
         # the UI's own POST, and fail if it never goes out.
-        sent = gate_post_for(j, rid, sent_before, label, rules_pick, note)
+        sent = gate_post_for(j, rid, sent_before, label, rules_pick, sent_note)
         if not sent:
             j.check("each_decision_is_sent", False, choice=label, posts=j.rec["posts"][sent_before:])
             return
