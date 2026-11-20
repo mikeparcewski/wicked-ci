@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### selftest — U04 binds each answer to its gate request (#80)
+
+- A decision counts as sent only after a successful POST to that run's exact gate endpoint carries the chosen
+  action and typed note, including every skipped rule's reason. The driver records parsed write bodies alongside
+  the existing write log. Unrelated telemetry and another run's gate cannot count as the person's answer.
+- Judgment, QE skip and rules skip fail the journey if their note field cannot be driven. QE skip requires its
+  `skip-qe` choice key and specific wording; delivery matches labels starting with `Deliver` or `Open the PR` and
+  excludes skip and judgment keys. Browser-free regression tests cover choice selection, request binding and
+  unavailable note fields.
+
 ### selftest — the advisory verdict CONCLUDES the verdict: neutral unless PASS (#76, reopened)
 
 - #78 put the verdict in a check's name, but every check still concluded `success`, so merge state and anything else
