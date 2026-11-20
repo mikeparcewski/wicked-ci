@@ -8,17 +8,20 @@
 # run --set … --profile pr` runs the API steps and the studio journeys against one hermetic daemon with stub seats.
 #
 # ADVISORY by default (`advisory: true`): for the first runs on each repo the run job stays green whatever the suite
-# says, and the real verdict is written as a warning annotation, the job summary, the `overall` output and the NAME of
-# the `verdict` job's check ("… : FAIL U04 (advisory, not blocking)", wicked-ci #76). So a flake can't
-# block a merge while the flake rate is measured, and a failure is never hidden. Flip `advisory: false` (and make the
-# check required in the repo's ruleset) once it has earned it.
+# says, and the real verdict is written as a warning annotation, the job summary, the `overall` output and a CHECK RUN
+# of its own, `wicked-selftest <profile> · <under_test> · <os>[ · <suffix>] · advisory verdict`, whose CONCLUSION is
+# `success` only for a PASS and `neutral` for anything else (FAIL, COULD-NOT-RUN, skipped steps, no verdict;
+# wicked-ci #76). Neutral never blocks a merge, so a flake can't while the flake rate is measured, and a failure never
+# reads as a pass. Flip `advisory: false` (and make the check required in the repo's ruleset) once it has earned it.
 #
 # Caller, in the product repo (pin the SHA, and pass the same SHA as wicked_ci_ref: a cross-repo call exposes no
-# job_workflow_sha, wicked-ci #30):
+# job_workflow_sha, wicked-ci #30). The calling job must grant `checks: write` (a called workflow can only narrow its
+# caller's token; without it GitHub refuses to start the run):
 #
 #   on: { pull_request: { branches: [main] } }
 #   jobs:
 #     selftest:
+#       permissions: { contents: read, checks: write }
 #       uses: mikeparcewski/wicked-ci/.github/workflows/selftest.yml@<sha>
 #       with:
 #         under_test: crew            # crew | studio | garden | core
@@ -87,8 +90,8 @@ permissions:
 
 jobs:
   selftest:
-    # Advisory: this check says the suite RAN (it stays green whatever the suite says); the `verdict` job below carries
-    # the suite's verdict in its own check's name (wicked-ci #76).
+    # Advisory: this check says the suite RAN (it stays green whatever the suite says); the `verdict` job below
+    # publishes the suite's verdict as a check run whose conclusion is the verdict (wicked-ci #76).
     name: ${{ format('wicked-selftest {0} · {1}{2}', inputs.profile, inputs.under_test, inputs.advisory && ' · advisory run' || '') }}
     runs-on: ${{ inputs.os }}
     timeout-minutes: 60
@@ -307,8 +310,9 @@ jobs:
           mkdir -p "$ST_REPORT"
           # The report is read defensively (a run killed mid-copy can leave it partial), and a passing report only
           # counts when the runner itself exited 0: a PASS report beside a failed exit is not a pass.
-          # `label` names the verdict check (wicked-ci #76). It is built from fixed words and step ids only, so report
-          # text never reaches a check name, an output line or a runner command.
+          # `label` is the verdict check run's title and the verdict job's display name (wicked-ci #76); the check run's
+          # CONCLUSION comes from `overall`. It is built from fixed words and step ids only, so report text never reaches
+          # a check name, an output line or a runner command.
           if [ -z "$PACK_EXIT" ] && [ "$SETUP_FAILED" = "true" ]; then v="COULD-NOT-RUN (a setup step failed before the pack; see the job's steps)"; label="COULD-NOT-RUN setup"
           elif [ "$PACK_EXIT" != "0" ]; then v="COULD-NOT-RUN (pack exited ${PACK_EXIT:-before it finished})"; label="COULD-NOT-RUN pack"
           elif [ ! -f "$R" ]; then v="COULD-NOT-RUN (run exited ${RUN_EXIT:-before it finished}, no report)"; label="COULD-NOT-RUN run"
@@ -356,25 +360,67 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  # Advisory only: the suite's verdict as a check of its own, named by it (wicked-ci #76). A green check over a FAIL
-  # read as "selftest passed"; this one reads e.g. "wicked-selftest pr · core: FAIL U04 (advisory, not blocking)".
-  # It always succeeds (advisory never blocks a merge). With no label the run job died before its Verdict step, which
-  # is never a pass. Skipped when the workflow run is cancelled (a superseded push) and in blocking mode, where the
-  # run job's own conclusion is the verdict.
+  # Advisory only: the suite's verdict as a check run of its own, through the Checks API (wicked-ci #76). Its
+  # CONCLUSION is the verdict: `success` only when the run job succeeded and its validated `overall` is exactly PASS or
+  # PASS (with expected failures); `neutral` for everything else (FAIL, UNEXPECTED-PASS, COULD-NOT-RUN, a PASS with
+  # skipped steps, no verdict at all). The title is the run job's label. Neutral never blocks a merge. If the check run
+  # cannot be published (the caller did not grant `checks: write`, a fork's read-only token) this job FAILS: a verdict
+  # nobody can see must not look like a pass. Skipped when the workflow run is cancelled (a superseded push) and in
+  # blocking mode, where the run job's own conclusion is the verdict.
   verdict:
     needs: selftest
     if: ${{ !cancelled() && inputs.advisory }}
-    # Block scalar: the expression holds ': ', which a plain YAML value can't.
+    # Display only (a checks list that shows names, e.g. `gh pr checks`, shows the label): nothing reads this name; the
+    # verdict is the check run's CONCLUSION below. Block scalar: the expression holds ': ', which a plain YAML value can't.
     name: >-
       ${{ format('wicked-selftest {0} · {1}: {2} (advisory, not blocking)', inputs.profile, inputs.under_test, needs.selftest.outputs.label || 'COULD-NOT-RUN (the run job wrote no verdict)') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      checks: write # this job only: create the verdict check run
     steps:
-      - name: The verdict
+      - name: Publish the verdict as a check run (success only for a PASS)
         shell: bash
         env:
-          LABEL: ${{ needs.selftest.outputs.label || 'COULD-NOT-RUN (the run job wrote no verdict)' }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          OVERALL: ${{ needs.selftest.outputs.overall }}
+          LABEL: ${{ needs.selftest.outputs.label }}
           RUN_RESULT: ${{ needs.selftest.result }}
+          # A verdict on the PR head only when the PR's own tree was tested: an explicit head_ref packs another tree, and
+          # pull_request_target checks out the BASE, so neither may conclude success on the head.
+          OWN_TREE: ${{ inputs.head_ref == '' && github.event_name != 'pull_request_target' }}
+          # One check identity per call: two calls on one commit (another OS, an artifact_suffix) never share a name, so a
+          # later PASS cannot hide an earlier FAIL.
+          CHECK_NAME: ${{ format('wicked-selftest {0} · {1} · {2}{3} · advisory verdict', inputs.profile, inputs.under_test, inputs.os, inputs.artifact_suffix != '' && format(' · {0}', inputs.artifact_suffix) || '') }}
+          DETAILS_URL: ${{ format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}
         run: |
-          echo "wicked-selftest (advisory, not blocking): $LABEL (run job: $RUN_RESULT)"
-          echo "The full verdict, the failing checks and the evidence are in the run job's summary and its artifact."
+          set -euo pipefail
+          conclusion=neutral
+          if [ "$RUN_RESULT" = success ] && [ "$OWN_TREE" = true ]; then
+            case "$OVERALL" in
+              'PASS' | 'PASS (with expected failures)') conclusion=success ;;
+            esac
+          fi
+          body="$RUNNER_TEMP/verdict-check.json"
+          # node builds the JSON from the environment: no value is spliced into JSON or shell text.
+          # shellcheck disable=SC2016 # the single-quoted text is node's program, not shell
+          CONCLUSION="$conclusion" node -e '
+            const e = process.env;
+            const own = e.OWN_TREE === "true";
+            const title = (e.LABEL || "COULD-NOT-RUN (the run job wrote no verdict)") + (own ? "" : " (another tree was tested)");
+            const summary = "Verdict: " + (e.OVERALL || "none (the run job wrote no verdict)") + "\n\nRun job: " + e.RUN_RESULT +
+              (own ? "" : ". The tested tree was not the tree of this pull request (an explicit head_ref, or pull_request_target), so this is not a verdict on this commit") +
+              ". Advisory: only a `success` conclusion is a suite PASS; `neutral` is any other verdict and does not block the" +
+              " merge (GitHub counts neutral as passing for merge state). The failing checks and the evidence are in the run" +
+              " job summary and its artifact.";
+            process.stdout.write(JSON.stringify({ name: e.CHECK_NAME, head_sha: e.HEAD_SHA, status: "completed",
+              conclusion: e.CONCLUSION, details_url: e.DETAILS_URL, output: { title, summary } }));
+          ' > "$body"
+          if ! gh api -X POST "repos/${REPO}/check-runs" --input "$body" > "$RUNNER_TEMP/verdict-check.out" 2>&1; then
+            cat "$RUNNER_TEMP/verdict-check.out" || true
+            echo "::error::could not publish the advisory verdict as a check run. The job that calls wicked-ci's selftest.yml must grant 'checks: write' (permissions: { contents: read, checks: write }); a fork pull request's token cannot."
+            exit 1
+          fi
+          echo "wicked-selftest (advisory): ${LABEL:-no verdict} -> check run '${CHECK_NAME}' concluded ${conclusion} on ${HEAD_SHA}"
