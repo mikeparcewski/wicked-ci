@@ -27,6 +27,20 @@ for (const f of readdirSync(join(here, '..', 'shims')).filter((f) => f.endsWith(
   const r = spawnSync(process.execPath, ['--check', join(here, '..', 'shims', f)], { encoding: 'utf8' });
   if (r.status !== 0) throw new Error(`${f}: ${r.stderr}`);
 }
+// crew#1624's PR-checks watch reads these four gh answers; each must parse as the JSON it expects, and the check
+// list must hold one passing required check (an empty list waits out the watch's grace).
+{
+  const { spawnSync } = await import('node:child_process');
+  const gh = (...a) => spawnSync(process.execPath, [join(here, '..', 'shims', 'gh.mjs'), ...a], { encoding: 'utf8', env: { ...process.env, WICKED_SMOKE_SHIM_LOG: '' } }).stdout.trim();
+  const pr = 'https://example.invalid/wicked-smoke/corpus/pull/1';
+  const rows = JSON.parse(gh('pr', 'checks', pr, '--required', '--json', 'name,bucket,link,workflow'));
+  if (!Array.isArray(rows) || rows.length !== 1 || rows[0].bucket !== 'pass' || typeof rows[0].name !== 'string') throw new Error(`gh shim pr checks: ${JSON.stringify(rows)}`);
+  if (gh('pr', 'view', pr, '--json', 'baseRefName', '-q', '.baseRefName') !== 'main') throw new Error('gh shim pr view baseRefName');
+  if (!Array.isArray(JSON.parse(gh('api', 'repos/o/r/rules/branches/main', '--hostname', 'example.invalid')))) throw new Error('gh shim rules must be an array');
+  const info = JSON.parse(gh('api', 'repos/o/r/branches/main', '--hostname', 'example.invalid'));
+  if (info === null || typeof info !== 'object' || Array.isArray(info)) throw new Error('gh shim branch must be an object');
+  if (gh('api', 'user', '-q', '.login') !== 'smoke-bot') throw new Error('gh shim api user');
+}
 if (parseSteps('S01..S03').join(',') !== 'S01,S02,S03') throw new Error('parseSteps range');
 // Ranges are NUMERIC, ordered by the run order (S11 runs right after S04): no step is silently dropped.
 if (parseSteps('S01..S11').length !== ALL_STEPS.filter((x) => x[0] === 'S' && Number(x.slice(1)) <= 11).length || !parseSteps('S01..S11').includes('S10') || parseSteps('S01..S11').some((x) => x[0] !== 'S')) throw new Error(`parseSteps S01..S11: ${parseSteps('S01..S11')}`);
