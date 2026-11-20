@@ -12,14 +12,15 @@ A journey is `journeys/<journey>.py` defining `run(j)`. The driver hands it `j`,
   j.shot(label)            one screenshot at the current viewport
   j.wait(cond, s, what)    poll cond() up to s seconds; records what it waited for and how long
   j.log(...)
-It writes <out>/result.json: {ok, checks, page_errors, console_errors, bad_responses, writes, blocked, shots, waits,
+It writes <out>/result.json: {ok, checks, page_errors, console_errors, bad_responses, writes, posts, blocked, shots, waits,
 error}. Exit 0 only when the journey ran and every check passed.
 
 Boundary: the browser reaches the daemon's origin only. Every HTTP request and every WebSocket to any other origin is
 aborted and recorded (`blocked`), so a journey can't depend on the network and nothing leaves the hermetic root. A
 redirect hop the browser follows is seen as a new request; one that reached another origin is recorded (`escaped`),
 and the driver adds the check `stayed_on_origin` to every journey. The driver's own GETs refuse redirects. Every non-GET the UI sends
-to the daemon is recorded (`writes`): a journey proves what the PERSON's clicks sent, never what a script sent.
+to the daemon is recorded (`writes`, and `posts` with parsed JSON bodies): a journey proves what the PERSON's clicks
+sent, never what a script sent.
 """
 import importlib.util
 import json
@@ -67,7 +68,7 @@ def main(argv):
         return 2
     os.makedirs(out, exist_ok=True)
     rec = {"journey": journey, "ok": False, "checks": {}, "page_errors": [], "console_errors": [], "bad_responses": [],
-           "writes": [], "blocked": [], "escaped": [], "shots": [], "waits": [], "error": None,
+           "writes": [], "posts": [], "blocked": [], "escaped": [], "shots": [], "waits": [], "error": None,
            "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 
     def rel(url):
@@ -199,6 +200,12 @@ def main(argv):
                     rec["bad_responses"].append(f"{r.status} {m} {rel(r.url)}")
                 if m not in ("GET", "HEAD", "OPTIONS") and r.url.startswith(origin):
                     rec["writes"].append(f"{r.status} {m} {rel(r.url)}")
+                if m not in ("GET", "HEAD", "OPTIONS") and (r.url.startswith(origin + "/") or r.url == origin):
+                    try:
+                        body = json.loads(r.request.post_data)
+                    except (TypeError, ValueError):
+                        body = None
+                    rec["posts"].append({"status": r.status, "method": m, "url": rel(r.url), "body": body})
             pg.on("response", resp)
         watch(page)
         ctx.on("page", watch)

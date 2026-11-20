@@ -12,11 +12,12 @@ governed path and its UI, not a model's code.
 import re
 import subprocess
 import time
+from urllib.parse import urlsplit
 
 INTENT = "add() in src/add.js returns a - b; it should return the sum. Fix add() so test/add.test.js passes."
 # A card's choice, by what the card is for. Anything else is reported and fails the journey (never guessed).
 PLAN = re.compile(r"^approve( the)? plan|^approve$", re.I)
-DELIVER = re.compile(r"^deliver\b|open (the )?pr|push", re.I)
+DELIVER = re.compile(r"^deliver\b|^open (the )?pr", re.I)
 # "No helper could check this step independently": the hermetic team uses every live seat, so no distinct judge is
 # left (the J4 thin-roster case). A person's honest way forward is their own labelled judgment; it is recorded.
 JUDGMENT = re.compile(r"^approve as your own judg", re.I)
@@ -29,7 +30,7 @@ RULES = re.compile(r"^(confirm or )?skip (\d+ rules?|[A-Z][A-Z0-9]*(-[A-Z0-9]+)+
 RULES_KEY = "skip-rules"
 JUDGE_CARD = re.compile(r"no helper could check this step independently", re.I)
 RULES_CARD = re.compile(r"steering rules? needs? your call|the rule \S+ needs your call", re.I)
-QE_SKIP = re.compile(r"skip (qe|the acceptance|acceptance)|skip,? with a reason", re.I)
+QE_SKIP = re.compile(r"skip (qe|the acceptance|acceptance)", re.I)
 CONFIRM = re.compile(r"^yes\b|confirm|^deliver$|^push", re.I)
 
 
@@ -113,7 +114,8 @@ def pick_choice(card, choices):
     offered on other cards too (a failed repository floor offers "Approve as your own judgment"); the person takes it
     ONLY on the card that is about the missing judge or the unchecked rules. On the rules card the choice keyed
     skip-rules is taken first, in a pass of its own (#77). Then the wording: a choice keyed skip-rules is only ever
-    taken as the rules skip, and a choice with another key is never taken as one (the key wins over the text)."""
+    taken as the rules skip, and a choice with another key is never taken as one (the key wins over the text).
+    QE skip requires its skip-qe key and QE wording; delivery cannot use a skip or judgment key."""
     rules_card = bool(RULES_CARD.search(card))
     if rules_card:
         keyed = next((e for e, _, key in choices if key == RULES_KEY), None)
@@ -130,9 +132,52 @@ def pick_choice(card, choices):
                 continue
             if rx is RULES and key and key != RULES_KEY:
                 continue
+            if key == "skip-qe" and rx is not QE_SKIP:
+                continue
+            if rx is QE_SKIP and key != "skip-qe":
+                continue
+            if rx is DELIVER and key in (RULES_KEY, "skip-qe", "operator-judgment"):
+                continue
             if rx.search(text):
                 return e, rx is RULES
     return None, False
+
+
+def decision_matches(body, kind, note):
+    """Whether the gate body carries the person's chosen decision and the exact note they typed."""
+    if not isinstance(body, dict):
+        return False
+    if kind == "skip_rules":
+        rules = body.get("skipRules")
+        return (body.get("action") == "skip_rules" and isinstance(rules, list) and bool(rules)
+                and all(isinstance(rule, dict) and rule.get("reason") == note for rule in rules))
+    if kind == "skip_qe":
+        return body.get("action") == "skip_qe" and body.get("amend") == note
+    if kind == "operator_judgment":
+        # The plain "Approve as your own judgment" takes no note (the gate lists it as optional): note None means no
+        # note was typed, so none may ride the request either.
+        return (body.get("approve") is True and body.get("action") in (None, "approve", "operator_judgment")
+                and body.get("amend") == note)
+    return body.get("approve") is True
+
+
+def gate_post_for(j, rid, since, label, rules_pick, note):
+    """Wait for this answer's successful gate POST; other writes cannot stand in for a decision."""
+    if rules_pick:
+        kind = "skip_rules"
+    elif QE_SKIP.search(label):
+        kind = "skip_qe"
+    elif JUDGMENT.search(label):
+        kind = "operator_judgment"
+    else:
+        kind = "approve"
+
+    def sent_ok(post):
+        return (200 <= post["status"] < 300 and post["method"] == "POST"
+                and urlsplit(post["url"]).path == f"/api/v1/runs/{rid}/gate"
+                and decision_matches(post["body"], kind, note))
+
+    return j.wait(lambda: any(sent_ok(post) for post in j.rec["posts"][since:]), 30, f"the UI to send '{label}'")
 
 
 def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
@@ -179,13 +224,29 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
             return
         label = pick.inner_text().strip().split("\n")[0]
         j.shots(f"U04-card-{len(answered) + 1}")
-        sent_before = len(j.rec["writes"])
+        sent_before = len(j.rec["posts"])
         pick.click()
         p.wait_for_timeout(800)
-        if JUDGMENT.search(label) or QE_SKIP.search(label) or rules_pick:
+        note = "Hermetic self-test (U04): stub seats; no distinct judge or QE ledger exists here. This proves the governed path and delivery, not the fix."
+        # The reason is REQUIRED for a rules skip and a QE skip (the gate's note is `required`): the box must be driven.
+        # The plain "Approve as your own judgment" (key approve) carries no note box (the note is optional there); the
+        # noted variants (keys steer, operator-judgment) require it. When a box is offered it is filled and must ride.
+        sent_note = None
+        if QE_SKIP.search(label) or rules_pick or JUDGMENT.search(label):
             box = p.get_by_test_id("session-gate-note").last
-            if box.count() and box.is_visible():
-                box.fill("Hermetic self-test (U04): stub seats; no distinct judge or QE ledger exists here. This proves the governed path and delivery, not the fix.")
+            shown = box.count() > 0 and box.is_visible()
+            needs_note = QE_SKIP.search(label) or rules_pick or pick.get_attribute("data-choice-key") in ("operator-judgment", "steer")
+            if shown or needs_note:
+                try:
+                    if not (shown and box.is_enabled() and box.is_editable()):
+                        j.check("decision_note_field_driven", False, choice=label, reason="note field is not visible and fillable")
+                        return
+                    box.fill(note)
+                except Exception as e:
+                    j.check("decision_note_field_driven", False, choice=label, error=str(e)[:200])
+                    return
+                sent_note = note
+                j.check("decision_note_field_driven", True, choice=label)
         for tid in ("session-proposal-go", "session-gate-send", "session-gate-confirm", "session-proposal-confirm-yes"):
             if tid == "session-proposal-confirm-yes":  # the deliver card's "Are you sure?": the person's yes
                 if not DELIVER.search(label):
@@ -207,9 +268,9 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
                 yes[0].click()
         # A decision is SENT only after the card's undo window (about 10 s); leaving the page earlier drops it. Wait for
         # the UI's own POST, and fail if it never goes out.
-        sent = j.wait(lambda: any(re.match(r"2\d\d POST /api/v1/", w) for w in j.rec["writes"][sent_before:]), 30, f"the UI to send '{label}'")
+        sent = gate_post_for(j, rid, sent_before, label, rules_pick, sent_note)
         if not sent:
-            j.check("each_decision_is_sent", False, choice=label, writes=j.rec["writes"][sent_before:])
+            j.check("each_decision_is_sent", False, choice=label, posts=j.rec["posts"][sent_before:])
             return
         answered.append(label)
         if JUDGMENT.search(label) or rules_pick or QE_SKIP.search(label):
