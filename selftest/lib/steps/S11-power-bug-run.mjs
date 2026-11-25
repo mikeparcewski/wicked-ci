@@ -18,7 +18,7 @@ import { ISSUE_TEXT, branches } from '../corpus.mjs';
 import { gitTry } from '../proc.mjs';
 import { eventsOfType, phaseOf } from '../runs.mjs';
 import { JUDGE_SEAT_KEY } from '../shims.mjs';
-import { launchAndFollow, standInConsent, worktreeEvidence } from './S04-bug-run.mjs';
+import { checkStandInRecord, launchAndFollow, standInConsent, worktreeEvidence } from './S04-bug-run.mjs';
 
 export const id = 'S11';
 export const name = 'bug-run (power mode)';
@@ -165,7 +165,7 @@ export async function run(ctx, t) {
   t.evidence('roster-before-launch', roster.json);
   t.check(`the live seats are listed (claude, opencode, ${JUDGE_SEAT_KEY})`, live.length === 3, live.map((s) => s.key).join(',') || 'none');
 
-  // The stand-in choice (crew api-types 0.226.0): three live seats are short of a council, so a person consents on
+  // The stand-in choice (crew api-types 0.228.0): three live seats are short of a council, so a person consents on
   // the launch, as S04's followed runs do.
   const body = { problem: ISSUE_TEXT, workflow: 'bug', deliver: 'pr', repoRef: ctx.state.repoId ?? 'corpus', power: true, clisJson: JSON.stringify(live), ...standInConsent(caps) };
   // Same labelled QE skip as S04: the hermetic corpus has no QE ledger; this step proves the power
@@ -193,6 +193,7 @@ export async function run(ctx, t) {
   t.evidence('power-state', power);
 
   t.check('power run reached a terminal state within the budget', !pipe.timedOut && view !== null, `status ${session?.status} after ${pipe.gates.length} gate(s)${pipe.aborted ? ' (aborted at the step ceiling)' : ''}`, { evidence: evRun });
+  checkStandInRecord(t, 'power run', session, caps, evRun);
   t.check('the launch is a power run (session.power.on)', power?.on === true, `power: ${JSON.stringify(power ? { available: power.available, on: power.on, refusedReason: power.refusedReason } : null)}`, { evidence: evRun });
 
   const { ok: handedOff, orch, buildUnit, lastTurn } = orchestratorHandedOff(power, pipe.units);

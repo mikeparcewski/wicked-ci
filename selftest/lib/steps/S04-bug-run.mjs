@@ -10,6 +10,11 @@
 //    it (`nojudge`: the same mixed roster, every distinct judge dead) asserts the fail-closed gate —
 //    the run parks at `judge_unavailable` with deliver undispatched, and the harness cancels it.
 //
+//  STAND-IN CREWS (`capabilities.standIns`, api-types 0.228.0, wicked-crew#1888, DES-STANDIN-001): the mixed run
+//    (and S11) consent on the launch (`standIns: true`) and assert the recorded consent and stand-in labels; the
+//    `nojudge` and `default` launches send no consent and assert the up-front 409 refusal (no run created) instead
+//    of the runtime `judge_unavailable` gate, which is then asserted only on crews without the capability.
+//
 // Two halves, asserted on the wire:
 //  ROUTING (the mixed run): whole-phase plan units (F-090); the intake gate pauses the run; a human
 //    gate before the deliver push (F-E2E-030). Dead seats, by era:
@@ -112,25 +117,70 @@ const isJudgeUnavailableGate = (e) => e?.type === 'gateEscalated' && (e.conditio
 /** The engine that fails closed on a benched-out judge pool instead of skipping the judge. */
 const JUDGE_FAIL_CLOSED_CORE_TS = '0.7.40';
 /**
- * THE STAND-IN CHOICE (crew api-types 0.226.0, DES-STANDIN-001 §2, wicked-core#1843): a crew that advertises
- * `capabilities.standIns` asks before it launches on a roster short of an independent role. This roster has two
- * governed seats, so every bug launch is short of a council and monitors (§2.2) and, without consent, is refused
- * `409 stand_in_choice` before anything is created. The runs this harness follows consent the way a person does on
- * the launch (`standIns: true`, scope `job`); the no-judge arms below prove the refusal itself.
+ * THE STAND-IN CHOICE (crew api-types 0.228.0, DES-STANDIN-001 §2, wicked-core#1843, wicked-crew#1888): a crew that
+ * advertises `capabilities.standIns` asks before it launches on a roster short of an independent role. This roster
+ * has two governed seats, so every bug launch is short of a council and monitors (§2.2) and, without consent, is
+ * refused with a 409 before anything is created. The runs this harness follows consent the way a person does on the
+ * launch (`standIns: true`, scope `job`) and their recorded consent is checked (`checkStandInRecord`); the no-judge
+ * and default-roster arms prove the refusal itself (`refusedUpFront`).
  */
 export function standInConsent(caps) {
   return caps?.standIns === true ? { standIns: true } : {};
 }
-/** The launch a stand-in crew refuses up front (no consent): 409 `stand_in_choice` / `no_usable_helper`, no run. */
+const STAND_IN_STATES = new Set(['seated', 'answered', 'failed']);
+/**
+ * The refusal body as crew writes it (packages/crew/src/core/stand-in.ts `preflightRefusal`): `null` when it is
+ * one, else what is wrong. `stand_in_choice` = every short role a stand-in can fill, with `retryWith.standIns`;
+ * `no_usable_helper` = some short role no signed-in helper can fill (or none a stand-in can).
+ */
+export function refusalProblem(status, json) {
+  if (status !== 409) return `status ${status}, not 409`;
+  if (json === null || typeof json !== 'object' || Array.isArray(json)) return 'no JSON refusal body';
+  const code = json.code;
+  if (code !== 'stand_in_choice' && code !== 'no_usable_helper') return `code ${JSON.stringify(code)}`;
+  const p = json.preflight;
+  if (p === null || typeof p !== 'object') return 'no preflight';
+  if (p.short !== true) return `preflight.short ${JSON.stringify(p.short)}`;
+  if (!Array.isArray(p.signedIn) || !p.signedIn.every((k) => typeof k === 'string')) return 'preflight.signedIn is not a list of seats';
+  if (!Array.isArray(p.roles) || p.roles.length === 0) return 'preflight.roles is empty';
+  const bad = p.roles.find((r) => typeof r?.role !== 'string' || typeof r?.shortBy !== 'number' || typeof r?.canStandIn !== 'boolean');
+  if (bad) return `a malformed role row ${JSON.stringify(bad).slice(0, 120)}`;
+  const short = p.roles.filter((r) => r.shortBy > 0);
+  if (short.length === 0) return 'short, but no role is short';
+  const cannot = short.filter((r) => !r.canStandIn);
+  if (code === 'stand_in_choice') {
+    if (cannot.length > 0) return `stand_in_choice with roles no stand-in can fill: ${cannot.map((r) => r.role).join(', ')}`;
+    if (json.retryWith?.standIns !== true) return 'stand_in_choice without retryWith.standIns';
+  } else if (cannot.length === 0 && short.some((r) => r.canStandIn)) {
+    return 'no_usable_helper while every short role can take a stand-in';
+  }
+  return null;
+}
+/** The launch a stand-in crew refuses up front (no consent): a valid 409 refusal, no run. Returns the preflight. */
 export async function refusedUpFront(api, t, label, body) {
   const launch = await api.post('/runs', body);
-  const code = launch.json?.code ?? null;
-  const ev = t.evidence(`${label}-launch`, { request: body, status: launch.status, response: launch.json ?? launch.text });
-  t.check(`POST /runs 409 stand_in_choice or no_usable_helper (${label}, no consent; DES-STANDIN-001 §2)`, launch.status === 409 && (code === 'stand_in_choice' || code === 'no_usable_helper'), `status ${launch.status} ${String(launch.text ?? '').slice(0, 300)}`, { evidence: ev });
-  t.check(`nothing was created (${label}: no runId in the refusal)`, launch.json?.runId === undefined, `runId ${launch.json?.runId ?? 'none'}`, { evidence: ev });
-  const short = (launch.json?.preflight?.roles ?? []).filter((r) => r.shortBy > 0).map((r) => r.role);
-  t.info(`${label} preflight`, `short of: ${short.join(', ') || 'nothing named'}`);
-  return launch;
+  const json = launch.json ?? null;
+  const problem = refusalProblem(launch.status, json);
+  const ev = t.evidence(`${label}-launch`, { request: body, status: launch.status, response: json ?? launch.text });
+  t.check(`POST /runs is refused 409 stand_in_choice or no_usable_helper with the preflight that explains it (${label}, no consent; DES-STANDIN-001 §2)`, problem === null, problem === null ? `${json.code}` : `${problem}; ${String(launch.text ?? '').slice(0, 300)}`, { evidence: ev });
+  t.check(`nothing was created (${label}: a valid refusal with no runId)`, problem === null && json.runId === undefined, problem === null ? `runId ${json.runId ?? 'none'}` : `no valid refusal (${problem})`, { evidence: ev });
+  const p = problem === null ? json.preflight : null;
+  if (p) t.info(`${label} preflight`, `signed in: ${p.signedIn.join(', ') || 'none'}; short of: ${p.roles.filter((r) => r.shortBy > 0).map((r) => `${r.role}${r.canStandIn ? '' : ' (no stand-in)'}`).join(', ')}`);
+  return p;
+}
+/**
+ * A followed run on a stand-in crew records the person's launch consent (scope `job`, via `launch`, the server's
+ * `by` / `at`), is stand-in aware, and labels every stand-in it seated (its key is `<base>~<slot>`, wicked-core src/standin.rs `binding_key`; a role,
+ * a binding state). The receipt, gate and pull-request wording of a stand-in is crew's and core's tests' to prove.
+ */
+export function checkStandInRecord(t, label, session, caps, evidence) {
+  if (caps?.standIns !== true) return;
+  const a = session?.assurance ?? null;
+  const c = a?.standIn ?? null;
+  t.check(`${label}: the run records the launch consent (assurance.standInAware, standIn scope job via launch, by and at set)`, a?.standInAware === true && c?.scope === 'job' && c?.via === 'launch' && typeof c?.by === 'string' && c.by !== '' && Number.isFinite(c?.at), JSON.stringify({ standInAware: a?.standInAware ?? null, standIn: c }), { evidence });
+  const bindings = Array.isArray(a?.standIns) ? a.standIns : [];
+  const unlabelled = bindings.filter((b) => typeof b?.key !== 'string' || typeof b?.base !== 'string' || b.key !== `${b.base}~${b.slot}` || typeof b?.role !== 'string' || !STAND_IN_STATES.has(b?.state));
+  t.check(`${label}: every stand-in it seated is labelled on the record (key <base>~<slot>, role, state)`, Array.isArray(a?.standIns ?? []) && unlabelled.length === 0, `${bindings.length} stand-in(s)${bindings.length ? `: ${bindings.map((b) => `${b?.key}/${b?.role}/${b?.state}`).join(', ')}` : ''}${unlabelled.length ? `; unlabelled ${JSON.stringify(unlabelled).slice(0, 200)}` : ''}`, { evidence });
 }
 
 /**
@@ -347,7 +397,7 @@ export async function run(ctx, t) {
   // `default` arm below proves the other side: a run that does not opt in escalates.
   const optInCrew = Boolean(ctx.versions.crew && gte(ctx.versions.crew, OPENCODE_OPT_IN_CREW));
   const consent = standInConsent(caps);
-  t.info('stand-in choice', caps?.standIns === true ? 'capabilities.standIns: the followed runs send standIns: true (scope job); the no-judge arms prove the refusal without it' : 'no capabilities.standIns on this crew; nothing sent');
+  t.info('stand-in choice', caps?.standIns === true ? 'capabilities.standIns: the followed runs send standIns: true (scope job); the no-judge and default-roster arms prove the refusal without it' : 'no capabilities.standIns on this crew; nothing sent');
   const mixed = await launchAndFollow(ctx, api, t, 'mixed', optInCrew ? { ...base, ...consent, clisJson: JSON.stringify(seats) } : { ...base, ...consent });
   const tokenStillArmed = existsSync(failOnceToken);
   rmSync(failOnceToken, { force: true });
@@ -357,6 +407,7 @@ export async function run(ctx, t) {
   t.evidence('shim-calls-mixed', calls.map((c) => ({ shim: c.shim, kind: c.kind, cwd: c.cwd, argvHead: Array.isArray(c.argv) ? c.argv.slice(0, 3) : null, acp: c.acp ?? null })));
 
   t.check('mixed run reached a terminal state within the budget', !mixed.timedOut && mixed.view !== null, `status ${mixed.view?.session?.status} after ${mixed.gates.length} gate(s)${mixed.aborted ? ' (aborted at the step ceiling)' : ''}`);
+  checkStandInRecord(t, 'mixed run', mixed.view?.session ?? null, caps, t.evidence('stand-in-record-mixed', mixed.view?.session?.assurance ?? null));
   if (qeSkip) {
     const qe = mixed.view?.session?.assurance?.qe ?? null;
     t.check('QE acceptance: the run records the operator skip with its reason (skipped / operator)', qe?.status === 'skipped' && qe?.basis === 'operator' && String(qe?.reason ?? '').includes('hermetic corpus'), JSON.stringify(qe));
@@ -646,10 +697,15 @@ export async function run(ctx, t) {
     const judgeOnly = hostFloorBench ? 'opencode' : JUDGE_SEAT_KEY;
     const noJudgePool = rosterNow.filter((s) => s.key !== judgeOnly && s.key !== 'acp-smoke' && s.key !== 'chat-smoke');
     t.info('judge distinctness', `launching the bug run on ${noJudgePool.map((s) => s.key).join(', ')} (no ${judgeOnly}): the verify unit has no identity-distinct live judge`);
-    // A stand-in crew refuses this launch before anything is created (no consent): the up-front form of the same
-    // fail-closed rule. With consent it would seat a labelled stand-in judge instead (DES-STANDIN-001 §2.3).
+    // A stand-in crew refuses this launch before anything is created (no consent): the run never starts, so no
+    // gate can be skipped. Which refusal it is (`stand_in_choice` or `no_usable_helper`) depends on whether a
+    // signed-in seat may host a stand-in on this floor, so either is accepted when its body agrees with its own
+    // preflight (`refusalProblem`). The preflight's judge row is recorded, not asserted: the launch sees seats that
+    // only fail when called (codex 401, copilot quota) as judge candidates, so the judge shortage this arm makes is a
+    // runtime fact. The runtime judge_unavailable gate stays proved on crews without the capability, and by
+    // wicked-core's own judge tests.
     const nj = caps?.standIns === true
-      ? (await refusedUpFront(api, t, 'nojudge', { ...base, clisJson: JSON.stringify(noJudgePool) }), null)
+      ? await refusedUpFront(api, t, 'nojudge', { ...base, clisJson: JSON.stringify(noJudgePool) }).then((p) => { t.info('nojudge preflight judge row', JSON.stringify(p?.roles?.find((r) => r.role === 'judge') ?? null)); return null; })
       : await launchAndFollow(ctx, api, t, 'nojudge', { ...base, clisJson: JSON.stringify(noJudgePool) });
     if (nj) {
       const njFrames = nj.events.filter(isJudgeUnavailableGate);
@@ -678,8 +734,14 @@ export async function run(ctx, t) {
     const rosterNow = (await api.get('/roster')).json?.roster ?? [];
     const ocSeat = rosterNow.find((s) => s.key === 'opencode') ?? null;
     t.check('GET /roster marks opencode opt-in (optIn: true, "opt-in: known to stall") (crew >= 0.9.10)', ocSeat?.optIn === true && /known to stall/.test(String(ocSeat?.optInNote ?? '')), JSON.stringify({ optIn: ocSeat?.optIn ?? null, optInNote: ocSeat?.optInNote ?? null }));
+    // A stand-in crew refuses this launch up front; its preflight names the seats the default roster starts with, and
+    // opencode must not be one of them. (On the C5 host floor opencode is benched for governed work anyway, so there
+    // this reads the bench as much as the opt-in; the /roster optIn check above is the opt-in's own.)
     const df = caps?.standIns === true
-      ? (await refusedUpFront(api, t, 'default', base), null)
+      ? await refusedUpFront(api, t, 'default', base).then((p) => {
+        t.check('a run that does not opt opencode in: the refusal\'s preflight does not start opencode (preflight.signedIn)', p !== null && !p.signedIn.includes('opencode'), p ? `signedIn ${JSON.stringify(p.signedIn)}` : 'no valid preflight');
+        return null;
+      })
       : await launchAndFollow(ctx, api, t, 'default', base);
     if (df) {
       const dfGate = df.judgeUnavailableGate;
