@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### selftest — the stand-in record check says how many stand-ins it saw (wicked-core#1930 F8)
+
+- S04's roster is short only of conditional roles (a council, monitors), so its followed run usually seats no
+  stand-in, and "every stand-in it seated is labelled" passes on none. S04 and S11 now print an info line,
+  `<run> stand-ins seen`, after the check. It reads `none (...)` when the run seated none, and names the count and
+  each binding (`claude~1 (judge, answered)`) when it seated some. A pass on zero now reads as one. The live proof
+  that a seated stand-in is labelled stays with the J4 stand-in cert or wicked-ci#87.
+
 ### selftest — S04 and S11 answer crew's stand-in choice (wicked-core#1843)
 
 - A crew that advertises `capabilities.standIns` (api-types 0.228.0, wicked-crew#1888) refuses a launch on a roster
