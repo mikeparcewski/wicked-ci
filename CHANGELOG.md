@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### selftest — the stand-in record check says how many stand-ins it saw (wicked-core#1930 F8)
+
+- S04's roster is short only of conditional roles (a council, monitors), so its followed run usually seats no
+  stand-in, and "every stand-in it seated is labelled" passes on none. S04 and S11 now show a note,
+  `<run> stand-ins seen`, beside the verdict: on the console line and in the GitHub summary's notes column, not
+  only in report.json. The note reads one of:
+  - the count and each binding (`1: claude~1 (judge, answered)`);
+  - `none, so the label check passed on zero` (with where the live proof lives);
+  - `none on the record, and the label check failed`;
+  - `no record`.
+  A pass on zero now reads as one. The live proof that a seated stand-in is labelled stays with the J4 stand-in cert or
+  wicked-ci#87.
+- `StepTrace.disclose(name, detail)` is that kind of note: one the verdict shows beside a PASS. `info` stays in
+  report.json only.
+
 ### selftest — S04 and S11 answer crew's stand-in choice (wicked-core#1843)
 
 - A crew that advertises `capabilities.standIns` (api-types 0.228.0, wicked-crew#1888) refuses a launch on a roster
