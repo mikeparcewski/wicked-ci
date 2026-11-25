@@ -104,10 +104,18 @@ export function expectTarball(name, v, env) {
   return m.version;
 }
 
+/** What the core-ts pin installs inside crew: the engine, plus crew's own api-types pack when the set has one. The pin
+ *  builds crew's whole tree (npm resolves devDependencies even with --omit=dev), so crew's `^0.2xx` api-types range
+ *  resolves to the pack from crew's ref instead of the registry, which may not have it yet. */
+export function pinSpecs({ coreTs, crewApiTypes = null }) {
+  return [npmSpec('wicked-core-ts', coreTs), ...(crewApiTypes ? [crewApiTypes] : [])];
+}
+
 /** `npm install -g` the requested crew + bus into the prefix; optionally pin core-ts inside crew. */
-export function installNpm(L, env, { crew, bus, coreTs }, log) {
+export function installNpm(L, env, { crew, bus, coreTs, crewApiTypes = null }, log) {
   const npm = npmArgv();
   const want = { crew: expectTarball('wicked-crew', crew, env), bus: expectTarball('wicked-bus', bus, env), coreTs: expectTarball('wicked-core-ts', coreTs, env) };
+  if (crewApiTypes) expectTarball('wicked-crew-api-types', crewApiTypes, env);
   const specs = [npmSpec('wicked-crew', crew), npmSpec('wicked-bus', bus)];
   log(`install: ${specs.join(' ')} -> ${L.npm}`);
   const t0 = Date.now();
@@ -116,9 +124,10 @@ export function installNpm(L, env, { crew, bus, coreTs }, log) {
   log(`install: npm done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   if (coreTs && coreTs !== 'pinned' && coreTs !== 'latest') {
     const t = installedTree(L);
-    log(`install: pinning wicked-core-ts@${coreTs} inside ${t.crewDir}`);
-    const r2 = mustRun([...npm, 'install', '--prefix', t.crewDir, '--no-save', '--no-package-lock', '--omit=dev', '--no-fund', '--no-audit', '--loglevel=error', npmSpec('wicked-core-ts', coreTs)], { env, cwd: t.crewDir, timeoutMs: 600_000 });
-    appendFileSync(L.installLog, `$ npm install --prefix crew wicked-core-ts@${coreTs}\n${r2.stdout}\n${r2.stderr}\n`);
+    const pin = pinSpecs({ coreTs, crewApiTypes });
+    log(`install: pinning wicked-core-ts@${coreTs} inside ${t.crewDir}${crewApiTypes ? ` (with crew's api-types ${basename(crewApiTypes)})` : ''}`);
+    const r2 = mustRun([...npm, 'install', '--prefix', t.crewDir, '--no-save', '--no-package-lock', '--omit=dev', '--no-fund', '--no-audit', '--loglevel=error', ...pin], { env, cwd: t.crewDir, timeoutMs: 600_000 });
+    appendFileSync(L.installLog, `$ npm install --prefix crew ${pin.join(' ')}\n${r2.stdout}\n${r2.stderr}\n`);
   }
   const got = installedVersions(L);
   // What was installed IS the pack that was named (not a published copy npm resolved instead).

@@ -29,7 +29,7 @@ usage: wicked-selftest run [options]      (or: wicked-smoke [options])
   --core-ts <v|.tgz>      wicked-core-ts; "pinned" = whatever crew's range resolves (default: pinned)
   --bus <version|.tgz>    wicked-bus (default: latest)
   --garden <ref|path>     wicked-garden (default: latest)
-  --set <file.json>       a set file {crew, coreTs, bus, garden}; relative paths resolve against the file's
+  --set <file.json>       a set file {crew, coreTs, bus, garden, crewApiTypes?}; relative paths resolve against the file's
                           directory; flags given after it override its entries
   --profile <name>        smoke | pr | release | serve (default: smoke); not with --steps
   --steps <list>          e.g. S01,S02,S04 or S01..S06 or all (default: the smoke profile, ${DEFAULT_STEPS.join(',')})
@@ -123,6 +123,8 @@ export function parseArgs(argv) {
   if (!Number.isFinite(o.stepTimeout) || o.stepTimeout <= 0) throw new Error('--step-timeout must be a positive number of seconds');
   if (o.profile === null && !stepsGiven) o.profile = 'smoke';
   for (const k of ['crew', 'coreTs', 'bus', 'garden']) o[k] = resolveSource(o[k], process.cwd(), k);
+  // crew's api-types pack (a set key only: `pack` writes it beside crew) belongs to the set's crew.
+  o.crewApiTypes = o.crewApiTypes != null && o.setCrew === o.crew ? resolveSource(o.crewApiTypes, process.cwd(), 'crewApiTypes') : null;
   // A Tier 2 set's engine facts describe ITS engine pack: another --core-ts (given after --set) leaves them behind.
   if (o.setBuilt?.core && o.setCoreTs !== o.coreTs) { const { core, ...rest } = o.setBuilt; o.setBuilt = rest; }
   return o;
@@ -169,10 +171,13 @@ export function readSet(file) {
   const out = { setBuilt: d.built && typeof d.built === 'object' ? { ...d.built } : null };
   for (const [k, v] of Object.entries(d)) {
     if (k === '$comment' || k === 'built') continue;
-    if (!['crew', 'coreTs', 'bus', 'garden'].includes(k)) throw new Error(`--set ${file}: unknown key ${k} (crew, coreTs, bus, garden)`);
+    if (!['crew', 'coreTs', 'bus', 'garden', 'crewApiTypes'].includes(k)) throw new Error(`--set ${file}: unknown key ${k} (crew, coreTs, bus, garden, crewApiTypes)`);
+    // crew's api-types rides only as the pack `pack` wrote beside crew: a version would let npm fetch another copy.
+    if (k === 'crewApiTypes' && !isLocalSource(v)) throw new Error(`--set ${file}: crewApiTypes must be a pack path, not ${JSON.stringify(v)}`);
     try { out[k] = resolveSource(v, dirname(abs), k); } catch (err) { throw new Error(`--set ${file}: ${err.message}`); }
   }
   out.setCoreTs = out.coreTs ?? null;
+  out.setCrew = out.crew ?? null;
   return out;
 }
 

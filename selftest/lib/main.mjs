@@ -81,7 +81,7 @@ export async function runMain(argv) {
   let versions;
   let garden = { version: null, tag: null };
   try {
-    versions = installNpm(L, env, { crew: opts.crew, bus: opts.bus, coreTs: opts.coreTs }, log);
+    versions = installNpm(L, env, { crew: opts.crew, bus: opts.bus, coreTs: opts.coreTs, crewApiTypes: opts.crewApiTypes }, log);
     garden = await installGarden(L, env, opts.garden, log);
   } catch (err) {
     log(`install FAILED: ${err.message}`);

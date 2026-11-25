@@ -240,6 +240,17 @@ export async function packMain(argv) {
     if (!existsSync(join(crPkg, 'dist', 'studio', 'index.html'))) throw new Error('crew dist has no studio bundle');
     const tgzName = sh(npm('pack', '--silent', '--pack-destination', o.out), crPkg, env, { capture: true }).split('\n').pop();
     set.crew = tgzName;
+    // crew's own wire types (a workspace package crew names as a devDependency) from the SAME export, stamped like crew.
+    // A core-ts pin inside the installed crew builds crew's whole tree, dev edges included, so a crew whose api-types
+    // range is not on npm yet installs only beside this pack (install.mjs `pinSpecs`).
+    const atPkg = join(cr, 'packages', 'crew-api-types');
+    if (existsSync(join(atPkg, 'package.json'))) {
+      const ap = JSON.parse(readFileSync(join(atPkg, 'package.json'), 'utf8'));
+      ap.version = `${ap.version}+st.${f.sha.slice(0, 7)}`;
+      delete ap.scripts; // types only: nothing runs at pack or install
+      writeFileSync(join(atPkg, 'package.json'), `${JSON.stringify(ap, null, 2)}\n`);
+      set.crewApiTypes = sh(npm('pack', '--silent', '--pack-destination', o.out), atPkg, env, { capture: true }).split('\n').pop();
+    }
     set.built.crew = { sha: f.sha, dirty: f.dirty, version, studio: studioDist ? 'built from --studio-src' : "the studio crew's lockfile pins (build:with-studio)", note: note(f) };
   }
 
