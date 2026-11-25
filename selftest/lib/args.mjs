@@ -177,7 +177,10 @@ export function readSet(file) {
     try { out[k] = resolveSource(v, dirname(abs), k); } catch (err) { throw new Error(`--set ${file}: ${err.message}`); }
   }
   out.setCoreTs = out.coreTs ?? null;
-  out.setCrew = out.crew ?? null;
+  // crew and its api-types pack travel together: a set that names a crew replaces the types too (none = none), so a
+  // later --set can't pair its crew with an earlier set's types; a set without a crew leaves both as they were.
+  if (out.crewApiTypes !== undefined && out.crew === undefined) throw new Error(`--set ${file}: crewApiTypes needs the crew it was packed with in the same set`);
+  if (out.crew !== undefined) { out.setCrew = out.crew; out.crewApiTypes = out.crewApiTypes ?? null; }
   return out;
 }
 

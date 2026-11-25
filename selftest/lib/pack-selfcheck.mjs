@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { isInside, packMain } from './pack.mjs';
 import { parseArgs, readSet } from './args.mjs';
-import { expectTarball, tarballManifest } from './install.mjs';
+import { expectTarball, pinInsideCrew, tarballManifest } from './install.mjs';
 
 const ENV = { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_AUTHOR_NAME: 'selfcheck', GIT_AUTHOR_EMAIL: 'selfcheck@example.invalid', GIT_COMMITTER_NAME: 'selfcheck', GIT_COMMITTER_EMAIL: 'selfcheck@example.invalid' };
 function run(argv, cwd) {
@@ -127,6 +127,28 @@ try {
   if (run(['tar', '-xzOf', join(out4, s4.coreTs), 'package/wicked-core-ts.fixture-host.node'], base) !== 'core-fixture-binding') throw new Error('the core-ts pack does not carry the built binding');
   if (readSet(join(out4, 'set.json')).coreTs !== join(out4, s4.coreTs)) throw new Error('readSet of a Tier 2 set');
   if (expectTarball('wicked-core-ts', join(out4, s4.coreTs), ENV) !== cm.version) throw new Error('expectTarball of the core-ts pack');
+
+  // The pin itself, offline (wicked-ci job 139069995630): an installed crew whose devDependency names its own api-types
+  // range that no registry or cache has. Without the api-types pack the pin can't resolve the tree; with it, the pin
+  // installs the engine pack, omits the dev package and leaves crew's manifest as it was.
+  {
+    const crewDir = join(base, 'installed-crew');
+    mkdirSync(crewDir);
+    const manifest = JSON.stringify({ name: 'wicked-crew', version: '1.2.3', dependencies: { 'wicked-core-ts': '^0.15.0' }, devDependencies: { 'wicked-crew-api-types': '^0.228.0' } }, null, 2);
+    writeFileSync(join(crewDir, 'package.json'), manifest);
+    writeFileSync(join(base, 'user-npmrc'), '');
+    writeFileSync(join(base, 'global-npmrc'), '');
+    const off = { ...ENV, npm_config_offline: 'true', npm_config_cache: join(base, 'npm-cache'), npm_config_userconfig: join(base, 'user-npmrc'), npm_config_globalconfig: join(base, 'global-npmrc') };
+    const pin = { coreTs: join(out4, s4.coreTs), crewApiTypes: join(out, set.crewApiTypes) };
+    // It must fail for THIS reason (the dev edge cannot resolve), not for anything else in the setup.
+    let why = null; try { pinInsideCrew(crewDir, off, { coreTs: pin.coreTs }); } catch (err) { why = err.message; }
+    if (why === null || !/ENOTCACHED|ETARGET|notarget/.test(why) || !why.includes('wicked-crew-api-types')) throw new Error(`the pin without crew's api-types pack must fail resolving it (the check would be vacuous): ${why}`);
+    pinInsideCrew(crewDir, off, pin);
+    const core = JSON.parse(readFileSync(join(crewDir, 'node_modules', 'wicked-core-ts', 'package.json'), 'utf8'));
+    if (core.version !== cm.version) throw new Error(`the pin installed wicked-core-ts ${core.version}, not the pack's ${cm.version}`);
+    if (existsSync(join(crewDir, 'node_modules', 'wicked-crew-api-types'))) throw new Error('the pin installed the dev-only api-types (--omit=dev)');
+    if (readFileSync(join(crewDir, 'package.json'), 'utf8') !== manifest) throw new Error('the pin rewrote crew\'s package.json (--no-save)');
+  }
   if (run(['git', 'status', '--porcelain', '--untracked-files=normal'], core) !== '' || existsSync(join(core, 'crates', 'wicked-core-ts', 'node_modules'))) throw new Error('pack --core-src built inside the checkout');
 
   // Dirty trees: an untracked file is refused (exit 2, nothing written); --allow-dirty records it was left out.

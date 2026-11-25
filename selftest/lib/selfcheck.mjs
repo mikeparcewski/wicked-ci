@@ -592,5 +592,21 @@ if (process.platform !== 'win32') {
   if (parseArgs(['--set', setFile, '--crew', '0.18.21']).crewApiTypes !== null) throw new Error('a --crew after --set must drop the set\'s crew api-types pack');
   let threw = false; try { parseArgs(['--set', setFile, '--crew-api-types', '0.228.0']); } catch { threw = true; }
   if (!threw) throw new Error('crewApiTypes is a set key only (pack writes it), never a flag');
+  // Two sets: crew and its types travel together (codex r1 on wicked-ci#88).
+  writeFileSync(join(d, 'wicked-crew-2.0.0.tgz'), '');
+  const crewOnly = join(d, 'crew-only.json');
+  writeFileSync(crewOnly, JSON.stringify({ crew: 'wicked-crew-2.0.0.tgz' }));
+  if (parseArgs(['--set', setFile, '--set', crewOnly]).crewApiTypes !== null) throw new Error('a later set naming another crew must drop the earlier crew\'s api-types');
+  const gardenOnly = join(d, 'garden-only.json');
+  writeFileSync(gardenOnly, JSON.stringify({ garden: '12.0.0' }));
+  if (parseArgs(['--set', setFile, '--set', gardenOnly]).crewApiTypes !== o.crewApiTypes) throw new Error('a later set without a crew must keep the crew\'s api-types');
+  const typesOnly = join(d, 'types-only.json');
+  writeFileSync(typesOnly, JSON.stringify({ crewApiTypes: 'wicked-crew-api-types-0.228.0.tgz' }));
+  threw = false; try { parseArgs(['--set', setFile, '--set', typesOnly]); } catch { threw = true; }
+  if (!threw) throw new Error('a set with crewApiTypes and no crew must be refused');
+  const versionTypes = join(d, 'version-types.json');
+  writeFileSync(versionTypes, JSON.stringify({ crew: 'wicked-crew-1.0.0.tgz', crewApiTypes: '0.228.0' }));
+  threw = false; try { parseArgs(['--set', versionTypes]); } catch { threw = true; }
+  if (!threw) throw new Error('crewApiTypes must be a pack path, never a version');
 }
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);

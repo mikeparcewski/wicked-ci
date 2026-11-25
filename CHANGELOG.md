@@ -10,8 +10,12 @@
   `wicked-crew-api-types@^0.227.0` there, which npm did not have yet (0.224.0), so the pin failed ETARGET.
 - `pack --crew-src` now also packs `packages/crew-api-types` from the same export (stamped `+st.<sha7>` like crew) and
   writes it to set.json as `crewApiTypes`. `run --set` installs it in the same command as the core-ts pin, so crew's
-  range resolves to its own types. It is a set key only, and it is dropped when `--crew` names another crew. A crew
-  without that workspace package packs and installs as before.
+  range resolves to its own types. It is a set key only, and must be a pack path. It travels with its crew: a later
+  `--set` or `--crew` that names another crew drops it. A crew without that workspace package packs and installs as
+  before.
+- `pack-selfcheck` runs the pin itself offline. The installed crew names an api-types range that nothing can resolve.
+  The pin must fail resolving it without the pack, and with the pack it must install the engine pack, omit the dev
+  package, and leave crew's manifest as it was.
 
 ### selftest — S03's worktree check gets its own label, bound to core-ts 0.15.49 (F-E2E-012-WT)
 
