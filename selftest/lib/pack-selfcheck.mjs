@@ -40,7 +40,7 @@ try {
     'b.mjs': "import { mkdirSync, writeFileSync } from 'node:fs'; mkdirSync('dist', { recursive: true }); writeFileSync('dist/index.html', '<!-- studio-fixture-marker -->'); writeFileSync('dist/testid-inventory.json', '{\"studioVersion\":\"0.9.0\"}');\n",
   });
   const crewPkg = JSON.stringify({ name: 'wicked-crew', version: '1.2.3', files: ['dist'], scripts: { build: 'node build.mjs', 'build:with-studio': 'node build.mjs studio' } }, null, 2);
-  const crewSha = repo(crew, {
+  const crewFiles = {
     'package.json': JSON.stringify({ name: 'crew-root', private: true, workspaces: ['packages/crew', 'packages/crew-api-types'] }),
     'package-lock.json': JSON.stringify({ name: 'crew-root', lockfileVersion: 3, requires: true, packages: { '': { name: 'crew-root', workspaces: ['packages/crew', 'packages/crew-api-types'] }, 'node_modules/wicked-crew': { resolved: 'packages/crew', link: true }, 'node_modules/wicked-crew-api-types': { resolved: 'packages/crew-api-types', link: true }, 'packages/crew': { name: 'wicked-crew', version: '1.2.3' }, 'packages/crew-api-types': { name: 'wicked-crew-api-types', version: '0.228.0' } } }),
     'packages/crew/package.json': crewPkg,
@@ -48,7 +48,8 @@ try {
     'packages/crew-api-types/package.json': JSON.stringify({ name: 'wicked-crew-api-types', version: '0.228.0', types: './index.d.ts', files: ['index.d.ts'] }, null, 2),
     'packages/crew-api-types/index.d.ts': 'export type Fixture = 1;\n',
     'packages/crew/build.mjs': "import { mkdirSync, writeFileSync } from 'node:fs'; mkdirSync('dist/cli', { recursive: true }); writeFileSync('dist/cli/index.js', ''); if (process.argv[2] === 'studio') { mkdirSync('dist/studio', { recursive: true }); writeFileSync('dist/studio/index.html', '<!-- lockfile studio -->'); }\n",
-  });
+  };
+  const crewSha = repo(crew, crewFiles);
   const gardenSha = repo(garden, { '.claude-plugin/plugin.json': JSON.stringify({ name: 'wicked-garden', version: '12.0.0' }), 'README.md': 'g' });
 
   const out = join(base, 'out dir');  // a space in the output path (argument arrays, no shell)
@@ -150,6 +151,17 @@ try {
     if (readFileSync(join(crewDir, 'package.json'), 'utf8') !== manifest) throw new Error('the pin rewrote crew\'s package.json (--no-save)');
   }
   if (run(['git', 'status', '--porcelain', '--untracked-files=normal'], core) !== '' || existsSync(join(core, 'crates', 'wicked-core-ts', 'node_modules'))) throw new Error('pack --core-src built inside the checkout');
+
+  // An api-types package whose declared types file is not committed (it would come from a build this pack never runs)
+  // is refused, and no set is written (codex delta on wicked-ci#88).
+  {
+    const crewNoTypes = join(base, 'crew-no-types');
+    repo(crewNoTypes, { ...crewFiles, 'packages/crew-api-types/package.json': JSON.stringify({ name: 'wicked-crew-api-types', version: '0.228.0', types: './gen/index.d.ts', files: ['gen', 'index.d.ts'] }, null, 2) });
+    const outNoTypes = join(base, 'out-no-types');
+    let why = null;
+    try { await quiet(() => packMain(['--crew-src', crewNoTypes, '--out', outNoTypes])); } catch (err) { why = err.message; }
+    if (!/api-types pack has no package\/gen\/index\.d\.ts/.test(why ?? '') || existsSync(join(outNoTypes, 'set.json'))) throw new Error(`an api-types pack without its types file must be refused, with no set written: ${why}`);
+  }
 
   // Dirty trees: an untracked file is refused (exit 2, nothing written); --allow-dirty records it was left out.
   writeFileSync(join(garden, 'new-skill.md'), 'untracked');
