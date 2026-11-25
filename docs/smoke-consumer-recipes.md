@@ -158,8 +158,9 @@ ships. Keyed to the real fix versions: S05 (F-E2E-021, the bus WAL loop + its in
 #542); the S04 deliver-gate check (F-E2E-030) is EXPECTED-FAIL on core-ts `< 0.7.24` — the gate is the
 ENGINE's, and on crew ≥ 0.7.33 S04 also asserts `GET /health.capabilities.deliverGate` against the
 installed engine; the publish-warnings check in S02 (F-E2E-002), the seat-routing checks in S04
-(F-7R2-006 / F-7R3-001 — the F-SMOKE-002 residual, open on core-ts 0.7.24) and the branch/worktree
-debris check in S03 (F-E2E-012, retention by design) are open on every published version. When a fix
+(F-7R2-006 / F-7R3-001 — the F-SMOKE-002 residual, open on core-ts 0.7.24) and the branch debris
+check in S03 (F-E2E-012, retention by design) are open on every published version; S03's worktree check
+(F-E2E-012-WT) is EXPECTED-FAIL on core-ts `< 0.15.49` and must PASS from 0.15.49 (wicked-core#1851). When a fix
 ships, flip the rule; if the harness then still reports EXPECTED-FAIL on the fixed version, that is a
 bug in the rule, not the product. `--no-expect-fail` (harness) runs strict. Full table:
 [`selftest/README.md`](../selftest/README.md#the-expected-fail-labelling-rule).
