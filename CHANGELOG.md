@@ -9,12 +9,14 @@
   two-governed-seat roster is short of a council and monitors, so the advisory selftest on crew#1888 failed S04 at
   `POST /runs`. The runs S04 and S11 follow now send `standIns: true` on such a crew, as a person does on the launch,
   and check the run records that consent (`assurance.standInAware`, `standIn` scope `job` via `launch`) and labels
-  every stand-in it seated (`<base>~<slot>`, role, state).
+  every stand-in it seated (`<base>~<slot>`, a core role, a binding state; every unit on a stand-in seat has its
+  binding).
 - S04's no-judge and default-roster arms send no consent on such a crew and assert the up-front refusal instead: a 409
   whose body agrees with its own preflight (`stand_in_choice` with `retryWith.standIns` when every short role can
-  take a stand-in, `no_usable_helper` otherwise), and no run created. The default-roster refusal's preflight must not
-  start opencode. The runtime `judge_unavailable` gate is asserted only on a crew without the capability; on such a
-  crew every arm runs as before.
+  take a stand-in, with the four choices and words saying stand-ins are not independent reviews; `no_usable_helper`
+  otherwise), and nothing created (no `runId`, `GET /runs` unchanged, no seat turn). The default-roster refusal's
+  preflight must not start or bench opencode. The runtime `judge_unavailable` gate is asserted only on a crew
+  without the capability (a consented no-judge run is wicked-ci#87); on such a crew every arm runs as before.
 
 ### selftest — S03's worktree check gets its own label, bound to core-ts 0.15.49 (F-E2E-012-WT)
 

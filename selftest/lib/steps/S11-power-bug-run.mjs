@@ -193,7 +193,7 @@ export async function run(ctx, t) {
   t.evidence('power-state', power);
 
   t.check('power run reached a terminal state within the budget', !pipe.timedOut && view !== null, `status ${session?.status} after ${pipe.gates.length} gate(s)${pipe.aborted ? ' (aborted at the step ceiling)' : ''}`, { evidence: evRun });
-  checkStandInRecord(t, 'power run', session, caps, evRun);
+  checkStandInRecord(t, 'power run', session, caps, evRun, pipe.units);
   t.check('the launch is a power run (session.power.on)', power?.on === true, `power: ${JSON.stringify(power ? { available: power.available, on: power.on, refusedReason: power.refusedReason } : null)}`, { evidence: evRun });
 
   const { ok: handedOff, orch, buildUnit, lastTurn } = orchestratorHandedOff(power, pipe.units);
