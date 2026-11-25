@@ -83,10 +83,10 @@ const RULES = {
   // runner) and stayed clean once (selftest 34748757134, previous-set leg) — FLAKY, so a clean loop on
   // 0.7.32 is disclosed, never a verdict; the retire bound is the fix version, not that run.
   'F-E2E-021': ({ crew }) => (lt(crew, '0.7.33') ? `crew ${crew} < 0.7.33 — bus WAL loop after GET /projects/:id/activity + external emit, silent in /diagnostics.recentErrors (fixed in 0.7.33: crew#541 + #542)` : null),
-  // F-E2E-012: a tool-only run (onboarding) keeps `wicked/<run-id>` + a full worktree in the
-  // customer's clone. STILL PRESENT on 0.7.33 and documented as retention BY DESIGN (F-7R2-013);
-  // the harness asserts the customer-visible behaviour and labels it — remove this rule when the
-  // product stops minting a branch/worktree for tool-only workflows.
+  // F-E2E-012: a tool-only run (onboarding) keeps `wicked/<run-id>` in the customer's clone. STILL
+  // PRESENT on core-ts 0.15.49 and documented as retention BY DESIGN (F-7R2-013); the harness asserts
+  // the customer-visible behaviour and labels it — remove this rule when the product stops minting a
+  // branch for tool-only workflows. The worktree half is F-E2E-012-WT below.
   // F-CORE-1373: two daemons on one host registering the same checkout: restarting one force-removes the other's
   // worktrees (its boot reaper treats every run id its own store doesn't know as a leftover). Open (wicked-core#1373):
   // S12 asserts the behaviour a second daemon's owner needs and is labelled until the fix ships; then bound the rule
@@ -97,7 +97,13 @@ const RULES = {
   // so detection, the reassign rung and the silent-turn rung never fire and the Nerve Center reads working. U07
   // asserts what J8 needs and is labelled until crew ships the fix; then bound the rule to that crew version.
   'F-CREW-1501': () => 'wicked-crew#1501: the engine\'s working heartbeat re-arms the stall watchdog, so a silent, idle seat never reads stalled — flip when crew ignores heartbeat frames',
-  'F-E2E-012': () => 'tool-only onboarding keeps its wicked/<run-id> branch + worktree (retention by design, F-7R2-013) — flip when the product changes',
+  'F-E2E-012': () => 'tool-only onboarding keeps its wicked/<run-id> branch (retention by design, F-7R2-013) — flip when the product changes',
+  // F-E2E-012-WT: the run's worktree sat INSIDE the customer's clone (`<clone>/wicked-worktrees/<id>`). FIXED in
+  // core-ts 0.15.49 (wicked-core#1851, core#1109: run trees are minted beside the checkout, at
+  // `<parent>/<name>.wicked/wicked-worktrees/<id>`). Observed by crew 0.18.21's release smoke (run 45512626945, both
+  // OSes, core-ts 0.15.49): `<clone>/wicked-worktrees` exists=false, UNEXPECTED-PASS under the old shared label, so
+  // the check got its own label bound to the fix version. The branch half stays F-E2E-012.
+  'F-E2E-012-WT': ({ coreTs }) => (coreTs && lt(coreTs, '0.15.49') ? `core-ts ${coreTs} < 0.15.49: a tool-only onboarding leaves its run worktree inside the customer's clone at wicked-worktrees/ (fixed in core-ts 0.15.49, wicked-core#1851: run trees are minted beside the checkout)` : null),
   // F-E2E-002: a publish that lands with warnings shows `skills.findings: []` in /diagnostics — the
   // warnings live only in the daemon log. The placeholder bound (0.7.99) had silently EXPIRED: on crew
   // 0.8.x the rule answered null and the check read a hard FAIL (crew 0.8.5 release smoke, run

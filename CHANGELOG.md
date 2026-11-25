@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### selftest — S03's worktree check gets its own label, bound to core-ts 0.15.49 (F-E2E-012-WT)
+
+- crew 0.18.21's release smoke (run 45512626945) went red on both OSes with UNEXPECTED-PASS in S03 only: core-ts
+  0.15.49 (wicked-core#1851, core#1109) mints run worktrees beside the checkout, so `<clone>/wicked-worktrees` no
+  longer exists, while the check still carried F-E2E-012's every-version label. The worktree check is now
+  F-E2E-012-WT, EXPECTED-FAIL on core-ts < 0.15.49 and required to PASS from 0.15.49. The branch check keeps
+  F-E2E-012 (the `wicked/<run-id>` branch is still kept, by design). The selfcheck pins the new edge and asserts the
+  branch label stays.
+
 ### selftest — U04 binds each answer to its gate request (#80)
 
 - A decision counts as sent only after a successful POST to that run's exact gate endpoint carries the chosen

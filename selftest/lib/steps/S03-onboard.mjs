@@ -63,7 +63,7 @@ export async function run(ctx, t) {
   const debris = { branches: wickedBranches, worktreeDirExists: existsSync(worktreeDir), worktrees: gitTry(corpus, env, 'worktree', 'list', '--porcelain').stdout.split('\n').filter((l) => l.startsWith('worktree ')).length };
   const ev2 = t.evidence('git-debris', debris);
   t.check('no wicked/<run-id> branch left by a tool-only onboarding (F-E2E-012)', wickedBranches.length === 0, `${wickedBranches.length} branch(es): ${wickedBranches.join(',')}`, { finding: 'F-E2E-012', evidence: ev2 });
-  t.check('no wicked-worktrees/ dir left in the clone (F-E2E-012)', !debris.worktreeDirExists, `${worktreeDir} exists=${debris.worktreeDirExists}`, { finding: 'F-E2E-012', evidence: ev2 });
+  t.check('no wicked-worktrees/ dir left in the clone (F-E2E-012-WT)', !debris.worktreeDirExists, `${worktreeDir} exists=${debris.worktreeDirExists}`, { finding: 'F-E2E-012-WT', evidence: ev2 });
   const porcelain = gitTry(corpus, env, 'status', '--porcelain').stdout.trim();
   t.check('git status --porcelain clean in the customer clone', porcelain === '', porcelain.slice(0, 300));
 }

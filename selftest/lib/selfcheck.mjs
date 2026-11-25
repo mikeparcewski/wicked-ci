@@ -55,7 +55,10 @@ const edges = [
   ['F-SMOKE-003', { crew: '0.8.4' }, { crew: '0.8.5' }],
   ['F-087', { crew: '0.7.44', nodeMajor: 26 }, { crew: '0.7.45', nodeMajor: 26 }],
   ['F-E2E-002', { crew: '0.8.5' }, { crew: '0.8.6' }],
+  ['F-E2E-012-WT', { coreTs: '0.15.48' }, { coreTs: '0.15.49' }],
 ];
+// F-E2E-012 (the branch half) stays expected on every version: retention by design.
+if (!new ExpectPolicy({ crew: '0.18.21', coreTs: '0.15.49' }).reasonFor('F-E2E-012')) throw new Error('F-E2E-012: the branch half must stay labelled');
 for (const [f, before, fixed] of edges) {
   if (!new ExpectPolicy(before).reasonFor(f)) throw new Error(`${f}: no reason on ${JSON.stringify(before)}`);
   if (new ExpectPolicy(fixed).reasonFor(f) !== null) throw new Error(`${f}: still expected on ${JSON.stringify(fixed)}`);
