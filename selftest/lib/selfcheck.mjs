@@ -597,7 +597,7 @@ if (process.platform !== 'win32') {
   ];
   for (const [status, body] of bad) if (refusalProblem(status, body) === null) throw new Error(`stand-in refusal accepted ${status} ${JSON.stringify(body).slice(0, 120)}`);
   // The record check: core's wire (`RunAssurance` standInAware / standIn / standIns; a binding key is `<base>~<slot>`).
-  const record = (session, units = []) => { const got = []; checkStandInRecord({ check: (name, ok) => got.push(ok) }, 'x', session, { standIns: true }, null, units); return got; };
+  const record = (session, units = []) => { const got = []; checkStandInRecord({ check: (name, ok) => got.push(ok), info: () => {} }, 'x', session, { standIns: true }, null, units); return got; };
   const good = { assurance: { standInAware: true, standIn: { scope: 'job', by: 'ann (human)', at: 7, via: 'launch' }, standIns: [{ key: 'claude~1', base: 'claude', slot: 1, role: 'judge', state: 'answered', invocation: 'i', reason: 'too_few' }] } };
   if (!record(good, [{ assigned_cli: 'claude~1' }, { assigned_cli: 'claude' }]).every(Boolean)) throw new Error('stand-in record: a labelled run fails');
   // core omits an empty list: a run that seated none, with no unit on a stand-in seat, passes.
@@ -614,6 +614,11 @@ if (process.platform !== 'win32') {
     { assurance: { ...good.assurance, standIn: { ...good.assurance.standIn, by: '' } } }, { assurance: { ...good.assurance, standIns: [{ ...good.assurance.standIns[0], key: 'claude' }] } }]) {
     if (record(s).every(Boolean)) throw new Error(`stand-in record accepted ${JSON.stringify(s).slice(0, 120)}`);
   }
+  // wicked-core#1930 F8: the record check says how many stand-ins it saw, so a pass on none reads as one.
+  const seen = (session) => { const lines = []; checkStandInRecord({ check: () => {}, info: (name, detail) => lines.push(`${name}: ${detail}`) }, 'x', session, { standIns: true }, null, []); return lines; };
+  if (!seen(good).includes('x stand-ins seen: 1: claude~1 (judge, answered)')) throw new Error(`stand-in record: the count line for one stand-in reads ${JSON.stringify(seen(good))}`);
+  const none = seen({ assurance: { standInAware: true, standIn: good.assurance.standIn } });
+  if (!none.some((l) => l.startsWith('x stand-ins seen: none (this run seated no stand-in, so the label check passed on zero'))) throw new Error(`stand-in record: the count line for none reads ${JSON.stringify(none)}`);
   if (record(null).length !== 2 || (() => { const got = []; checkStandInRecord({ check: () => got.push(1) }, 'x', null, {}, null); return got.length; })() !== 0) throw new Error('stand-in record: runs only on a stand-in crew');
 }
 // The core-ts pin inside an installed crew re-resolves crew's devDependencies (npm builds the whole tree even with
