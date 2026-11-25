@@ -41,9 +41,12 @@ try {
   });
   const crewPkg = JSON.stringify({ name: 'wicked-crew', version: '1.2.3', files: ['dist'], scripts: { build: 'node build.mjs', 'build:with-studio': 'node build.mjs studio' } }, null, 2);
   const crewSha = repo(crew, {
-    'package.json': JSON.stringify({ name: 'crew-root', private: true, workspaces: ['packages/crew'] }),
-    'package-lock.json': JSON.stringify({ name: 'crew-root', lockfileVersion: 3, requires: true, packages: { '': { name: 'crew-root', workspaces: ['packages/crew'] }, 'node_modules/wicked-crew': { resolved: 'packages/crew', link: true }, 'packages/crew': { name: 'wicked-crew', version: '1.2.3' } } }),
+    'package.json': JSON.stringify({ name: 'crew-root', private: true, workspaces: ['packages/crew', 'packages/crew-api-types'] }),
+    'package-lock.json': JSON.stringify({ name: 'crew-root', lockfileVersion: 3, requires: true, packages: { '': { name: 'crew-root', workspaces: ['packages/crew', 'packages/crew-api-types'] }, 'node_modules/wicked-crew': { resolved: 'packages/crew', link: true }, 'node_modules/wicked-crew-api-types': { resolved: 'packages/crew-api-types', link: true }, 'packages/crew': { name: 'wicked-crew', version: '1.2.3' }, 'packages/crew-api-types': { name: 'wicked-crew-api-types', version: '0.228.0' } } }),
     'packages/crew/package.json': crewPkg,
+    // crew's own wire types, a workspace package crew names as a devDependency (wicked-crew packages/crew-api-types).
+    'packages/crew-api-types/package.json': JSON.stringify({ name: 'wicked-crew-api-types', version: '0.228.0', types: './index.d.ts', files: ['index.d.ts'] }, null, 2),
+    'packages/crew-api-types/index.d.ts': 'export type Fixture = 1;\n',
     'packages/crew/build.mjs': "import { mkdirSync, writeFileSync } from 'node:fs'; mkdirSync('dist/cli', { recursive: true }); writeFileSync('dist/cli/index.js', ''); if (process.argv[2] === 'studio') { mkdirSync('dist/studio', { recursive: true }); writeFileSync('dist/studio/index.html', '<!-- lockfile studio -->'); }\n",
   });
   const gardenSha = repo(garden, { '.claude-plugin/plugin.json': JSON.stringify({ name: 'wicked-garden', version: '12.0.0' }), 'README.md': 'g' });
@@ -67,12 +70,18 @@ try {
   if (m.name !== 'wicked-crew' || m.version !== `1.2.3+st.${crewSha.slice(0, 7)}`) throw new Error(`crew pack is ${m.name}@${m.version}`);
   const html = run(['tar', '-xzOf', join(out, set.crew), 'package/dist/studio/index.html'], base);
   if (!html.includes('studio-fixture-marker')) throw new Error('the crew pack does not bundle the --studio-src dist');
+  // crew's wire types are packed from the SAME export (wicked-ci: the pin step must resolve crew's own
+  // `^0.2xx` devDependency without the registry, which may not have that version yet).
+  const at = set.crewApiTypes ? tarballManifest(join(out, set.crewApiTypes), ENV) : null;
+  if (at?.name !== 'wicked-crew-api-types' || at?.version !== `0.228.0+st.${crewSha.slice(0, 7)}`) throw new Error(`crew api-types pack is ${JSON.stringify(at)} (set.crewApiTypes ${set.crewApiTypes})`);
+  if (!run(['tar', '-xzOf', join(out, set.crewApiTypes), 'package/index.d.ts'], base).includes('Fixture')) throw new Error('the api-types pack lacks index.d.ts');
   if (set.built.crew.sha !== crewSha || set.built.crew.dirty !== false || set.built.garden.sha !== gardenSha) throw new Error(`set.json provenance: ${JSON.stringify(set.built)}`);
   const gm = run(['tar', '-xzOf', join(out, set.garden), 'wicked-garden/.claude-plugin/plugin.json'], base);
   if (JSON.parse(gm).version !== '12.0.0') throw new Error('garden export lost its manifest');
   // run --set accepts it; a pack under the wrong key is refused by name.
   const rs = readSet(join(out, 'set.json'));
   if (rs.crew !== join(out, set.crew) || rs.garden !== join(out, set.garden)) throw new Error(`readSet of a pack's set.json: ${JSON.stringify(rs)}`);
+  if (rs.crewApiTypes !== join(out, set.crewApiTypes)) throw new Error(`readSet drops the crew api-types pack: ${JSON.stringify(rs)}`);
   let threw = false; try { expectTarball('wicked-bus', rs.crew, ENV); } catch { threw = true; }
   if (!threw) throw new Error('a crew tarball given as bus must be refused');
   if (expectTarball('wicked-crew', rs.crew, ENV) !== m.version) throw new Error('expectTarball returns the pack version');

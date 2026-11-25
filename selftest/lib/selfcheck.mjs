@@ -571,4 +571,26 @@ if (process.platform !== 'win32') {
     try { st(j(root, need)); } catch { throw new Error(`fixture missing: ${need}`); }
   }
 }
+// The core-ts pin inside an installed crew re-resolves crew's devDependencies (npm builds the whole tree even with
+// --omit=dev), so a crew from a ref whose own wicked-crew-api-types is not on npm yet failed ETARGET (wicked-ci job
+// 139069995630). The pin installs crew's api-types pack from the same ref in the same command.
+{
+  const { pinSpecs } = await import('./install.mjs');
+  const { parseArgs } = await import('./args.mjs');
+  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const d = mkdtempSync(join(tmpdir(), 'selftest-pin-'));
+  for (const f of ['wicked-crew-1.0.0.tgz', 'wicked-core-ts-0.15.49.tgz', 'wicked-crew-api-types-0.228.0.tgz']) writeFileSync(join(d, f), '');
+  const setFile = join(d, 'set.json');
+  writeFileSync(setFile, JSON.stringify({ crew: 'wicked-crew-1.0.0.tgz', coreTs: 'wicked-core-ts-0.15.49.tgz', crewApiTypes: 'wicked-crew-api-types-0.228.0.tgz' }));
+  const o = parseArgs(['--set', setFile]);
+  if (o.crewApiTypes !== join(d, 'wicked-crew-api-types-0.228.0.tgz')) throw new Error(`--set crewApiTypes: ${o.crewApiTypes}`);
+  const specs = pinSpecs({ coreTs: o.coreTs, crewApiTypes: o.crewApiTypes });
+  if (JSON.stringify(specs) !== JSON.stringify([o.coreTs, o.crewApiTypes])) throw new Error(`pinSpecs: ${JSON.stringify(specs)}`);
+  if (JSON.stringify(pinSpecs({ coreTs: '0.15.49', crewApiTypes: null })) !== JSON.stringify(['wicked-core-ts@0.15.49'])) throw new Error('pinSpecs with no api-types pack');
+  // The api-types pack belongs to the set's crew: another --crew after --set leaves it behind.
+  if (parseArgs(['--set', setFile, '--crew', '0.18.21']).crewApiTypes !== null) throw new Error('a --crew after --set must drop the set\'s crew api-types pack');
+  let threw = false; try { parseArgs(['--set', setFile, '--crew-api-types', '0.228.0']); } catch { threw = true; }
+  if (!threw) throw new Error('crewApiTypes is a set key only (pack writes it), never a flag');
+}
 console.log(`selfcheck ok: ${ids.length} steps, ${stepFiles.length} step modules`);
