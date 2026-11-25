@@ -124,7 +124,10 @@ export function summaryMarkdown(report) {
       else if (c.unexpectedPass && c.flaky) notes.push(`${c.name} (passed this time — ${c.finding} is timing-dependent)`);
       else if (c.unexpectedPass) notes.push(`${c.name} (UNEXPECTED-PASS — retire ${c.finding})`);
     }
-    for (const n of s.notes ?? []) if (n.shown === true) notes.push(`${n.name}: ${n.detail ?? ''}`);
+    // A disclosure is text from the run (a binding's key), so it is made safe for a table cell; the error still shows.
+    const cell = (v) => String(v).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+    for (const n of s.notes ?? []) if (n.shown === true) notes.push(cell(`${n.name}: ${n.detail ?? ''}`));
+    if (s.error && notes.length > 0) notes.push(cell(s.error.slice(0, 200)));
     lines.push(`| ${s.id} | ${s.name} | ${s.status} | ${(s.ms / 1000).toFixed(1)} | ${notes.join('<br>') || (s.error ? s.error.slice(0, 200) : '')} |`);
   }
   if (report.hermetic) {

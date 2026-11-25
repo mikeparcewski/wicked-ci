@@ -630,9 +630,11 @@ if (process.platform !== 'win32') {
   // …and the verdict shows a disclosed note: the console line and the summary's notes column, not only report.json.
   {
     const { StepTrace, printStep, summaryMarkdown } = await import('./report.mjs');
-    const { mkdtempSync } = await import('node:fs');
+    const { mkdtempSync, rmSync } = await import('node:fs');
     const { tmpdir } = await import('node:os');
-    const tr = new StepTrace('S04', mkdtempSync(join(tmpdir(), 'selftest-disclose-')), () => {});
+    const discloseRoot = mkdtempSync(join(tmpdir(), 'selftest-disclose-'));
+    try {
+    const tr = new StepTrace('S04', discloseRoot, () => {});
     tr.check('ok', true);
     tr.info('quiet', 'report.json only');
     tr.disclose('mixed run stand-ins seen', 'none, so the label check passed on zero');
@@ -642,6 +644,13 @@ if (process.platform !== 'win32') {
     if (!out.includes('    ~ mixed run stand-ins seen: none, so the label check passed on zero') || out.some((l) => l.includes('quiet'))) throw new Error(`printStep disclosure: ${JSON.stringify(out)}`);
     const md = summaryMarkdown({ overall: 'PASS', wallMs: 1, versions: {}, host: {}, steps: [step] });
     if (!md.includes('| mixed run stand-ins seen: none, so the label check passed on zero |') || md.includes('quiet')) throw new Error(`summary disclosure: ${md}`);
+    // A pipe or a line break from the run stays inside the cell, and a step's error still shows beside a disclosure.
+    const odd = { ...step, status: 'ERROR', error: 'step ceiling', notes: [{ name: 'power run stand-ins seen', detail: '1: a|b~1 (judge,\nanswered)', shown: true }] };
+    const md2 = summaryMarkdown({ overall: 'ERROR', wallMs: 1, versions: {}, host: {}, steps: [odd] });
+    if (!md2.includes('| power run stand-ins seen: 1: a\\|b~1 (judge, answered)<br>step ceiling |')) throw new Error(`summary disclosure escaping: ${md2}`);
+    } finally {
+      rmSync(discloseRoot, { recursive: true, force: true });
+    }
   }
   if (record(null).length !== 2 || (() => { const got = []; checkStandInRecord({ check: () => got.push(1) }, 'x', null, {}, null); return got.length; })() !== 0) throw new Error('stand-in record: runs only on a stand-in crew');
 }
