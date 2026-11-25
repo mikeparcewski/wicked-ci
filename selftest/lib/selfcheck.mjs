@@ -571,6 +571,51 @@ if (process.platform !== 'win32') {
     try { st(j(root, need)); } catch { throw new Error(`fixture missing: ${need}`); }
   }
 }
+// S04's stand-in refusal and record checks (wicked-crew#1888). The refusal is built from the engine's own preflight
+// for a one-CLI roster (fixtures/stand-in/, copied from crew's test) the way crew writes it (packages/crew/src/core/
+// stand-in.ts `preflightRefusal`): a valid body passes, and every way a body can fall short is named.
+{
+  const { readFileSync } = await import('node:fs');
+  const { refusalProblem, checkStandInRecord } = await import(pathToFileURL(join(here, 'steps', 'S04-bug-run.mjs')).href);
+  const pf = JSON.parse(readFileSync(join(here, '..', 'fixtures', 'stand-in', 'preflight-one-helper.json'), 'utf8'));
+  // crew's words and choices (src/core/stand-in.ts preflightRefusal), abridged where they are not checked.
+  const choice = { code: 'stand_in_choice', error: 'Too few helpers are signed in to check this job: … labelled on the job, every gate, the delivery and the pull request. They are not independent reviews. …', preflight: pf,
+    choices: [{ id: 'job', label: 'Use stand-ins for this job' }, { id: 'always', label: 'Use stand-ins for every job' }, { id: 'sign_in', label: 'Sign in another helper' }, { id: 'cancel', label: 'Cancel' }], retryWith: { standIns: true } };
+  if (refusalProblem(409, choice) !== null) throw new Error(`stand-in refusal: the crew-shaped body fails: ${refusalProblem(409, choice)}`);
+  const noHelper = { code: 'no_usable_helper', error: 'No signed-in helper…', preflight: { ...pf, roles: pf.roles.map((r, i) => (i === 0 ? { ...r, canStandIn: false } : r)) } };
+  if (refusalProblem(409, noHelper) !== null) throw new Error(`stand-in refusal: a no_usable_helper body fails: ${refusalProblem(409, noHelper)}`);
+  const bad = [
+    [500, null], [409, null], [201, { runId: 'r' }], [409, { code: 'stand_in_choice' }],
+    [409, { ...choice, code: 'conflict' }], [409, { ...choice, retryWith: undefined }],
+    [409, { ...choice, preflight: { ...pf, signedIn: undefined } }], [409, { ...choice, preflight: { ...pf, roles: [] } }],
+    [409, { ...choice, preflight: { ...pf, short: false } }], [409, { ...choice, preflight: { ...pf, roles: pf.roles.map((r) => ({ ...r, shortBy: 0 })) } }],
+    [409, { ...choice, preflight: noHelper.preflight }], [409, { ...noHelper, preflight: pf }],
+    [409, { ...choice, preflight: { ...pf, roles: [{ role: 'judge', shortBy: '1', canStandIn: true }] } }],
+    [409, { ...choice, choices: undefined }], [409, { ...choice, choices: [] }], [409, { ...choice, choices: choice.choices.slice(0, 3) }],
+    [409, { ...choice, error: undefined }], [409, { ...choice, error: ' ' }], [409, { ...choice, error: 'Stand-ins are independent reviewers.' }],
+    [409, { ...noHelper, error: '' }],
+  ];
+  for (const [status, body] of bad) if (refusalProblem(status, body) === null) throw new Error(`stand-in refusal accepted ${status} ${JSON.stringify(body).slice(0, 120)}`);
+  // The record check: core's wire (`RunAssurance` standInAware / standIn / standIns; a binding key is `<base>~<slot>`).
+  const record = (session, units = []) => { const got = []; checkStandInRecord({ check: (name, ok) => got.push(ok) }, 'x', session, { standIns: true }, null, units); return got; };
+  const good = { assurance: { standInAware: true, standIn: { scope: 'job', by: 'ann (human)', at: 7, via: 'launch' }, standIns: [{ key: 'claude~1', base: 'claude', slot: 1, role: 'judge', state: 'answered', invocation: 'i', reason: 'too_few' }] } };
+  if (!record(good, [{ assigned_cli: 'claude~1' }, { assigned_cli: 'claude' }]).every(Boolean)) throw new Error('stand-in record: a labelled run fails');
+  // core omits an empty list: a run that seated none, with no unit on a stand-in seat, passes.
+  if (!record({ assurance: { standInAware: true, standIn: good.assurance.standIn } }, [{ assigned_cli: 'claude' }]).every(Boolean)) throw new Error('stand-in record: a run with no stand-ins fails');
+  const b0 = good.assurance.standIns[0];
+  const withBindings = (standIns) => ({ assurance: { ...good.assurance, standIns } });
+  for (const [s, units] of [[withBindings(null), []], [{ assurance: { standInAware: true, standIn: good.assurance.standIn } }, [{ assigned_cli: 'claude~1' }]], [withBindings([]), [{ assigned_cli: 'claude~1' }]],
+    [good, [{ assigned_cli: 'claude~1' }, { assigned_cli: 'claude~2' }]], [withBindings([{ ...b0, slot: undefined, key: 'claude~undefined' }]), []], [withBindings([{ ...b0, slot: 0, key: 'claude~0' }]), []],
+    [withBindings([{ ...b0, slot: 1.5, key: 'claude~1.5' }]), []], [withBindings([{ ...b0, role: '' }]), []], [withBindings([{ ...b0, role: 'reviewer' }]), []], [withBindings([{ ...b0, state: 'done' }]), []],
+    [withBindings([{ ...b0, base: '', key: '~1' }]), []]]) {
+    if (record(s, units).every(Boolean)) throw new Error(`stand-in record accepted ${JSON.stringify({ s, units }).slice(0, 160)}`);
+  }
+  for (const s of [null, { assurance: { ...good.assurance, standInAware: false } }, { assurance: { ...good.assurance, standIn: { ...good.assurance.standIn, scope: 'always' } } },
+    { assurance: { ...good.assurance, standIn: { ...good.assurance.standIn, by: '' } } }, { assurance: { ...good.assurance, standIns: [{ ...good.assurance.standIns[0], key: 'claude' }] } }]) {
+    if (record(s).every(Boolean)) throw new Error(`stand-in record accepted ${JSON.stringify(s).slice(0, 120)}`);
+  }
+  if (record(null).length !== 2 || (() => { const got = []; checkStandInRecord({ check: () => got.push(1) }, 'x', null, {}, null); return got.length; })() !== 0) throw new Error('stand-in record: runs only on a stand-in crew');
+}
 // The core-ts pin inside an installed crew re-resolves crew's devDependencies (npm builds the whole tree even with
 // --omit=dev), so a crew from a ref whose own wicked-crew-api-types is not on npm yet failed ETARGET (wicked-ci job
 // 139069995630). The pin installs crew's api-types pack from the same ref in the same command.
