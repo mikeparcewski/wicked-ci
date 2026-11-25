@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### selftest — S04 and S11 answer crew's stand-in choice (wicked-core#1843)
+
+- A crew that advertises `capabilities.standIns` (api-types 0.226.0, wicked-crew#1888) refuses a launch on a roster
+  short of an independent role with `409 stand_in_choice` until a person consents (DES-STANDIN-001 §2). S04's
+  two-governed-seat roster is short of a council and monitors, so the advisory selftest on crew#1888 failed S04 at
+  `POST /runs`. The runs S04 and S11 follow now send `standIns: true` on such a crew, as a person does on the launch.
+- S04's no-judge and default-roster arms send no consent on such a crew and assert the up-front refusal instead
+  (409 `stand_in_choice` or `no_usable_helper`, no run created): the same fail-closed rule, before anything starts.
+  On a crew without the capability every arm runs as before.
+
 ### selftest — S03's worktree check gets its own label, bound to core-ts 0.15.49 (F-E2E-012-WT)
 
 - crew 0.18.21's release smoke (run 45512626945) went red on both OSes with UNEXPECTED-PASS in S03 only: core-ts

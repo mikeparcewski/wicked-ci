@@ -111,6 +111,27 @@ const ESCALATION_KINDS = new Set(['escalation', 'failure', 'triage']);
 const isJudgeUnavailableGate = (e) => e?.type === 'gateEscalated' && (e.condition === 'judge_unavailable' || e.denialSource === 'judge_unavailable');
 /** The engine that fails closed on a benched-out judge pool instead of skipping the judge. */
 const JUDGE_FAIL_CLOSED_CORE_TS = '0.7.40';
+/**
+ * THE STAND-IN CHOICE (crew api-types 0.226.0, DES-STANDIN-001 §2, wicked-core#1843): a crew that advertises
+ * `capabilities.standIns` asks before it launches on a roster short of an independent role. This roster has two
+ * governed seats, so every bug launch is short of a council and monitors (§2.2) and, without consent, is refused
+ * `409 stand_in_choice` before anything is created. The runs this harness follows consent the way a person does on
+ * the launch (`standIns: true`, scope `job`); the no-judge arms below prove the refusal itself.
+ */
+export function standInConsent(caps) {
+  return caps?.standIns === true ? { standIns: true } : {};
+}
+/** The launch a stand-in crew refuses up front (no consent): 409 `stand_in_choice` / `no_usable_helper`, no run. */
+export async function refusedUpFront(api, t, label, body) {
+  const launch = await api.post('/runs', body);
+  const code = launch.json?.code ?? null;
+  const ev = t.evidence(`${label}-launch`, { request: body, status: launch.status, response: launch.json ?? launch.text });
+  t.check(`POST /runs 409 stand_in_choice or no_usable_helper (${label}, no consent; DES-STANDIN-001 §2)`, launch.status === 409 && (code === 'stand_in_choice' || code === 'no_usable_helper'), `status ${launch.status} ${String(launch.text ?? '').slice(0, 300)}`, { evidence: ev });
+  t.check(`nothing was created (${label}: no runId in the refusal)`, launch.json?.runId === undefined, `runId ${launch.json?.runId ?? 'none'}`, { evidence: ev });
+  const short = (launch.json?.preflight?.roles ?? []).filter((r) => r.shortBy > 0).map((r) => r.role);
+  t.info(`${label} preflight`, `short of: ${short.join(', ') || 'nothing named'}`);
+  return launch;
+}
 
 /**
  * Launch + follow one run, answering gates by kind the way an operator would.
@@ -325,7 +346,9 @@ export async function run(ctx, t) {
   // served. (Older crews' default roster was the same list, so nothing changes there.) The
   // `default` arm below proves the other side: a run that does not opt in escalates.
   const optInCrew = Boolean(ctx.versions.crew && gte(ctx.versions.crew, OPENCODE_OPT_IN_CREW));
-  const mixed = await launchAndFollow(ctx, api, t, 'mixed', optInCrew ? { ...base, clisJson: JSON.stringify(seats) } : base);
+  const consent = standInConsent(caps);
+  t.info('stand-in choice', caps?.standIns === true ? 'capabilities.standIns: the followed runs send standIns: true (scope job); the no-judge arms prove the refusal without it' : 'no capabilities.standIns on this crew; nothing sent');
+  const mixed = await launchAndFollow(ctx, api, t, 'mixed', optInCrew ? { ...base, ...consent, clisJson: JSON.stringify(seats) } : { ...base, ...consent });
   const tokenStillArmed = existsSync(failOnceToken);
   rmSync(failOnceToken, { force: true });
   if (!mixed) return;
@@ -516,7 +539,7 @@ export async function run(ctx, t) {
   if (!mixedCompleted && (routingClass || semverCorrected)) {
     const live = seats.filter((s) => s.key === 'claude' || s.key === 'opencode' || s.key === JUDGE_SEAT_KEY);
     t.info('pipeline rerun', `the mixed run could not complete because a unit/judge was seated on a dead seat (F-7R3-001) — re-launching with the three live seats only (claude, opencode, ${JUDGE_SEAT_KEY}) so the downstream seams are still exercised`);
-    pipe = await launchAndFollow(ctx, api, t, 'live', { ...base, clisJson: JSON.stringify(live) });
+    pipe = await launchAndFollow(ctx, api, t, 'live', { ...base, ...consent, clisJson: JSON.stringify(live) });
     if (!pipe) return;
   }
   const label = pipe === mixed ? 'mixed' : 'live';
@@ -623,7 +646,11 @@ export async function run(ctx, t) {
     const judgeOnly = hostFloorBench ? 'opencode' : JUDGE_SEAT_KEY;
     const noJudgePool = rosterNow.filter((s) => s.key !== judgeOnly && s.key !== 'acp-smoke' && s.key !== 'chat-smoke');
     t.info('judge distinctness', `launching the bug run on ${noJudgePool.map((s) => s.key).join(', ')} (no ${judgeOnly}): the verify unit has no identity-distinct live judge`);
-    const nj = await launchAndFollow(ctx, api, t, 'nojudge', { ...base, clisJson: JSON.stringify(noJudgePool) });
+    // A stand-in crew refuses this launch before anything is created (no consent): the up-front form of the same
+    // fail-closed rule. With consent it would seat a labelled stand-in judge instead (DES-STANDIN-001 §2.3).
+    const nj = caps?.standIns === true
+      ? (await refusedUpFront(api, t, 'nojudge', { ...base, clisJson: JSON.stringify(noJudgePool) }), null)
+      : await launchAndFollow(ctx, api, t, 'nojudge', { ...base, clisJson: JSON.stringify(noJudgePool) });
     if (nj) {
       const njFrames = nj.events.filter(isJudgeUnavailableGate);
       const njDeliverOrd = nj.units.find((u) => phaseOf(u) === 'deliver')?.ord ?? null;
@@ -651,7 +678,9 @@ export async function run(ctx, t) {
     const rosterNow = (await api.get('/roster')).json?.roster ?? [];
     const ocSeat = rosterNow.find((s) => s.key === 'opencode') ?? null;
     t.check('GET /roster marks opencode opt-in (optIn: true, "opt-in: known to stall") (crew >= 0.9.10)', ocSeat?.optIn === true && /known to stall/.test(String(ocSeat?.optInNote ?? '')), JSON.stringify({ optIn: ocSeat?.optIn ?? null, optInNote: ocSeat?.optInNote ?? null }));
-    const df = await launchAndFollow(ctx, api, t, 'default', base);
+    const df = caps?.standIns === true
+      ? (await refusedUpFront(api, t, 'default', base), null)
+      : await launchAndFollow(ctx, api, t, 'default', base);
     if (df) {
       const dfGate = df.judgeUnavailableGate;
       const dfDeliverOrd = df.units.find((u) => phaseOf(u) === 'deliver')?.ord ?? null;
