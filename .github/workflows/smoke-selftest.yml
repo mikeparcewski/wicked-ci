@@ -88,15 +88,3 @@ jobs:
       head_ref: main
       advisory: false
       wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
-  # TEMPORARY (removed before merge): the cross-repo seam run for this change, the `pr` profile packing
-  # wicked-crew#1888's head b2ecdb5 (crew main packs against the published core-ts again, crew#1897).
-  selftest-standin-seam:
-    permissions:
-      contents: read
-      checks: write
-    uses: ./.github/workflows/selftest.yml
-    with:
-      under_test: crew
-      head_ref: b2ecdb5f508707a0c55c117f4cdde1ee1a67ecb1
-      advisory: true
-      wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
