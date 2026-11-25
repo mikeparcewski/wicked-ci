@@ -88,3 +88,15 @@ jobs:
       head_ref: main
       advisory: false
       wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
+  # TEMPORARY (removed before merge): the cross-repo seam run for this change, the `pr` profile packing
+  # wicked-crew#1888's head (feat/standin-k2a, the crew that advertises capabilities.standIns).
+  selftest-standin-seam:
+    permissions:
+      contents: read
+      checks: write
+    uses: ./.github/workflows/selftest.yml
+    with:
+      under_test: crew
+      head_ref: feat/standin-k2a
+      advisory: true
+      wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
