@@ -46,6 +46,12 @@ export class StepTrace {
   info(name, detail) {
     this.notes.push({ name, detail: detail === undefined ? null : String(detail).slice(0, 2000) });
   }
+
+  /** A note the verdict must show beside a PASS (the console and the GitHub summary), not only report.json: what a
+   *  passing check did not prove (wicked-core#1930 F8). Keep it short; it lands in the summary's notes column. */
+  disclose(name, detail) {
+    this.notes.push({ name, detail: detail === undefined ? null : String(detail).slice(0, 300), shown: true });
+  }
 }
 
 /**
@@ -97,6 +103,7 @@ export function printStep(result, log) {
     const label = c.expected ? `expected-fail (${c.finding ?? 'step'}: ${c.expected})` : 'FAIL';
     log(`    - ${c.name}: ${label}${c.detail ? ` — ${c.detail}` : ''}${c.evidence ? ` [${c.evidence}]` : ''}`);
   }
+  for (const n of result.notes ?? []) if (n.shown === true) log(`    ~ ${n.name}: ${n.detail ?? ''}`);
   if (result.status === STATUS.SKIP) for (const n of result.notes ?? []) if (n.name === 'skipped' && n.detail !== 'not in --steps') log(`    ~ skipped: ${n.detail}`);
   if (result.error) log(`    ! ${result.error}`);
 }
@@ -117,6 +124,7 @@ export function summaryMarkdown(report) {
       else if (c.unexpectedPass && c.flaky) notes.push(`${c.name} (passed this time — ${c.finding} is timing-dependent)`);
       else if (c.unexpectedPass) notes.push(`${c.name} (UNEXPECTED-PASS — retire ${c.finding})`);
     }
+    for (const n of s.notes ?? []) if (n.shown === true) notes.push(`${n.name}: ${n.detail ?? ''}`);
     lines.push(`| ${s.id} | ${s.name} | ${s.status} | ${(s.ms / 1000).toFixed(1)} | ${notes.join('<br>') || (s.error ? s.error.slice(0, 200) : '')} |`);
   }
   if (report.hermetic) {

@@ -214,11 +214,16 @@ export function checkStandInRecord(t, label, session, caps, evidence, units = []
   const unbound = used.filter((k) => !bindings.some((b) => b?.key === k));
   t.check(`${label}: every stand-in it seated is labelled on the record (key <base>~<slot>, role, state) and every stand-in seat a unit ran on has its binding`, listOk && unlabelled.length === 0 && unbound.length === 0, `${bindings.length} stand-in(s)${bindings.length ? `: ${bindings.map((b) => `${b?.key}/${b?.role}/${b?.state}`).join(', ')}` : ''}; units on stand-in seats: ${used.join(', ') || 'none'}${listOk ? '' : `; standIns is ${JSON.stringify(a?.standIns)}`}${unlabelled.length ? `; unlabelled ${JSON.stringify(unlabelled).slice(0, 200)}` : ''}${unbound.length ? `; unbound ${unbound.join(', ')}` : ''}`, { evidence });
   // wicked-core#1930 F8: S04's roster is short only of conditional roles, so its followed run usually seats no
-  // stand-in and the check above passes on none. Say how many it saw, so a pass on zero reads as one. The live proof
-  // that a seated stand-in is labelled is the J4 stand-in cert or wicked-ci#87.
-  t.info(`${label} stand-ins seen`, bindings.length === 0
-    ? 'none (this run seated no stand-in, so the label check passed on zero; the live labelled-stand-in proof is the J4 stand-in cert or wicked-ci#87)'
-    : `${bindings.length}: ${bindings.map((b) => `${b?.key} (${b?.role}, ${b?.state})`).join(', ')}`);
+  // stand-in and the check above passes on none. Say how many it saw, beside the verdict, so a pass on zero reads as
+  // one. Only a record that passed the check is called a pass on zero.
+  const labelledOk = listOk && unlabelled.length === 0 && unbound.length === 0;
+  t.disclose(`${label} stand-ins seen`, a === null
+    ? 'no record (the run has no assurance to read)'
+    : bindings.length > 0
+      ? `${bindings.length}: ${bindings.map((b) => `${b?.key} (${b?.role}, ${b?.state})`).join(', ')}`
+      : labelledOk
+        ? 'none, so the label check passed on zero (the live proof is the J4 stand-in cert or wicked-ci#87)'
+        : 'none on the record, and the label check failed');
 }
 
 /**

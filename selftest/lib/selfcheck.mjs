@@ -597,7 +597,7 @@ if (process.platform !== 'win32') {
   ];
   for (const [status, body] of bad) if (refusalProblem(status, body) === null) throw new Error(`stand-in refusal accepted ${status} ${JSON.stringify(body).slice(0, 120)}`);
   // The record check: core's wire (`RunAssurance` standInAware / standIn / standIns; a binding key is `<base>~<slot>`).
-  const record = (session, units = []) => { const got = []; checkStandInRecord({ check: (name, ok) => got.push(ok), info: () => {} }, 'x', session, { standIns: true }, null, units); return got; };
+  const record = (session, units = []) => { const got = []; checkStandInRecord({ check: (name, ok) => got.push(ok), disclose: () => {} }, 'x', session, { standIns: true }, null, units); return got; };
   const good = { assurance: { standInAware: true, standIn: { scope: 'job', by: 'ann (human)', at: 7, via: 'launch' }, standIns: [{ key: 'claude~1', base: 'claude', slot: 1, role: 'judge', state: 'answered', invocation: 'i', reason: 'too_few' }] } };
   if (!record(good, [{ assigned_cli: 'claude~1' }, { assigned_cli: 'claude' }]).every(Boolean)) throw new Error('stand-in record: a labelled run fails');
   // core omits an empty list: a run that seated none, with no unit on a stand-in seat, passes.
@@ -614,11 +614,35 @@ if (process.platform !== 'win32') {
     { assurance: { ...good.assurance, standIn: { ...good.assurance.standIn, by: '' } } }, { assurance: { ...good.assurance, standIns: [{ ...good.assurance.standIns[0], key: 'claude' }] } }]) {
     if (record(s).every(Boolean)) throw new Error(`stand-in record accepted ${JSON.stringify(s).slice(0, 120)}`);
   }
-  // wicked-core#1930 F8: the record check says how many stand-ins it saw, so a pass on none reads as one.
-  const seen = (session) => { const lines = []; checkStandInRecord({ check: () => {}, info: (name, detail) => lines.push(`${name}: ${detail}`) }, 'x', session, { standIns: true }, null, []); return lines; };
-  if (!seen(good).includes('x stand-ins seen: 1: claude~1 (judge, answered)')) throw new Error(`stand-in record: the count line for one stand-in reads ${JSON.stringify(seen(good))}`);
-  const none = seen({ assurance: { standInAware: true, standIn: good.assurance.standIn } });
-  if (!none.some((l) => l.startsWith('x stand-ins seen: none (this run seated no stand-in, so the label check passed on zero'))) throw new Error(`stand-in record: the count line for none reads ${JSON.stringify(none)}`);
+  // wicked-core#1930 F8: the record check says how many stand-ins it saw, beside the verdict, so a pass on none reads as one.
+  const seen = (session, units = []) => { const lines = []; checkStandInRecord({ check: () => {}, disclose: (name, detail) => lines.push(`${name}: ${detail}`) }, 'x', session, { standIns: true }, null, units); return lines; };
+  const noneRecord = { assurance: { standInAware: true, standIn: good.assurance.standIn } };
+  for (const [session, units, want] of [
+    [good, [], 'x stand-ins seen: 1: claude~1 (judge, answered)'],
+    [noneRecord, [], 'x stand-ins seen: none, so the label check passed on zero (the live proof is the J4 stand-in cert or wicked-ci#87)'],
+    [noneRecord, [{ assigned_cli: 'claude~1' }], 'x stand-ins seen: none on the record, and the label check failed'],
+    [{ assurance: { ...noneRecord.assurance, standIns: null } }, [], 'x stand-ins seen: none on the record, and the label check failed'],
+    [null, [], 'x stand-ins seen: no record (the run has no assurance to read)'],
+  ]) {
+    const got = seen(session, units);
+    if (got.length !== 1 || got[0] !== want) throw new Error(`stand-in record: the count line reads ${JSON.stringify(got)}, not ${JSON.stringify(want)}`);
+  }
+  // …and the verdict shows a disclosed note: the console line and the summary's notes column, not only report.json.
+  {
+    const { StepTrace, printStep, summaryMarkdown } = await import('./report.mjs');
+    const { mkdtempSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const tr = new StepTrace('S04', mkdtempSync(join(tmpdir(), 'selftest-disclose-')), () => {});
+    tr.check('ok', true);
+    tr.info('quiet', 'report.json only');
+    tr.disclose('mixed run stand-ins seen', 'none, so the label check passed on zero');
+    const step = { id: 'S04', name: 'bug run', status: 'PASS', ms: 1, checks: tr.checks, notes: tr.notes, error: null };
+    const out = [];
+    printStep(step, (l) => out.push(l));
+    if (!out.includes('    ~ mixed run stand-ins seen: none, so the label check passed on zero') || out.some((l) => l.includes('quiet'))) throw new Error(`printStep disclosure: ${JSON.stringify(out)}`);
+    const md = summaryMarkdown({ overall: 'PASS', wallMs: 1, versions: {}, host: {}, steps: [step] });
+    if (!md.includes('| mixed run stand-ins seen: none, so the label check passed on zero |') || md.includes('quiet')) throw new Error(`summary disclosure: ${md}`);
+  }
   if (record(null).length !== 2 || (() => { const got = []; checkStandInRecord({ check: () => got.push(1) }, 'x', null, {}, null); return got.length; })() !== 0) throw new Error('stand-in record: runs only on a stand-in crew');
 }
 // The core-ts pin inside an installed crew re-resolves crew's devDependencies (npm builds the whole tree even with
