@@ -18,6 +18,21 @@
   preflight must not start or bench opencode. The runtime `judge_unavailable` gate is asserted only on a crew
   without the capability (a consented no-judge run is wicked-ci#87); on such a crew every arm runs as before.
 
+### selftest — a crew packed from a ref brings its own api-types to the core-ts pin
+
+- `selftest-main-set-tier2` (core under test, crew from main) read COULD-NOT-RUN on every wicked-ci PR (job
+  139069995630). The core-ts pin inside the installed crew (`npm install --prefix <crew> <core-ts>`) builds crew's whole
+  tree, and npm resolves devDependencies even with `--omit=dev`. crew main names its own workspace
+  `wicked-crew-api-types@^0.227.0` there, which npm did not have yet (0.224.0), so the pin failed ETARGET.
+- `pack --crew-src` now also packs `packages/crew-api-types` from the same export (stamped `+st.<sha7>` like crew) and
+  writes it to set.json as `crewApiTypes`. `run --set` installs it in the same command as the core-ts pin, so crew's
+  range resolves to its own types. It is a set key only, and must be a pack path. It travels with its crew: a later
+  `--set` or `--crew` that names another crew drops it. A crew without that workspace package packs and installs as
+  before.
+- `pack-selfcheck` runs the pin itself offline. The installed crew names an api-types range that nothing can resolve.
+  The pin must fail resolving it without the pack, and with the pack it must install the engine pack, omit the dev
+  package, and leave crew's manifest as it was.
+
 ### selftest — S03's worktree check gets its own label, bound to core-ts 0.15.49 (F-E2E-012-WT)
 
 - crew 0.18.21's release smoke (run 45512626945) went red on both OSes with UNEXPECTED-PASS in S03 only: core-ts

@@ -104,10 +104,28 @@ export function expectTarball(name, v, env) {
   return m.version;
 }
 
-/** `npm install -g` the requested crew + bus into the prefix; optionally pin core-ts inside crew. */
-export function installNpm(L, env, { crew, bus, coreTs }, log) {
+/** What the core-ts pin installs inside crew: the engine, plus crew's own api-types pack when the set has one. The pin
+ *  builds crew's whole tree (npm resolves devDependencies even with --omit=dev), so crew's `^0.2xx` api-types range
+ *  resolves to the pack from crew's ref instead of the registry, which may not have it yet. */
+export function pinSpecs({ coreTs, crewApiTypes = null }) {
+  return [npmSpec('wicked-core-ts', coreTs), ...(crewApiTypes ? [crewApiTypes] : [])];
+}
+
+/** The core-ts pin inside an installed crew: one `npm install --prefix <crew>` of `pinSpecs`. npm uses the given
+ *  api-types tarball for crew's dev edge (an explicit spec wins over the range) and then omits it (`--omit=dev`). */
+export function pinInsideCrew(crewDir, env, { coreTs, crewApiTypes = null }) {
+  const pin = pinSpecs({ coreTs, crewApiTypes });
+  const r = mustRun([...npmArgv(), 'install', '--prefix', crewDir, '--no-save', '--no-package-lock', '--omit=dev', '--no-fund', '--no-audit', '--loglevel=error', ...pin], { env, cwd: crewDir, timeoutMs: 600_000 });
+  return { pin, stdout: r.stdout, stderr: r.stderr };
+}
+
+/** `npm install -g` the requested crew + bus into the prefix; optionally pin core-ts inside crew. `opts` is the run's
+ *  options as parsed (crew, bus, coreTs, and the set's crewApiTypes pack when it has one). */
+export function installNpm(L, env, opts, log) {
+  const { crew, bus, coreTs, crewApiTypes = null } = opts;
   const npm = npmArgv();
   const want = { crew: expectTarball('wicked-crew', crew, env), bus: expectTarball('wicked-bus', bus, env), coreTs: expectTarball('wicked-core-ts', coreTs, env) };
+  if (crewApiTypes) expectTarball('wicked-crew-api-types', crewApiTypes, env);
   const specs = [npmSpec('wicked-crew', crew), npmSpec('wicked-bus', bus)];
   log(`install: ${specs.join(' ')} -> ${L.npm}`);
   const t0 = Date.now();
@@ -116,9 +134,9 @@ export function installNpm(L, env, { crew, bus, coreTs }, log) {
   log(`install: npm done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
   if (coreTs && coreTs !== 'pinned' && coreTs !== 'latest') {
     const t = installedTree(L);
-    log(`install: pinning wicked-core-ts@${coreTs} inside ${t.crewDir}`);
-    const r2 = mustRun([...npm, 'install', '--prefix', t.crewDir, '--no-save', '--no-package-lock', '--omit=dev', '--no-fund', '--no-audit', '--loglevel=error', npmSpec('wicked-core-ts', coreTs)], { env, cwd: t.crewDir, timeoutMs: 600_000 });
-    appendFileSync(L.installLog, `$ npm install --prefix crew wicked-core-ts@${coreTs}\n${r2.stdout}\n${r2.stderr}\n`);
+    log(`install: pinning wicked-core-ts@${coreTs} inside ${t.crewDir}${crewApiTypes ? ` (with crew's api-types ${basename(crewApiTypes)})` : ''}`);
+    const r2 = pinInsideCrew(t.crewDir, env, { coreTs, crewApiTypes });
+    appendFileSync(L.installLog, `$ npm install --prefix crew ${r2.pin.join(' ')}\n${r2.stdout}\n${r2.stderr}\n`);
   }
   const got = installedVersions(L);
   // What was installed IS the pack that was named (not a published copy npm resolved instead).
