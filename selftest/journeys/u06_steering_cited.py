@@ -62,7 +62,9 @@ def rule_rows(doc):
     out = []
     if isinstance(doc, dict):
         rid = doc.get("ruleId") or doc.get("rule_id")
-        if isinstance(rid, str) and any(k in doc for k in ("verdict", "status", "outcome", "result", "state")):
+        # A row names how it was decided (`how`, wicked-core's assurance rows) or its outcome; a stand-in judge's or
+        # the operator's row has `how` and no top-level status (crew tests/fixtures/stand-in-receipts.wire.json, ord 3).
+        if isinstance(rid, str) and any(k in doc for k in ("verdict", "status", "outcome", "result", "state", "how")):
             out.append(rid)
         for v in doc.values():
             out += rule_rows(v)
@@ -70,6 +72,60 @@ def rule_rows(doc):
         for v in doc:
             out += rule_rows(v)
     return out
+
+
+def recorded_rule_rows(events):
+    """Every rule id the run's recorded rule checks name (each `gateEvaluated` frame's `assurance.rules`)."""
+    out = []
+    for e in events if isinstance(events, list) else []:
+        if isinstance(e, dict) and e.get("type") == "gateEvaluated" and isinstance(e.get("assurance"), dict):
+            out += rule_rows(e["assurance"].get("rules") or [])
+    return out
+
+
+def stand_in_branch(j, rid, u04, note, cards):
+    """Stand-ins for this job (a thin roster, wicked-crew#1884): a stand-in judge checks the rules, so no card asks the
+    person's call on them and the run goes on to its delivery. The person answers the cards that come; the rule is then
+    read where the run recorded its rule check, and on the run page's rules list."""
+    p = j.page
+
+    def settled():
+        st = ((u04.run_of(j, rid) or {}).get("session") or {}).get("status")
+        return st in ("completed", "failed", "cancelled")
+
+    hit = u04.steer(j, rid, until=note, stop_when=settled)
+    j.rec["cards"] = cards
+    if not hit:
+        return
+    # The person chose stand-ins for the job: the record names that consent and labels each stand-in, and no card asked
+    # the person's own judgment in place of the missing judge.
+    u04.stand_in_record(j, rid, hit.get("answered") or [], used=False)
+    if "card" in hit:
+        # A rules card came after all (a rule the stand-in left to the person): the plain path's checks follow.
+        return hit
+    try:
+        events = (j.get(f"/runs/{rid}/events") or {}).get("events") or []
+    except Exception as err:  # noqa: BLE001 - named in the check, never raised
+        events, why = [], f"{type(err).__name__}: {err}"[:300]
+    else:
+        why = None
+    rows = recorded_rule_rows(events)
+    j.check("rule_in_the_runs_rule_check", RULE in rows, rules=rows[:30], error=why)
+    # The run page: some gate row's "N rules checked" line lists the rule (the person's way to see it applied).
+    p.goto(f"{j.origin}/s/run%3A{rid}", wait_until="domcontentloaded")
+    p.wait_for_timeout(2500)
+    lists = p.get_by_test_id("session-gate-rules")
+    listed = ""
+    for i in range(lists.count()):
+        el = lists.nth(i)
+        if el.get_attribute("open") is None:
+            el.locator("summary").first.click()
+            p.wait_for_timeout(300)
+        listed += el.inner_text() + "\n"
+    j.check("run_page_lists_the_rule", RULE in listed, rules=listed[:1200])
+    j.shots("U06-cited")
+    j.check("no_page_errors", not j.rec["page_errors"], errors=j.rec["page_errors"][:5])
+    return None
 
 
 def run(j):
@@ -84,25 +140,15 @@ def run(j):
 
     def note(card, choices):
         cards.append(card[:1500])
-        if u04.RULES_CARD.search(card):
-            return True
-        # With stand-ins for this job (a thin roster, wicked-crew#1884) a stand-in judge may check the rules, so no card
-        # asks the person's call on them: the gate whose rule check holds the rule is the terminal card instead.
-        if not j.state.get("standIns"):
-            return False
-        try:
-            return RULE in rule_rows(j.get(f"/runs/{rid}/gate") or {})
-        except Exception:  # no open gate (404) or a busy daemon: not this card
-            return False
+        return bool(u04.RULES_CARD.search(card))
 
-    hit = u04.steer(j, rid, until=note)
-    j.rec["cards"] = cards
+    if j.state.get("standIns"):
+        hit = stand_in_branch(j, rid, u04, note, cards)
+    else:
+        hit = u04.steer(j, rid, until=note)
+        j.rec["cards"] = cards
     if not hit:
         return
-    if j.state.get("standIns"):
-        # The person chose stand-ins for the job: the record names that consent and labels each stand-in so far, and no
-        # card asked the person's own judgment in place of the missing judge.
-        u04.stand_in_record(j, rid, hit.get("answered") or [], used=False)
     # The wire: the CURRENT gate's structured rule rows (the rule check of this review step) hold the rule by its id;
     # the id appearing anywhere else in the gate (a note, a prompt) does not count.
     gate = j.get(f"/runs/{rid}/gate") or {}

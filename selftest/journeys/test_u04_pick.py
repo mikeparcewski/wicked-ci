@@ -243,5 +243,44 @@ class StandInRecord(unittest.TestCase):
         self.assertFalse(u04.NOT_INDEPENDENT.search("Stand-ins are independent reviews."))
         self.assertFalse(u04.NOT_INDEPENDENT.search("No helper could check this independently."))
 
+
+class U06RecordedRules(unittest.TestCase):
+    """U06's stand-in branch reads the rule where the run recorded its rule check. The rows are wicked-crew
+    tests/fixtures/stand-in-receipts.wire.json gateEvaluated ord 3 `assurance.rules` (train-14 proof daemon), verbatim
+    in shape: a `how` row with no top-level status, a `status` row, and a proposal rule with its key."""
+
+    ROWS = [
+        {"evidenceKey": "e3", "how": "operator", "origin": "operator", "reason": "skipped by local (human)",
+         "reviewer": {"by": "reviewer", "cite": "no code", "seat": "claude~1", "status": "kept"}, "ruleId": "POL-2101"},
+        {"blocking": False, "evidenceKey": "2a", "how": "none", "party": "engine", "reason": "no distinct judge seat",
+         "ruleId": "RVWL-1002"},
+        {"how": "fact", "origin": "fact", "reason": "selected only for tool tokens", "ruleId": "EDITOR-GRANTS",
+         "ruleKey": "15", "status": "n_a"},
+    ]
+
+    def setUp(self):
+        import u06_steering_cited as u06
+        self.u06 = u06
+
+    def test_rows_with_how_and_no_status_are_rule_rows(self):
+        events = [{"type": "gateEvaluated", "ord": 3, "assurance": {"rules": self.ROWS}}]
+        self.assertEqual(self.u06.recorded_rule_rows(events), ["POL-2101", "RVWL-1002", "EDITOR-GRANTS"])
+
+    def test_only_gate_frames_and_named_rows_count(self):
+        events = [
+            {"type": "noteAdded", "text": "DEV-ST-U06"},
+            {"type": "gateEvaluated", "ord": 2, "assurance": {"rules": [{"ruleId": "DEV-ST-U06"}]}},
+            {"type": "gateEvaluated", "ord": 3},
+            "junk", None,
+        ]
+        self.assertEqual(self.u06.recorded_rule_rows(events), [])
+        self.assertEqual(self.u06.recorded_rule_rows(None), [])
+
+    def test_the_rule_is_found_on_any_gate(self):
+        events = [{"type": "gateEvaluated", "ord": 2, "assurance": {"rules": []}},
+                  {"type": "gateEvaluated", "ord": 4, "assurance": {"rules": [dict(self.ROWS[1], ruleId="DEV-ST-U06")]}}]
+        self.assertIn("DEV-ST-U06", self.u06.recorded_rule_rows(events))
+
+
 if __name__ == "__main__":
     unittest.main()
