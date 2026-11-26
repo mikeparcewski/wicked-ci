@@ -311,8 +311,10 @@ def stand_in_record(j, rid, answered, used=True):
         view = j.get(f"/runs/{rid}") or {}
     except Exception as e:  # a busy daemon: named, not a crash
         view = {"error": repr(e)[:200]}
-    session = view.get("session") or (run_of(j, rid) or {}).get("session") or {}
-    units = view.get("units") or []
+    # GET /runs/:id answers `{ run: SessionView }` (crew's endpoint manifest): the session and its units.
+    run = view.get("run") if isinstance(view.get("run"), dict) else {}
+    session = run.get("session") or (run_of(j, rid) or {}).get("session") or {}
+    units = run.get("units") or []
     problems = stand_in_problems(session, units)
     bindings = bindings_of(session, [])
     j.check("stand_in_record_labelled", not problems, problems=problems[:6], standIns=[f"{b.get('key')}/{b.get('role')}/{b.get('state')}" for b in bindings][:10])
