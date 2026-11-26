@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -194,6 +195,138 @@ class SteerNote(unittest.TestCase):
                     self.assertEqual(len(checks), 1)
                     self.assertFalse(any(call.args[0] == "each_decision_is_sent" for call in j.check.call_args_list))
 
+
+
+class StandInRecord(unittest.TestCase):
+    """wicked-crew#1884: after the person chose stand-ins for the job, the record names the consent and labels each."""
+
+    GOOD = {"assurance": {"standInAware": True, "standIn": {"scope": "job", "by": "ann (human)", "at": 7, "via": "launch"},
+                          "standIns": [{"key": "claude~1", "base": "claude", "slot": 1, "role": "judge", "state": "answered"}]}}
+
+    def test_a_whole_record_passes(self):
+        self.assertEqual(u04.stand_in_problems(self.GOOD, [{"assigned_cli": "claude~1"}, {"assigned_cli": "claude"}]), [])
+
+    def test_each_way_the_record_falls_short_is_named(self):
+        a = self.GOOD["assurance"]
+        bad = [
+            {},
+            {"assurance": {**a, "standInAware": False}},
+            {"assurance": {**a, "standIn": {**a["standIn"], "scope": "always", "via": "setting"}}},
+            {"assurance": {**a, "standIn": {**a["standIn"], "by": ""}}},
+            {"assurance": {**a, "standIns": [{**a["standIns"][0], "key": "claude"}]}},
+            {"assurance": {**a, "standIns": [{**a["standIns"][0], "role": "builder"}]}},
+            {"assurance": {**a, "standIns": "claude~1"}},
+        ]
+        for session in bad:
+            with self.subTest(session=session):
+                self.assertNotEqual(u04.stand_in_problems(session, []), [])
+
+    def test_a_unit_on_a_stand_in_seat_needs_its_binding(self):
+        self.assertNotEqual(u04.stand_in_problems(self.GOOD, [{"assigned_cli": "claude~2"}]), [])
+
+    def test_malformed_records_are_named_never_raised(self):
+        a = self.GOOD["assurance"]
+        for session in ({"assurance": {**a, "standIns": [None]}}, {"assurance": "x"}, {"assurance": {**a, "standIn": "job"}}, None):
+            with self.subTest(session=session):
+                self.assertNotEqual(u04.stand_in_problems(session, [None, {"assigned_cli": 3}]), [])
+
+    def test_malformed_fields_beside_a_whole_record_are_named_never_raised(self):
+        a, b0 = self.GOOD["assurance"], self.GOOD["assurance"]["standIns"][0]
+        sessions = [{"assurance": {**a, "standIns": [{**b0, f: []}]}} for f in ("role", "key", "state", "base")]
+        sessions.append({"assurance": {**a, "standIns": None}})  # S04: only an omitted list is empty
+        for session in sessions:
+            with self.subTest(session=session):
+                self.assertNotEqual(u04.stand_in_problems(session, []), [])
+        for units in (3, "claude~1", {"assigned_cli": "claude~1"}, [None], [{"assigned_cli": []}], [{"assigned_cli": {"x": 1}}]):
+            with self.subTest(units=units):
+                self.assertNotEqual(u04.stand_in_problems(self.GOOD, units), [])
+        omitted = {"assurance": {k: v for k, v in a.items() if k != "standIns"}}
+        self.assertEqual(u04.stand_in_problems(omitted, [{"assigned_cli": "claude"}]), [])
+
+    def _record(self, get):
+        checks = {}
+        j = SimpleNamespace(get=get, state={}, check=lambda name, ok, **kw: checks.__setitem__(name, (ok, kw)))
+        u04.stand_in_record(j, "r1", [], used=False)
+        return checks
+
+    def test_the_run_read_failing_or_without_units_is_named(self):
+        def boom(path):
+            raise RuntimeError("busy")
+        ok, kw = self._record(boom)["stand_in_record_labelled"]
+        self.assertFalse(ok)
+        self.assertTrue(any("GET /runs/r1" in p for p in kw["problems"]))
+        ok, kw = self._record(lambda path: {"run": {"session": self.GOOD, "units": []}})["stand_in_record_labelled"]
+        self.assertFalse(ok)
+        self.assertTrue(any("no units" in p for p in kw["problems"]))
+        # The read's own shape: `{ run: SessionView }`, a session and its units.
+        ok, _ = self._record(lambda path: {"run": {"session": self.GOOD, "units": [{"assigned_cli": "claude~1"}]}})["stand_in_record_labelled"]
+        self.assertTrue(ok)
+
+    def test_a_run_settling_between_two_reads_still_meets_the_stop(self):
+        # stop_when reads "running", then the loop's own read says "completed": the stop condition wins (codex r1).
+        reads = iter([False, True])
+        j = SimpleNamespace(page=MagicMock(), state={}, check=MagicMock())
+        with mock.patch.object(u04, "run_of", return_value={"session": {"status": "completed"}}):
+            out = u04.steer(j, "r1", until=lambda c, t: False, stop_when=lambda: next(reads))
+        self.assertEqual(out, {"answered": [], "seen": []})
+        j.check.assert_not_called()
+
+    def test_a_timestamp_past_float_range_is_named_never_raised(self):
+        a = self.GOOD["assurance"]
+        self.assertNotEqual(u04.stand_in_problems({"assurance": {**a, "standIn": {**a["standIn"], "at": 10**400}}}, []), [])
+
+    def test_numbers_are_real_numbers_and_slots_are_u32(self):
+        a = self.GOOD["assurance"]
+        for session in ({"assurance": {**a, "standIn": {**a["standIn"], "at": True}}},
+                        {"assurance": {**a, "standIn": {**a["standIn"], "at": float("inf")}}},
+                        {"assurance": {**a, "standIns": [{**a["standIns"][0], "slot": 4294967296, "key": "claude~4294967296"}]}},
+                        {"assurance": {**a, "standIns": [{**a["standIns"][0], "slot": True, "key": "claude~True"}]}}):
+            with self.subTest(session=session):
+                self.assertNotEqual(u04.stand_in_problems(session, []), [])
+
+    def test_the_disclosure_must_say_not_independent(self):
+        self.assertTrue(u04.NOT_INDEPENDENT.search("They are not independent reviews."))
+        self.assertFalse(u04.NOT_INDEPENDENT.search("Stand-ins are independent reviews."))
+        self.assertFalse(u04.NOT_INDEPENDENT.search("No helper could check this independently."))
+
+
+class U06RecordedRules(unittest.TestCase):
+    """U06's stand-in branch reads the rule where the run recorded its rule check. The rows are copied from wicked-crew
+    tests/fixtures/stand-in-receipts.wire.json, gateEvaluated ord 3 `assurance.rules` (train-14 proof daemon), with
+    their own keys (every row there has a top-level `status`); only long hashes and reasons are shortened."""
+
+    ROWS = [
+        {"evidenceKey": "e3cc", "how": "operator", "origin": "operator", "reason": "skipped by local (human)",
+         "reviewer": {"by": "reviewer", "cite": "no code", "seat": "claude~1", "status": "kept"}, "ruleId": "POL-2101",
+         "status": "skipped"},
+        {"blocking": False, "evidenceKey": "2af9", "how": "none", "party": "engine", "reason": "no distinct judge seat",
+         "ruleId": "RVWL-1002", "status": "unchecked"},
+        {"how": "fact", "origin": "fact", "reason": "selected only for tool tokens", "ruleId": "EDITOR-GRANTS",
+         "ruleKey": "1529", "status": "n_a"},
+    ]
+
+    def setUp(self):
+        import u06_steering_cited as u06
+        self.u06 = u06
+
+    def test_the_recorded_rows_are_read_by_rule_id(self):
+        events = [{"type": "gateEvaluated", "ord": 3, "assurance": {"rules": self.ROWS}}]
+        self.assertEqual(self.u06.recorded_rule_rows(events), ["POL-2101", "RVWL-1002", "EDITOR-GRANTS"])
+
+    def test_only_gate_frames_and_rows_with_an_outcome_count(self):
+        events = [
+            {"type": "noteAdded", "text": "DEV-ST-U06"},
+            {"type": "gateEvaluated", "ord": 2, "assurance": {"rules": [{"ruleId": "DEV-ST-U06"}]}},
+            {"type": "gateEvaluated", "ord": 3},
+            "junk", None,
+        ]
+        self.assertEqual(self.u06.recorded_rule_rows(events), [])
+        self.assertEqual(self.u06.recorded_rule_rows(None), [])
+
+    def test_the_rule_is_found_on_any_gate(self):
+        events = [{"type": "gateEvaluated", "ord": 2, "assurance": {"rules": []}},
+                  {"type": "gateEvaluated", "ord": 4, "assurance": {"rules": [dict(self.ROWS[1], ruleId="DEV-ST-U06")]}}]
+        self.assertIn("DEV-ST-U06", self.u06.recorded_rule_rows(events))
 
 if __name__ == "__main__":
     unittest.main()
