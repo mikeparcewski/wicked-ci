@@ -584,6 +584,13 @@ if (process.platform !== 'win32') {
   if (refusalProblem(409, choice) !== null) throw new Error(`stand-in refusal: the crew-shaped body fails: ${refusalProblem(409, choice)}`);
   const noHelper = { code: 'no_usable_helper', error: 'No signed-in helper…', preflight: { ...pf, roles: pf.roles.map((r, i) => (i === 0 ? { ...r, canStandIn: false } : r)) } };
   if (refusalProblem(409, noHelper) !== null) throw new Error(`stand-in refusal: a no_usable_helper body fails: ${refusalProblem(409, noHelper)}`);
+  // wicked-core#1954: the engine offers a stand-in only where one sits, so its conditional rows (a council, the rule
+  // council, the monitors) say canStandIn false; crew still asks only about the roles every run needs.
+  const sitsOnly = { ...pf, roles: pf.roles.map((r) => (['council', 'rule_council', 'monitor'].includes(r.role) ? { ...r, canStandIn: false, standInFrom: null } : r)) };
+  if (refusalProblem(409, { ...choice, preflight: sitsOnly }) !== null) throw new Error(`stand-in refusal: a choice with conditional rows no stand-in fills fails: ${refusalProblem(409, { ...choice, preflight: sitsOnly })}`);
+  // …and a non-conditional short role no stand-in fills still refuses the choice.
+  const evaluatorCannot = { ...sitsOnly, roles: sitsOnly.roles.map((r) => (r.role === 'evaluator' ? { ...r, canStandIn: false } : r)) };
+  if (refusalProblem(409, { ...choice, preflight: evaluatorCannot }) === null) throw new Error('stand-in refusal: a choice with an evaluator no stand-in fills is accepted');
   const bad = [
     [500, null], [409, null], [201, { runId: 'r' }], [409, { code: 'stand_in_choice' }],
     [409, { ...choice, code: 'conflict' }], [409, { ...choice, retryWith: undefined }],

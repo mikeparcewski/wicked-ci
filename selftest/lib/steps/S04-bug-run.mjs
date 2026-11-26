@@ -134,8 +134,9 @@ const STAND_IN_ROLES = new Set(['evaluator', 'judge', 'rule_judge', 'qe_reviewer
 const STAND_IN_CHOICES = ['job', 'always', 'sign_in', 'cancel'];
 /**
  * The refusal body as crew writes it (packages/crew/src/core/stand-in.ts `preflightRefusal`): `null` when it is
- * one, else what is wrong. `stand_in_choice` = every short role a stand-in can fill, with `retryWith.standIns`;
- * `no_usable_helper` = some short role no signed-in helper can fill (or none a stand-in can).
+ * one, else what is wrong. `stand_in_choice` = every short role the job always needs a stand-in can fill, with
+ * `retryWith.standIns`; `no_usable_helper` = some short role it always needs no signed-in helper can fill (or none a
+ * stand-in can).
  */
 export function refusalProblem(status, json) {
   if (status !== 409) return `status ${status}, not 409`;
@@ -152,7 +153,10 @@ export function refusalProblem(status, json) {
   if (bad) return `a malformed role row ${JSON.stringify(bad).slice(0, 120)}`;
   const short = p.roles.filter((r) => r.shortBy > 0);
   if (short.length === 0) return 'short, but no role is short';
-  const cannot = short.filter((r) => !r.canStandIn);
+  // crew asks only about the roles every run of the job needs: a conditional row (a council, the monitors, the
+  // rules checks, seated only if an event calls for them) that no stand-in fills is no reason to refuse the choice
+  // (crew src/core/stand-in.ts `shortRoles`; wicked-core#1954 offers a stand-in only where one sits).
+  const cannot = short.filter((r) => !r.canStandIn && !r.conditional);
   if (code === 'stand_in_choice') {
     if (cannot.length > 0) return `stand_in_choice with roles no stand-in can fill: ${cannot.map((r) => r.role).join(', ')}`;
     if (json.retryWith?.standIns !== true) return 'stand_in_choice without retryWith.standIns';
