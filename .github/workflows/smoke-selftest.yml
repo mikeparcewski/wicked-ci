@@ -58,6 +58,10 @@ jobs:
     with:
       crew_version: '0.7.32'
       core_ts_version: '0.7.23'
+      # The garden that set shipped with (v12.34.0, the newest release when crew 0.7.32 was published on 2026-09-12),
+      # pinned like crew and core-ts: `latest` ran today's garden against a September crew, and the leg went red on
+      # every run once garden v12.69.0 shipped (wicked-ci#93).
+      garden_ref: '12.34.0'
       steps: ${{ inputs.steps || '' }}
       os_matrix: '["macos-latest"]'
       artifact_suffix: prev

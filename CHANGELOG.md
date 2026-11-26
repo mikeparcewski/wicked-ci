@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### smoke — the previous set pins its garden (wicked-ci#93)
+
+- `smoke-previous-set` pinned crew 0.7.32 and core-ts 0.7.23 but installed the newest garden tag, so a garden release
+  could turn the leg red with no change here. It went red on every run once garden v12.69.0 shipped. The set now
+  pins the garden it shipped with, `12.34.0`, the same way it pins crew and core-ts.
+
 ### selftest — the stand-in record check says how many stand-ins it saw (wicked-core#1930 F8)
 
 - S04's roster is short only of conditional roles (a council, monitors), so its followed run usually seats no
