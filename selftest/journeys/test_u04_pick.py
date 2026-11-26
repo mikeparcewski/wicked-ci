@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -228,6 +229,47 @@ class StandInRecord(unittest.TestCase):
         for session in ({"assurance": {**a, "standIns": [None]}}, {"assurance": "x"}, {"assurance": {**a, "standIn": "job"}}, None):
             with self.subTest(session=session):
                 self.assertNotEqual(u04.stand_in_problems(session, [None, {"assigned_cli": 3}]), [])
+
+    def test_malformed_fields_beside_a_whole_record_are_named_never_raised(self):
+        a, b0 = self.GOOD["assurance"], self.GOOD["assurance"]["standIns"][0]
+        sessions = [{"assurance": {**a, "standIns": [{**b0, f: []}]}} for f in ("role", "key", "state", "base")]
+        sessions.append({"assurance": {**a, "standIns": None}})  # S04: only an omitted list is empty
+        for session in sessions:
+            with self.subTest(session=session):
+                self.assertNotEqual(u04.stand_in_problems(session, []), [])
+        for units in (3, "claude~1", {"assigned_cli": "claude~1"}, [None], [{"assigned_cli": []}], [{"assigned_cli": {"x": 1}}]):
+            with self.subTest(units=units):
+                self.assertNotEqual(u04.stand_in_problems(self.GOOD, units), [])
+        omitted = {"assurance": {k: v for k, v in a.items() if k != "standIns"}}
+        self.assertEqual(u04.stand_in_problems(omitted, [{"assigned_cli": "claude"}]), [])
+
+    def _record(self, get):
+        checks = {}
+        j = SimpleNamespace(get=get, state={}, check=lambda name, ok, **kw: checks.__setitem__(name, (ok, kw)))
+        u04.stand_in_record(j, "r1", [], used=False)
+        return checks
+
+    def test_the_run_read_failing_or_without_units_is_named(self):
+        def boom(path):
+            raise RuntimeError("busy")
+        ok, kw = self._record(boom)["stand_in_record_labelled"]
+        self.assertFalse(ok)
+        self.assertTrue(any("GET /runs/r1" in p for p in kw["problems"]))
+        ok, kw = self._record(lambda path: {"run": {"session": self.GOOD, "units": []}})["stand_in_record_labelled"]
+        self.assertFalse(ok)
+        self.assertTrue(any("no units" in p for p in kw["problems"]))
+        # The read's own shape: `{ run: SessionView }`, a session and its units.
+        ok, _ = self._record(lambda path: {"run": {"session": self.GOOD, "units": [{"assigned_cli": "claude~1"}]}})["stand_in_record_labelled"]
+        self.assertTrue(ok)
+
+    def test_a_run_settling_between_two_reads_still_meets_the_stop(self):
+        # stop_when reads "running", then the loop's own read says "completed": the stop condition wins (codex r1).
+        reads = iter([False, True])
+        j = SimpleNamespace(page=MagicMock(), state={}, check=MagicMock())
+        with mock.patch.object(u04, "run_of", return_value={"session": {"status": "completed"}}):
+            out = u04.steer(j, "r1", until=lambda c, t: False, stop_when=lambda: next(reads))
+        self.assertEqual(out, {"answered": [], "seen": []})
+        j.check.assert_not_called()
 
     def test_numbers_are_real_numbers_and_slots_are_u32(self):
         a = self.GOOD["assurance"]

@@ -197,8 +197,12 @@ def launch(j, intent, label):
         n1 = len(j.rec["posts"])
         start_btn.click()
         # Its Start is a 2xx answer on the same chat's proposal route.
-        j.wait(lambda: any(200 <= w["status"] < 300 and chat_of(w["url"]) == chat and urlsplit(w["url"]).path != f"/api/v1/chats/{chat}/proposals" for w in j.rec["posts"][n1:]), min(60, left()), "the revised card's Start to launch")
+        started = j.wait(lambda: any(200 <= w["status"] < 300 and chat_of(w["url"]) == chat and urlsplit(w["url"]).path != f"/api/v1/chats/{chat}/proposals" for w in j.rec["posts"][n1:]), min(60, left()), "the revised card's Start to launch")
         j.state["standInStart"] = [(w["status"], w["url"]) for w in j.rec["posts"][n1:]][-3:]
+        if not started:
+            # The revised card's own Start must answer 2xx: a run found later, or an earlier 2xx write, is not it.
+            j.check("run_launched_from_the_ui", False, stage="the revised card's Start was not answered 2xx", posts=j.state["standInStart"])
+            return None
     rid = j.wait(new_run, left(), "the run to exist")
     j.check("run_launched_from_the_ui", rid is not None and any(re.match(r"20\d POST /api/v1/", w) for w in j.rec["writes"]), run=rid, writes=j.rec["writes"][-6:])
     j.state["runId"] = rid
@@ -275,14 +279,27 @@ def stand_in_problems(session, units):
     if not (a.get("standInAware") is True and c.get("scope") == "job" and c.get("via") == "launch"
             and isinstance(c.get("by"), str) and c.get("by") and _num(c.get("at"))):
         out.append(f"no launch consent on the record: standInAware={a.get('standInAware')!r} standIn={a.get('standIn')!r}"[:300])
+    keys = set()
     for b in bindings_of(session, out):
-        base, slot = b.get("base"), b.get("slot")
+        base, slot, key, role, state = (b.get(f) for f in ("base", "slot", "key", "role", "state"))
+        # Every field is checked for its type before any set or string use, so a malformed one is named, never raised.
         if not (isinstance(base, str) and base and isinstance(slot, int) and not isinstance(slot, bool) and 1 <= slot <= 0xFFFFFFFF
-                and b.get("key") == f"{base}~{slot}" and b.get("role") in STAND_IN_ROLES and b.get("state") in STAND_IN_STATES):
+                and isinstance(key, str) and key == f"{base}~{slot}" and isinstance(role, str) and role in STAND_IN_ROLES
+                and isinstance(state, str) and state in STAND_IN_STATES):
             out.append(f"unlabelled stand-in {b!r}"[:300])
-    keys = {b.get("key") for b in bindings_of(session, [])}
-    seats = {u.get("assigned_cli") for u in (units or []) if isinstance(u, dict)}
-    for k in sorted(k for k in seats if isinstance(k, str) and "~" in k):
+        if isinstance(key, str):
+            keys.add(key)
+    if units is not None and not isinstance(units, list):
+        out.append(f"units is {units!r}"[:300])
+        units = []
+    seats = set()
+    for u in units or []:
+        cli = u.get("assigned_cli") if isinstance(u, dict) else None
+        if not isinstance(u, dict) or not (cli is None or isinstance(cli, str)):
+            out.append(f"malformed unit {u!r}"[:300])
+        elif isinstance(cli, str):
+            seats.add(cli)
+    for k in sorted(k for k in seats if "~" in k):
         if k not in keys:
             out.append(f"unit on stand-in seat {k} has no binding")
     return out
@@ -291,9 +308,9 @@ def stand_in_problems(session, units):
 def bindings_of(session, problems):
     """The record's stand-in bindings that are objects; anything else is named in `problems`."""
     a = (session or {}).get("assurance") if isinstance(session, dict) else None
-    raw = a.get("standIns") if isinstance(a, dict) else None
-    if raw is None:
-        return []
+    if not isinstance(a, dict) or "standIns" not in a:
+        return []  # omitted: no stand-in seated (S04 accepts only the omitted list as empty)
+    raw = a.get("standIns")
     if not isinstance(raw, list):
         problems.append(f"standIns is {raw!r}"[:300])
         return []
@@ -309,13 +326,20 @@ def stand_in_record(j, rid, answered, used=True):
     place of the missing judge."""
     try:
         view = j.get(f"/runs/{rid}") or {}
-    except Exception as e:  # a busy daemon: named, not a crash
+    except Exception as e:  # noqa: BLE001 - a busy daemon: named in the check, not a crash
         view = {"error": repr(e)[:200]}
-    # GET /runs/:id answers `{ run: SessionView }` (crew's endpoint manifest): the session and its units.
+    view = view if isinstance(view, dict) else {"error": f"not an object: {view!r}"[:200]}
+    # GET /runs/:id answers `{ run: SessionView }` (crew's endpoint manifest): the session and its units. Its own
+    # answer is the record: a failed read, or one without its units, is named rather than read around.
     run = view.get("run") if isinstance(view.get("run"), dict) else {}
-    session = run.get("session") or (run_of(j, rid) or {}).get("session") or {}
-    units = run.get("units") or []
-    problems = stand_in_problems(session, units)
+    session = run.get("session") if isinstance(run.get("session"), dict) else {}
+    units = run.get("units")
+    problems = []
+    if "error" in view:
+        problems.append(f"GET /runs/{rid}: {view['error']}")
+    elif not (isinstance(units, list) and units):
+        problems.append(f"GET /runs/{rid} returned no units: {units!r}"[:300])
+    problems += stand_in_problems(session, units)
     bindings = bindings_of(session, [])
     j.check("stand_in_record_labelled", not problems, problems=problems[:6], standIns=[f"{b.get('key')}/{b.get('role')}/{b.get('state')}" for b in bindings][:10])
     if used:
@@ -356,6 +380,9 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
         r = run_of(j, rid)
         st = (r or {}).get("session", {}).get("status")
         if st in ("completed", "failed", "cancelled"):
+            # The run settled between `stop_when`'s read and this one: a stop condition that now holds still wins.
+            if stop_when is not None and stop_when():
+                return {"answered": answered, "seen": seen}
             break
         if st != "awaiting_human":
             # `answer_then_return=N`: hand back once N cards are answered and the run is moving again.
