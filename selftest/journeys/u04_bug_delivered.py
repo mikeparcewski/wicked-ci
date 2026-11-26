@@ -9,6 +9,7 @@ Passes when: every decision went through the UI (the run's gate decisions are th
 labelled as the person's setting, never as passed. The stub seats write a deterministic fix; this proves the product's
 governed path and its UI, not a model's code.
 """
+import math
 import re
 import subprocess
 import time
@@ -36,7 +37,9 @@ CONFIRM = re.compile(r"^yes\b|confirm|^deliver$|^push", re.I)
 # stand-ins for this job, or go back to the job and add another helper". The person takes stand-ins for this job: the
 # run then fills its short roles with labelled stand-ins instead of stopping at "No helper could check this step
 # independently". A full roster (or a crew before #1884) is never asked, and the journey runs the old path.
-STAND_INS = re.compile(r"^use stand-ins for this job", re.I)
+STAND_IN_LABEL = "Use stand-ins for this job"
+# The card's own disclosure (crew `preflightRefusal`): a stand-in is a labelled check, not an independent review.
+NOT_INDEPENDENT = re.compile(r"\bnot independent reviews?\b", re.I)
 STAND_IN_ROLES = {"evaluator", "judge", "rule_judge", "qe_reviewer", "council", "monitor", "party_excluded"}
 STAND_IN_STATES = {"seated", "answered", "failed"}
 
@@ -74,11 +77,17 @@ def qe_off(j):
 
 
 def stand_in_reply(p):
-    """The card's "Use stand-ins for this job" reply, when the card asks the stand-in choice; else None."""
-    for e in p.get_by_test_id("job-passage-reply").all():
-        if (e.get_attribute("data-reply") or "").startswith("choice:") and e.is_visible() and STAND_INS.search(e.inner_text().strip()):
-            return e
-    return None
+    """The current card's "Use stand-ins for this job" reply when it asks the stand-in choice: `(element, None)`, or
+    `(None, why)` naming what the card offers instead. Only the newest job card counts, and only its first choice
+    (`data-reply="choice:0"`) with exactly that label: the other choice ("Back to the job") or a wider one never."""
+    passage = p.get_by_test_id("job-passage").last
+    if passage.count() == 0 or passage.get_by_test_id("job-passage-question").count() == 0:
+        return None, "no question on the card"
+    replies = [(e, e.get_attribute("data-reply") or "", e.inner_text().strip()) for e in passage.get_by_test_id("job-passage-reply").all() if e.is_visible()]
+    hits = [e for e, key, text in replies if key == "choice:0" and text.split("\n")[0].strip() == STAND_IN_LABEL and e.is_enabled()]
+    if len(hits) == 1:
+        return hits[0], None
+    return None, f"replies {[(key, text[:60]) for _, key, text in replies]}"
 
 
 def press_start(p):
@@ -86,6 +95,18 @@ def press_start(p):
         p.get_by_role("button", name=re.compile(r"^Start")).first.click()
     else:
         p.get_by_text(re.compile(r"^Start v\d")).first.click()
+
+
+def card_start(p):
+    """The newest job card's own Start reply, when it is shown and enabled; else None."""
+    b = p.get_by_test_id("job-passage").last.locator('[data-testid="job-passage-reply"][data-reply="start"]')
+    return b.first if b.count() == 1 and b.first.is_visible() and b.first.is_enabled() else None
+
+
+def chat_of(url):
+    """The chat id of a `/api/v1/chats/<id>/proposals[/...]` path, or None."""
+    m = re.match(r"^/api/v1/chats/([^/]+)/proposals(?:/|$)", urlsplit(url).path)
+    return m.group(1) if m else None
 
 
 def launch(j, intent, label):
@@ -128,31 +149,57 @@ def launch(j, intent, label):
     def new_run():
         return next((r["session"]["id"] for r in j.get("/runs?limit=200").get("runs", []) if r["session"]["id"] not in before and words in (r["session"].get("problem") or "").lower()), None)
 
-    # The Start either launches, or (a thin roster, wicked-crew#1884) reopens the card with the stand-in question.
+    # The Start either launches, or (a thin roster, wicked-crew#1884) reopens the card with the stand-in question. One
+    # budget for the whole launch, so the steps that follow keep theirs.
+    deadline = time.time() + 240
+    left = lambda: max(1, deadline - time.time())  # noqa: E731
     asked = []
 
     def launched_or_asked():
-        if stand_in_reply(p) is not None:
+        q = p.get_by_test_id("job-passage").last.get_by_test_id("job-passage-question")
+        if q.count() and "stand-in" in q.first.inner_text().lower():
             asked.append(True)
             return True
         return new_run() is not None
 
-    j.wait(launched_or_asked, 120, "the run to exist, or the stand-in question")
+    if not j.wait(launched_or_asked, left(), "the run to exist, or the stand-in question"):
+        j.check("run_launched_from_the_ui", False, stage="waiting for the run or the stand-in question", writes=j.rec["writes"][-6:])
+        return None
     j.state["standIns"] = bool(asked)
     if asked:
-        q = p.get_by_test_id("job-passage-question")
-        text = q.last.inner_text()[:600] if q.count() else ""
-        j.check("stand_in_choice_asked_on_the_card", "stand-in" in text.lower() and "independent" in text.lower(), question=text)
+        text = p.get_by_test_id("job-passage").last.get_by_test_id("job-passage-question").first.inner_text()
+        reply, why = stand_in_reply(p)
+        j.check("stand_in_choice_asked_on_the_card", reply is not None and NOT_INDEPENDENT.search(text) is not None, question=text[:600], replies=why)
         j.shots(f"{label}-stand-in-question")
-        n0 = len(j.rec["writes"])
-        stand_in_reply(p).click()
-        revised = j.wait(lambda: any(re.match(r"201 POST /api/v1/chats/[^ ]+/proposals$", w) for w in j.rec["writes"][n0:]), 30, "the stand-in choice to be sent")
-        j.check("stand_in_choice_pressed", bool(revised), writes=j.rec["writes"][n0:])
-        # The card says the choice is made; its Start launches with stand-ins for this job.
-        j.wait(lambda: p.get_by_role("button", name=re.compile(r"^Start")).count() > 0 or p.get_by_text(re.compile(r"^Start v\d")).count() > 0, 60, "the card's Start")
-        p.wait_for_timeout(800)
-        press_start(p)
-    rid = j.wait(new_run, 120, "the run to exist")
+        if reply is None:
+            return None
+        version = p.get_by_test_id("job-passage").last.get_attribute("data-version")
+        refused = [w for w in j.rec["posts"] if w["status"] == 409 and chat_of(w["url"]) is not None]
+        chat = chat_of(refused[-1]["url"]) if refused else None
+        n0 = len(j.rec["posts"])
+        reply.click()
+
+        def consent_sent():
+            # The person's revision of this chat's card: exactly the stand-in choice, from the question.
+            return next((w for w in j.rec["posts"][n0:] if w["status"] == 201 and w["method"] == "POST" and chat is not None
+                         and urlsplit(w["url"]).path == f"/api/v1/chats/{chat}/proposals" and isinstance(w["body"], dict)
+                         and w["body"].get("edits") == {"standIns": True} and w["body"].get("source") == "question"), None)
+
+        sent = j.wait(consent_sent, min(30, left()), "the stand-in choice to be sent")
+        j.check("stand_in_choice_pressed", bool(sent), chat=chat, posts=[(w["status"], w["url"], w["body"]) for w in j.rec["posts"][n0:]][-4:])
+        if not sent:
+            return None
+        # The revised card (a new version) shows its own Start: that card launches with stand-ins for this job.
+        start_btn = j.wait(lambda: p.get_by_test_id("job-passage").last.get_attribute("data-version") != version and card_start(p), min(60, left()), "the revised card's Start")
+        if not start_btn:
+            j.check("run_launched_from_the_ui", False, stage="waiting for the revised card's Start", version=version)
+            return None
+        n1 = len(j.rec["posts"])
+        start_btn.click()
+        # Its Start is a 2xx answer on the same chat's proposal route.
+        j.wait(lambda: any(200 <= w["status"] < 300 and chat_of(w["url"]) == chat and urlsplit(w["url"]).path != f"/api/v1/chats/{chat}/proposals" for w in j.rec["posts"][n1:]), min(60, left()), "the revised card's Start to launch")
+        j.state["standInStart"] = [(w["status"], w["url"]) for w in j.rec["posts"][n1:]][-3:]
+    rid = j.wait(new_run, left(), "the run to exist")
     j.check("run_launched_from_the_ui", rid is not None and any(re.match(r"20\d POST /api/v1/", w) for w in j.rec["writes"]), run=rid, writes=j.rec["writes"][-6:])
     j.state["runId"] = rid
     return rid
@@ -212,45 +259,67 @@ def decision_matches(body, kind, note):
     return body.get("approve") is True
 
 
+def _num(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+
+
 def stand_in_problems(session, units):
     """What the run's record lacks after the person chose stand-ins for this job (wicked-crew#1884): the launch
     consent (`assurance.standInAware`, `standIn` scope job via launch, by and at), and a label on every stand-in it
     seated (key `<base>~<slot>`, a core role and state; every unit on a stand-in seat has its binding). As wicked-ci
-    S04's `checkStandInRecord`. `[]` when the record is whole."""
-    a = (session or {}).get("assurance") or {}
-    c = a.get("standIn") or {}
+    S04's `checkStandInRecord`. `[]` when the record is whole; never raises on a malformed record."""
+    a = (session or {}).get("assurance") if isinstance(session, dict) else None
+    a = a if isinstance(a, dict) else {}
+    c = a.get("standIn") if isinstance(a.get("standIn"), dict) else {}
     out = []
     if not (a.get("standInAware") is True and c.get("scope") == "job" and c.get("via") == "launch"
-            and isinstance(c.get("by"), str) and c.get("by") and isinstance(c.get("at"), (int, float))):
-        out.append(f"no launch consent on the record: standInAware={a.get('standInAware')!r} standIn={c!r}")
-    bindings = a.get("standIns")
-    if bindings is not None and not isinstance(bindings, list):
-        out.append(f"standIns is {bindings!r}")
-        bindings = []
-    bindings = bindings or []
-    for b in bindings:
+            and isinstance(c.get("by"), str) and c.get("by") and _num(c.get("at"))):
+        out.append(f"no launch consent on the record: standInAware={a.get('standInAware')!r} standIn={a.get('standIn')!r}"[:300])
+    for b in bindings_of(session, out):
         base, slot = b.get("base"), b.get("slot")
-        if not (isinstance(base, str) and base and isinstance(slot, int) and slot >= 1 and b.get("key") == f"{base}~{slot}"
-                and b.get("role") in STAND_IN_ROLES and b.get("state") in STAND_IN_STATES):
-            out.append(f"unlabelled stand-in {b!r}")
-    keys = {b.get("key") for b in bindings}
-    for k in sorted({u.get("assigned_cli") for u in (units or []) if isinstance(u.get("assigned_cli"), str) and "~" in u.get("assigned_cli")}):
+        if not (isinstance(base, str) and base and isinstance(slot, int) and not isinstance(slot, bool) and 1 <= slot <= 0xFFFFFFFF
+                and b.get("key") == f"{base}~{slot}" and b.get("role") in STAND_IN_ROLES and b.get("state") in STAND_IN_STATES):
+            out.append(f"unlabelled stand-in {b!r}"[:300])
+    keys = {b.get("key") for b in bindings_of(session, [])}
+    seats = {u.get("assigned_cli") for u in (units or []) if isinstance(u, dict)}
+    for k in sorted(k for k in seats if isinstance(k, str) and "~" in k):
         if k not in keys:
             out.append(f"unit on stand-in seat {k} has no binding")
     return out
 
 
-def stand_in_record(j, rid, answered):
-    """After the stand-in choice: the record names the consent and labels each stand-in, the run used at least one,
-    and no card asked the person for their own judgment in place of the missing judge."""
-    view = j.get(f"/runs/{rid}") or {}
+def bindings_of(session, problems):
+    """The record's stand-in bindings that are objects; anything else is named in `problems`."""
+    a = (session or {}).get("assurance") if isinstance(session, dict) else None
+    raw = a.get("standIns") if isinstance(a, dict) else None
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        problems.append(f"standIns is {raw!r}"[:300])
+        return []
+    bad = [b for b in raw if not isinstance(b, dict)]
+    if bad:
+        problems.append(f"standIns holds non-objects {bad!r}"[:300])
+    return [b for b in raw if isinstance(b, dict)]
+
+
+def stand_in_record(j, rid, answered, used=True):
+    """After the stand-in choice: the record names the consent and labels each stand-in; with `used`, at least one
+    stand-in answered (a seat only reserved is not a check); and no card offered or took the person's own judgment in
+    place of the missing judge."""
+    try:
+        view = j.get(f"/runs/{rid}") or {}
+    except Exception as e:  # a busy daemon: named, not a crash
+        view = {"error": repr(e)[:200]}
     session = view.get("session") or (run_of(j, rid) or {}).get("session") or {}
     units = view.get("units") or []
     problems = stand_in_problems(session, units)
-    bindings = ((session.get("assurance") or {}).get("standIns")) or []
+    bindings = bindings_of(session, [])
     j.check("stand_in_record_labelled", not problems, problems=problems[:6], standIns=[f"{b.get('key')}/{b.get('role')}/{b.get('state')}" for b in bindings][:10])
-    j.check("stand_ins_used_on_the_thin_roster", len(bindings) > 0, standIns=len(bindings))
-    j.check("no_own_judgment_in_place_of_a_stand_in", not any(JUDGMENT.search(a) for a in answered), answered=answered)
+    if used:
+        j.check("stand_ins_used_on_the_thin_roster", any(b.get("state") == "answered" for b in bindings), standIns=[f"{b.get('key')}/{b.get('state')}" for b in bindings][:10])
+    seen = j.state.get("judgeCards") or []
+    j.check("no_own_judgment_in_place_of_a_stand_in", not seen and not any(JUDGMENT.search(a) for a in answered), answered=answered, judge_cards=seen[:3])
 
 
 def gate_post_for(j, rid, since, label, rules_pick, note):
@@ -305,6 +374,9 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
         kind = (r["session"].get("awaitingHuman") or {}).get("gateKind") if isinstance(r["session"].get("awaitingHuman"), dict) else None
         seen.append({"kind": kind, "choices": texts})
         card = p.get_by_test_id("session-gate-row").last.inner_text() if p.get_by_test_id("session-gate-row").count() else ""
+        if j.state.get("standIns") and JUDGE_CARD.search(card):
+            # With stand-ins for the job, the missing judge is a labelled stand-in: this card should not come.
+            j.state.setdefault("judgeCards", []).append({"card": card[:400], "choices": texts})
         if until is not None and until(card, texts):
             enabled = [e.inner_text().strip().split("\n")[0] for e in props + gates if e.is_enabled()]
             return {"card": card, "choices": texts, "enabled": enabled, "answered": answered, "judgments": judgments}

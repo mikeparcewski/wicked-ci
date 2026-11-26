@@ -7,8 +7,11 @@ the rules it checked, and the card's own rule list, opened as a person would, na
 
 What this does not cover: a judge's verdict ON the rule. The hermetic roster has no judge the engine accepts for the
 rule check, so every rule in force reads "unchecked" and needs the person's call (the thin-roster card, as in U04).
-On a crew that asks the stand-in choice at a chat job's Start (wicked-crew#1884), the launch takes stand-ins for the
-job as U04's does, and a gate whose rule check holds the rule ends the journey whether or not a card asks the call.
+Two branches. A crew that never asks the stand-in choice: as above, the rule reads "unchecked" on the thin-roster card.
+A crew that asks it at a chat job's Start (wicked-crew#1884): the launch takes stand-ins for the job as U04's does, a
+stand-in judge may check the rule, and the journey ends at the rule-check card or at the gate whose rule check holds
+the rule; there the run's record must name the consent and label each stand-in, and no card may have asked the
+person's own judgment in place of the judge.
 A plan citing a rule is the `plan.compose` testing rules' path; a doctrine rule like this one is cited at review.
 """
 import json
@@ -96,6 +99,10 @@ def run(j):
     j.rec["cards"] = cards
     if not hit:
         return
+    if j.state.get("standIns"):
+        # The person chose stand-ins for the job: the record names that consent and labels each stand-in so far, and no
+        # card asked the person's own judgment in place of the missing judge.
+        u04.stand_in_record(j, rid, hit.get("answered") or [], used=False)
     # The wire: the CURRENT gate's structured rule rows (the rule check of this review step) hold the rule by its id;
     # the id appearing anywhere else in the gate (a note, a prompt) does not count.
     gate = j.get(f"/runs/{rid}/gate") or {}

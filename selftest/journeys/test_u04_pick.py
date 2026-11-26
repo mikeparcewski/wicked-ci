@@ -195,9 +195,6 @@ class SteerNote(unittest.TestCase):
                     self.assertFalse(any(call.args[0] == "each_decision_is_sent" for call in j.check.call_args_list))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class StandInRecord(unittest.TestCase):
     """wicked-crew#1884: after the person chose stand-ins for the job, the record names the consent and labels each."""
@@ -226,6 +223,25 @@ class StandInRecord(unittest.TestCase):
     def test_a_unit_on_a_stand_in_seat_needs_its_binding(self):
         self.assertNotEqual(u04.stand_in_problems(self.GOOD, [{"assigned_cli": "claude~2"}]), [])
 
-    def test_the_choice_is_read_by_its_words(self):
-        self.assertTrue(u04.STAND_INS.search("Use stand-ins for this job"))
-        self.assertFalse(u04.STAND_INS.search("Back to the job"))
+    def test_malformed_records_are_named_never_raised(self):
+        a = self.GOOD["assurance"]
+        for session in ({"assurance": {**a, "standIns": [None]}}, {"assurance": "x"}, {"assurance": {**a, "standIn": "job"}}, None):
+            with self.subTest(session=session):
+                self.assertNotEqual(u04.stand_in_problems(session, [None, {"assigned_cli": 3}]), [])
+
+    def test_numbers_are_real_numbers_and_slots_are_u32(self):
+        a = self.GOOD["assurance"]
+        for session in ({"assurance": {**a, "standIn": {**a["standIn"], "at": True}}},
+                        {"assurance": {**a, "standIn": {**a["standIn"], "at": float("inf")}}},
+                        {"assurance": {**a, "standIns": [{**a["standIns"][0], "slot": 4294967296, "key": "claude~4294967296"}]}},
+                        {"assurance": {**a, "standIns": [{**a["standIns"][0], "slot": True, "key": "claude~True"}]}}):
+            with self.subTest(session=session):
+                self.assertNotEqual(u04.stand_in_problems(session, []), [])
+
+    def test_the_disclosure_must_say_not_independent(self):
+        self.assertTrue(u04.NOT_INDEPENDENT.search("They are not independent reviews."))
+        self.assertFalse(u04.NOT_INDEPENDENT.search("Stand-ins are independent reviews."))
+        self.assertFalse(u04.NOT_INDEPENDENT.search("No helper could check this independently."))
+
+if __name__ == "__main__":
+    unittest.main()
