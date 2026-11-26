@@ -48,16 +48,19 @@ jobs:
       os_matrix: '["ubuntu-latest"]'
       artifact_suffix: pr
       wicked_ci_ref: ${{ github.event.pull_request.head.sha || github.sha }}
-  # The PREVIOUS published set (crew 0.7.32 / core-ts 0.7.23, explicitly pinned) — the expected-fail
-  # policy must read honestly on the set a customer who has not upgraded still runs: S05 EXPECTED-FAIL
-  # (F-E2E-021) with the malformed loop actually observed, S04's deliver-gate check EXPECTED-FAIL
-  # (F-E2E-030). One macOS leg keeps runner minutes low; its artifacts carry the `prev` suffix so the
-  # two invocations' verdict folds never see each other's legs.
+  # The PREVIOUS set: the last CERTIFIED train, a coherent crew + core-ts + garden set (wicked-ci#93). It is the set a
+  # customer who has not upgraded still runs, and its three parts were certified together. Train 15:
+  # wicked-crew 0.18.23, wicked-core-ts 0.15.51, wicked-garden 12.68.8. The release lane moves it forward at each
+  # train's certification. Never mix a set's parts with today's (`latest`): crew 0.7.32 + core-ts 0.7.23 under the
+  # newest garden refused every launch once garden 12.69.0 retired skills that old core's built-in workflows name
+  # (wicked-garden#1600). One macOS leg keeps runner minutes low; its artifacts carry the `prev` suffix so the two
+  # invocations' verdict folds never see each other's legs.
   smoke-previous-set:
     uses: ./.github/workflows/smoke.yml
     with:
-      crew_version: '0.7.32'
-      core_ts_version: '0.7.23'
+      crew_version: '0.18.23'
+      core_ts_version: '0.15.51'
+      garden_ref: '12.68.8'
       steps: ${{ inputs.steps || '' }}
       os_matrix: '["macos-latest"]'
       artifact_suffix: prev
