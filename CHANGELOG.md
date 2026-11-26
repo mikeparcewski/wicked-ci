@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### smoke — the previous set is the last certified train (wicked-ci#93)
+
+- `smoke-previous-set` ran crew 0.7.32 and core-ts 0.7.23 under the newest garden. That mix refused every launch once
+  garden 12.69.0 retired skills that old core's built-in workflows name (wicked-garden#1600), so the leg was red on
+  every run. The set is now the last certified train, with its parts certified together: train 15 is crew 0.18.23,
+  core-ts 0.15.51 and garden 12.68.8. The release lane moves it forward at each certification.
+
 ### selftest — U04 and U06 answer the chat job's stand-in choice (wicked-crew#1884)
 
 - A crew with wicked-crew#1884 asks the stand-in choice at a chat job's Start, as `POST /runs` does: on a roster short
