@@ -7,6 +7,8 @@ the rules it checked, and the card's own rule list, opened as a person would, na
 
 What this does not cover: a judge's verdict ON the rule. The hermetic roster has no judge the engine accepts for the
 rule check, so every rule in force reads "unchecked" and needs the person's call (the thin-roster card, as in U04).
+On a crew that asks the stand-in choice at a chat job's Start (wicked-crew#1884), the launch takes stand-ins for the
+job as U04's does, and a gate whose rule check holds the rule ends the journey whether or not a card asks the call.
 A plan citing a rule is the `plan.compose` testing rules' path; a doctrine rule like this one is cited at review.
 """
 import json
@@ -79,7 +81,16 @@ def run(j):
 
     def note(card, choices):
         cards.append(card[:1500])
-        return bool(u04.RULES_CARD.search(card))
+        if u04.RULES_CARD.search(card):
+            return True
+        # With stand-ins for this job (a thin roster, wicked-crew#1884) a stand-in judge may check the rules, so no card
+        # asks the person's call on them: the gate whose rule check holds the rule is the terminal card instead.
+        if not j.state.get("standIns"):
+            return False
+        try:
+            return RULE in rule_rows(j.get(f"/runs/{rid}/gate") or {})
+        except Exception:  # no open gate (404) or a busy daemon: not this card
+            return False
 
     hit = u04.steer(j, rid, until=note)
     j.rec["cards"] = cards

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### selftest — U04 and U06 answer the chat job's stand-in choice (wicked-crew#1884)
+
+- A crew with wicked-crew#1884 asks the stand-in choice at a chat job's Start, as `POST /runs` does: on a roster short
+  of an independent role with no `standInReview: 'always'`, the Start answers `409 stand_in_choice` and the card asks
+  "Use stand-ins for this job, or go back to the job and add another helper". The hermetic roster is that thin, so
+  U04 and U06 stopped at the 409 with no run (FAIL U04,U06 on wicked-crew#1954).
+- `launch` (U04, used by U06) now waits for the run or the card's question. Asked, it checks the question says
+  stand-ins are not independent reviews, presses "Use stand-ins for this job" (a person revision, 201), and Starts
+  again. The person's own path; the `always` setting would hide it.
+- On that path U04's delivery also checks the run's record: the launch consent (`standInAware`, `standIn` scope job
+  via launch, by and at), a label on every stand-in it seated (`<base>~<slot>`, role, state; as S04's
+  `checkStandInRecord`), at least one stand-in used, and no "approve as your own judgment" in place of the judge.
+- U06 ends at the rule-check card as before, or, with stand-ins for the job, at the gate whose rule check holds the
+  rule (a stand-in judge may check the rules, so no card asks the person's call).
+- A crew that never asks (a full roster, or before wicked-crew#1884) runs the old path unchanged.
+
 ### selftest — the stand-in record check says how many stand-ins it saw (wicked-core#1930 F8)
 
 - S04's roster is short only of conditional roles (a council, monitors), so its followed run usually seats no

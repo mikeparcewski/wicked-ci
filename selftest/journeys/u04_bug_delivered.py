@@ -32,6 +32,13 @@ JUDGE_CARD = re.compile(r"no helper could check this step independently", re.I)
 RULES_CARD = re.compile(r"steering rules? needs? your call|the rule \S+ needs your call", re.I)
 QE_SKIP = re.compile(r"skip (qe|the acceptance|acceptance)", re.I)
 CONFIRM = re.compile(r"^yes\b|confirm|^deliver$|^push", re.I)
+# The chat job's Start on a thin roster (wicked-crew#1884): crew answers 409 stand_in_choice and the card asks "Use
+# stand-ins for this job, or go back to the job and add another helper". The person takes stand-ins for this job: the
+# run then fills its short roles with labelled stand-ins instead of stopping at "No helper could check this step
+# independently". A full roster (or a crew before #1884) is never asked, and the journey runs the old path.
+STAND_INS = re.compile(r"^use stand-ins for this job", re.I)
+STAND_IN_ROLES = {"evaluator", "judge", "rule_judge", "qe_reviewer", "council", "monitor", "party_excluded"}
+STAND_IN_STATES = {"seated", "answered", "failed"}
 
 
 def run_of(j, rid):
@@ -66,8 +73,24 @@ def qe_off(j):
     j.shot("qe-setting")
 
 
+def stand_in_reply(p):
+    """The card's "Use stand-ins for this job" reply, when the card asks the stand-in choice; else None."""
+    for e in p.get_by_test_id("job-passage-reply").all():
+        if (e.get_attribute("data-reply") or "").startswith("choice:") and e.is_visible() and STAND_INS.search(e.inner_text().strip()):
+            return e
+    return None
+
+
+def press_start(p):
+    if p.get_by_role("button", name=re.compile(r"^Start")).count():
+        p.get_by_role("button", name=re.compile(r"^Start")).first.click()
+    else:
+        p.get_by_text(re.compile(r"^Start v\d")).first.click()
+
+
 def launch(j, intent, label):
-    """New job -> /bug -> the person's words -> corpus -> Review plan on -> Start. Returns the new run's id."""
+    """New job -> /bug -> the person's words -> corpus -> Review plan on -> Start (-> on a thin roster, "Use stand-ins
+    for this job" -> Start). Returns the new run's id."""
     p = j.page
     p.goto(j.origin + "/jobs", wait_until="domcontentloaded")
     j.check("rail_visible", j.wait(lambda: p.get_by_test_id("desk-rail-new-job").is_visible(), 90, "the rail"))
@@ -99,9 +122,37 @@ def launch(j, intent, label):
         tg.click()
         p.wait_for_timeout(800)
     j.shots(f"{label}-proposal")
-    p.get_by_role("button", name=re.compile(r"^Start")).first.click() if p.get_by_role("button", name=re.compile(r"^Start")).count() else p.get_by_text(re.compile(r"^Start v\d")).first.click()
+    press_start(p)
     words = intent[:40].lower()
-    rid = j.wait(lambda: next((r["session"]["id"] for r in j.get("/runs?limit=200").get("runs", []) if r["session"]["id"] not in before and words in (r["session"].get("problem") or "").lower()), None), 120, "the run to exist")
+
+    def new_run():
+        return next((r["session"]["id"] for r in j.get("/runs?limit=200").get("runs", []) if r["session"]["id"] not in before and words in (r["session"].get("problem") or "").lower()), None)
+
+    # The Start either launches, or (a thin roster, wicked-crew#1884) reopens the card with the stand-in question.
+    asked = []
+
+    def launched_or_asked():
+        if stand_in_reply(p) is not None:
+            asked.append(True)
+            return True
+        return new_run() is not None
+
+    j.wait(launched_or_asked, 120, "the run to exist, or the stand-in question")
+    j.state["standIns"] = bool(asked)
+    if asked:
+        q = p.get_by_test_id("job-passage-question")
+        text = q.last.inner_text()[:600] if q.count() else ""
+        j.check("stand_in_choice_asked_on_the_card", "stand-in" in text.lower() and "independent" in text.lower(), question=text)
+        j.shots(f"{label}-stand-in-question")
+        n0 = len(j.rec["writes"])
+        stand_in_reply(p).click()
+        revised = j.wait(lambda: any(re.match(r"201 POST /api/v1/chats/[^ ]+/proposals$", w) for w in j.rec["writes"][n0:]), 30, "the stand-in choice to be sent")
+        j.check("stand_in_choice_pressed", bool(revised), writes=j.rec["writes"][n0:])
+        # The card says the choice is made; its Start launches with stand-ins for this job.
+        j.wait(lambda: p.get_by_role("button", name=re.compile(r"^Start")).count() > 0 or p.get_by_text(re.compile(r"^Start v\d")).count() > 0, 60, "the card's Start")
+        p.wait_for_timeout(800)
+        press_start(p)
+    rid = j.wait(new_run, 120, "the run to exist")
     j.check("run_launched_from_the_ui", rid is not None and any(re.match(r"20\d POST /api/v1/", w) for w in j.rec["writes"]), run=rid, writes=j.rec["writes"][-6:])
     j.state["runId"] = rid
     return rid
@@ -159,6 +210,47 @@ def decision_matches(body, kind, note):
         return (body.get("approve") is True and body.get("action") in (None, "approve", "operator_judgment")
                 and body.get("amend") == note)
     return body.get("approve") is True
+
+
+def stand_in_problems(session, units):
+    """What the run's record lacks after the person chose stand-ins for this job (wicked-crew#1884): the launch
+    consent (`assurance.standInAware`, `standIn` scope job via launch, by and at), and a label on every stand-in it
+    seated (key `<base>~<slot>`, a core role and state; every unit on a stand-in seat has its binding). As wicked-ci
+    S04's `checkStandInRecord`. `[]` when the record is whole."""
+    a = (session or {}).get("assurance") or {}
+    c = a.get("standIn") or {}
+    out = []
+    if not (a.get("standInAware") is True and c.get("scope") == "job" and c.get("via") == "launch"
+            and isinstance(c.get("by"), str) and c.get("by") and isinstance(c.get("at"), (int, float))):
+        out.append(f"no launch consent on the record: standInAware={a.get('standInAware')!r} standIn={c!r}")
+    bindings = a.get("standIns")
+    if bindings is not None and not isinstance(bindings, list):
+        out.append(f"standIns is {bindings!r}")
+        bindings = []
+    bindings = bindings or []
+    for b in bindings:
+        base, slot = b.get("base"), b.get("slot")
+        if not (isinstance(base, str) and base and isinstance(slot, int) and slot >= 1 and b.get("key") == f"{base}~{slot}"
+                and b.get("role") in STAND_IN_ROLES and b.get("state") in STAND_IN_STATES):
+            out.append(f"unlabelled stand-in {b!r}")
+    keys = {b.get("key") for b in bindings}
+    for k in sorted({u.get("assigned_cli") for u in (units or []) if isinstance(u.get("assigned_cli"), str) and "~" in u.get("assigned_cli")}):
+        if k not in keys:
+            out.append(f"unit on stand-in seat {k} has no binding")
+    return out
+
+
+def stand_in_record(j, rid, answered):
+    """After the stand-in choice: the record names the consent and labels each stand-in, the run used at least one,
+    and no card asked the person for their own judgment in place of the missing judge."""
+    view = j.get(f"/runs/{rid}") or {}
+    session = view.get("session") or (run_of(j, rid) or {}).get("session") or {}
+    units = view.get("units") or []
+    problems = stand_in_problems(session, units)
+    bindings = ((session.get("assurance") or {}).get("standIns")) or []
+    j.check("stand_in_record_labelled", not problems, problems=problems[:6], standIns=[f"{b.get('key')}/{b.get('role')}/{b.get('state')}" for b in bindings][:10])
+    j.check("stand_ins_used_on_the_thin_roster", len(bindings) > 0, standIns=len(bindings))
+    j.check("no_own_judgment_in_place_of_a_stand_in", not any(JUDGMENT.search(a) for a in answered), answered=answered)
 
 
 def gate_post_for(j, rid, since, label, rules_pick, note):
@@ -287,6 +379,8 @@ def steer(j, rid, until=None, answer_then_return=None, stop_when=None):
     j.check("delivery_confirmed_with_yes", bool(confirmed), confirmed=confirmed)
     # The thin roster's judgments are the person's, labelled with their reason: disclosed, never hidden.
     j.rec["judgments"] = judgments
+    if j.state.get("standIns"):
+        stand_in_record(j, rid, answered)
     j.check("run_completed", s.get("status") == "completed", status=s.get("status"), delivery=s.get("delivery"))
     qe = (s.get("assurance") or {}).get("qe") or {}
     j.check("qe_labelled_not_passed", qe.get("basis") == "operator" and qe.get("status") in ("skipped", "not_required", "waived"), qe=qe)

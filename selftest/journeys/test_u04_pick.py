@@ -197,3 +197,35 @@ class SteerNote(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StandInRecord(unittest.TestCase):
+    """wicked-crew#1884: after the person chose stand-ins for the job, the record names the consent and labels each."""
+
+    GOOD = {"assurance": {"standInAware": True, "standIn": {"scope": "job", "by": "ann (human)", "at": 7, "via": "launch"},
+                          "standIns": [{"key": "claude~1", "base": "claude", "slot": 1, "role": "judge", "state": "answered"}]}}
+
+    def test_a_whole_record_passes(self):
+        self.assertEqual(u04.stand_in_problems(self.GOOD, [{"assigned_cli": "claude~1"}, {"assigned_cli": "claude"}]), [])
+
+    def test_each_way_the_record_falls_short_is_named(self):
+        a = self.GOOD["assurance"]
+        bad = [
+            {},
+            {"assurance": {**a, "standInAware": False}},
+            {"assurance": {**a, "standIn": {**a["standIn"], "scope": "always", "via": "setting"}}},
+            {"assurance": {**a, "standIn": {**a["standIn"], "by": ""}}},
+            {"assurance": {**a, "standIns": [{**a["standIns"][0], "key": "claude"}]}},
+            {"assurance": {**a, "standIns": [{**a["standIns"][0], "role": "builder"}]}},
+            {"assurance": {**a, "standIns": "claude~1"}},
+        ]
+        for session in bad:
+            with self.subTest(session=session):
+                self.assertNotEqual(u04.stand_in_problems(session, []), [])
+
+    def test_a_unit_on_a_stand_in_seat_needs_its_binding(self):
+        self.assertNotEqual(u04.stand_in_problems(self.GOOD, [{"assigned_cli": "claude~2"}]), [])
+
+    def test_the_choice_is_read_by_its_words(self):
+        self.assertTrue(u04.STAND_INS.search("Use stand-ins for this job"))
+        self.assertFalse(u04.STAND_INS.search("Back to the job"))
