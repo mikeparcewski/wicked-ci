@@ -264,7 +264,12 @@ def decision_matches(body, kind, note):
 
 
 def _num(x):
-    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+    if not isinstance(x, (int, float)) or isinstance(x, bool):
+        return False
+    try:
+        return math.isfinite(x)
+    except OverflowError:  # an int past float range (10**400) is not a timestamp
+        return False
 
 
 def stand_in_problems(session, units):

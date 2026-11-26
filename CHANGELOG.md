@@ -14,8 +14,12 @@
 - On that path U04's delivery also checks the run's record: the launch consent (`standInAware`, `standIn` scope job
   via launch, by and at), a label on every stand-in it seated (`<base>~<slot>`, role, state; as S04's
   `checkStandInRecord`), at least one stand-in used, and no "approve as your own judgment" in place of the judge.
-- U06 ends at the rule-check card as before, or, with stand-ins for the job, at the gate whose rule check holds the
-  rule (a stand-in judge may check the rules, so no card asks the person's call).
+- U06 ends at the rule-check card as before. With stand-ins for the job, a stand-in judge checks the rules and no rules
+  card comes: U06 answers the cards until the run settles, then checks the record (with a stand-in that answered),
+  the rule in the run's recorded rule check (`gateEvaluated` `assurance.rules` on `GET /runs/:id/events`), and the
+  rule on the run page's rules list.
+- The record check names a malformed field (including an explicit `standIns: null`, a failed `GET /runs/:id` or one
+  without units) instead of raising.
 - A crew that never asks (a full roster, or before wicked-crew#1884) runs the old path unchanged.
 
 ### selftest — the stand-in record check says how many stand-ins it saw (wicked-core#1930 F8)

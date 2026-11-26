@@ -271,6 +271,10 @@ class StandInRecord(unittest.TestCase):
         self.assertEqual(out, {"answered": [], "seen": []})
         j.check.assert_not_called()
 
+    def test_a_timestamp_past_float_range_is_named_never_raised(self):
+        a = self.GOOD["assurance"]
+        self.assertNotEqual(u04.stand_in_problems({"assurance": {**a, "standIn": {**a["standIn"], "at": 10**400}}}, []), [])
+
     def test_numbers_are_real_numbers_and_slots_are_u32(self):
         a = self.GOOD["assurance"]
         for session in ({"assurance": {**a, "standIn": {**a["standIn"], "at": True}}},
@@ -287,28 +291,29 @@ class StandInRecord(unittest.TestCase):
 
 
 class U06RecordedRules(unittest.TestCase):
-    """U06's stand-in branch reads the rule where the run recorded its rule check. The rows are wicked-crew
-    tests/fixtures/stand-in-receipts.wire.json gateEvaluated ord 3 `assurance.rules` (train-14 proof daemon), verbatim
-    in shape: a `how` row with no top-level status, a `status` row, and a proposal rule with its key."""
+    """U06's stand-in branch reads the rule where the run recorded its rule check. The rows are copied from wicked-crew
+    tests/fixtures/stand-in-receipts.wire.json, gateEvaluated ord 3 `assurance.rules` (train-14 proof daemon), with
+    their own keys (every row there has a top-level `status`); only long hashes and reasons are shortened."""
 
     ROWS = [
-        {"evidenceKey": "e3", "how": "operator", "origin": "operator", "reason": "skipped by local (human)",
-         "reviewer": {"by": "reviewer", "cite": "no code", "seat": "claude~1", "status": "kept"}, "ruleId": "POL-2101"},
-        {"blocking": False, "evidenceKey": "2a", "how": "none", "party": "engine", "reason": "no distinct judge seat",
-         "ruleId": "RVWL-1002"},
+        {"evidenceKey": "e3cc", "how": "operator", "origin": "operator", "reason": "skipped by local (human)",
+         "reviewer": {"by": "reviewer", "cite": "no code", "seat": "claude~1", "status": "kept"}, "ruleId": "POL-2101",
+         "status": "skipped"},
+        {"blocking": False, "evidenceKey": "2af9", "how": "none", "party": "engine", "reason": "no distinct judge seat",
+         "ruleId": "RVWL-1002", "status": "unchecked"},
         {"how": "fact", "origin": "fact", "reason": "selected only for tool tokens", "ruleId": "EDITOR-GRANTS",
-         "ruleKey": "15", "status": "n_a"},
+         "ruleKey": "1529", "status": "n_a"},
     ]
 
     def setUp(self):
         import u06_steering_cited as u06
         self.u06 = u06
 
-    def test_rows_with_how_and_no_status_are_rule_rows(self):
+    def test_the_recorded_rows_are_read_by_rule_id(self):
         events = [{"type": "gateEvaluated", "ord": 3, "assurance": {"rules": self.ROWS}}]
         self.assertEqual(self.u06.recorded_rule_rows(events), ["POL-2101", "RVWL-1002", "EDITOR-GRANTS"])
 
-    def test_only_gate_frames_and_named_rows_count(self):
+    def test_only_gate_frames_and_rows_with_an_outcome_count(self):
         events = [
             {"type": "noteAdded", "text": "DEV-ST-U06"},
             {"type": "gateEvaluated", "ord": 2, "assurance": {"rules": [{"ruleId": "DEV-ST-U06"}]}},
@@ -322,7 +327,6 @@ class U06RecordedRules(unittest.TestCase):
         events = [{"type": "gateEvaluated", "ord": 2, "assurance": {"rules": []}},
                   {"type": "gateEvaluated", "ord": 4, "assurance": {"rules": [dict(self.ROWS[1], ruleId="DEV-ST-U06")]}}]
         self.assertIn("DEV-ST-U06", self.u06.recorded_rule_rows(events))
-
 
 if __name__ == "__main__":
     unittest.main()

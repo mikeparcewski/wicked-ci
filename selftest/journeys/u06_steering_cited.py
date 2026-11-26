@@ -63,9 +63,7 @@ def rule_rows(doc):
     out = []
     if isinstance(doc, dict):
         rid = doc.get("ruleId") or doc.get("rule_id")
-        # A row names how it was decided (`how`, wicked-core's assurance rows) or its outcome; a stand-in judge's or
-        # the operator's row has `how` and no top-level status (crew tests/fixtures/stand-in-receipts.wire.json, ord 3).
-        if isinstance(rid, str) and any(k in doc for k in ("verdict", "status", "outcome", "result", "state", "how")):
+        if isinstance(rid, str) and any(k in doc for k in ("verdict", "status", "outcome", "result", "state")):
             out.append(rid)
         for v in doc.values():
             out += rule_rows(v)
