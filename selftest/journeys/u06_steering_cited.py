@@ -82,6 +82,37 @@ def recorded_rule_rows(events):
     return out
 
 
+# Where studio lists a run's checked rules (studio src/components/session): an open gate row's list
+# (GateRow.tsx, "session-gate-rules"), and, in the run's Details panel, the Checks section's list (RunTab.tsx,
+# "run-tab-rules") or the delivery receipt's list in the Changes section (AssuranceReceipt.tsx "assurance-rules",
+# rendered by RunTab.tsx's delivery block). A finished run has no open gate row, so only the panel's lists are there.
+RULE_LISTS = '[data-testid="session-gate-rules"], [data-testid="run-tab-rules"], [data-testid="assurance-rules"]'
+# The panel sections that hold those lists (RunTab.tsx: the Checks and Changes sections).
+RULE_SECTIONS = ("checks", "changes")
+
+
+def finished_run_rules_text(p):
+    """The text of every rules list on a run page, after opening what a person opens to see it: the Details panel's
+    "Evidence and record" link (it opens the Checks section), the Checks and Changes sections if still folded, and each
+    list's own disclosure. A click that fails raises, for the caller's wait to retry."""
+    evidence = p.get_by_test_id("run-tab-glance-evidence")
+    if evidence.count():
+        evidence.first.click(timeout=3000)
+    for section in RULE_SECTIONS:
+        toggle = p.locator(f'[data-testid="run-panel-toggle"][data-section="{section}"]')
+        if toggle.count() and toggle.first.get_attribute("aria-expanded") != "true":
+            toggle.first.click(timeout=3000)
+    lists = p.locator(RULE_LISTS)
+    acc = []
+    for i in range(lists.count()):
+        el = lists.nth(i)
+        summary = el.locator("summary")
+        if el.get_attribute("open") is None and summary.count():
+            summary.first.click(timeout=3000)
+        acc.append(el.inner_text(timeout=3000))
+    return "\n".join(acc)
+
+
 def stand_in_branch(j, rid, u04, note, cards):
     """Stand-ins for this job (a thin roster, wicked-crew#1884): a stand-in judge checks the rules, so no card asks the
     person's call on them and the run goes on to its delivery. The person answers the cards that come; the rule is then
@@ -111,20 +142,13 @@ def stand_in_branch(j, rid, u04, note, cards):
         why = None
     rows = recorded_rule_rows(events)
     j.check("rule_in_the_runs_rule_check", RULE in rows, rules=rows[:30], error=why)
-    # The run page: some gate row's "N rules checked" line lists the rule (the person's way to see it applied).
+    # The run page: the run's "N rules checked" list names the rule (the person's way to see it applied). The run has
+    # finished, so no gate row is open: the list is in the run's Details panel, under "Evidence and record".
     p.goto(f"{j.origin}/s/run%3A{rid}", wait_until="domcontentloaded")
     seen = {"listed": ""}
 
     def rule_listed():
-        lists = p.get_by_test_id("session-gate-rules")
-        acc = []
-        for i in range(lists.count()):
-            el = lists.nth(i)
-            summary = el.locator("summary")
-            if el.get_attribute("open") is None and summary.count():
-                summary.first.click(timeout=3000)
-            acc.append(el.inner_text(timeout=3000))
-        seen["listed"] = "\n".join(acc)
+        seen["listed"] = finished_run_rules_text(p)
         return RULE in seen["listed"]
 
     # The page reads the run after it loads: wait for its rules lists (a click or read that fails is retried, then named).

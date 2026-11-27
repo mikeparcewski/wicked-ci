@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### selftest — U06 reads a finished run's rules where studio shows them (wicked-crew#1963)
+
+- On the stand-in path U06's run has finished before the page is read, so no gate row is open and the gate row's rules
+  list (`session-gate-rules`) is not on the page. wicked-crew#1963's selftest (U06 at wicked-ci 65ba04cc) failed only
+  `run_page_lists_the_rule` for that reason; the run's recorded rule check named the rule.
+- U06 now opens what a person opens, the run's Details panel "Evidence and record" link and the Checks and Changes
+  sections, and reads studio's rules lists there (`run-tab-rules`, the delivery receipt's `assurance-rules`) as well
+  as an open gate row's.
+
 ### smoke — the previous set is the last certified train (wicked-ci#93)
 
 - `smoke-previous-set` ran crew 0.7.32 and core-ts 0.7.23 under the newest garden. That mix refused every launch once
