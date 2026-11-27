@@ -330,3 +330,97 @@ class U06RecordedRules(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class _Loc:
+    """A Playwright locator stand-in over a list of fake elements."""
+
+    def __init__(self, items):
+        self.items = items
+
+    def count(self):
+        return len(self.items)
+
+    @property
+    def first(self):
+        return self.items[0]
+
+    def nth(self, i):
+        return self.items[i]
+
+
+class _El:
+    def __init__(self, page, attrs=None, on_click=None, text="", summary=False):
+        self.page, self.attrs, self.on_click, self.text = page, dict(attrs or {}), on_click, text
+        self.summary = _El(page, on_click=lambda: self.attrs.__setitem__("open", "")) if summary else None
+
+    def get_attribute(self, name):
+        return self.attrs.get(name)
+
+    def click(self, timeout=None):
+        self.page.clicks.append(self.attrs.get("testid") or self.attrs.get("data-section") or "summary")
+        if self.on_click:
+            self.on_click()
+
+    def locator(self, sel):
+        return _Loc([self.summary] if sel == "summary" and self.summary else [])
+
+    def inner_text(self, timeout=None):
+        return self.text if "open" in self.attrs else "2 rules checked"
+
+
+class _FinishedRunPage:
+    """A finished, delivered run's page as studio renders it: no gate row; the Details panel's Checks and Changes
+    sections start folded, the run's rules list is inside the delivery receipt in Changes (AssuranceReceipt.tsx
+    "assurance-rules"), and the "Evidence and record" link opens Checks (RunTab.tsx)."""
+
+    def __init__(self, rules_in="changes"):
+        self.open = {"checks": False, "changes": False}
+        self.clicks = []
+        self.rules_in = rules_in
+        self.list = _El(self, {"testid": "assurance-rules" if rules_in == "changes" else "run-tab-rules"},
+                        text="2 rules checked\nDEV-ST-U06 applied\nPOL-2101 skipped", summary=True)
+
+    def _open(self, s):
+        self.open[s] = True
+
+    def get_by_test_id(self, tid):
+        if tid == "run-tab-glance-evidence":
+            return _Loc([_El(self, {"testid": tid}, on_click=lambda: self._open("checks"))])
+        return _Loc([self.list] if tid == self.list.attrs["testid"] and self.open[self.rules_in] else [])
+
+    def locator(self, sel):
+        if sel.startswith('[data-testid="run-panel-toggle"]'):
+            s = sel.split('data-section="')[1].split('"')[0]
+            return _Loc([_El(self, {"data-section": s, "aria-expanded": "true" if self.open[s] else "false"},
+                             on_click=lambda: self._open(s))])
+        wanted = [t.split('"')[1] for t in sel.split(", ")]
+        shown = self.list.attrs["testid"] in wanted and self.open[self.rules_in]
+        return _Loc([self.list] if shown else [])
+
+
+class U06FinishedRunRules(unittest.TestCase):
+    """On the stand-in path U06's run has finished when the page is read: no gate row is open, so the rules list is in
+    the run's Details panel (wicked-crew#1963's selftest found `session-gate-rules` empty on that page)."""
+
+    def setUp(self):
+        import u06_steering_cited as u06
+        self.u06 = u06
+
+    def test_the_rule_is_read_from_the_delivery_receipt_after_opening_changes(self):
+        page = _FinishedRunPage("changes")
+        self.assertIn("DEV-ST-U06", self.u06.finished_run_rules_text(page))
+        self.assertEqual(page.clicks, ["run-tab-glance-evidence", "changes", "summary"])
+
+    def test_the_rule_is_read_from_the_checks_section(self):
+        page = _FinishedRunPage("checks")
+        self.assertIn("DEV-ST-U06", self.u06.finished_run_rules_text(page))
+        self.assertNotIn("checks", page.clicks)  # the Evidence link already opened it
+
+    def test_a_gate_row_list_alone_finds_nothing_on_a_finished_run(self):
+        page = _FinishedRunPage("changes")
+        self.assertEqual(page.locator('[data-testid="session-gate-rules"]').count(), 0)
+
+    def test_every_studio_rules_list_is_read(self):
+        for tid in ("session-gate-rules", "run-tab-rules", "assurance-rules"):
+            self.assertIn(f'[data-testid="{tid}"]', self.u06.RULE_LISTS)
